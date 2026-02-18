@@ -1,0 +1,101 @@
+# ----------------------------
+# OS
+# ----------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ----------------------------
+# Python
+# ----------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.env
+.venv/
+venv/
+env/
+pip-wheel-metadata/
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ----------------------------
+# Node / Frontend
+# ----------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+dist/
+build/
+.next/
+out/
+
+# ----------------------------
+# IDE
+# ----------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+.idea/
+
+.qodo
+
+# ----------------------------
+# Logs
+# ----------------------------
+*.log
+logs/
+
+# ----------------------------
+# CI / Artifacts
+# ----------------------------
+*.zip
+*.tar.gz
+*.tgz
+artifacts/
+reports/
+
+# ----------------------------
+# Security / Secrets
+# ----------------------------
+.env.*
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+
+# ----------------------------
+# Evaluation / Data
+# ----------------------------
+data/
+datasets/
+*.sqlite3
+*.db
+*.csv
+*.parquet
+
+# ----------------------------
+# Docker
+# ----------------------------
+docker-compose.override.yml
+
+# ----------------------------
+# Mac / Windows noise
+# ----------------------------
+*.swp
+*.swo

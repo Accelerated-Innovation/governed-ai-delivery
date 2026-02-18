@@ -1,0 +1,10 @@
+---
+EXAMPLE
+---
+criteria:
+  - name: groundedness
+    input: user_ask
+    expected_behavior: should match retrieved context
+    eval_class: retrieval_match
+    threshold: 0.9
+    fail_on: below_threshold

@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/governed-ai-delivery/governance/schemas/eval_criteria.schema.json",
+  "title": "Eval Criteria Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "mode", "criteria"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "Schema version for the eval_criteria.yaml instance.",
+      "minimum": 1
+    },
+    "mode": {
+      "type": "string",
+      "description": "Controls whether CI runs LLM evals, deterministic checks, or skips eval execution.",
+      "enum": ["llm", "deterministic", "none"]
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Required when mode is none. Explains why evaluation execution is not applicable."
+    },
+    "owner": {
+      "type": "string",
+      "description": "Optional. Team or role responsible for keeping criteria accurate."
+    },
+    "criteria": {
+      "type": "array",
+      "description": "List of evaluation checks for this feature.",
+      "items": { "$ref": "#/$defs/criterion" }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "mode": { "const": "none" } },
+        "required": ["mode"]
+      },
+      "then": {
+        "required": ["rationale"],
+        "properties": {
+          "criteria": { "maxItems": 0 }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "mode": { "enum": ["llm", "deterministic"] } },
+        "required": ["mode"]
+      },
+      "then": {
+        "properties": {
+          "criteria": { "minItems": 1 }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "criterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "eval_class", "threshold", "fail_on"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Human-readable metric name.",
+          "minLength": 1
+        },
+        "input": {
+          "type": "string",
+          "description": "Named input field or scenario identifier (ex: user_ask)."
+        },
+        "expected_behavior": {
+          "type": "string",
+          "description": "What success looks like for this check."
+        },
+        "eval_class": {
+          "type": "string",
+          "description": "Evaluator identifier used by your harness (ex: retrieval_match).",
+          "minLength": 1
+        },
+        "threshold": {
+          "type": "number",
+          "description": "Threshold required to pass. Use 0..1 for normalized metrics.",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fail_on": {
+          "type": "string",
+          "description": "Failure policy when the check does not meet expectations.",
+          "enum": ["below_threshold", "above_threshold", "error", "missing_signal"]
+        },
+        "weight": {
+          "type": "number",
+          "description": "Optional. Relative importance of this criterion for aggregate scoring.",
+          "minimum": 0
+        },
+        "tags": {
+          "type": "array",
+          "description": "Optional. Tags for grouping and reporting.",
+          "items": { "type": "string" }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional. Implementation notes for evaluators or reviewers."
+        }
+      }
+    }
+  }
+}
