@@ -137,3 +137,10 @@ features/cool_feature/
 ## 📄 License
 
 > *TODO: Add license details if needed.*
+
+---
+
+## Copilot Prompts explained
+
+[Watch on YouTube](https://youtu.be/0XoXNG65rfg?si=sWwyYr84zgNr5mRz)
+

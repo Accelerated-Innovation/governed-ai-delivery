@@ -67,7 +67,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> UserContext:
 - All logs must include:
   - `request_id`, `user_id`
   - Masked identifiers (emails, tokens)
-
+- Use Opentelemetry and structured logging
 ---
 
 ## 6. Input Validation
