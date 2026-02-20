@@ -4,7 +4,7 @@
   "title": "Eval Criteria Schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "mode", "criteria"],
+  "required": ["version", "mode"],
   "properties": {
     "version": {
       "type": "integer",
@@ -24,12 +24,62 @@
       "type": "string",
       "description": "Optional. Team or role responsible for keeping criteria accurate."
     },
+
+    "unit_tests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enforce_FIRST", "minimum_FIRST_average"],
+      "properties": {
+        "enforce_FIRST": { "type": "boolean" },
+        "minimum_FIRST_average": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        }
+      }
+    },
+
+    "code_quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enforce_virtues", "minimum_virtue_average"],
+      "properties": {
+        "enforce_virtues": { "type": "boolean" },
+        "minimum_virtue_average": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        }
+      }
+    },
+
+    "llm_evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["criteria"],
+      "properties": {
+        "criteria": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/criterion" }
+        },
+        "dataset": {
+          "type": "string",
+          "description": "Path or identifier for the eval dataset/prompt set."
+        },
+        "fail_on_regression": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+
     "criteria": {
       "type": "array",
-      "description": "List of evaluation checks for this feature.",
+      "description": "Legacy: prefer llm_evaluation.criteria. Retained for compatibility.",
       "items": { "$ref": "#/$defs/criterion" }
     }
   },
+
   "allOf": [
     {
       "if": {
@@ -39,71 +89,49 @@
       "then": {
         "required": ["rationale"],
         "properties": {
-          "criteria": { "maxItems": 0 }
+          "criteria": { "maxItems": 0 },
+          "llm_evaluation": false
         }
       }
     },
     {
       "if": {
-        "properties": { "mode": { "enum": ["llm", "deterministic"] } },
+        "properties": { "mode": { "const": "llm" } },
         "required": ["mode"]
       },
       "then": {
-        "properties": {
-          "criteria": { "minItems": 1 }
-        }
+        "required": ["unit_tests", "code_quality", "llm_evaluation"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "mode": { "const": "deterministic" } },
+        "required": ["mode"]
+      },
+      "then": {
+        "required": ["unit_tests", "code_quality"]
       }
     }
   ],
+
   "$defs": {
     "criterion": {
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "eval_class", "threshold", "fail_on"],
       "properties": {
-        "name": {
-          "type": "string",
-          "description": "Human-readable metric name.",
-          "minLength": 1
-        },
-        "input": {
-          "type": "string",
-          "description": "Named input field or scenario identifier (ex: user_ask)."
-        },
-        "expected_behavior": {
-          "type": "string",
-          "description": "What success looks like for this check."
-        },
-        "eval_class": {
-          "type": "string",
-          "description": "Evaluator identifier used by your harness (ex: retrieval_match).",
-          "minLength": 1
-        },
-        "threshold": {
-          "type": "number",
-          "description": "Threshold required to pass. Use 0..1 for normalized metrics.",
-          "minimum": 0,
-          "maximum": 1
-        },
+        "name": { "type": "string", "minLength": 1 },
+        "input": { "type": "string" },
+        "expected_behavior": { "type": "string" },
+        "eval_class": { "type": "string", "minLength": 1 },
+        "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
         "fail_on": {
           "type": "string",
-          "description": "Failure policy when the check does not meet expectations.",
           "enum": ["below_threshold", "above_threshold", "error", "missing_signal"]
         },
-        "weight": {
-          "type": "number",
-          "description": "Optional. Relative importance of this criterion for aggregate scoring.",
-          "minimum": 0
-        },
-        "tags": {
-          "type": "array",
-          "description": "Optional. Tags for grouping and reporting.",
-          "items": { "type": "string" }
-        },
-        "notes": {
-          "type": "string",
-          "description": "Optional. Implementation notes for evaluators or reviewers."
-        }
+        "weight": { "type": "number", "minimum": 0 },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" }
       }
     }
   }
