@@ -19,28 +19,25 @@ Copilot operates inside a governed system. Architecture, evaluation, and feature
 ## 1️⃣ Create a Repository
 
 ```bash
-gh repo create my-new-project --template <this-repo>
+gh repo create my-new-project --template Accelerated-Innovation/governed-ai-delivery
 ```
 
 ## 2️⃣ Create a Feature Folder
 
 ```
 features/my_feature/
-  ├─ my_feature.feature
+  ├─ acceptance.feature
   ├─ nfrs.md
-  └─ eval_criteria.yaml
+  ├─ eval_criteria.yaml
+  ├─ plan.md
+  └─ architecture_preflight.md
 ```
 
 `eval_criteria.yaml` may start minimal. It will be updated during planning.
 
 ## 3️⃣ Open in VS Code
 
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-pre-commit install
-```
+No dependencies are required yet. If/when dependencies are added, this section will be updated.
 
 Enable GitHub Copilot Chat (Plan + Agent modes).
 
@@ -52,9 +49,11 @@ Assume this structure:
 
 ```
 features/cool_feature/
-  ├─ cool_feature.feature
+  ├─ acceptance.feature
   ├─ nfrs.md
-  └─ eval_criteria.yaml
+  ├─ eval_criteria.yaml
+  ├─ plan.md
+  └─ architecture_preflight.md
 ```
 
 ---
