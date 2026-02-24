@@ -16,13 +16,20 @@ Copilot operates inside a governed system. Architecture, evaluation, and feature
 
 # ⚡️ Quickstart
 
-## 1️⃣ Create a Repository
+## 1️⃣ Apply Template Locally to an existing Repository
+
+from your local repo root, run:
 
 ```bash
-gh repo create my-new-project --template Accelerated-Innovation/governed-ai-delivery
+git remote add template https://github.com/Accelerated-Innovation/governed-ai-delivery.git
+git fetch template
+git checkout template/main -- .
+git commit -m "Apply governed-ai-delivery template"
 ```
 
 ## 2️⃣ Create a Feature Folder
+
+Create or edit the feature folder structure. Add the following files for each feature you want to implement: You can do this one at a time as you implement each feature.
 
 ```
 features/my_feature/
