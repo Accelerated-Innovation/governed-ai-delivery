@@ -122,18 +122,8 @@ raise HTTPException(status_code=400, detail={"code": "INVALID_INPUT", "message":
 
 ---
 
-## 9. Adapter Boundaries
+### 9. Adapter Boundaries
 
-* `/api/**` may import:
-
-  * `ports/inbound/**`
-  * domain DTOs and enums
-  * common logging or metrics utils
-
-* `/api/**` may **not** import:
-
-  * adapter implementations
-  * outbound port interfaces
-  * service logic from other adapters
-
-* All boundaries are enforced via `import-linter`
+The API layer is an inbound adapter located under:
+```
+src/app/spi

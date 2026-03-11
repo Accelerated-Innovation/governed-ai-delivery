@@ -23,7 +23,7 @@ Before planning or generating code:
 
 * Read all files under `docs/architecture/`
 * Read `docs/evaluation/eval_criteria.md`
-* Apply architecture and evaluation contracts as binding constraints
+* Apply architecture, testing, technology, agent, and evaluation contracts as binding constraints
 * Confirm required feature artifacts exist
 
 If required inputs are missing, stop and ask.
@@ -104,6 +104,7 @@ The plan must:
 * Define explicit increments (`### Increment 1`, etc.)
 * List deliverables per increment
 * List tests per increment
+* Map Gherkin scenarios to BDD integration tests
 * State evaluation impact per increment
 * Include an **Evaluation Compliance Summary** predicting:
 
@@ -112,6 +113,8 @@ The plan must:
   * Refactor triggers
 * Reference ADRs
 * Reference architecture contracts
+* Reference technology standards
+* Reference agent architecture standards
 * Reference evaluation standards
 
 If predicted evaluation thresholds are not met:
@@ -202,6 +205,11 @@ Copilot must not generate implementation code until these conditions are satisfi
 * Enforce authorization at entry points
 * Avoid sensitive data in logs
 
+### 7.5 Technology Constraints
+
+* Use only approved frameworks, libraries, and tools defined in `docs/architecture/TECH_STACK.md`
+* New technologies require an ADR before implementation
+
 ---
 
 ## 8. Evaluation Discipline
@@ -236,27 +244,21 @@ CI evaluation gates are binding.
 
 ## 9. Testing Requirements
 
-Each increment must include:
+Each increment must include tests aligned to:
 
-* Unit tests compliant with FIRST:
+- `docs/architecture/TESTING.md`
+- `features/<feature_name>/acceptance.feature`
+- `features/<feature_name>/nfrs.md`
 
-  * Fast
-  * Isolated
-  * Repeatable
-  * Self-verifying
-  * Timely
-* Contract tests (if APIs involved)
-* Integration tests (if cross-boundary)
+Required test categories include:
 
-Tests must avoid:
+- Unit tests compliant with FIRST
+- BDD integration tests derived from Gherkin scenarios
+- Contract tests when APIs, ports, or external integrations are affected
 
-* Real network calls
-* Real database access
-* Shared mutable state
-* Order-dependent execution
+If a Gherkin scenario is not automated, the gap must be documented in `plan.md`.
 
-FIRST violations require refactor before proceeding.
-
+Testing violations require refactor before proceeding.
 ---
 
 ## 10. Static Analysis and Quality Gates
@@ -268,7 +270,31 @@ All generated code must pass:
 * Security scans
 * Evaluation gates (if applicable)
 
-Violations must be fixed before proceeding.
+Violations must be fixed before proceeding. 
+
+### 10.1 Development Tool Usage
+
+During planning and implementation, Copilot may use approved development tools defined in:
+
+- `docs/architecture/TECH_STACK.md`
+- `docs/architecture/AGENT_ARCHITECTURE.md`
+
+These tools may include:
+
+- Ruff
+- SonarQube
+- Snyk
+- import-linter
+
+Copilot must use tool findings to:
+
+- detect lint and formatting issues
+- identify structural complexity
+- identify duplicated logic
+- detect security vulnerabilities
+- validate architecture boundary compliance
+
+Blocking findings must be resolved before proceeding.
 
 ---
 
