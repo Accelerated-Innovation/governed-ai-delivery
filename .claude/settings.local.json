@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:openai.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:developers.openai.com)",
+      "WebFetch(domain:platform.openai.com)",
+      "WebFetch(domain:docs.qodo.ai)",
+      "WebFetch(domain:www.qodo.ai)",
+      "WebFetch(domain:qodo-merge-docs.qodo.ai)",
+      "WebFetch(domain:marketplace.visualstudio.com)"
+    ]
+  }
+}

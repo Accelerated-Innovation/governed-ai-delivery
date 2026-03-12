@@ -1,0 +1,24 @@
+{
+  "agent": "copilot",
+  "description": "GitHub Copilot — path-scoped instructions and reusable Chat prompts",
+  "files": [
+    {
+      "src": "copilot-instructions.md",
+      "dest": ".github/copilot-instructions.md"
+    },
+    {
+      "src": "instructions/",
+      "dest": ".github/instructions/"
+    },
+    {
+      "src": "prompts/",
+      "dest": ".github/prompts/"
+    }
+  ],
+  "shared": [
+    "docs/",
+    "features/",
+    "governance/",
+    "ci/"
+  ]
+}
