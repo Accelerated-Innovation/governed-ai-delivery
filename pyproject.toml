@@ -16,6 +16,10 @@ packages = ["cli"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "agents" = "cli/agents"
+"docs" = "cli/docs"
+"features" = "cli/features"
+"governance" = "cli/governance"
+"ci" = "cli/ci"
 
 [tool.ruff]
 line-length = 100
