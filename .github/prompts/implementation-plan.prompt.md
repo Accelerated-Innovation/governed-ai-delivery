@@ -1,3 +1,8 @@
+---
+description: "Generate an ordered implementation checklist with evaluation compliance summary from a validated preflight"
+agent: "ask"
+---
+
 # Implementation Plan Prompt
 
 You are writing an implementation plan based on a validated architecture preflight.
@@ -11,7 +16,7 @@ This plan must be evaluation-driven.
 Use the following artifacts:
 
 * `features/<FEATURE>/nfrs.md`
-* `features/<FEATURE>/<FEATURE>.feature`
+* `features/<FEATURE>/acceptance.feature`
 * `features/<FEATURE>/eval_criteria.yaml`
 * `docs/evaluation/eval_criteria.md`
 * `docs/architecture/**`

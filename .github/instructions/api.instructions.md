@@ -1,3 +1,7 @@
+---
+applyTo: "**/api/**"
+---
+
 Follow the public API conventions defined in `docs/architecture/API_CONVENTIONS.md`.
 
 All routes in `/api/**` must:

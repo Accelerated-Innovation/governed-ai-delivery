@@ -1,3 +1,8 @@
+---
+description: "Author an Architecture Decision Record for a new pattern, exception, or boundary change"
+agent: "ask"
+---
+
 # ADR Author Prompt
 
 You are writing an Architecture Decision Record (ADR) to document a change or exception to the architecture.

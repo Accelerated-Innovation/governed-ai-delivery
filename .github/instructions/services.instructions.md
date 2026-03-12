@@ -1,3 +1,7 @@
+---
+applyTo: "**/services/**"
+---
+
 # Service Layer Instructions
 
 Applies to all modules under `/services/**`. Services implement core business logic in alignment with Hexagonal Architecture.

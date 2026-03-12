@@ -1,3 +1,7 @@
+---
+applyTo: "**/ports/**"
+---
+
 # Port Layer Instructions
 
 These rules apply to all files under `/ports/**`. Ports define interfaces that decouple the domain logic from framework and infrastructure details.

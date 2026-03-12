@@ -1,3 +1,8 @@
+---
+description: "Run before planning any feature to validate architecture boundaries, standards alignment, and ADR need"
+agent: "ask"
+---
+
 # Architecture Preflight Prompt
 
 You are preparing to plan and implement a new feature.

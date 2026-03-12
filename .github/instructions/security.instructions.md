@@ -1,3 +1,7 @@
+---
+applyTo: "**/security/**,**/auth/**"
+---
+
 # Security and Authentication Instructions
 
 These rules apply to all files under `/security/**`, `/auth/**`, and any code handling login, tokens, identity, or protected routes. They align with the architectural patterns in `SECURITY_AUTH_PATTERNS.md`.

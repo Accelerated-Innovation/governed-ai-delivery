@@ -1,3 +1,7 @@
+---
+applyTo: "**/adapters/**"
+---
+
 # Adapter Layer Instructions
 
 These rules apply to all files under `/adapters/**`.

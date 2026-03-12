@@ -1,3 +1,8 @@
+---
+description: "Generate a feature plan (plan.md) and eval_criteria.yaml from NFRs and acceptance scenarios"
+agent: "ask"
+---
+
 Plan the implementation of the feature: **{{FEATURE_NAME}}**
 
 ## Inputs to read
