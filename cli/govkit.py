@@ -14,8 +14,11 @@ import sys
 from pathlib import Path
 
 
-AGENTS_DIR = Path(__file__).parent.parent / "agents"
-REPO_ROOT = Path(__file__).parent.parent
+_HERE = Path(__file__).parent
+# When installed via pip, agents/ is bundled inside the cli package.
+# When running from the repo directly, fall back to the repo root.
+AGENTS_DIR = _HERE / "agents" if (_HERE / "agents").exists() else _HERE.parent / "agents"
+REPO_ROOT = AGENTS_DIR.parent
 
 
 def load_manifest(agent: str) -> dict:

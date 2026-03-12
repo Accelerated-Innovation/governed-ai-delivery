@@ -1,8 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "governed-ai-delivery"
+name = "govkit"
 version = "0.1.0"
-description = "Spec-driven governed AI delivery template"
+description = "Governed AI delivery kit — spec-driven scaffolding for AI coding agents"
 requires-python = ">=3.12"
+
+[project.scripts]
+govkit = "cli.govkit:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["cli"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"agents" = "cli/agents"
 
 [tool.ruff]
 line-length = 100
