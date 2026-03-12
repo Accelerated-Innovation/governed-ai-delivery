@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "govkit"
 version = "0.1.0"
 description = "Governed AI delivery kit — spec-driven scaffolding for AI coding agents"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 
 [project.scripts]
 govkit = "cli.govkit:main"
