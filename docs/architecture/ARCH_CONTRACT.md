@@ -1,6 +1,6 @@
 # Architecture Contract
 
-This contract defines mandatory architectural standards for this codebase. All Copilot agents, contributors, and tools must follow these constraints during planning and development.
+This contract defines mandatory architectural standards for this codebase. All AI coding agents, contributors, and tools must follow these constraints during planning and development.
 
 ## 1. Architectural Style
 
@@ -99,5 +99,5 @@ Location: `docs/architecture/ADR/`
 
 * PRs must comply with this contract
 * Violations require a documented ADR
-* Copilot must cite this contract when generating plans or code
+* AI agents must cite this contract when generating plans or code
 * import-linter and test gates are enforced in CI

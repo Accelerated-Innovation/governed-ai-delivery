@@ -126,4 +126,4 @@ raise HTTPException(status_code=400, detail={"code": "INVALID_INPUT", "message":
 
 The API layer is an inbound adapter located under:
 ```
-src/app/spi
+src/api

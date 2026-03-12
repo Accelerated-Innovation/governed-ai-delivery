@@ -201,4 +201,4 @@ This YAML is generated or updated during the planning phase and enforced during 
 
 ---
 
-All Copilot planning and implementation must reference this document when generating evaluation criteria.
+All AI agent planning and implementation must reference this document when generating evaluation criteria.

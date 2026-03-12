@@ -53,7 +53,7 @@ This keeps application code isolated from governance artifacts such as:
 - `docs/`
 - `governance/`
 - `features/`
-- `.github/`
+- `agents/`
 
 
 Benefits of the `src/<project_package_name>` layout:
@@ -70,12 +70,13 @@ Benefits of the `src/<project_package_name>` layout:
 docs/
 governance/
 features/
+agents/
+cli/
 src/api/
 src/ports/
 src/services/
 src/adapters/
 src/common/
-.github/
 ```
 
 Each folder has a specific responsibility.
@@ -302,59 +303,50 @@ Examples:
 
 ---
 
-# .github/
+# agents/
 
-GitHub-specific automation.
+AI coding agent configurations. Each subdirectory contains the config files for one agent, installed into target projects via `govkit`.
+
 ```
-.github/
-copilot-instructions.md
-instructions/
-prompts/
-```
-
-## copilot-instructions.md
-
-Defines how GitHub Copilot must operate in this repository.
-
-Includes:
-
-- feature lifecycle
-- planning rules
-- architecture compliance
-- evaluation discipline
-
-## instructions/
-
-Path-scoped coding instructions.
-
-Examples:
-```
-api.instructions.md
-services.instructions.md
-ports.instructions.md
-adapters.instructions.md
-security.instructions.md
+agents/
+  copilot/        ← installs to .github/ in the target project
+  claude-code/    ← installs CLAUDE.md and .claude/ in the target project
 ```
 
-These guide AI-generated code inside specific folders.
+Each agent folder contains:
+- Agent-specific instructions (global and layer-scoped)
+- Planning commands/prompts
+- A `manifest.json` describing where each file installs
 
-## prompts/
+To install an agent into a project:
 
-Reusable Copilot planning prompts.
-
-Examples:
+```bash
+govkit apply --agent copilot --target /path/to/project
+govkit apply --agent claude-code --target /path/to/project
 ```
-architecture-preflight.prompt.md
-spec-planning.prompt.md
-implementation-plan.prompt.md
-adr-author.prompt.md
+
+---
+
+# cli/
+
+Source for the `govkit` CLI installer.
+
+```
+cli/
+  govkit.py
+```
+
+Install govkit:
+
+```bash
+pip install git+https://github.com/Accelerated-Innovation/governed-ai-delivery.git
 ```
 
 ---
 
 # Customization for New Projects
 
-When creating a new project from this template, review and update:
+After running `govkit apply`, review and update:
 ```
 docs/architecture/TECH_STACK.md
 docs/architecture/AGENT_ARCHITECTURE.md

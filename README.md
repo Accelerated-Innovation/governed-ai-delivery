@@ -28,7 +28,7 @@ The AI agent operates inside a governed system. Architecture, evaluation, and fe
 ## 1. Install govkit
 
 ```bash
-pip install govkit
+pip install git+https://github.com/Accelerated-Innovation/governed-ai-delivery.git
 ```
 
 ## 2. Apply to your project
