@@ -38,6 +38,10 @@ From your project root, run:
 ```bash
 govkit apply --agent copilot --target .
 ```
+or  
+```bash
+govkit apply --agent claude-code --target .
+```
 
 This installs the agent-specific config files and shared governance artifacts into your project.
 
