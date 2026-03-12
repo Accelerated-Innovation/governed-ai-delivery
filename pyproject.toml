@@ -1,0 +1,60 @@
+[project]
+name = "governed-ai-delivery"
+version = "0.1.0"
+description = "Spec-driven governed AI delivery template"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "B",   # bugbear
+    "I",   # import sorting
+]
+
+ignore = [
+    "E501" # line length handled by formatter
+]
+
+fix = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]
+
+python_files = [
+    "test_*.py"
+]
+
+addopts = "-ra"
+
+markers = [
+    "unit: unit tests",
+    "bdd: BDD integration tests",
+    "contract: contract tests"
+]
+
+[tool.importlinter]
+root_package = "src"
+
+[tool.importlinter.contracts.hexagonal]
+name = "Hexagonal Architecture"
+type = "layers"
+
+layers = [
+    "api",
+    "ports",
+    "services",
+    "adapters",
+    "common"
+]
+
+containers = ["src"]
