@@ -29,12 +29,15 @@ def load_manifest(agent: str) -> dict:
     return json.loads(manifest_path.read_text())
 
 
-def copy_entry(src: Path, dest: Path) -> None:
+def copy_entry(src: Path, dest: Path, skip_existing: bool = False) -> None:
     if src.is_dir():
         dest.mkdir(parents=True, exist_ok=True)
         for item in src.iterdir():
-            copy_entry(item, dest / item.name)
+            copy_entry(item, dest / item.name, skip_existing=skip_existing)
     else:
+        if skip_existing and dest.exists():
+            print(f"  skipped {dest}  (already exists)")
+            return
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dest)
         print(f"  copied  {dest}")
@@ -61,7 +64,7 @@ def cmd_apply(args: argparse.Namespace) -> None:
     for shared in manifest.get("shared", []):
         src = REPO_ROOT / shared
         dest = target / shared
-        copy_entry(src, dest)
+        copy_entry(src, dest, skip_existing=True)
 
     print(f"\nDone. '{args.agent}' spec kit applied to {target}")
 
