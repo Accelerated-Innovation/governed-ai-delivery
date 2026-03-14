@@ -227,9 +227,10 @@ Agent interaction rules for development tools are defined in:
 
 AI behavior evaluation is required when features use LLMs.
 
-Evaluation standards:
+Evaluation standards and tooling:
 ```
-docs/evaluation/eval_criteria.md
+docs/evaluation/eval_criteria.md   ← what must be evaluated (non-negotiable)
+docs/evaluation/EVAL_STACK.md      ← approved tools and pipeline by environment
 ```
 
 Feature-level configuration:
