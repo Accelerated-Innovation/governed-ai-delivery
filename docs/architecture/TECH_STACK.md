@@ -250,33 +250,63 @@ Evaluation includes:
 
 Approved tools:
 
-- structured logging
-- Prometheus metrics
-- distributed tracing
+- structured logging (`structlog`)
+- metrics (`opentelemetry-sdk` + Prometheus exporter)
+- distributed tracing (`opentelemetry-sdk`)
+
+### Structured Logging
+
+Use `structlog` for all application logging.
 
 Rules:
 
-- logs must include `request_id`
-- adapters must emit metrics
-- domain layer must not log infrastructure data
+- All log entries must be structured JSON in production
+- logs must include `request_id`, `service`, and `layer` fields
+- Domain layer may log domain events only — no infrastructure data
+- Adapters may log infrastructure details (query times, connection errors, etc.)
+- Use `structlog.get_logger(__name__)` — never `print()` or bare `logging`
+
+### OpenTelemetry
+
+Use `opentelemetry-sdk` to unify logs, metrics, and traces into a single pipeline exported to **Datadog** via the Datadog Agent (OTLP ingestion).
+
+Approved packages:
+```
+opentelemetry-sdk
+opentelemetry-api
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-logging
+opentelemetry-exporter-otlp
+```
+
+Rules:
+
+- All three signals (logs, metrics, traces) are exported via `opentelemetry-exporter-otlp` → Datadog Agent
+- `opentelemetry-instrumentation-logging` bridges `structlog` into the OTel log pipeline — no separate log shipper needed
+- FastAPI instrumentation is automatic via `opentelemetry-instrumentation-fastapi`
+- Adapters must emit spans for all external calls (DB, LLM, vector store)
+- Domain services must not import OpenTelemetry directly — use an observability port
+- Trace context (`trace_id`, `span_id`) is automatically injected into log entries via OTel logging bridge
+
+### Observability Port
+
+An outbound port (`ObservabilityPort`) must abstract logging and tracing from the domain:
+
+- Domain calls port methods (e.g., `record_event`, `start_span`)
+- Adapter implements the port using `structlog` + OpenTelemetry
+- This keeps the domain layer infrastructure-agnostic (per architecture contract)
+
 
 ---
 
 # 12. Static Analysis and Quality Gates
 
-Code quality enforcement tools:
-```
-SonarQube
-import-linter
-pre-commit
-```
+See Section 9 for approved tools. Rules enforced by those tools:
 
-Rules enforced:
-
-- architecture boundaries
-- security issues
-- duplication
-- complexity limits
+- architecture boundaries (`import-linter`)
+- security issues (`Snyk`)
+- duplication and complexity limits (`SonarQube`)
+- formatting and linting (`Ruff` via `pre-commit`)
 
 ---
 
