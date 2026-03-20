@@ -6,7 +6,7 @@ paths:
 
 # Security and Authentication Rules
 
-Align with architectural patterns in `docs/architecture/SECURITY_AUTH_PATTERNS.md`.
+Align with architectural patterns in `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`.
 
 ## Authentication
 

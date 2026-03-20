@@ -18,8 +18,8 @@ Use the following artifacts:
 * `features/<FEATURE>/nfrs.md`
 * `features/<FEATURE>/acceptance.feature`
 * `features/<FEATURE>/eval_criteria.yaml`
-* `docs/evaluation/eval_criteria.md`
-* `docs/architecture/**`
+* `docs/backend/evaluation/eval_criteria.md`
+* `docs/backend/architecture/**`
 * Architecture preflight output
 
 ---
@@ -151,6 +151,6 @@ List conditions under which refactoring must occur:
 * Do not generate implementation code.
 * Do not skip evaluation planning.
 * Plan must be executable as-is.
-* Plan must explicitly align with `docs/evaluation/eval_criteria.md`.
+* Plan must explicitly align with `docs/backend/evaluation/eval_criteria.md`.
 
 This output feeds Copilot Agent for implementation.

@@ -12,10 +12,10 @@ Feature specs:
 - Acceptance: `features/{{FEATURE_NAME}}/acceptance.feature`
 
 Architecture standards:
-- `docs/architecture/**`
+- `docs/backend/architecture/**`
 
 Evaluation standards:
-- Global evaluation contract: `docs/evaluation/eval_criteria.md`
+- Global evaluation contract: `docs/backend/evaluation/eval_criteria.md`
 
 Existing artifacts (read if present, update if needed):
 - Feature eval config: `features/{{FEATURE_NAME}}/eval_criteria.yaml`
@@ -51,7 +51,7 @@ Create `features/{{FEATURE_NAME}}/plan.md` content with:
 
 ### Output B: Feature Eval Criteria (YAML)
 Create or update `features/{{FEATURE_NAME}}/eval_criteria.yaml` to conform to:
-- `docs/evaluation/eval_criteria.md` schema and thresholds
+- `docs/backend/evaluation/eval_criteria.md` schema and thresholds
 Include, at minimum:
 - FIRST enforcement settings
 - 7 virtues enforcement settings

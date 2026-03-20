@@ -53,7 +53,7 @@ Copy the starter scaffolding from `features/feature_name/`:
 features/my_feature/
   ├─ acceptance.feature       ← Gherkin scenarios with @nfr-* and @contract tags
   ├─ nfrs.md                  ← Must be fully populated — no TBD entries
-  ├─ eval_criteria.yaml       ← Validated against governance/schemas/eval_criteria.schema.json
+  ├─ eval_criteria.yaml       ← Validated against governance/backend/schemas/eval_criteria.schema.json
   ├─ plan.md                  ← Includes structured evaluation prediction block
   └─ architecture_preflight.md
 ```
@@ -96,7 +96,7 @@ If an ADR is required:
 | Copilot | `/adr-author` |
 | Claude Code | `/project:adr-author` |
 
-ADR must be Accepted before implementation proceeds. ADR templates and examples live under `docs/architecture/ADR/`.
+ADR must be Accepted before implementation proceeds. ADR templates and examples live under `docs/backend/architecture/ADR/`.
 
 ---
 
@@ -157,7 +157,7 @@ Push branch and open PR. CI gates run:
 
 * Unit tests
 * Integration tests
-* `eval_criteria.yaml` schema validation (all feature instances validated against `governance/schemas/eval_criteria.schema.json`)
+* `eval_criteria.yaml` schema validation (all feature instances validated against `governance/backend/schemas/eval_criteria.schema.json`)
 * FIRST and 7 Code Virtue prediction completeness check
 * LLM eval suite and regression check (if `mode: llm`)
 * SonarQube quality gate
@@ -187,7 +187,7 @@ Merge only after all gates pass.
 * Schema-valid `eval_criteria.yaml`
 * `plan.md` with completed evaluation prediction block and shared contract artifacts
 * Completed `architecture_preflight.md` including Shared Contract Analysis
-* `docs/architecture/ADR/ADR-001-schema-contract-ownership.md` — a complete accepted ADR
+* `docs/backend/architecture/ADR/ADR-001-schema-contract-ownership.md` — a complete accepted ADR
 
 Use this as your reference when completing the starter scaffolding.
 
@@ -240,21 +240,21 @@ governed-ai-delivery/
 
 # Architecture
 
-* [ARCH_CONTRACT.md](docs/architecture/ARCH_CONTRACT.md)
-* [BOUNDARIES.md](docs/architecture/BOUNDARIES.md)
-* [API_CONVENTIONS.md](docs/architecture/API_CONVENTIONS.md)
-* [DESIGN_PRINCIPLES.md](docs/architecture/DESIGN_PRINCIPLES.md) — SOLID, DRY, YAGNI, KISS
-* [GHERKIN_CONVENTIONS.md](docs/architecture/GHERKIN_CONVENTIONS.md) — NFR tags, coverage rules
-* [SECURITY_AUTH_PATTERNS.md](docs/architecture/SECURITY_AUTH_PATTERNS.md)
-* [TESTING.md](docs/architecture/TESTING.md)
-* [ADR/TEMPLATE.md](docs/architecture/ADR/TEMPLATE.md)
+* [ARCH_CONTRACT.md](docs/backend/architecture/ARCH_CONTRACT.md)
+* [BOUNDARIES.md](docs/backend/architecture/BOUNDARIES.md)
+* [API_CONVENTIONS.md](docs/backend/architecture/API_CONVENTIONS.md)
+* [DESIGN_PRINCIPLES.md](docs/backend/architecture/DESIGN_PRINCIPLES.md) — SOLID, DRY, YAGNI, KISS
+* [GHERKIN_CONVENTIONS.md](docs/backend/architecture/GHERKIN_CONVENTIONS.md) — NFR tags, coverage rules
+* [SECURITY_AUTH_PATTERNS.md](docs/backend/architecture/SECURITY_AUTH_PATTERNS.md)
+* [TESTING.md](docs/backend/architecture/TESTING.md)
+* [ADR/TEMPLATE.md](docs/backend/architecture/ADR/TEMPLATE.md)
 
 ---
 
 # Evaluation
 
-* [eval_criteria.md](docs/evaluation/eval_criteria.md) — FIRST principles, 7 Code Virtues, scoring model
-* [eval_criteria.schema.json](governance/schemas/eval_criteria.schema.json) — JSON Schema for feature eval YAML instances
+* [eval_criteria.md](docs/backend/evaluation/eval_criteria.md) — FIRST principles, 7 Code Virtues, scoring model
+* [eval_criteria.schema.json](governance/backend/schemas/eval_criteria.schema.json) — JSON Schema for feature eval YAML instances
 
 ---
 
@@ -262,7 +262,7 @@ governed-ai-delivery/
 
 * JWT auth and RBAC enforced at API layer
 * Domain never accesses raw tokens
-* See [SECURITY_AUTH_PATTERNS.md](docs/architecture/SECURITY_AUTH_PATTERNS.md)
+* See [SECURITY_AUTH_PATTERNS.md](docs/backend/architecture/SECURITY_AUTH_PATTERNS.md)
 
 ---
 
@@ -273,9 +273,9 @@ Testing is evaluation-driven. All features must:
 * Satisfy FIRST principles (minimum average 4.0)
 * Achieve minimum Virtue averages (minimum average 4.0)
 * Pass LLM evaluation thresholds (if `mode: llm`)
-* Have Gherkin scenarios tagged per [GHERKIN_CONVENTIONS.md](docs/architecture/GHERKIN_CONVENTIONS.md)
+* Have Gherkin scenarios tagged per [GHERKIN_CONVENTIONS.md](docs/backend/architecture/GHERKIN_CONVENTIONS.md)
 
-See [docs/evaluation/eval_criteria.md](docs/evaluation/eval_criteria.md) and [docs/architecture/TESTING.md](docs/architecture/TESTING.md).
+See [docs/backend/evaluation/eval_criteria.md](docs/backend/evaluation/eval_criteria.md) and [docs/backend/architecture/TESTING.md](docs/backend/architecture/TESTING.md).
 
 ---
 
@@ -283,8 +283,8 @@ See [docs/evaluation/eval_criteria.md](docs/evaluation/eval_criteria.md) and [do
 
 Before contributing:
 
-* Read `docs/architecture/`
-* Read `docs/evaluation/eval_criteria.md`
+* Read `docs/backend/architecture/`
+* Read `docs/backend/evaluation/eval_criteria.md`
 * Do not bypass ports or adapters
 * Submit an ADR for boundary, security, dependency, or shared contract changes
 

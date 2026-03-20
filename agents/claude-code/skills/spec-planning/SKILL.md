@@ -14,10 +14,10 @@ Feature specs:
 - Acceptance: `features/$ARGUMENTS/acceptance.feature`
 
 Architecture standards:
-- `docs/architecture/` (all files)
+- `docs/backend/architecture/` (all files)
 
 Evaluation standards:
-- `docs/evaluation/eval_criteria.md`
+- `docs/backend/evaluation/eval_criteria.md`
 
 Existing artifacts (read if present, update if needed):
 - `features/$ARGUMENTS/eval_criteria.yaml`
@@ -50,7 +50,7 @@ Write `features/$ARGUMENTS/plan.md` with:
 
 ## Output B: Feature Eval Criteria
 
-Write or update `features/$ARGUMENTS/eval_criteria.yaml` conforming to `docs/evaluation/eval_criteria.md`. Include at minimum:
+Write or update `features/$ARGUMENTS/eval_criteria.yaml` conforming to `docs/backend/evaluation/eval_criteria.md`. Include at minimum:
 - FIRST enforcement settings
 - 7 Virtues enforcement settings
 - Any LLM-specific dimensions required by this feature

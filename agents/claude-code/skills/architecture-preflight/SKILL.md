@@ -19,16 +19,16 @@ Before generating any code or detailed plan, produce an Architecture Preflight R
 
 For each of the following, state which architectural rules apply (cite file and section):
 
-- Layering (from `docs/architecture/ARCH_CONTRACT.md`)
-- API conventions (from `docs/architecture/API_CONVENTIONS.md`)
-- Auth/security patterns (from `docs/architecture/SECURITY_AUTH_PATTERNS.md`)
+- Layering (from `docs/backend/architecture/ARCH_CONTRACT.md`)
+- API conventions (from `docs/backend/architecture/API_CONVENTIONS.md`)
+- Auth/security patterns (from `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`)
 - Error model and response shape
 - Logging and observability expectations
 
 ## 3. Boundary Analysis
 
 - What modules or services will this code touch?
-- Are any boundary rules at risk of violation? (from `docs/architecture/BOUNDARIES.md`)
+- Are any boundary rules at risk of violation? (from `docs/backend/architecture/BOUNDARIES.md`)
 - Does this require a new interface between services?
 
 ## 4. ADR Decision

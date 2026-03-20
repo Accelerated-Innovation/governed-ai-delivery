@@ -7,7 +7,7 @@ argument-hint: "<adr-title>"
 
 You are writing an Architecture Decision Record (ADR) for: **$ARGUMENTS**
 
-Follow the template at `docs/architecture/ADR/TEMPLATE.md`. Produce a complete ADR using these sections:
+Follow the template at `docs/backend/architecture/ADR/TEMPLATE.md`. Produce a complete ADR using these sections:
 
 ## Title
 
@@ -52,4 +52,4 @@ Required reviewers (team lead, architect, or security lead based on scope) and l
 
 ---
 
-Write the ADR to `docs/architecture/ADR/<slug>.md`. If required information is missing, stop and ask before drafting.
+Write the ADR to `docs/backend/architecture/ADR/<slug>.md`. If required information is missing, stop and ask before drafting.

@@ -1,0 +1,18 @@
+{
+  "agent": "claude-code-ui-react",
+  "description": "Claude Code — React UI governance, MVVM rules, and project skills",
+  "files": [
+    { "src": "CLAUDE.md",              "dest": "CLAUDE.md" },
+    { "src": "rules/components.md",    "dest": ".claude/rules/components.md" },
+    { "src": "rules/viewmodel.md",     "dest": ".claude/rules/viewmodel.md" },
+    { "src": "rules/api.md",           "dest": ".claude/rules/api.md" },
+    { "src": "rules/accessibility.md", "dest": ".claude/rules/accessibility.md" },
+    { "src": "skills/",                "dest": ".claude/skills/" }
+  ],
+  "shared": [
+    "docs/ui/",
+    "governance/ui/",
+    "features/",
+    "ci/"
+  ]
+}

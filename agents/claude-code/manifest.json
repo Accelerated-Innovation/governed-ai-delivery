@@ -32,9 +32,9 @@
     }
   ],
   "shared": [
-    "docs/",
+    "docs/backend/",
     "features/",
-    "governance/",
+    "governance/backend/",
     "ci/"
   ]
 }

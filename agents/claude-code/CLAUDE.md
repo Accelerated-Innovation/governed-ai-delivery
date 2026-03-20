@@ -11,14 +11,14 @@ Repository artifacts are the source of truth. Chat history is not.
 Claude operates aligned to:
 
 - Product specifications under `features/`
-- Architecture contracts under `docs/architecture/`
-- Evaluation standards under `docs/evaluation/`
+- Architecture contracts under `docs/backend/architecture/`
+- Evaluation standards under `docs/backend/evaluation/`
 - Governance rules under `governance/`
 
 Before planning or generating code:
 
-- Read all files under `docs/architecture/`
-- Read `docs/evaluation/eval_criteria.md`
+- Read all files under `docs/backend/architecture/`
+- Read `docs/backend/evaluation/eval_criteria.md`
 - Apply architecture, testing, technology, and evaluation contracts as binding constraints
 - Confirm required feature artifacts exist
 
@@ -42,7 +42,7 @@ Before proceeding to Architecture Preflight or planning:
 
 - If `nfrs.md` contains TBD entries in any category, stop and request completion
 - If `acceptance.feature` is empty or missing scenarios, stop and request completion
-- If Gherkin tag coverage does not satisfy `docs/architecture/GHERKIN_CONVENTIONS.md`, stop and request completion
+- If Gherkin tag coverage does not satisfy `docs/backend/architecture/GHERKIN_CONVENTIONS.md`, stop and request completion
 
 ---
 
@@ -60,7 +60,7 @@ Before proceeding to Architecture Preflight or planning:
 
 ## Planning Discipline
 
-Generate and maintain `features/<feature_name>/plan.md` based on `governance/templates/plan.md`.
+Generate and maintain `features/<feature_name>/plan.md` based on `governance/backend/templates/plan.md`.
 
 The plan must:
 
@@ -69,7 +69,7 @@ The plan must:
 - Include an Evaluation Compliance Summary predicting FIRST and 7 Virtue scores
 - Reference ADRs and architecture contracts
 
-The Evaluation Compliance Summary must use the structured YAML prediction block from `governance/templates/plan.md`. All score and evidence fields must be populated with a numeric value (0–5) and a one-sentence rationale. Null values are not permitted at plan finalization. If any average is below 4.0, revise the plan before writing any code.
+The Evaluation Compliance Summary must use the structured YAML prediction block from `governance/backend/templates/plan.md`. All score and evidence fields must be populated with a numeric value (0–5) and a one-sentence rationale. Null values are not permitted at plan finalization. If any average is below 4.0, revise the plan before writing any code.
 
 ---
 
@@ -83,19 +83,19 @@ An ADR is required when:
 - A boundary rule or dependency direction changes
 - A shared schema, API contract, event definition, or data model is introduced or modified that will be consumed by other features, services, or agents
 
-ADRs live under `docs/architecture/ADR/`, follow `docs/architecture/ADR/TEMPLATE.md`, and must be Accepted before implementation proceeds.
+ADRs live under `docs/backend/architecture/ADR/`, follow `docs/backend/architecture/ADR/TEMPLATE.md`, and must be Accepted before implementation proceeds.
 
 ---
 
 ## Implementation Rules
 
 - Implement one increment at a time
-- Respect all rules in `docs/architecture/BOUNDARIES.md`
+- Respect all rules in `docs/backend/architecture/BOUNDARIES.md`
 - Follow Hexagonal Architecture (ports and adapters)
-- Use only approved frameworks from `docs/architecture/TECH_STACK.md`
-- Use approved auth patterns from `docs/architecture/SECURITY_AUTH_PATTERNS.md`
-- Follow API naming, versioning, and error rules from `docs/architecture/API_CONVENTIONS.md`; update OpenAPI definitions when APIs change
-- Follow design principles from `docs/architecture/DESIGN_PRINCIPLES.md`; use findings from approved tools (Ruff, SonarQube, Snyk, import-linter) as defined in `docs/architecture/TECH_STACK.md` — blocking findings must be resolved before proceeding
+- Use only approved frameworks from `docs/backend/architecture/TECH_STACK.md`
+- Use approved auth patterns from `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`
+- Follow API naming, versioning, and error rules from `docs/backend/architecture/API_CONVENTIONS.md`; update OpenAPI definitions when APIs change
+- Follow design principles from `docs/backend/architecture/DESIGN_PRINCIPLES.md`; use findings from approved tools (Ruff, SonarQube, Snyk, import-linter) as defined in `docs/backend/architecture/TECH_STACK.md` — blocking findings must be resolved before proceeding
 
 Layer-specific rules load automatically from `.claude/rules/` when editing files in each layer:
 
@@ -109,7 +109,7 @@ Layer-specific rules load automatically from `.claude/rules/` when editing files
 
 ## Evaluation Discipline
 
-Before implementation, read `docs/evaluation/eval_criteria.md` and `features/<feature_name>/eval_criteria.yaml`. Confirm FIRST and 7 Virtue enforcement thresholds.
+Before implementation, read `docs/backend/evaluation/eval_criteria.md` and `features/<feature_name>/eval_criteria.yaml`. Confirm FIRST and 7 Virtue enforcement thresholds.
 
 Implementation must not proceed unless an Evaluation Compliance Summary exists in `plan.md` with predicted averages meeting required thresholds. CI evaluation gates are binding.
 
@@ -123,7 +123,7 @@ Each increment must include:
 - BDD integration tests derived from Gherkin scenarios
 - Contract tests when APIs, ports, or external integrations are affected
 
-Gherkin scenarios must follow `docs/architecture/GHERKIN_CONVENTIONS.md`:
+Gherkin scenarios must follow `docs/backend/architecture/GHERKIN_CONVENTIONS.md`:
 
 - Every populated NFR category in `nfrs.md` must have at least one scenario tagged with the corresponding `@nfr-*` tag
 - Features producing shared artifacts must include at least one `@contract` scenario
