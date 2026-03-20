@@ -206,7 +206,7 @@ Agents must support evaluation-driven development.
 
 Evaluation rules are defined in:
 ```
-docs/evaluation/eval_criteria.md
+docs/backend/evaluation/eval_criteria.md
 ```
 Feature-level evaluation configuration lives in:
 ```
@@ -242,7 +242,7 @@ Validate LLM outputs using evaluation criteria.
 
 Testing rules are defined in:
 ```
-docs/architecture/TESTING.md
+docs/backend/architecture/TESTING.md
 ```
 
 ---
@@ -251,7 +251,7 @@ docs/architecture/TESTING.md
 
 Agents must follow the security patterns defined in:
 ```
-docs/architecture/SECURITY_AUTH_PATTERNS.md
+docs/backend/architecture/SECURITY_AUTH_PATTERNS.md
 ```
 Rules:
 - Agents must not access raw tokens
@@ -284,7 +284,7 @@ An ADR is required when:
 
 ADR template:
 ```
-docs/architecture/ADR/TEMPLATE.md
+docs/backend/architecture/ADR/TEMPLATE.md
 ```
 
 ---

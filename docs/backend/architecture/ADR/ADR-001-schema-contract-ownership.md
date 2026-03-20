@@ -20,8 +20,8 @@ The `schema_contract_example` feature introduces the first service in this repos
 - No clear authority for who may publish or retire a schema version
 
 Relevant constraints:
-- `docs/architecture/BOUNDARIES.md`: shared artifacts must not create hidden coupling between services
-- `docs/architecture/ARCH_CONTRACT.md`: inter-service contracts must be explicit and versioned
+- `docs/backend/architecture/BOUNDARIES.md`: shared artifacts must not create hidden coupling between services
+- `docs/backend/architecture/ARCH_CONTRACT.md`: inter-service contracts must be explicit and versioned
 - ADR trigger: "A shared schema, API contract, event definition, or data model is introduced or modified that will be consumed by other features, services, or agents"
 
 References:
@@ -65,7 +65,7 @@ Confirmed: no forbidden cross-layer access. Dependency direction complies with `
 ## 4. Alternatives Considered
 
 ### Option A: Schema files committed to the repository only
-- Description: schemas live as files in `governance/schemas/`; no runtime registry
+- Description: schemas live as files in `governance/backend/schemas/`; no runtime registry
 - Pros: simple; no new infrastructure; version history via git
 - Cons: consuming services cannot retrieve schemas at runtime; no enforcement of immutability at publish time; no health check or availability guarantee
 - Why rejected: runtime consumers need reliable retrieval; git is not a service dependency
@@ -131,7 +131,7 @@ Mitigations:
 ## 9. Follow-Up Actions
 
 - Code changes required: implement `SchemaRegistryPort`, `HttpSchemaRegistryAdapter`, `SchemaContractService` per plan increments
-- Documentation updates required: add schema registry to `docs/architecture/TECH_STACK.md`; update OpenAPI spec in Increment 2
+- Documentation updates required: add schema registry to `docs/backend/architecture/TECH_STACK.md`; update OpenAPI spec in Increment 2
 - CI updates required: contract compatibility check in `ci/quality-gate-example.yml` (already configured)
 - Security review required: yes — new scope `schema:publish` requires token issuance process update
 

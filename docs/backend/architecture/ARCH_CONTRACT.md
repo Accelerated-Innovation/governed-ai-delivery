@@ -61,8 +61,8 @@ An ADR is required when:
 * Changing dependency rules or boundaries
 * Introducing new architectural patterns
 
-Template: `docs/architecture/ADR/TEMPLATE.md`
-Location: `docs/architecture/ADR/`
+Template: `docs/backend/architecture/ADR/TEMPLATE.md`
+Location: `docs/backend/architecture/ADR/`
 
 ## 6. Design Principles
 

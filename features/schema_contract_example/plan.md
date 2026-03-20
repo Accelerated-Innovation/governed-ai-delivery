@@ -25,8 +25,8 @@
 - Schema search or discovery UI
 
 ### Assumptions
-- The schema registry external service is available and documented in `docs/architecture/TECH_STACK.md`
-- Auth token validation follows the approved pattern in `docs/architecture/SECURITY_AUTH_PATTERNS.md`
+- The schema registry external service is available and documented in `docs/backend/architecture/TECH_STACK.md`
+- Auth token validation follows the approved pattern in `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`
 - Schema documents are JSON Schema Draft 2020-12
 
 ---
@@ -34,11 +34,11 @@
 ## Architecture Alignment
 
 ### Relevant contracts
-- docs/architecture/ARCH_CONTRACT.md: hexagonal architecture, inbound/outbound port rules
-- docs/architecture/BOUNDARIES.md: no cross-layer imports; adapters depend on ports, not vice versa
-- docs/architecture/API_CONVENTIONS.md: REST naming, versioning, error response structure
-- docs/architecture/SECURITY_AUTH_PATTERNS.md: token scope enforcement at inbound port
-- docs/evaluation/eval_criteria.md: FIRST principles, 7 Virtues, deterministic mode
+- docs/backend/architecture/ARCH_CONTRACT.md: hexagonal architecture, inbound/outbound port rules
+- docs/backend/architecture/BOUNDARIES.md: no cross-layer imports; adapters depend on ports, not vice versa
+- docs/backend/architecture/API_CONVENTIONS.md: REST naming, versioning, error response structure
+- docs/backend/architecture/SECURITY_AUTH_PATTERNS.md: token scope enforcement at inbound port
+- docs/backend/evaluation/eval_criteria.md: FIRST principles, 7 Virtues, deterministic mode
 
 ### ADRs
 
@@ -58,7 +58,7 @@
 
 ### Shared contract artifacts
 
-- Shared artifacts produced: `governance/schemas/order-events.schema.json` (example schema published by this feature)
+- Shared artifacts produced: `governance/backend/schemas/order-events.schema.json` (example schema published by this feature)
 - Artifact type(s): JSON Schema
 - Downstream consumers: order-processing service, audit service
 - Versioning strategy: integer version increments; new version required for breaking changes
@@ -197,7 +197,7 @@ evaluation_prediction:
 
 **Deliverables**
 - Structured log calls in `SchemaContractService`
-- Log format aligned with `docs/architecture/ARCH_CONTRACT.md` logging standards
+- Log format aligned with `docs/backend/architecture/ARCH_CONTRACT.md` logging standards
 
 **Implementation notes**
 - Logs must include: correlation ID, schema ID, version, actor identity, timestamp
@@ -230,7 +230,7 @@ evaluation_prediction:
 
 - Risk: schema registry external service is unavailable in test environments
   - Impact: integration tests cannot run against real registry
-  - Mitigation: use a local stub (e.g., WireMock or a simple in-memory fake) for integration tests; document in `docs/architecture/TECH_STACK.md`
+  - Mitigation: use a local stub (e.g., WireMock or a simple in-memory fake) for integration tests; document in `docs/backend/architecture/TECH_STACK.md`
 
 - Risk: breaking change detection relies on manual versioning discipline
   - Impact: a developer could publish a structurally incompatible schema as a new version without bumping the version

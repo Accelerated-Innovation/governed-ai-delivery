@@ -5,8 +5,10 @@
 # steps marked "Configure your..." before enabling in CI.
 #
 # JOBS:
-#   schema-validation      — validates every features/*/eval_criteria.yaml against
-#                            governance/schemas/eval_criteria.schema.json (runs as-is)
+#   schema-validation      — validates backend features/*/eval_criteria.yaml against
+#                            governance/backend/schemas/eval_criteria.schema.json
+#                            NOTE: UI features use governance/ui/schemas/eval_criteria.schema.json
+#                            (validated separately in ci/ui-quality-gate-example.yml)
 #   boundary-check         — enforces hexagonal architecture boundaries via import-linter
 #                            (requires .importlinter config in your repo root)
 #   sonarqube              — SonarQube quality gate (requires SONAR_TOKEN and SONAR_HOST_URL secrets)
@@ -39,7 +41,7 @@ jobs:
         run: |
           find features -name "eval_criteria.yaml" | while read file; do
             echo "Validating $file"
-            check-jsonschema --schemafile governance/schemas/eval_criteria.schema.json "$file"
+            check-jsonschema --schemafile governance/backend/schemas/eval_criteria.schema.json "$file"
           done
 
   boundary-check:
@@ -110,6 +112,6 @@ jobs:
           # Replace with your schema registry or file-based comparison tool.
           # Example using json-schema-diff-validator:
           #   pip install json-schema-diff-validator
-          #   json-schema-diff-validator --base origin/main --head HEAD governance/schemas/
+          #   json-schema-diff-validator --base origin/main --head HEAD governance/backend/schemas/
           echo "Contract features detected: ${{ steps.detect-contracts.outputs.contract_features }}"
           echo "Configure your backward-compatibility check here."

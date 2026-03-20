@@ -47,8 +47,8 @@ Rules:
 
 See:
 ```
-docs/architecture/ARCH_CONTRACT.md
-docs/architecture/BOUNDARIES.md
+docs/backend/architecture/ARCH_CONTRACT.md
+docs/backend/architecture/BOUNDARIES.md
 ```
 
 
@@ -75,7 +75,7 @@ Rules:
 
 API conventions are defined in:
 ```
-docs/architecture/API_CONVENTIONS.md
+docs/backend/architecture/API_CONVENTIONS.md
 ``` 
 
 ---
@@ -184,7 +184,7 @@ Test categories:
 
 Testing must follow the rules defined in:
 ```
-docs/architecture/TESTING.md
+docs/backend/architecture/TESTING.md
 ``` 
 
 ---
@@ -219,7 +219,7 @@ sonar-project.properties
 ```
 Agent interaction rules for development tools are defined in:
 
-`docs/architecture/AGENT_ARCHITECTURE.md`
+`docs/backend/architecture/AGENT_ARCHITECTURE.md`
 
 ---
 
@@ -229,7 +229,7 @@ AI behavior evaluation is required when features use LLMs.
 
 Evaluation standards and tooling:
 ```
-docs/evaluation/eval_criteria.md   ← what must be evaluated (non-negotiable)
+docs/backend/evaluation/eval_criteria.md   ← what must be evaluated (non-negotiable)
 docs/evaluation/EVAL_STACK.md      ← approved tools and pipeline by environment
 ```
 
@@ -355,7 +355,7 @@ An ADR must be created if:
 
 ADR template:
 ```
-docs/architecture/ADR/TEMPLATE.md
+docs/backend/architecture/ADR/TEMPLATE.md
 ```
 
 ---

@@ -16,7 +16,10 @@
       "Bash(sed -i 's|\"\"ci/\"\"|\"\"ci/quality-gate-example.yml\"\", \"\"ci/eval-gate-example.yml\"\"|g' agents/$agent/manifest.json)",
       "Bash(done)",
       "Bash(echo \"=== $agent ===\")",
-      "Read(//c/Users/marty/source/repos/governed-ai-delivery/agents/$agent/**)"
+      "Read(//c/Users/marty/source/repos/governed-ai-delivery/agents/$agent/**)",
+      "Bash(grep -r docs/architecture /c/Users/marty/source/repos/governed-ai-delivery --include=*.md --include=*.json --include=*.yaml --include=*.yml)",
+      "Bash(grep -r governance/schemas /c/Users/marty/source/repos/governed-ai-delivery --include=*.md)",
+      "Bash(grep -rn docs/architecture/ /c/Users/marty/source/repos/governed-ai-delivery --include=*.md)"
     ]
   }
 }

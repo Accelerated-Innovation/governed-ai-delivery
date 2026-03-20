@@ -96,11 +96,11 @@ These documents are the **source of truth** for architecture and system behavior
 
 ---
 
-# docs/architecture/
+# docs/backend/architecture/
 
 Architecture policy and design contracts.
 ```
-docs/architecture/
+docs/backend/architecture/
 ARCH_CONTRACT.md
 BOUNDARIES.md
 API_CONVENTIONS.md
@@ -348,15 +348,15 @@ pip install git+https://github.com/Accelerated-Innovation/governed-ai-delivery.g
 
 After running `govkit apply`, review and update:
 ```
-docs/architecture/TECH_STACK.md
-docs/architecture/AGENT_ARCHITECTURE.md
-docs/architecture/API_CONVENTIONS.md
+docs/backend/architecture/TECH_STACK.md
+docs/backend/architecture/AGENT_ARCHITECTURE.md
+docs/backend/architecture/API_CONVENTIONS.md
 ```
 
 You may also update:
 ```
-docs/architecture/SECURITY_AUTH_PATTERNS.md
-docs/architecture/TESTING.md
+docs/backend/architecture/SECURITY_AUTH_PATTERNS.md
+docs/backend/architecture/TESTING.md
 ```
 
 Feature specifications must always be created under `features/`.

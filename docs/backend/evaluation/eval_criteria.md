@@ -172,7 +172,7 @@ Avoid:
 
 # 7. Feature-Level Eval YAML Schema
 
-Each feature must include `features/<feature>/eval_criteria.yaml` conforming to `governance/schemas/eval_criteria.schema.json`.
+Each feature must include `features/<feature>/eval_criteria.yaml` conforming to `governance/backend/schemas/eval_criteria.schema.json`.
 
 **mode: llm** (use when feature involves LLM generation or retrieval):
 
@@ -234,7 +234,7 @@ rationale: "This feature is a configuration-only change with no executable logic
 ```
 
 This YAML is generated or updated during the planning phase and enforced during CI.
-Schema: `governance/schemas/eval_criteria.schema.json`
+Schema: `governance/backend/schemas/eval_criteria.schema.json`
 
 ---
 

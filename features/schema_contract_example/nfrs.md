@@ -12,7 +12,7 @@
 
 ## Security
 - Only authenticated services with the `schema:publish` scope may publish schemas
-- All schema registry API calls must be authenticated via the approved token pattern defined in `docs/architecture/SECURITY_AUTH_PATTERNS.md`
+- All schema registry API calls must be authenticated via the approved token pattern defined in `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`
 - Schema content must be validated before publication to prevent injection via schema metadata fields
 - Schema identifiers must not expose internal service names or infrastructure details
 
@@ -31,11 +31,11 @@
 - Publication failures must emit an error event with schema ID, version, and failure reason
 
 ## Dependencies
-- Depends on the schema registry service (external adapter) defined in `docs/architecture/TECH_STACK.md`
-- Depends on the auth token validation pattern in `docs/architecture/SECURITY_AUTH_PATTERNS.md`
+- Depends on the schema registry service (external adapter) defined in `docs/backend/architecture/TECH_STACK.md`
+- Depends on the auth token validation pattern in `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`
 - Downstream consumers depend on the published schema — breaking changes require a new version, not an update
 
 ## Testing Requirements
-- All NFR categories must have at least one tagged Gherkin scenario per `docs/architecture/GHERKIN_CONVENTIONS.md`
+- All NFR categories must have at least one tagged Gherkin scenario per `docs/backend/architecture/GHERKIN_CONVENTIONS.md`
 - Contract tests must verify that the published schema is retrievable and structurally valid
 - Performance tests must verify p99 retrieval latency under simulated concurrent load

@@ -26,11 +26,11 @@
 ## Architecture Alignment
 
 ### Relevant contracts
-- docs/architecture/ARCH_CONTRACT.md:
-- docs/architecture/BOUNDARIES.md:
-- docs/architecture/API_CONVENTIONS.md:
-- docs/architecture/SECURITY_AUTH_PATTERNS.md:
-- docs/evaluation/eval_criteria.md:
+- docs/backend/architecture/ARCH_CONTRACT.md:
+- docs/backend/architecture/BOUNDARIES.md:
+- docs/backend/architecture/API_CONVENTIONS.md:
+- docs/backend/architecture/SECURITY_AUTH_PATTERNS.md:
+- docs/backend/evaluation/eval_criteria.md:
 
 ### ADRs
 

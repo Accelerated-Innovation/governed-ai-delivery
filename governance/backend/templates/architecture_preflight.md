@@ -15,7 +15,7 @@ Feature folder: `features/<feature_name>/`
 - nfrs.md reviewed: yes/no — no TBD entries: yes/no
 - eval_criteria.yaml exists: yes/no
 - plan.md exists: yes/no
-- Gherkin scenarios cover all populated NFR categories per `docs/architecture/GHERKIN_CONVENTIONS.md`: yes/no
+- Gherkin scenarios cover all populated NFR categories per `docs/backend/architecture/GHERKIN_CONVENTIONS.md`: yes/no
 - `@contract` scenario present (if feature produces shared artifact): yes/no/n-a
 
 If any required artifact is missing, stop.
@@ -28,11 +28,11 @@ If NFR tag coverage is incomplete, stop and request completion before proceeding
 
 List specific sections referenced from:
 
-- `docs/architecture/ARCH_CONTRACT.md`
-- `docs/architecture/BOUNDARIES.md`
-- `docs/architecture/API_CONVENTIONS.md`
-- `docs/architecture/SECURITY_AUTH_PATTERNS.md`
-- `docs/evaluation/eval_criteria.md`
+- `docs/backend/architecture/ARCH_CONTRACT.md`
+- `docs/backend/architecture/BOUNDARIES.md`
+- `docs/backend/architecture/API_CONVENTIONS.md`
+- `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`
+- `docs/backend/evaluation/eval_criteria.md`
 
 Cite file names and section headings.
 
@@ -49,7 +49,7 @@ Cite file names and section headings.
 - Boundary risks identified:
 - Mitigations:
 
-Confirm compliance with `BOUNDARIES.md`.
+Confirm compliance with `docs/backend/architecture/BOUNDARIES.md`.
 
 ---
 
@@ -81,7 +81,7 @@ If no security impact, state: "No security impact."
 
 ## 6. Evaluation Impact
 
-From `eval_criteria.yaml` and `docs/evaluation/eval_criteria.md`:
+From `eval_criteria.yaml` and `docs/backend/evaluation/eval_criteria.md`:
 
 - Mode: llm | deterministic | none
 - FIRST enforcement required: yes/no

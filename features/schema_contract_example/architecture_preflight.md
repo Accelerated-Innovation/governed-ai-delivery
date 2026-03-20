@@ -15,7 +15,7 @@ Feature folder: `features/schema_contract_example/`
 - nfrs.md reviewed: yes — no TBD entries: yes
 - eval_criteria.yaml exists: yes
 - plan.md exists: yes
-- Gherkin scenarios cover all populated NFR categories per `docs/architecture/GHERKIN_CONVENTIONS.md`: yes
+- Gherkin scenarios cover all populated NFR categories per `docs/backend/architecture/GHERKIN_CONVENTIONS.md`: yes
   - @nfr-performance: yes (1 scenario)
   - @nfr-security: yes (2 scenarios)
   - @nfr-availability: yes (1 scenario)
@@ -28,13 +28,13 @@ Feature folder: `features/schema_contract_example/`
 
 ## 2. Standards Referenced
 
-- `docs/architecture/ARCH_CONTRACT.md`: hexagonal architecture; inbound/outbound port separation; structured logging standards
-- `docs/architecture/BOUNDARIES.md`: adapters depend on ports; domain service must not import adapters
-- `docs/architecture/API_CONVENTIONS.md`: REST route naming; HTTP error codes; OpenAPI update requirement
-- `docs/architecture/SECURITY_AUTH_PATTERNS.md`: token scope enforcement; 401/403 response behavior
-- `docs/evaluation/eval_criteria.md`: FIRST principles; 7 Virtues; deterministic mode; thresholds (4.0 average)
-- `docs/architecture/GHERKIN_CONVENTIONS.md`: NFR tagging; @contract tag requirement; coverage rules
-- `docs/architecture/DESIGN_PRINCIPLES.md`: SOLID/DRY/YAGNI mapping to 7 Virtues
+- `docs/backend/architecture/ARCH_CONTRACT.md`: hexagonal architecture; inbound/outbound port separation; structured logging standards
+- `docs/backend/architecture/BOUNDARIES.md`: adapters depend on ports; domain service must not import adapters
+- `docs/backend/architecture/API_CONVENTIONS.md`: REST route naming; HTTP error codes; OpenAPI update requirement
+- `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`: token scope enforcement; 401/403 response behavior
+- `docs/backend/evaluation/eval_criteria.md`: FIRST principles; 7 Virtues; deterministic mode; thresholds (4.0 average)
+- `docs/backend/architecture/GHERKIN_CONVENTIONS.md`: NFR tagging; @contract tag requirement; coverage rules
+- `docs/backend/architecture/DESIGN_PRINCIPLES.md`: SOLID/DRY/YAGNI mapping to 7 Virtues
 
 ---
 
@@ -77,7 +77,7 @@ Compliant with `BOUNDARIES.md`.
 
 ## 6. Evaluation Impact
 
-From `eval_criteria.yaml` and `docs/evaluation/eval_criteria.md`:
+From `eval_criteria.yaml` and `docs/backend/evaluation/eval_criteria.md`:
 
 - Mode: deterministic
 - FIRST enforcement required: yes — minimum average 4.0
@@ -105,7 +105,7 @@ ADR required: yes
 
 - Produces shared artifact: yes
 - Artifact type: JSON Schema (Draft 2020-12)
-- Artifact location: `governance/schemas/<schema-id>.schema.json`; registered in schema registry
+- Artifact location: `governance/backend/schemas/<schema-id>.schema.json`; registered in schema registry
 - Downstream consumers identified: order-processing service, audit service
 - Versioning strategy:
   - Initial version: 1

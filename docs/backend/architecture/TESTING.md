@@ -56,7 +56,7 @@ LLM evaluation ensures the AI behaves correctly.
 
 LLM evaluation rules are defined in:
 
-docs/evaluation/eval_criteria.md
+docs/backend/evaluation/eval_criteria.md
 
 ---
 
