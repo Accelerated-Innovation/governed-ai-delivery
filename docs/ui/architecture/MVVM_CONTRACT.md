@@ -1,6 +1,10 @@
-# MVVM Architecture Contract — React UI
+# MVVM Architecture Contract — UI
 
-This document defines the architectural contract for all React UI projects governed by this kit. All violations require an accepted ADR.
+This document defines the architectural contract for all UI projects governed by this kit, regardless of framework. All violations require an accepted ADR.
+
+For framework-specific implementation rules see:
+- React: `docs/ui/architecture/react/`
+- Angular: `docs/ui/architecture/angular/`
 
 ---
 
@@ -11,11 +15,11 @@ This document defines the architectural contract for all React UI projects gover
 │           View (Components)          │  src/features/*/components/
 │   Pure render — no logic, no fetch   │  src/shared/components/
 └──────────────┬──────────────────────┘
-               │ props / hook return values
+               │ props / data from ViewModel
 ┌──────────────▼──────────────────────┐
-│         ViewModel (Hooks + Store)    │  src/features/*/hooks/
-│  React Query — server state          │  src/features/*/store/
-│  Zustand — client UI state           │
+│            ViewModel                 │  src/features/*/hooks/   (server state)
+│   Server state — query layer         │  src/features/*/store/   (client state)
+│   Client UI state — store layer      │
 └──────────────┬──────────────────────┘
                │ async function calls
 ┌──────────────▼──────────────────────┐
@@ -34,9 +38,9 @@ This document defines the architectural contract for all React UI projects gover
 
 | Layer | May import from |
 |---|---|
-| View (components) | ViewModel hooks, shared components, types |
-| ViewModel (hooks) | API layer, shared API config, types |
-| ViewModel (store) | Types only — never API layer directly |
+| View (components) | ViewModel layer, shared components, types |
+| ViewModel (query layer) | API layer, shared API config, types |
+| ViewModel (store layer) | Types only — never API layer directly |
 | Model (API) | Shared base client, types |
 | Shared components | Types only — no feature imports |
 | Shared API | Environment config only |
@@ -45,7 +49,7 @@ This document defines the architectural contract for all React UI projects gover
 
 - View importing from `api/` directly → never
 - View importing from another feature's internals → never
-- Store calling API functions → never (use React Query mutations)
+- Store calling API functions directly → never (use the query layer's mutation mechanism)
 - `shared/` importing from `features/` → never
 - Circular dependencies between features → never
 
@@ -58,7 +62,7 @@ Every feature is self-contained:
 ```
 src/features/<feature-name>/
 ├── components/     # View
-├── hooks/          # ViewModel — server state
+├── hooks/          # ViewModel — server state (query layer)
 ├── store/          # ViewModel — client state (if needed)
 ├── api/            # Model
 └── types/          # Feature-local TypeScript types
@@ -70,17 +74,17 @@ Cross-feature imports are forbidden. If two features need to share something, it
 
 ## 4. State Ownership
 
-| State type | Owner | Tool |
+| State type | Owner | Framework tool |
 |---|---|---|
-| Server data (API responses) | React Query cache | `useQuery` / `useMutation` |
-| Client UI state (modals, tabs, selections) | Zustand store | Feature-scoped store |
-| Form state | Local component state or React Hook Form | `useState` / `useForm` |
-| URL state (filters, pagination) | URL params | `useSearchParams` |
+| Server data (API responses) | Query layer cache | React: React Query / Angular: TanStack Angular Query |
+| Client UI state (modals, tabs, selections) | Store layer | React: Zustand / Angular: Angular Signals |
+| Form state | Component or form library | React: React Hook Form / Angular: Reactive Forms |
+| URL state (filters, pagination) | URL params | React: `useSearchParams` / Angular: `ActivatedRoute` |
 
-Never duplicate server data into Zustand. Never put UI-only state into React Query.
+Never duplicate server data into the client state store. Never put UI-only state into the query layer cache.
 
 ---
 
 ## 5. Backend Boundary
 
-The UI owns nothing in the backend. The API layer is read-only from the UI's perspective — it consumes contracts defined by the backend team. If a required endpoint does not exist, an ADR is required to negotiate and document the contract before UI implementation begins.
+The UI owns nothing in the backend. The API layer consumes contracts defined by the backend team. If a required endpoint does not exist, an ADR is required to negotiate and document the contract before UI implementation begins.

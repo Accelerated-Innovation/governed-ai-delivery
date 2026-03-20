@@ -288,7 +288,9 @@ governed-ai-delivery/
 │   ├── copilot/                      # Backend — Copilot (installs to .github/)
 │   ├── claude-code/                  # Backend — Claude Code (installs to root + .claude/)
 │   ├── copilot-ui-react/             # React UI — Copilot (installs to .github/)
-│   └── claude-code-ui-react/         # React UI — Claude Code (installs to root + .claude/)
+│   ├── claude-code-ui-react/         # React UI — Claude Code (installs to root + .claude/)
+│   ├── copilot-ui-angular/           # Angular UI — Copilot (installs to .github/)
+│   └── claude-code-ui-angular/       # Angular UI — Claude Code (installs to root + .claude/)
 ├── cli/
 │   └── govkit.py                     # govkit CLI installer
 ├── docs/
@@ -296,7 +298,11 @@ governed-ai-delivery/
 │   │   ├── architecture/             # ARCH_CONTRACT, BOUNDARIES, API_CONVENTIONS, ADR/, etc.
 │   │   └── evaluation/               # eval_criteria.md — FIRST, 7 Virtues, scoring model
 │   └── ui/
-│       ├── architecture/             # MVVM_CONTRACT, COMPONENT_CONVENTIONS, STATE_MANAGEMENT, etc.
+│       ├── architecture/
+│       │   ├── MVVM_CONTRACT.md      # Shared contract — framework-agnostic
+│       │   ├── ADR/TEMPLATE.md       # UI ADR template
+│       │   ├── react/                # React-specific: COMPONENT_CONVENTIONS, STATE_MANAGEMENT, TECH_STACK
+│       │   └── angular/              # Angular-specific: COMPONENT_CONVENTIONS, STATE_MANAGEMENT, TECH_STACK
 │       └── evaluation/               # eval_criteria.md — FIRST, accessibility, E2E standards
 ├── features/
 │   ├── feature_name/                 # Starter scaffolding — copy to begin a new feature
@@ -327,16 +333,19 @@ governed-ai-delivery/
 * [TESTING.md](docs/backend/architecture/TESTING.md)
 * [ADR/TEMPLATE.md](docs/backend/architecture/ADR/TEMPLATE.md)
 
+# Architecture — UI (Shared)
+
+* [MVVM_CONTRACT.md](docs/ui/architecture/MVVM_CONTRACT.md) — framework-agnostic MVVM contract
+* [ADR/TEMPLATE.md](docs/ui/architecture/ADR/TEMPLATE.md) — UI ADR template
+
 # Architecture — React UI
 
-* [MVVM_CONTRACT.md](docs/ui/architecture/MVVM_CONTRACT.md) — shared MVVM contract
 * [COMPONENT_CONVENTIONS.md](docs/ui/architecture/react/COMPONENT_CONVENTIONS.md)
 * [STATE_MANAGEMENT.md](docs/ui/architecture/react/STATE_MANAGEMENT.md) — React Query + Zustand
 * [TECH_STACK.md](docs/ui/architecture/react/TECH_STACK.md)
 
 # Architecture — Angular UI
 
-* [MVVM_CONTRACT.md](docs/ui/architecture/MVVM_CONTRACT.md) — shared MVVM contract
 * [COMPONENT_CONVENTIONS.md](docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md)
 * [STATE_MANAGEMENT.md](docs/ui/architecture/angular/STATE_MANAGEMENT.md) — TanStack Angular Query + Signals
 * [TECH_STACK.md](docs/ui/architecture/angular/TECH_STACK.md)
