@@ -4,9 +4,9 @@ A spec-driven, evaluation-governed scaffolding kit for AI-assisted software deli
 
 Every feature is:
 
-* Defined with **Gherkin acceptance criteria**
-* Constrained with **NFRs**
-* Governed by **LLM evaluation criteria**
+* Defined with **Gherkin acceptance criteria** tagged to NFR categories
+* Constrained with **fully populated NFRs** (no TBD entries permitted)
+* Governed by **evaluation criteria** validated against a JSON Schema
 * Planned through **Architecture Preflight + Implementation Plan prompts**
 * Enforced by **CI gates, quality rules, and evaluation thresholds**
 
@@ -38,7 +38,7 @@ From your project root, run:
 ```bash
 govkit apply --agent copilot --target .
 ```
-or  
+or
 ```bash
 govkit apply --agent claude-code --target .
 ```
@@ -47,18 +47,20 @@ This installs the agent-specific config files and shared governance artifacts in
 
 ## 3. Create a Feature Folder
 
-Add the following files for each feature you want to implement:
+Copy the starter scaffolding from `features/feature_name/`:
 
 ```
 features/my_feature/
-  ├─ acceptance.feature
-  ├─ nfrs.md
-  ├─ eval_criteria.yaml
-  ├─ plan.md
+  ├─ acceptance.feature       ← Gherkin scenarios with @nfr-* and @contract tags
+  ├─ nfrs.md                  ← Must be fully populated — no TBD entries
+  ├─ eval_criteria.yaml       ← Validated against governance/schemas/eval_criteria.schema.json
+  ├─ plan.md                  ← Includes structured evaluation prediction block
   └─ architecture_preflight.md
 ```
 
-`eval_criteria.yaml` may start minimal — it will be updated during planning.
+Each file in `features/feature_name/` contains inline instructions and points to the worked example at `features/schema_contract_example/`.
+
+> **Important:** `nfrs.md` must have no TBD entries before Architecture Preflight begins. The agent will stop and ask if any category is incomplete.
 
 ## 4. Open in VS Code
 
@@ -70,17 +72,6 @@ No dependencies are required yet. If/when dependencies are added, this section w
 
 The workflow is the same regardless of which agent you use. Commands differ by agent — see the table in each phase.
 
-Assume this feature structure:
-
-```
-features/cool_feature/
-  ├─ acceptance.feature
-  ├─ nfrs.md
-  ├─ eval_criteria.yaml
-  ├─ plan.md
-  └─ architecture_preflight.md
-```
-
 ---
 
 ## Phase 1 — Architecture Preflight
@@ -90,7 +81,13 @@ features/cool_feature/
 | Copilot | `/architecture-preflight` |
 | Claude Code | `/project:architecture-preflight` |
 
-Provide the feature name and paths to NFRs, Gherkin, and eval YAML. The agent generates `architecture_preflight.md`.
+Provide the feature name and paths to NFRs, Gherkin, and eval YAML. The agent generates `architecture_preflight.md` covering:
+
+* Boundary and API impact
+* Security impact
+* Evaluation impact
+* **Shared contract analysis** — if the feature produces a schema, event definition, or API contract consumed by other services, an ADR is required before proceeding
+* ADR determination
 
 If an ADR is required:
 
@@ -99,7 +96,7 @@ If an ADR is required:
 | Copilot | `/adr-author` |
 | Claude Code | `/project:adr-author` |
 
-Commit the ADR before proceeding.
+ADR must be Accepted before implementation proceeds. ADR templates and examples live under `docs/architecture/ADR/`.
 
 ---
 
@@ -118,12 +115,10 @@ Generates or updates:
 The plan must include:
 
 * Increment breakdown
-* Evaluation Compliance Summary
-* Predicted FIRST score
-* Predicted 7 Virtue score
-* Refactor triggers
+* Shared contract artifacts (if applicable)
+* **Evaluation Compliance Summary** — a structured YAML block with predicted FIRST and 7 Virtue scores, each with a numeric value and one-sentence evidence rationale
 
-Implementation must not begin if predicted thresholds are not met.
+Implementation must not begin if predicted averages are below 4.0 or `thresholds_met` is false.
 
 ---
 
@@ -162,21 +157,39 @@ Push branch and open PR. CI gates run:
 
 * Unit tests
 * Integration tests
-* FIRST enforcement
-* 7 Code Virtue enforcement
-* SonarQube
-* Boundary rules (`import-linter`)
-* Security scans
-* LLM eval checks (if enabled)
+* `eval_criteria.yaml` schema validation (all feature instances validated against `governance/schemas/eval_criteria.schema.json`)
+* FIRST and 7 Code Virtue prediction completeness check
+* LLM eval suite and regression check (if `mode: llm`)
+* SonarQube quality gate
+* Architecture boundary enforcement (`import-linter`)
+* Security scan (Snyk)
+* Contract backward-compatibility check (triggered by `@contract`-tagged scenarios)
+
+See `ci/quality-gate-example.yml` and `ci/eval-gate-example.yml` for setup instructions — each file opens with a comment block explaining what to configure.
 
 Before merge confirm:
 
 * Plan was followed
 * Specs are satisfied
-* ADR present (if required)
+* ADR present and Accepted (if required)
 * Evaluation thresholds met
 
 Merge only after all gates pass.
+
+---
+
+# Worked Example
+
+`features/schema_contract_example/` is a fully completed feature demonstrating every governance rule:
+
+* Tagged Gherkin covering all NFR categories and shared contract scenarios
+* Fully populated `nfrs.md`
+* Schema-valid `eval_criteria.yaml`
+* `plan.md` with completed evaluation prediction block and shared contract artifacts
+* Completed `architecture_preflight.md` including Shared Contract Analysis
+* `docs/architecture/ADR/ADR-001-schema-contract-ownership.md` — a complete accepted ADR
+
+Use this as your reference when completing the starter scaffolding.
 
 ---
 
@@ -185,13 +198,42 @@ Merge only after all gates pass.
 ```
 governed-ai-delivery/
 ├── agents/
-│   ├── copilot/            # Copilot-specific config (installs to .github/)
-│   └── claude-code/        # Claude Code-specific config (installs to root + .claude/)
-├── cli/                    # govkit CLI source
-├── docs/                   # Architecture and evaluation docs (agent-agnostic)
-├── features/               # Feature spec examples (agent-agnostic)
-├── governance/             # Templates and schemas (agent-agnostic)
-└── ci/                     # CI gate examples (agent-agnostic)
+│   ├── copilot/                    # Copilot-specific config (installs to .github/)
+│   │   ├── copilot-instructions.md
+│   │   ├── instructions/           # Phase-specific instruction files
+│   │   └── prompts/                # Slash command prompt files
+│   └── claude-code/                # Claude Code config (installs to root + .claude/)
+│       ├── CLAUDE.md
+│       ├── rules/                  # Layer-specific rules (auto-loaded by file path)
+│       └── skills/                 # Slash command skill definitions
+├── cli/                            # govkit CLI source
+├── docs/
+│   ├── architecture/
+│   │   ├── ADR/                    # Architecture Decision Records
+│   │   │   ├── TEMPLATE.md         # ADR template
+│   │   │   └── ADR-001-*.md        # Accepted ADRs
+│   │   ├── ARCH_CONTRACT.md
+│   │   ├── BOUNDARIES.md
+│   │   ├── API_CONVENTIONS.md
+│   │   ├── DESIGN_PRINCIPLES.md    # SOLID, DRY, YAGNI, KISS — mapped to 7 Virtues
+│   │   ├── GHERKIN_CONVENTIONS.md  # NFR tags, @contract tag, coverage rules
+│   │   ├── SECURITY_AUTH_PATTERNS.md
+│   │   ├── TECH_STACK.md
+│   │   └── TESTING.md
+│   └── evaluation/
+│       └── eval_criteria.md        # FIRST, 7 Virtues, scoring model, eval workflow
+├── features/
+│   ├── feature_name/               # Starter scaffolding — copy to begin a new feature
+│   └── schema_contract_example/    # Fully worked example — reference implementation
+├── governance/
+│   ├── schemas/
+│   │   └── eval_criteria.schema.json   # JSON Schema for eval_criteria.yaml instances
+│   └── templates/
+│       ├── architecture_preflight.md
+│       └── plan.md
+└── ci/
+    ├── quality-gate-example.yml    # Schema validation, boundaries, SonarQube, Snyk, contracts
+    └── eval-gate-example.yml       # Eval prediction check, LLM eval run, regression gate
 ```
 
 ---
@@ -201,8 +243,18 @@ governed-ai-delivery/
 * [ARCH_CONTRACT.md](docs/architecture/ARCH_CONTRACT.md)
 * [BOUNDARIES.md](docs/architecture/BOUNDARIES.md)
 * [API_CONVENTIONS.md](docs/architecture/API_CONVENTIONS.md)
+* [DESIGN_PRINCIPLES.md](docs/architecture/DESIGN_PRINCIPLES.md) — SOLID, DRY, YAGNI, KISS
+* [GHERKIN_CONVENTIONS.md](docs/architecture/GHERKIN_CONVENTIONS.md) — NFR tags, coverage rules
 * [SECURITY_AUTH_PATTERNS.md](docs/architecture/SECURITY_AUTH_PATTERNS.md)
-* [docs/evaluation/eval_criteria.md](docs/evaluation/eval_criteria.md)
+* [TESTING.md](docs/architecture/TESTING.md)
+* [ADR/TEMPLATE.md](docs/architecture/ADR/TEMPLATE.md)
+
+---
+
+# Evaluation
+
+* [eval_criteria.md](docs/evaluation/eval_criteria.md) — FIRST principles, 7 Code Virtues, scoring model
+* [eval_criteria.schema.json](governance/schemas/eval_criteria.schema.json) — JSON Schema for feature eval YAML instances
 
 ---
 
@@ -218,11 +270,12 @@ governed-ai-delivery/
 
 Testing is evaluation-driven. All features must:
 
-* Satisfy FIRST principles
-* Achieve minimum virtue averages
-* Pass LLM evaluation thresholds (if applicable)
+* Satisfy FIRST principles (minimum average 4.0)
+* Achieve minimum Virtue averages (minimum average 4.0)
+* Pass LLM evaluation thresholds (if `mode: llm`)
+* Have Gherkin scenarios tagged per [GHERKIN_CONVENTIONS.md](docs/architecture/GHERKIN_CONVENTIONS.md)
 
-Refer to [docs/evaluation/eval_criteria.md](docs/evaluation/eval_criteria.md).
+See [docs/evaluation/eval_criteria.md](docs/evaluation/eval_criteria.md) and [docs/architecture/TESTING.md](docs/architecture/TESTING.md).
 
 ---
 
@@ -230,10 +283,10 @@ Refer to [docs/evaluation/eval_criteria.md](docs/evaluation/eval_criteria.md).
 
 Before contributing:
 
-* Read `docs/architecture/**`
+* Read `docs/architecture/`
 * Read `docs/evaluation/eval_criteria.md`
 * Do not bypass ports or adapters
-* Submit ADR for boundary, security, or dependency changes
+* Submit an ADR for boundary, security, dependency, or shared contract changes
 
 ---
 
