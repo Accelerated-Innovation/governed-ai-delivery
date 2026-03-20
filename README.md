@@ -216,6 +216,8 @@ CI gates run:
 * E2E — Playwright with axe scan per flow
 * `eval_criteria.yaml` schema validation
 
+See `ci/ui-quality-gate-example.yml` and `ci/ui-eval-gate-example.yml`.
+
 ---
 
 # Feature Workflow — Angular UI
@@ -278,6 +280,8 @@ CI gates run:
 * E2E — Playwright with axe scan per flow
 * `eval_criteria.yaml` schema validation
 
+See `ci/ui-quality-gate-example.yml` and `ci/ui-eval-gate-example.yml`.
+
 ---
 
 # Repository Structure
@@ -315,8 +319,10 @@ governed-ai-delivery/
 │       ├── schemas/                  # eval_criteria.schema.json (UI)
 │       └── templates/                # architecture_preflight.md, plan.md (UI)
 └── ci/
-    ├── quality-gate-example.yml      # Schema validation, boundaries, SonarQube, Snyk
-    └── eval-gate-example.yml         # Eval prediction check, LLM eval, regression gate
+    ├── quality-gate-example.yml      # Backend: schema validation, boundaries, SonarQube, Snyk
+    ├── eval-gate-example.yml         # Backend: eval prediction check, LLM eval, regression gate
+    ├── ui-quality-gate-example.yml   # UI: type check, ESLint, component tests, jest-axe, bundle size
+    └── ui-eval-gate-example.yml      # UI: eval prediction check, Playwright E2E, axe scans
 ```
 
 ---
