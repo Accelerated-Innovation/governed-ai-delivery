@@ -12,7 +12,7 @@
   "shared": [
     "docs/ui/",
     "governance/ui/",
-    "features/starter_ui/",
+    "features/starter_ui/", "features/ui_task_dashboard/",
     "ci/ui-quality-gate-example.yml", "ci/ui-eval-gate-example.yml"
   ]
 }

@@ -72,6 +72,11 @@ Copy the starter scaffolding appropriate for your project type:
 **Backend project:** copy from `features/starter_backend/`
 **React or Angular UI project:** copy from `features/starter_ui/`
 
+For a fully worked reference showing every artifact populated end-to-end:
+
+**Backend:** see `features/schema_contract_example/`
+**React UI:** see `features/ui_task_dashboard/`
+
 ```
 features/my_feature/
   ├─ acceptance.feature       ← Gherkin scenarios with @nfr-* and @e2e/@accessibility tags
@@ -314,7 +319,8 @@ governed-ai-delivery/
 ├── features/
 │   ├── starter_backend/              # Backend starter — copy to begin a new backend feature
 │   ├── starter_ui/                   # UI starter — copy to begin a new React or Angular feature
-│   └── schema_contract_example/      # Fully worked backend example
+│   ├── schema_contract_example/      # Fully worked backend example
+│   └── ui_task_dashboard/            # Fully worked React UI example (standalone)
 ├── governance/
 │   ├── backend/
 │   │   ├── schemas/                  # eval_criteria.schema.json

@@ -1,0 +1,17 @@
+version: 1
+feature: ui_task_dashboard
+mode: ui
+owner: frontend-team
+
+component_tests:
+  enforce_FIRST: true
+  minimum_FIRST_average: 4
+
+accessibility:
+  standard: WCAG_2_1_AA
+  max_critical_violations: 0
+  max_serious_violations: 0
+
+e2e:
+  enforce_gherkin_coverage: true
+  run_axe_on_each_flow: true
