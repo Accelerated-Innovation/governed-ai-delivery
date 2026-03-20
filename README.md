@@ -1,5 +1,11 @@
 # Governed AI Delivery
 
+AI coding agents are powerful — but without constraints, they drift. They invent architecture, skip tests, ignore NFRs, and make decisions that belong to your team. **Governed AI Delivery** puts the agent inside a governed system where your architecture contracts, acceptance criteria, and evaluation thresholds are the source of truth, not the agent's training data.
+
+Install it into any project with one command. The agent gets the rules. You stay in control.
+
+---
+
 A spec-driven, evaluation-governed scaffolding kit for AI-assisted software delivery. Supports multiple AI coding agents with clean separation of concerns.
 
 Every feature is:
@@ -65,7 +71,34 @@ govkit apply --agent claude-code-ui-angular --target .
 
 This installs the agent-specific config files and shared governance artifacts into your project.
 
-## 4. Create a Feature Folder
+## 4. Customize Your Governance Artifacts — REQUIRED
+
+> **This step is not optional.** The installed `docs/` files are authoritative starting points — they reflect sound defaults, but they are written for a generic project. Your agent will treat them as law. If you skip this step, the agent will govern your project against someone else's architecture decisions.
+
+Before writing a single line of feature code, review and update the following to match your project:
+
+**Backend projects** — review and update:
+- `docs/backend/architecture/TECH_STACK.md` — replace with your actual approved libraries, frameworks, and versions
+- `docs/backend/architecture/ARCH_CONTRACT.md` — confirm the hexagonal layer names and boundaries match your codebase structure
+- `docs/backend/architecture/API_CONVENTIONS.md` — update route naming, versioning strategy, and error model to match your API standards
+- `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md` — replace with your actual auth provider, token pattern, and scope conventions
+- `docs/backend/evaluation/eval_criteria.md` — confirm FIRST and 7 Virtue thresholds are appropriate for your team's standards
+
+**React UI projects** — review and update:
+- `docs/ui/architecture/react/TECH_STACK.md` — confirm your React version, state management libraries, and testing stack
+- `docs/ui/architecture/react/COMPONENT_CONVENTIONS.md` — update to reflect your project's folder structure and naming conventions
+- `docs/ui/evaluation/eval_criteria.md` — confirm accessibility standard and FIRST thresholds
+
+**Angular UI projects** — review and update:
+- `docs/ui/architecture/angular/TECH_STACK.md` — confirm your Angular version, TanStack Query setup, and testing stack
+- `docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md` — update to reflect your project's folder structure and naming conventions
+- `docs/ui/evaluation/eval_criteria.md` — confirm accessibility standard and FIRST thresholds
+
+These files are the source of truth for your AI agent. The agent reads them before every planning and implementation step. Keep them accurate and up to date as your project evolves.
+
+---
+
+## 5. Create a Feature Folder
 
 Copy the starter scaffolding appropriate for your project type:
 
