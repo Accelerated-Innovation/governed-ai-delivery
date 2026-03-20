@@ -1,3 +1,20 @@
+# eval-gate-example.yml
+#
+# PURPOSE: Enforces evaluation score predictions and runs LLM eval suites on every PR.
+# Copy this file to .github/workflows/eval-gate.yml and configure the
+# steps marked "Configure your..." before enabling in CI.
+#
+# JOBS:
+#   eval-gate   — checks that every features/*/plan.md contains a completed
+#                 evaluation_prediction block with FIRST and Virtue averages >= 4.0
+#                 (runs as-is once plan.md files are populated)
+#   llm-eval    — detects features with mode: llm in eval_criteria.yaml, runs the
+#                 LLM eval suite, and checks for regressions against stored baselines
+#                 (configure your eval runner and regression checker before enabling)
+#
+# REQUIRED SECRETS: ANTHROPIC_API_KEY (for llm-eval job only)
+# SEE ALSO: ci/quality-gate-example.yml for structural and security gates
+
 name: Eval Gate
 
 on:

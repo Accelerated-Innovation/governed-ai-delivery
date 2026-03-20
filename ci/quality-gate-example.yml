@@ -1,3 +1,22 @@
+# quality-gate-example.yml
+#
+# PURPOSE: Enforces structural and security quality on every PR.
+# Copy this file to .github/workflows/quality-gate.yml and configure the
+# steps marked "Configure your..." before enabling in CI.
+#
+# JOBS:
+#   schema-validation      — validates every features/*/eval_criteria.yaml against
+#                            governance/schemas/eval_criteria.schema.json (runs as-is)
+#   boundary-check         — enforces hexagonal architecture boundaries via import-linter
+#                            (requires .importlinter config in your repo root)
+#   sonarqube              — SonarQube quality gate (requires SONAR_TOKEN and SONAR_HOST_URL secrets)
+#   security-scan          — Snyk vulnerability scan (requires SNYK_TOKEN secret)
+#   contract-compatibility — detects @contract-tagged features and checks backward compatibility
+#                            (configure your schema diff tool in the final step)
+#
+# REQUIRED SECRETS: SONAR_TOKEN, SONAR_HOST_URL, SNYK_TOKEN
+# SEE ALSO: ci/eval-gate-example.yml for evaluation score gates
+
 name: Quality Gate
 
 on:
