@@ -5,7 +5,7 @@
      The Evaluation Compliance Summary is mandatory — all score and evidence
      fields must be populated (no null values) before proceeding to code.
      See features/schema_contract_example/plan.md for a complete worked example.
-     Template source: governance/templates/plan.md
+     Template source: governance/backend/templates/plan.md
 -->
 
 ---
@@ -34,11 +34,11 @@
 ## Architecture Alignment
 
 ### Relevant contracts
-- docs/architecture/ARCH_CONTRACT.md:
-- docs/architecture/BOUNDARIES.md:
-- docs/architecture/API_CONVENTIONS.md:
-- docs/architecture/SECURITY_AUTH_PATTERNS.md:
-- docs/evaluation/eval_criteria.md:
+- docs/backend/architecture/ARCH_CONTRACT.md:
+- docs/backend/architecture/BOUNDARIES.md:
+- docs/backend/architecture/API_CONVENTIONS.md:
+- docs/backend/architecture/SECURITY_AUTH_PATTERNS.md:
+- docs/backend/evaluation/eval_criteria.md:
 
 ### ADRs
 

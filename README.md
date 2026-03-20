@@ -67,11 +67,14 @@ This installs the agent-specific config files and shared governance artifacts in
 
 ## 4. Create a Feature Folder
 
-Copy the starter scaffolding from `features/feature_name/`:
+Copy the starter scaffolding appropriate for your project type:
+
+**Backend project:** copy from `features/starter_backend/`
+**React or Angular UI project:** copy from `features/starter_ui/`
 
 ```
 features/my_feature/
-  ├─ acceptance.feature       ← Gherkin scenarios with @nfr-* and @contract tags
+  ├─ acceptance.feature       ← Gherkin scenarios with @nfr-* and @e2e/@accessibility tags
   ├─ nfrs.md                  ← Must be fully populated — no TBD entries
   ├─ eval_criteria.yaml       ← Validated against the agent's eval schema
   ├─ plan.md                  ← Includes structured evaluation prediction block
@@ -309,7 +312,8 @@ governed-ai-delivery/
 │       │   └── angular/              # Angular-specific: COMPONENT_CONVENTIONS, STATE_MANAGEMENT, TECH_STACK
 │       └── evaluation/               # eval_criteria.md — FIRST, accessibility, E2E standards
 ├── features/
-│   ├── feature_name/                 # Starter scaffolding — copy to begin a new feature
+│   ├── starter_backend/              # Backend starter — copy to begin a new backend feature
+│   ├── starter_ui/                   # UI starter — copy to begin a new React or Angular feature
 │   └── schema_contract_example/      # Fully worked backend example
 ├── governance/
 │   ├── backend/

@@ -1,0 +1,25 @@
+# INSTRUCTIONS
+# Set mode to: ui | none
+#   ui   — standard for all features with rendered UI components
+#   none — only when this feature has no rendered UI (document rationale below)
+#
+# Schema: governance/ui/schemas/eval_criteria.schema.json
+# Standards: docs/ui/evaluation/eval_criteria.md
+
+version: 1
+feature: <feature_name>
+mode: ui
+owner: <team-or-role>
+
+component_tests:
+  enforce_FIRST: true
+  minimum_FIRST_average: 4
+
+accessibility:
+  standard: WCAG_2_1_AA
+  max_critical_violations: 0
+  max_serious_violations: 0
+
+e2e:
+  enforce_gherkin_coverage: true
+  run_axe_on_each_flow: true

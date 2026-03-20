@@ -1,7 +1,7 @@
 # INSTRUCTIONS
 # Replace <feature_name> with your feature name throughout this file.
 # Every populated NFR category in nfrs.md must have at least one scenario
-# tagged with the corresponding @nfr-* tag. See docs/architecture/GHERKIN_CONVENTIONS.md.
+# tagged with the corresponding @nfr-* tag. See docs/backend/architecture/GHERKIN_CONVENTIONS.md.
 # If this feature produces a shared artifact (schema, API contract, event),
 # include at least one @contract scenario.
 # See features/schema_contract_example/acceptance.feature for a complete worked example.

@@ -33,8 +33,8 @@
   ],
   "shared": [
     "docs/backend/",
-    "features/",
+    "features/starter_backend/", "features/schema_contract_example/",
     "governance/backend/",
-    "ci/"
+    "ci/quality-gate-example.yml", "ci/eval-gate-example.yml"
   ]
 }

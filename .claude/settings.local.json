@@ -9,7 +9,14 @@
       "WebFetch(domain:docs.qodo.ai)",
       "WebFetch(domain:www.qodo.ai)",
       "WebFetch(domain:qodo-merge-docs.qodo.ai)",
-      "WebFetch(domain:marketplace.visualstudio.com)"
+      "WebFetch(domain:marketplace.visualstudio.com)",
+      "Bash(for agent:*)",
+      "Bash(do)",
+      "Bash(sed -i 's|\"\"features/\"\"|\"\"features/starter_backend/\"\", \"\"features/schema_contract_example/\"\"|g' agents/$agent/manifest.json)",
+      "Bash(sed -i 's|\"\"ci/\"\"|\"\"ci/quality-gate-example.yml\"\", \"\"ci/eval-gate-example.yml\"\"|g' agents/$agent/manifest.json)",
+      "Bash(done)",
+      "Bash(echo \"=== $agent ===\")",
+      "Read(//c/Users/marty/source/repos/governed-ai-delivery/agents/$agent/**)"
     ]
   }
 }

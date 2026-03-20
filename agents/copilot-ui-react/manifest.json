@@ -15,7 +15,7 @@
   "shared": [
     "docs/ui/",
     "governance/ui/",
-    "features/",
-    "ci/"
+    "features/starter_ui/",
+    "ci/ui-quality-gate-example.yml", "ci/ui-eval-gate-example.yml"
   ]
 }
