@@ -3,8 +3,8 @@
 You are performing an Architecture Preflight for a React UI feature. Read the following before proceeding:
 
 - `docs/ui/architecture/MVVM_CONTRACT.md`
-- `docs/ui/architecture/COMPONENT_CONVENTIONS.md`
-- `docs/ui/architecture/STATE_MANAGEMENT.md`
+- `docs/ui/architecture/react/COMPONENT_CONVENTIONS.md`
+- `docs/ui/architecture/react/STATE_MANAGEMENT.md`
 - `docs/ui/evaluation/eval_criteria.md`
 - All accepted ADRs in `docs/ui/architecture/ADR/`
 

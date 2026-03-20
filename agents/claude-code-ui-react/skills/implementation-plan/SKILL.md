@@ -5,7 +5,7 @@ You are producing an Implementation Plan for a React UI feature. Read the follow
 - `features/$ARGUMENTS/plan.md`
 - `features/$ARGUMENTS/architecture_preflight.md`
 - `docs/ui/architecture/MVVM_CONTRACT.md`
-- `docs/ui/architecture/STATE_MANAGEMENT.md`
+- `docs/ui/architecture/react/STATE_MANAGEMENT.md`
 
 ---
 

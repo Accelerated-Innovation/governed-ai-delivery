@@ -2,7 +2,7 @@
 applyTo: "**/components/**"
 ---
 
-Follow the component conventions defined in `docs/ui/architecture/COMPONENT_CONVENTIONS.md`.
+Follow the component conventions defined in `docs/ui/architecture/react/COMPONENT_CONVENTIONS.md`.
 
 All components in `**/components/**` must:
 

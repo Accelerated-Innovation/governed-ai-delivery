@@ -11,7 +11,7 @@ Before proceeding, read:
 - `features/<feature_name>/plan.md`
 - `features/<feature_name>/architecture_preflight.md`
 - `docs/ui/architecture/MVVM_CONTRACT.md`
-- `docs/ui/architecture/STATE_MANAGEMENT.md`
+- `docs/ui/architecture/react/STATE_MANAGEMENT.md`
 
 Produce an ordered implementation checklist. Sequence must follow MVVM layer order: API → ViewModel → View.
 

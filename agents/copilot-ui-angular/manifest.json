@@ -1,0 +1,21 @@
+{
+  "agent": "copilot-ui-angular",
+  "description": "GitHub Copilot — Angular UI governance, MVVM instructions, and Chat prompts",
+  "files": [
+    { "src": "copilot-instructions.md",                        "dest": ".github/copilot-instructions.md" },
+    { "src": "instructions/components.instructions.md",        "dest": ".github/instructions/components.instructions.md" },
+    { "src": "instructions/viewmodel.instructions.md",         "dest": ".github/instructions/viewmodel.instructions.md" },
+    { "src": "instructions/api.instructions.md",               "dest": ".github/instructions/api.instructions.md" },
+    { "src": "instructions/accessibility.instructions.md",     "dest": ".github/instructions/accessibility.instructions.md" },
+    { "src": "prompts/architecture-preflight.prompt.md",       "dest": ".github/prompts/architecture-preflight.prompt.md" },
+    { "src": "prompts/spec-planning.prompt.md",                "dest": ".github/prompts/spec-planning.prompt.md" },
+    { "src": "prompts/implementation-plan.prompt.md",          "dest": ".github/prompts/implementation-plan.prompt.md" },
+    { "src": "prompts/adr-author.prompt.md",                   "dest": ".github/prompts/adr-author.prompt.md" }
+  ],
+  "shared": [
+    "docs/ui/",
+    "governance/ui/",
+    "features/",
+    "ci/"
+  ]
+}

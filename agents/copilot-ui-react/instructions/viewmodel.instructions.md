@@ -2,7 +2,7 @@
 applyTo: "**/hooks/**,**/store/**"
 ---
 
-Follow the state management rules defined in `docs/ui/architecture/STATE_MANAGEMENT.md`.
+Follow the state management rules defined in `docs/ui/architecture/react/STATE_MANAGEMENT.md`.
 
 All hooks in `**/hooks/**` must:
 
@@ -20,4 +20,4 @@ All stores in `**/store/**` must:
 - Export named typed actions — not raw `set`
 - Never call API functions directly — mutations belong in React Query
 
-See `docs/ui/architecture/STATE_MANAGEMENT.md` for usage examples.
+See `docs/ui/architecture/react/STATE_MANAGEMENT.md` for usage examples.

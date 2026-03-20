@@ -25,9 +25,9 @@ src/
 
 Read before generating any code:
 - `docs/ui/architecture/MVVM_CONTRACT.md`
-- `docs/ui/architecture/COMPONENT_CONVENTIONS.md`
-- `docs/ui/architecture/STATE_MANAGEMENT.md`
-- `docs/ui/architecture/TECH_STACK.md`
+- `docs/ui/architecture/react/COMPONENT_CONVENTIONS.md`
+- `docs/ui/architecture/react/STATE_MANAGEMENT.md`
+- `docs/ui/architecture/react/TECH_STACK.md`
 - `docs/ui/evaluation/eval_criteria.md`
 
 ---

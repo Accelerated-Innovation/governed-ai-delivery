@@ -22,6 +22,8 @@ The AI agent operates inside a governed system. Architecture, evaluation, and fe
 | `claude-code` | Backend (Python / Hexagonal) | Supported |
 | `copilot-ui-react` | React UI (MVVM) | Supported |
 | `claude-code-ui-react` | React UI (MVVM) | Supported |
+| `copilot-ui-angular` | Angular UI (MVVM) | Supported |
+| `claude-code-ui-angular` | Angular UI (MVVM) | Supported |
 
 ---
 
@@ -53,6 +55,12 @@ govkit apply --agent claude-code --target .
 ```bash
 govkit apply --agent copilot-ui-react --target .
 govkit apply --agent claude-code-ui-react --target .
+```
+
+**Angular UI (MVVM / TanStack Angular Query + Signals):**
+```bash
+govkit apply --agent copilot-ui-angular --target .
+govkit apply --agent claude-code-ui-angular --target .
 ```
 
 This installs the agent-specific config files and shared governance artifacts into your project.
@@ -259,10 +267,17 @@ governed-ai-delivery/
 
 # Architecture — React UI
 
-* [MVVM_CONTRACT.md](docs/ui/architecture/MVVM_CONTRACT.md)
-* [COMPONENT_CONVENTIONS.md](docs/ui/architecture/COMPONENT_CONVENTIONS.md)
-* [STATE_MANAGEMENT.md](docs/ui/architecture/STATE_MANAGEMENT.md)
-* [TECH_STACK.md](docs/ui/architecture/TECH_STACK.md)
+* [MVVM_CONTRACT.md](docs/ui/architecture/MVVM_CONTRACT.md) — shared MVVM contract
+* [COMPONENT_CONVENTIONS.md](docs/ui/architecture/react/COMPONENT_CONVENTIONS.md)
+* [STATE_MANAGEMENT.md](docs/ui/architecture/react/STATE_MANAGEMENT.md) — React Query + Zustand
+* [TECH_STACK.md](docs/ui/architecture/react/TECH_STACK.md)
+
+# Architecture — Angular UI
+
+* [MVVM_CONTRACT.md](docs/ui/architecture/MVVM_CONTRACT.md) — shared MVVM contract
+* [COMPONENT_CONVENTIONS.md](docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md)
+* [STATE_MANAGEMENT.md](docs/ui/architecture/angular/STATE_MANAGEMENT.md) — TanStack Angular Query + Signals
+* [TECH_STACK.md](docs/ui/architecture/angular/TECH_STACK.md)
 
 ---
 
