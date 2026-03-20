@@ -218,6 +218,68 @@ CI gates run:
 
 ---
 
+# Feature Workflow — Angular UI
+
+The workflow follows the same 5-phase structure as React UI. MVVM layer order is enforced: API → ViewModel → View.
+
+## Phase 1 — Architecture Preflight
+
+| Agent | Command |
+|---|---|
+| Copilot | `/architecture-preflight` |
+| Claude Code | `/project:architecture-preflight` |
+
+Covers MVVM layer impact, backend contract availability, shared component impact, state management decision (TanStack Angular Query + Signals), accessibility impact, and ADR determination.
+
+ADR templates live under `docs/ui/architecture/ADR/`.
+
+---
+
+## Phase 2 — Spec Planning
+
+| Agent | Command |
+|---|---|
+| Copilot | `/spec-planning` |
+| Claude Code | `/project:spec-planning` |
+
+Generates `plan.md` with MVVM breakdown (standalone components, query inject functions, signal stores), increment sequence, backend contract dependencies, accessibility plan, and Evaluation Compliance Summary.
+
+---
+
+## Phase 3 — Implementation Planning
+
+| Agent | Command |
+|---|---|
+| Copilot | `/implementation-plan` |
+| Claude Code | `/project:implementation-plan` |
+
+Produces an ordered checklist: types → API → query inject functions → signal store → components → E2E.
+
+---
+
+## Phase 4 — Agent Implementation
+
+Implement one increment at a time following layer order:
+
+* API async functions first, with unit tests
+* TanStack Query inject functions and Signal stores, with `TestBed` tests
+* Standalone OnPush components last, with Angular Testing Library tests and jest-axe checks
+
+---
+
+## Phase 5 — CI & Merge
+
+CI gates run:
+
+* TypeScript strict mode (`tsc --noEmit`)
+* ESLint including `@angular-eslint`
+* Component tests (Jest + Angular Testing Library)
+* Accessibility — zero critical axe-core violations
+* E2E — Playwright with axe scan per flow
+* `eval_criteria.yaml` schema validation
+
+---
+
 # Repository Structure
 
 ```
