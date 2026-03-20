@@ -12,11 +12,15 @@ Preflight is required once per feature and must be updated if scope materially c
 Feature folder: `features/<feature_name>/`
 
 - acceptance.feature reviewed: yes/no
-- nfrs.md reviewed: yes/no
+- nfrs.md reviewed: yes/no — no TBD entries: yes/no
 - eval_criteria.yaml exists: yes/no
 - plan.md exists: yes/no
+- Gherkin scenarios cover all populated NFR categories per `docs/architecture/GHERKIN_CONVENTIONS.md`: yes/no
+- `@contract` scenario present (if feature produces shared artifact): yes/no/n-a
 
 If any required artifact is missing, stop.
+If nfrs.md contains TBD entries, stop and request completion before proceeding.
+If NFR tag coverage is incomplete, stop and request completion before proceeding.
 
 ---
 
@@ -107,7 +111,30 @@ If no:
 
 ---
 
-## 8. Preflight Conclusion
+## 8. Shared Contract Analysis
+
+Does this feature produce an artifact consumed by other features, services, or agents?
+
+Examples: JSON schema, OpenAPI spec, event definition, message contract, shared data model.
+
+- Produces shared artifact: yes/no
+- Artifact type:
+- Artifact location (path or registry):
+- Downstream consumers identified:
+- Versioning strategy:
+  - Initial version:
+  - Breaking change policy:
+- Backward compatibility requirement: yes/no
+- Contract validation mechanism:
+- ADR required for contract ownership: yes/no
+
+If yes and ADR is not required, justify:
+
+If no shared artifact, state: "No shared contract produced."
+
+---
+
+## 9. Preflight Conclusion
 
 - Architecture alignment: compliant | requires ADR | blocked
 - Security alignment: compliant | requires ADR | blocked

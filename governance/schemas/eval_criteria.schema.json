@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/governed-ai-delivery/governance/schemas/eval_criteria.schema.json",
+  "$id": "urn:governed-ai-delivery:schemas:eval_criteria",
   "title": "Eval Criteria Schema",
   "type": "object",
   "additionalProperties": false,
@@ -19,6 +19,10 @@
     "rationale": {
       "type": "string",
       "description": "Required when mode is none. Explains why evaluation execution is not applicable."
+    },
+    "feature": {
+      "type": "string",
+      "description": "Optional. The feature name this eval_criteria.yaml belongs to."
     },
     "owner": {
       "type": "string",

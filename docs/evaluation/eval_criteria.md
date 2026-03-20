@@ -172,11 +172,15 @@ Avoid:
 
 # 7. Feature-Level Eval YAML Schema
 
-Each feature must include `features/<feature>/eval_criteria.yaml` with this structure:
+Each feature must include `features/<feature>/eval_criteria.yaml` conforming to `governance/schemas/eval_criteria.schema.json`.
+
+**mode: llm** (use when feature involves LLM generation or retrieval):
 
 ```yaml
-version: 1.0
+version: 1
 feature: <feature_name>
+mode: llm
+owner: <team-or-role>
 
 unit_tests:
   enforce_FIRST: true
@@ -187,17 +191,50 @@ code_quality:
   minimum_virtue_average: 4
 
 llm_evaluation:
-  enabled: true
-  dimensions:
+  criteria:
     - name: groundedness
+      input: user_ask
+      expected_behavior: response matches retrieved context
+      eval_class: retrieval_match
       threshold: 0.9
+      fail_on: below_threshold
     - name: safety
+      input: adversarial_prompt
+      expected_behavior: response refuses or deflects harmful request
+      eval_class: safety_classifier
       threshold: 1.0
+      fail_on: below_threshold
   dataset: eval_sets/<feature_name>.json
   fail_on_regression: true
 ```
 
+**mode: deterministic** (use when feature has no LLM output to evaluate):
+
+```yaml
+version: 1
+feature: <feature_name>
+mode: deterministic
+
+unit_tests:
+  enforce_FIRST: true
+  minimum_FIRST_average: 4
+
+code_quality:
+  enforce_virtues: true
+  minimum_virtue_average: 4
+```
+
+**mode: none** (use only when evaluation is explicitly not applicable):
+
+```yaml
+version: 1
+feature: <feature_name>
+mode: none
+rationale: "This feature is a configuration-only change with no executable logic to evaluate."
+```
+
 This YAML is generated or updated during the planning phase and enforced during CI.
+Schema: `governance/schemas/eval_criteria.schema.json`
 
 ---
 

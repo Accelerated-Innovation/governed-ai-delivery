@@ -38,6 +38,12 @@ Every feature must live under `features/<feature_name>` with these required arti
 
 Implementation must not begin unless all five artifacts exist.
 
+Before proceeding to Architecture Preflight or planning:
+
+- If `nfrs.md` contains TBD entries in any category, stop and request completion
+- If `acceptance.feature` is empty or missing scenarios, stop and request completion
+- If Gherkin tag coverage does not satisfy `docs/architecture/GHERKIN_CONVENTIONS.md`, stop and request completion
+
 ---
 
 ## Feature Lifecycle (Mandatory Order — no steps may be skipped)
@@ -63,7 +69,7 @@ The plan must:
 - Include an Evaluation Compliance Summary predicting FIRST and 7 Virtue scores
 - Reference ADRs and architecture contracts
 
-If predicted evaluation thresholds are not met, revise the plan before writing any code.
+The Evaluation Compliance Summary must use the structured YAML prediction block from `governance/templates/plan.md`. All score and evidence fields must be populated with a numeric value (0–5) and a one-sentence rationale. Null values are not permitted at plan finalization. If any average is below 4.0, revise the plan before writing any code.
 
 ---
 
@@ -75,6 +81,7 @@ An ADR is required when:
 - A new architectural pattern is introduced
 - A security or auth approach changes
 - A boundary rule or dependency direction changes
+- A shared schema, API contract, event definition, or data model is introduced or modified that will be consumed by other features, services, or agents
 
 ADRs live under `docs/architecture/ADR/`, follow `docs/architecture/ADR/TEMPLATE.md`, and must be Accepted before implementation proceeds.
 
@@ -87,6 +94,8 @@ ADRs live under `docs/architecture/ADR/`, follow `docs/architecture/ADR/TEMPLATE
 - Follow Hexagonal Architecture (ports and adapters)
 - Use only approved frameworks from `docs/architecture/TECH_STACK.md`
 - Use approved auth patterns from `docs/architecture/SECURITY_AUTH_PATTERNS.md`
+- Follow API naming, versioning, and error rules from `docs/architecture/API_CONVENTIONS.md`; update OpenAPI definitions when APIs change
+- Follow design principles from `docs/architecture/DESIGN_PRINCIPLES.md`; use findings from approved tools (Ruff, SonarQube, Snyk, import-linter) as defined in `docs/architecture/TECH_STACK.md` — blocking findings must be resolved before proceeding
 
 Layer-specific rules load automatically from `.claude/rules/` when editing files in each layer:
 
@@ -114,6 +123,12 @@ Each increment must include:
 - BDD integration tests derived from Gherkin scenarios
 - Contract tests when APIs, ports, or external integrations are affected
 
+Gherkin scenarios must follow `docs/architecture/GHERKIN_CONVENTIONS.md`:
+
+- Every populated NFR category in `nfrs.md` must have at least one scenario tagged with the corresponding `@nfr-*` tag
+- Features producing shared artifacts must include at least one `@contract` scenario
+- Verify coverage during Architecture Preflight and plan finalization — stop if incomplete
+
 Undocumented Gherkin gaps must be noted in `plan.md`.
 
 ---
@@ -126,6 +141,35 @@ Trigger refactor before proceeding if:
 - Structural complexity excessive
 - FIRST or 7 Virtue score below threshold
 - Test flakiness detected
+
+---
+
+## Architecture Preflight Triggers
+
+Architecture Preflight must be re-run (or updated) when:
+
+- Scope expands beyond what the current preflight covers
+- New external dependencies are introduced
+- Security or auth patterns change
+- Evaluation mode changes
+- An ADR trigger condition is met
+- A shared contract or producer relationship is introduced or modified
+
+If Preflight status is Blocked, implementation must not proceed.
+
+---
+
+## Output Expectations
+
+Every plan and implementation output must include:
+
+- Referenced standards (architecture contracts, eval criteria, ADRs)
+- ADR status (Accepted / pending / not required — with justification)
+- Architecture compliance confirmation
+- Test coverage summary
+- Evaluation impact summary
+
+If alignment is unclear, stop and ask.
 
 ---
 

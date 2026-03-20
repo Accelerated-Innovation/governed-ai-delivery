@@ -46,6 +46,12 @@ Required artifacts:
 
 Implementation must not begin unless these artifacts exist.
 
+Before proceeding to Architecture Preflight or planning:
+
+* If `nfrs.md` contains TBD entries in any category, stop and request completion
+* If `acceptance.feature` is empty or missing scenarios, stop and request completion
+* If Gherkin tag coverage does not satisfy `docs/architecture/GHERKIN_CONVENTIONS.md`, stop and request completion
+
 ---
 
 ## 3. Feature Lifecycle (Mandatory Order)
@@ -82,6 +88,7 @@ Preflight is required:
 * When security/auth patterns change
 * When evaluation mode changes
 * When an ADR trigger condition is met
+* When a shared contract or producer relationship is introduced or modified
 
 If Preflight status is "Blocked", implementation must not proceed.
 
@@ -106,10 +113,11 @@ The plan must:
 * List tests per increment
 * Map Gherkin scenarios to BDD integration tests
 * State evaluation impact per increment
-* Include an **Evaluation Compliance Summary** predicting:
-
-  * FIRST average score
-  * 7 Virtue average score
+* Include an **Evaluation Compliance Summary** using the structured YAML prediction block from `governance/templates/plan.md`. All score and evidence fields must be populated with a numeric value (0–5) and a one-sentence rationale. Null values are not permitted at plan finalization. Fields:
+  * FIRST: fast, isolated, repeatable, self_verifying, timely — each with score and evidence
+  * Virtues: working, unique, simple, clear, easy, developed, brief — each with score and evidence
+  * Computed averages for FIRST and Virtues
+  * `thresholds_met: true | false`
   * Refactor triggers
 * Reference ADRs
 * Reference architecture contracts
@@ -142,6 +150,7 @@ An ADR is required when:
 * A security or auth approach changes
 * A boundary rule changes
 * A new dependency direction is introduced
+* A shared schema, API contract, event definition, or data model is introduced or modified that will be consumed by other features, services, or agents
 
 ### 6.1 Location and Template
 
@@ -247,6 +256,7 @@ CI evaluation gates are binding.
 Each increment must include tests aligned to:
 
 - `docs/architecture/TESTING.md`
+- `docs/architecture/GHERKIN_CONVENTIONS.md`
 - `features/<feature_name>/acceptance.feature`
 - `features/<feature_name>/nfrs.md`
 
@@ -255,6 +265,12 @@ Required test categories include:
 - Unit tests compliant with FIRST
 - BDD integration tests derived from Gherkin scenarios
 - Contract tests when APIs, ports, or external integrations are affected
+
+Gherkin scenarios must follow `docs/architecture/GHERKIN_CONVENTIONS.md`:
+
+- Every populated NFR category in `nfrs.md` must have at least one scenario tagged with the corresponding `@nfr-*` tag
+- Features producing shared artifacts must include at least one `@contract` scenario
+- Verify coverage during Architecture Preflight and plan finalization — stop if incomplete
 
 If a Gherkin scenario is not automated, the gap must be documented in `plan.md`.
 
@@ -274,25 +290,9 @@ Violations must be fixed before proceeding.
 
 ### 10.1 Development Tool Usage
 
-During planning and implementation, Copilot may use approved development tools defined in:
+Approved tools are defined in `docs/architecture/TECH_STACK.md` and `docs/architecture/AGENT_ARCHITECTURE.md`.
 
-- `docs/architecture/TECH_STACK.md`
-- `docs/architecture/AGENT_ARCHITECTURE.md`
-
-These tools may include:
-
-- Ruff
-- SonarQube
-- Snyk
-- import-linter
-
-Copilot must use tool findings to:
-
-- detect lint and formatting issues
-- identify structural complexity
-- identify duplicated logic
-- detect security vulnerabilities
-- validate architecture boundary compliance
+Copilot must use tool findings to detect lint and formatting issues, identify structural complexity and duplicated logic, detect security vulnerabilities, and validate architecture boundary compliance.
 
 Blocking findings must be resolved before proceeding.
 
@@ -342,11 +342,12 @@ Copilot follows standards. It does not invent them.
 
 ## 14. Design Principles
 
-All plans and code must follow:
+All plans and code must follow `docs/architecture/DESIGN_PRINCIPLES.md`.
 
-* SOLID principles
-* Structural simplicity rules defined in `docs/evaluation/eval_criteria.md`
-* Clear separation of ports and adapters
+Key requirements:
+* SOLID principles — see mapping to 7 Code Virtues in `DESIGN_PRINCIPLES.md`
+* DRY, YAGNI, KISS — enforced via **Unique**, **Brief**, and **Simple** virtues
+* Clear separation of ports and adapters per `docs/architecture/BOUNDARIES.md`
 
 Generated code must avoid violations flagged by SonarQube rules tagged with `solid-*`.
 

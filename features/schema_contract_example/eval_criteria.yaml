@@ -1,0 +1,12 @@
+version: 1
+feature: schema_contract_example
+mode: deterministic
+owner: platform-team
+
+unit_tests:
+  enforce_FIRST: true
+  minimum_FIRST_average: 4
+
+code_quality:
+  enforce_virtues: true
+  minimum_virtue_average: 4

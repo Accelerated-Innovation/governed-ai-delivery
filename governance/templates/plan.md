@@ -48,6 +48,17 @@
 - Data stores/events touched:
 - External dependencies:
 
+### Shared contract artifacts
+
+Artifacts produced by this feature that other features, services, or agents will consume.
+
+- Shared artifacts produced: none | <list>
+- Artifact type(s):
+- Downstream consumers:
+- Versioning strategy:
+- Breaking change policy:
+- ADR reference (if required):
+
 ### Security and compliance
 
 - AuthN/AuthZ considerations:
@@ -58,29 +69,28 @@
 
 ## Evaluation Compliance Summary (MANDATORY)
 
-Predicted BEFORE implementation begins.
+Predicted BEFORE implementation begins. All score and evidence fields must be populated — null values are not permitted at plan finalization.
 
-### FIRST (0-5 per principle)
-
-- Fast:
-- Isolated:
-- Repeatable:
-- Self-verifying:
-- Timely:
-
-Predicted FIRST average:
-
-### 7 Code Virtues (0-5 per virtue)
-
-- Working:
-- Unique:
-- Simple:
-- Clear:
-- Easy:
-- Developed:
-- Brief:
-
-Predicted Virtue average:
+```yaml
+evaluation_prediction:
+  first:
+    fast:           { score: null, evidence: "" }
+    isolated:       { score: null, evidence: "" }
+    repeatable:     { score: null, evidence: "" }
+    self_verifying: { score: null, evidence: "" }
+    timely:         { score: null, evidence: "" }
+    average: null
+  virtues:
+    working:   { score: null, evidence: "" }
+    unique:    { score: null, evidence: "" }
+    simple:    { score: null, evidence: "" }
+    clear:     { score: null, evidence: "" }
+    easy:      { score: null, evidence: "" }
+    developed: { score: null, evidence: "" }
+    brief:     { score: null, evidence: "" }
+    average: null
+  thresholds_met: null   # true | false — set to false triggers plan revision
+```
 
 ### Refactor Triggers Identified
 
@@ -89,7 +99,7 @@ Predicted Virtue average:
 - Boundary risks:
 - Test fragility risks:
 
-If predicted averages are below thresholds, this plan must be revised.
+If `thresholds_met` is false or any average is below 4.0, this plan must be revised before implementation begins.
 
 ---
 

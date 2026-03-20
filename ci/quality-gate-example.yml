@@ -1,0 +1,96 @@
+name: Quality Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  schema-validation:
+    name: Validate eval_criteria.yaml files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install check-jsonschema
+        run: pip install check-jsonschema
+
+      - name: Validate all eval_criteria.yaml instances
+        run: |
+          find features -name "eval_criteria.yaml" | while read file; do
+            echo "Validating $file"
+            check-jsonschema --schemafile governance/schemas/eval_criteria.schema.json "$file"
+          done
+
+  boundary-check:
+    name: Architecture boundary enforcement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install import-linter
+        run: pip install import-linter
+
+      - name: Run boundary checks
+        run: lint-imports
+
+  sonarqube:
+    name: SonarQube quality gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarQube scan
+        uses: SonarSource/sonarqube-scan-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: SonarQube quality gate check
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  security-scan:
+    name: Security vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Snyk
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+  contract-compatibility:
+    name: Contract compatibility check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect contract-producing features
+        id: detect-contracts
+        run: |
+          # Find features that have @contract-tagged scenarios
+          CONTRACT_FEATURES=$(grep -rl "@contract" features/ --include="*.feature" \
+            | xargs -I{} dirname {} | sort -u | tr '\n' ',')
+          echo "contract_features=$CONTRACT_FEATURES" >> $GITHUB_OUTPUT
+
+      - name: Check contract schema backward compatibility
+        if: steps.detect-contracts.outputs.contract_features != ''
+        run: |
+          # Compare each contract schema against the base branch version.
+          # Replace with your schema registry or file-based comparison tool.
+          # Example using json-schema-diff-validator:
+          #   pip install json-schema-diff-validator
+          #   json-schema-diff-validator --base origin/main --head HEAD governance/schemas/
+          echo "Contract features detected: ${{ steps.detect-contracts.outputs.contract_features }}"
+          echo "Configure your backward-compatibility check here."
