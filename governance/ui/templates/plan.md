@@ -40,7 +40,12 @@
 
 ## 3. Increment Breakdown
 
-Each increment must be independently testable.
+Each increment must be independently testable. Each increment should represent a single, committable unit of work.
+
+- Target ~300 lines of production code per increment
+- If an increment exceeds this or spans multiple MVVM layers, split it
+- Each increment = one atomic commit
+- Commit message format: `feat(<feature>): increment N — <increment name>`
 
 **Increment 1:** [description]
 - [ ] Task

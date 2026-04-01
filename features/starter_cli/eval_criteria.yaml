@@ -1,0 +1,12 @@
+version: 1
+feature: feature_name
+mode: deterministic
+owner: <team-or-role>
+
+unit_tests:
+  enforce_FIRST: true
+  minimum_FIRST_average: 4
+
+code_quality:
+  enforce_virtues: true
+  minimum_virtue_average: 4

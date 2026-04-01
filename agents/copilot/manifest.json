@@ -1,24 +1,92 @@
 {
   "agent": "copilot",
   "description": "GitHub Copilot — path-scoped instructions and reusable Chat prompts",
-  "files": [
-    {
-      "src": "copilot-instructions.md",
-      "dest": ".github/copilot-instructions.md"
+  "options": {
+    "type": {
+      "prompt": "Project type?",
+      "choices": ["api", "cli"],
+      "default": "api"
     },
-    {
-      "src": "instructions/",
-      "dest": ".github/instructions/"
+    "ui": {
+      "prompt": "UI framework?",
+      "choices": ["none", "react", "angular"],
+      "default": "none"
     },
-    {
-      "src": "prompts/",
-      "dest": ".github/prompts/"
+    "ci": {
+      "prompt": "CI platform?",
+      "choices": ["github", "azure"],
+      "default": "github"
     }
-  ],
-  "shared": [
-    "docs/backend/",
-    "features/starter_backend/", "features/schema_contract_example/",
-    "governance/backend/",
-    "ci/quality-gate-example.yml", "ci/eval-gate-example.yml"
-  ]
+  },
+  "variants": {
+    "type": {
+      "api": {
+        "files": [
+          { "src": "copilot-instructions/backend-api.md", "dest": ".github/copilot-instructions.md" },
+          { "src": "instructions/backend/", "dest": ".github/instructions/" },
+          { "src": "prompts/backend/", "dest": ".github/prompts/" }
+        ],
+        "shared": [
+          "docs/backend/",
+          "features/starter_backend/",
+          "features/schema_contract_example/",
+          "governance/backend/"
+        ]
+      },
+      "cli": {
+        "files": [
+          { "src": "copilot-instructions/backend-cli.md", "dest": ".github/copilot-instructions.md" },
+          { "src": "instructions/cli/", "dest": ".github/instructions/" },
+          { "src": "prompts/backend/", "dest": ".github/prompts/" }
+        ],
+        "shared": [
+          "docs/backend/",
+          "features/starter_cli/",
+          "governance/backend/"
+        ]
+      }
+    },
+    "ui": {
+      "none": {
+        "files": [],
+        "shared": []
+      },
+      "react": {
+        "files": [
+          { "src": "copilot-instructions/ui-react.md", "dest": ".github/copilot-instructions-ui.md" },
+          { "src": "instructions/ui-react/", "dest": ".github/instructions/" },
+          { "src": "prompts/ui/", "dest": ".github/prompts/" }
+        ],
+        "shared": [
+          "docs/ui/",
+          "governance/ui/",
+          "features/starter_ui/",
+          "features/ui_task_dashboard/"
+        ]
+      },
+      "angular": {
+        "files": [
+          { "src": "copilot-instructions/ui-angular.md", "dest": ".github/copilot-instructions-ui.md" },
+          { "src": "instructions/ui-angular/", "dest": ".github/instructions/" },
+          { "src": "prompts/ui/", "dest": ".github/prompts/" }
+        ],
+        "shared": [
+          "docs/ui/",
+          "governance/ui/",
+          "features/starter_ui/",
+          "features/ui_task_dashboard/"
+        ]
+      }
+    },
+    "ci": {
+      "github": {
+        "files": [],
+        "shared": ["ci/github/"]
+      },
+      "azure": {
+        "files": [],
+        "shared": ["ci/azure/"]
+      }
+    }
+  }
 }

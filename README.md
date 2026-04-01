@@ -6,7 +6,7 @@ Install it into any project with one command. The agent gets the rules. You stay
 
 ---
 
-A spec-driven, evaluation-governed scaffolding kit for AI-assisted software delivery. Supports multiple AI coding agents with clean separation of concerns.
+A spec-driven, evaluation-governed scaffolding kit for AI-assisted software delivery. Supports multiple AI coding agents and project types with clean separation of concerns.
 
 Every feature is:
 
@@ -22,14 +22,20 @@ The AI agent operates inside a governed system. Architecture, evaluation, and fe
 
 # Supported Agents
 
-| Agent | Type | Status |
+govkit ships two agents, each supporting multiple project types through variant selection at install time:
+
+| Agent | AI Tool | Installs To |
 |---|---|---|
-| `copilot` | Backend (Python / Hexagonal) | Supported |
-| `claude-code` | Backend (Python / Hexagonal) | Supported |
-| `copilot-ui-react` | React UI (MVVM) | Supported |
-| `claude-code-ui-react` | React UI (MVVM) | Supported |
-| `copilot-ui-angular` | Angular UI (MVVM) | Supported |
-| `claude-code-ui-angular` | Angular UI (MVVM) | Supported |
+| `claude-code` | Claude Code | `CLAUDE.md`, `.claude/rules/`, `.claude/skills/` |
+| `copilot` | GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/`, `.github/prompts/` |
+
+Both agents support the same variant options:
+
+| Option | Choices | Default |
+|---|---|---|
+| `--type` | `api`, `cli` | `api` |
+| `--ui` | `none`, `react`, `angular` | `none` |
+| `--ci` | `github`, `azure` | `github` |
 
 ---
 
@@ -49,27 +55,26 @@ govkit list
 
 ## 3. Apply to your project
 
-From your project root, choose the agent that matches your project type:
+From your project root, run `govkit apply` and answer the prompts:
 
-**Backend (Python / Hexagonal Architecture):**
 ```bash
-govkit apply --agent copilot --target .
 govkit apply --agent claude-code --target .
 ```
 
-**React UI (MVVM / React Query + Zustand):**
+Or specify all options explicitly:
+
 ```bash
-govkit apply --agent copilot-ui-react --target .
-govkit apply --agent claude-code-ui-react --target .
+# Python API backend + React UI + GitHub Actions
+govkit apply --agent claude-code --type api --ui react --ci github --target .
+
+# Python CLI tool + Azure DevOps (no UI)
+govkit apply --agent copilot --type cli --ui none --ci azure --target .
+
+# API backend only + GitHub Actions
+govkit apply --agent copilot --type api --ui none --ci github --target .
 ```
 
-**Angular UI (MVVM / TanStack Angular Query + Signals):**
-```bash
-govkit apply --agent copilot-ui-angular --target .
-govkit apply --agent claude-code-ui-angular --target .
-```
-
-This installs the agent-specific config files and shared governance artifacts into your project.
+This installs agent-specific config files, architecture docs, feature starters, governance schemas, and CI templates into your project.
 
 ## 4. Customize Your Governance Artifacts — REQUIRED
 
@@ -77,10 +82,10 @@ This installs the agent-specific config files and shared governance artifacts in
 
 Before writing a single line of feature code, review and update the following to match your project:
 
-**Backend projects** — review and update:
+**Backend projects (API or CLI)** — review and update:
 - `docs/backend/architecture/TECH_STACK.md` — replace with your actual approved libraries, frameworks, and versions
 - `docs/backend/architecture/ARCH_CONTRACT.md` — confirm the hexagonal layer names and boundaries match your codebase structure
-- `docs/backend/architecture/API_CONVENTIONS.md` — update route naming, versioning strategy, and error model to match your API standards
+- `docs/backend/architecture/API_CONVENTIONS.md` (API) or `docs/backend/architecture/CLI_CONVENTIONS.md` (CLI) — update conventions to match your project standards
 - `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md` — replace with your actual auth provider, token pattern, and scope conventions
 - `docs/backend/evaluation/eval_criteria.md` — confirm FIRST and 7 Virtue thresholds are appropriate for your team's standards
 
@@ -96,232 +101,180 @@ Before writing a single line of feature code, review and update the following to
 
 These files are the source of truth for your AI agent. The agent reads them before every planning and implementation step. Keep them accurate and up to date as your project evolves.
 
----
+## 5. Validate governance compliance (anytime)
 
-## 5. Create a Feature Folder
-
-Copy the starter scaffolding appropriate for your project type:
-
-**Backend project:** copy from `features/starter_backend/`
-**React or Angular UI project:** copy from `features/starter_ui/`
-
-For a fully worked reference showing every artifact populated end-to-end:
-
-**Backend:** see `features/schema_contract_example/`
-**React UI:** see `features/ui_task_dashboard/`
-
-```
-features/my_feature/
-  ├─ acceptance.feature       ← Gherkin scenarios with @nfr-* and @e2e/@accessibility tags
-  ├─ nfrs.md                  ← Must be fully populated — no TBD entries
-  ├─ eval_criteria.yaml       ← Validated against the agent's eval schema
-  ├─ plan.md                  ← Includes structured evaluation prediction block
-  └─ architecture_preflight.md
+```bash
+govkit validate --target .
 ```
 
-> **Important:** `nfrs.md` must have no TBD entries before Architecture Preflight begins.
+Checks all features for: required artifacts, Gherkin structure, NFR completeness, evaluation prediction thresholds, and tag coverage.
 
 ---
 
-# Feature Workflow — Backend
+# Working With the Agent — Step by Step
 
-The workflow is the same regardless of which backend agent you use. Commands differ by agent.
+Once govkit is installed, here is how you interact with the agent to deliver a feature. This lifecycle applies to **every feature**, regardless of project type or agent.
 
-## Phase 1 — Architecture Preflight
+## Step 1: Create a Feature Folder
+
+Copy the appropriate starter to a new folder under `features/`:
+
+```bash
+# Backend API feature
+cp -r features/starter_backend/ features/my_feature/
+
+# CLI tool feature
+cp -r features/starter_cli/ features/my_feature/
+
+# UI feature (React or Angular)
+cp -r features/starter_ui/ features/my_feature/
+```
+
+## Step 2: Write Your Acceptance Criteria
+
+Edit `features/my_feature/acceptance.feature` with your Gherkin scenarios:
+
+- Write happy path and failure/edge case scenarios
+- Tag NFR scenarios with `@nfr-performance`, `@nfr-security`, etc.
+- Tag E2E scenarios with `@e2e` (UI projects)
+- Add `@contract` scenarios if the feature produces shared artifacts
+
+## Step 3: Complete Your NFRs
+
+Edit `features/my_feature/nfrs.md` — replace every TBD entry with concrete requirements. The agent will refuse to proceed if any TBD entries remain.
+
+## Step 4: Run Architecture Preflight
+
+Ask the agent to validate your feature against the architecture contracts:
 
 | Agent | Command |
 |---|---|
-| Copilot | `/architecture-preflight` |
-| Claude Code | `/project:architecture-preflight` |
+| Claude Code | `/project:architecture-preflight my_feature` |
+| Copilot | `/architecture-preflight` (with feature context) |
 
-Generates `architecture_preflight.md` covering boundary and API impact, security impact, evaluation impact, shared contract analysis, and ADR determination.
-
-If an ADR is required:
+The agent produces `architecture_preflight.md` covering boundary analysis, security impact, evaluation impact, and whether an ADR is needed. If an ADR is required, create it next:
 
 | Agent | Command |
 |---|---|
+| Claude Code | `/project:adr-author my_feature` |
 | Copilot | `/adr-author` |
-| Claude Code | `/project:adr-author` |
 
-ADR must be Accepted before implementation proceeds. ADR templates live under `docs/backend/architecture/ADR/`.
+## Step 5: Generate the Plan
 
----
-
-## Phase 2 — Spec Planning
+Ask the agent to create the implementation plan:
 
 | Agent | Command |
 |---|---|
+| Claude Code | `/project:spec-planning my_feature` |
 | Copilot | `/spec-planning` |
-| Claude Code | `/project:spec-planning` |
 
-Generates or updates `plan.md` and `eval_criteria.yaml`. The plan must include an **Evaluation Compliance Summary** with predicted FIRST and 7 Virtue scores. Implementation must not begin if predicted averages are below 4.0 or `thresholds_met` is false.
+The agent generates `plan.md` and `eval_criteria.yaml`. The plan includes:
+- Increments with deliverables and tests
+- An **Evaluation Compliance Summary** predicting FIRST and 7 Virtue scores
+- Each increment sized as a single committable unit (~300 lines)
 
----
+**The agent will not proceed if predicted averages are below 4.0.**
 
-## Phase 3 — Implementation Planning
+## Step 6: Review the Implementation Plan
+
+Ask the agent to break the plan into a detailed task checklist:
 
 | Agent | Command |
 |---|---|
+| Claude Code | `/project:implementation-plan my_feature` |
 | Copilot | `/implementation-plan` |
-| Claude Code | `/project:implementation-plan` |
 
-Produces an ordered task checklist, FIRST-aligned test plan, LLM evaluation integration steps, and refactor conditions. Review and approve before proceeding.
+Review and approve before implementation begins.
+
+## Step 7: Implement Incrementally
+
+Work through the plan one increment at a time. For each increment:
+
+1. The agent writes production code respecting architecture boundaries
+2. The agent writes tests (unit, integration, contract as needed)
+3. You review and commit: `feat(my_feature): increment 1 — <name>`
+4. Move to the next increment
+
+**Do not skip increments or combine multiple increments into one commit.**
+
+## Step 8: Push and Merge
+
+Open a PR. CI gates automatically run:
+
+- Schema validation of `eval_criteria.yaml`
+- FIRST and 7 Virtue prediction completeness
+- Unit, component, and E2E tests
+- Architecture boundary enforcement
+- Security scan and quality gates
+- Accessibility checks (UI projects)
+
+All gates must pass before merge.
 
 ---
 
-## Phase 4 — Agent Implementation
+# Feature Workflow — Backend API
 
-Implement one increment at a time:
+The workflow follows the step-by-step guide above. Key details for API projects:
 
-* Add unit tests (FIRST compliant)
-* Add contract/integration tests (if applicable)
-* Ensure structural simplicity
-* Respect Hexagonal boundaries
+**Architecture:** Hexagonal Architecture — ports and adapters. API routes are the inbound adapter layer. See `docs/backend/architecture/API_CONVENTIONS.md`.
+
+**Layer rules** load automatically when editing files:
+- `api.md` for `**/api/**`
+- `services.md` for `**/services/**`
+- `ports.md` for `**/ports/**`
+- `adapters.md` for `**/adapters/**`
+- `security.md` for `**/security/**` and `**/auth/**`
+
+**CI gates:** `ci/github/quality-gate.yml`, `ci/github/eval-gate.yml` (or `ci/azure/` for Azure DevOps)
 
 ---
 
-## Phase 5 — CI & Merge
+# Feature Workflow — CLI
 
-Push branch and open PR. CI gates run:
+Same step-by-step workflow. Key details for CLI projects:
 
-* Unit and integration tests
-* `eval_criteria.yaml` schema validation
-* FIRST and 7 Code Virtue prediction completeness check
-* LLM eval suite and regression check (if `mode: llm`)
-* SonarQube quality gate
-* Architecture boundary enforcement (`import-linter`)
-* Security scan (Snyk)
-* Contract backward-compatibility check (`@contract`-tagged scenarios)
+**Architecture:** Hexagonal Architecture — CLI commands are the inbound adapter layer (same position as API routes). See `docs/backend/architecture/CLI_CONVENTIONS.md`.
 
-See `ci/quality-gate-example.yml` and `ci/eval-gate-example.yml`.
+**Layer rules** load automatically when editing files:
+- `cli.md` for `**/cli/**` and `**/commands/**`
+- `services.md` for `**/services/**`
+- `ports.md` for `**/ports/**`
+- `adapters.md` for `**/adapters/**`
+- `security.md` for `**/security/**` and `**/auth/**`
+
+**CI gates:** Same backend gates — `ci/github/quality-gate.yml`, `ci/github/eval-gate.yml` (or `ci/azure/`)
 
 ---
 
 # Feature Workflow — React UI
 
-The workflow follows the same 5-phase structure. MVVM layer order is enforced: API → ViewModel → View.
+Same step-by-step workflow. Key details for React UI projects:
 
-## Phase 1 — Architecture Preflight
+**Architecture:** MVVM with vertical slice feature structure. Layer order is API -> ViewModel -> View. See `docs/ui/architecture/MVVM_CONTRACT.md`.
 
-| Agent | Command |
-|---|---|
-| Copilot | `/architecture-preflight` |
-| Claude Code | `/project:architecture-preflight` |
+**Layer rules** load automatically:
+- `components.md` for View layer
+- `viewmodel.md` for hooks and store
+- `api.md` for API client functions
+- `accessibility.md` for accessibility concerns
 
-Covers MVVM layer impact, backend contract availability, shared component impact, state management decision, accessibility impact, and ADR determination.
+**Implementation order:** API functions -> React Query hooks -> Zustand stores -> Components -> E2E tests
 
-ADR templates live under `docs/ui/architecture/ADR/`.
-
----
-
-## Phase 2 — Spec Planning
-
-| Agent | Command |
-|---|---|
-| Copilot | `/spec-planning` |
-| Claude Code | `/project:spec-planning` |
-
-Generates `plan.md` with MVVM breakdown, increment sequence, backend contract dependencies, accessibility plan, and Evaluation Compliance Summary (FIRST scores + predicted axe violations).
-
----
-
-## Phase 3 — Implementation Planning
-
-| Agent | Command |
-|---|---|
-| Copilot | `/implementation-plan` |
-| Claude Code | `/project:implementation-plan` |
-
-Produces an ordered checklist following MVVM layer sequence: types → API → hooks → store → components → E2E.
-
----
-
-## Phase 4 — Agent Implementation
-
-Implement one increment at a time following layer order:
-
-* API functions first, with unit tests
-* ViewModel hooks and stores, with hook tests (MSW)
-* View components last, with React Testing Library tests and axe checks
-
----
-
-## Phase 5 — CI & Merge
-
-CI gates run:
-
-* TypeScript strict mode (`tsc --noEmit`)
-* ESLint including `jsx-a11y`
-* Component tests (Vitest + React Testing Library)
-* Accessibility — zero critical axe-core violations
-* E2E — Playwright with axe scan per flow
-* `eval_criteria.yaml` schema validation
-
-See `ci/ui-quality-gate-example.yml` and `ci/ui-eval-gate-example.yml`.
+**CI gates:** `ci/github/ui-quality-gate.yml`, `ci/github/ui-eval-gate.yml` (or `ci/azure/`)
 
 ---
 
 # Feature Workflow — Angular UI
 
-The workflow follows the same 5-phase structure as React UI. MVVM layer order is enforced: API → ViewModel → View.
+Same step-by-step workflow. Key details for Angular UI projects:
 
-## Phase 1 — Architecture Preflight
+**Architecture:** MVVM with vertical slice feature structure. Standalone components with `OnPush`. See `docs/ui/architecture/MVVM_CONTRACT.md`.
 
-| Agent | Command |
-|---|---|
-| Copilot | `/architecture-preflight` |
-| Claude Code | `/project:architecture-preflight` |
+**Layer rules** load automatically (same as React, with Angular-specific content).
 
-Covers MVVM layer impact, backend contract availability, shared component impact, state management decision (TanStack Angular Query + Signals), accessibility impact, and ADR determination.
+**Implementation order:** API functions -> TanStack Query inject functions -> Signal stores -> Standalone components -> E2E tests
 
-ADR templates live under `docs/ui/architecture/ADR/`.
-
----
-
-## Phase 2 — Spec Planning
-
-| Agent | Command |
-|---|---|
-| Copilot | `/spec-planning` |
-| Claude Code | `/project:spec-planning` |
-
-Generates `plan.md` with MVVM breakdown (standalone components, query inject functions, signal stores), increment sequence, backend contract dependencies, accessibility plan, and Evaluation Compliance Summary.
-
----
-
-## Phase 3 — Implementation Planning
-
-| Agent | Command |
-|---|---|
-| Copilot | `/implementation-plan` |
-| Claude Code | `/project:implementation-plan` |
-
-Produces an ordered checklist: types → API → query inject functions → signal store → components → E2E.
-
----
-
-## Phase 4 — Agent Implementation
-
-Implement one increment at a time following layer order:
-
-* API async functions first, with unit tests
-* TanStack Query inject functions and Signal stores, with `TestBed` tests
-* Standalone OnPush components last, with Angular Testing Library tests and jest-axe checks
-
----
-
-## Phase 5 — CI & Merge
-
-CI gates run:
-
-* TypeScript strict mode (`tsc --noEmit`)
-* ESLint including `@angular-eslint`
-* Component tests (Jest + Angular Testing Library)
-* Accessibility — zero critical axe-core violations
-* E2E — Playwright with axe scan per flow
-* `eval_criteria.yaml` schema validation
-
-See `ci/ui-quality-gate-example.yml` and `ci/ui-eval-gate-example.yml`.
+**CI gates:** `ci/github/ui-quality-gate.yml`, `ci/github/ui-eval-gate.yml` (or `ci/azure/`)
 
 ---
 
@@ -330,51 +283,64 @@ See `ci/ui-quality-gate-example.yml` and `ci/ui-eval-gate-example.yml`.
 ```
 governed-ai-delivery/
 ├── agents/
-│   ├── copilot/                      # Backend — Copilot (installs to .github/)
-│   ├── claude-code/                  # Backend — Claude Code (installs to root + .claude/)
-│   ├── copilot-ui-react/             # React UI — Copilot (installs to .github/)
-│   ├── claude-code-ui-react/         # React UI — Claude Code (installs to root + .claude/)
-│   ├── copilot-ui-angular/           # Angular UI — Copilot (installs to .github/)
-│   └── claude-code-ui-angular/       # Angular UI — Claude Code (installs to root + .claude/)
+│   ├── claude-code/                  # Claude Code agent (variant-based)
+│   │   ├── manifest.json            # Variant options: type, ui, ci
+│   │   ├── claude-md/               # CLAUDE.md variants per project type
+│   │   ├── rules/                   # Path-scoped rules (backend/, cli/, ui-react/, ui-angular/)
+│   │   └── skills/                  # Skills (backend/, ui/)
+│   └── copilot/                     # Copilot agent (variant-based)
+│       ├── manifest.json
+│       ├── copilot-instructions/    # Instruction variants per project type
+│       ├── instructions/            # Path-scoped instructions (backend/, cli/, ui-react/, ui-angular/)
+│       └── prompts/                 # Chat prompts (backend/, ui/)
 ├── cli/
-│   └── govkit.py                     # govkit CLI installer
+│   ├── govkit.py                    # CLI — apply, list, validate
+│   └── validate.py                  # Governance compliance checker
 ├── docs/
 │   ├── backend/
-│   │   ├── architecture/             # ARCH_CONTRACT, BOUNDARIES, API_CONVENTIONS, ADR/, etc.
-│   │   └── evaluation/               # eval_criteria.md — FIRST, 7 Virtues, scoring model
+│   │   ├── architecture/            # ARCH_CONTRACT, BOUNDARIES, API_CONVENTIONS, CLI_CONVENTIONS, ADR/, etc.
+│   │   └── evaluation/              # eval_criteria.md — FIRST, 7 Virtues, scoring model
 │   └── ui/
 │       ├── architecture/
-│       │   ├── MVVM_CONTRACT.md      # Shared contract — framework-agnostic
-│       │   ├── ADR/TEMPLATE.md       # UI ADR template
-│       │   ├── react/                # React-specific: COMPONENT_CONVENTIONS, STATE_MANAGEMENT, TECH_STACK
-│       │   └── angular/              # Angular-specific: COMPONENT_CONVENTIONS, STATE_MANAGEMENT, TECH_STACK
-│       └── evaluation/               # eval_criteria.md — FIRST, accessibility, E2E standards
+│       │   ├── MVVM_CONTRACT.md     # Shared contract — framework-agnostic
+│       │   ├── ADR/TEMPLATE.md
+│       │   ├── react/               # COMPONENT_CONVENTIONS, STATE_MANAGEMENT, TECH_STACK
+│       │   └── angular/             # COMPONENT_CONVENTIONS, STATE_MANAGEMENT, TECH_STACK
+│       └── evaluation/              # eval_criteria.md — FIRST, accessibility, E2E
 ├── features/
-│   ├── starter_backend/              # Backend starter — copy to begin a new backend feature
-│   ├── starter_ui/                   # UI starter — copy to begin a new React or Angular feature
-│   ├── schema_contract_example/      # Fully worked backend example
-│   └── ui_task_dashboard/            # Fully worked React UI example (standalone)
+│   ├── starter_backend/             # API backend starter (5 artifacts)
+│   ├── starter_cli/                 # CLI project starter (5 artifacts)
+│   ├── starter_ui/                  # UI starter (5 artifacts)
+│   ├── schema_contract_example/     # Worked backend example
+│   └── ui_task_dashboard/           # Worked React UI example
 ├── governance/
 │   ├── backend/
-│   │   ├── schemas/                  # eval_criteria.schema.json
-│   │   └── templates/                # architecture_preflight.md, plan.md
+│   │   ├── schemas/                 # eval_criteria.schema.json
+│   │   └── templates/               # architecture_preflight.md, plan.md
 │   └── ui/
-│       ├── schemas/                  # eval_criteria.schema.json (UI)
-│       └── templates/                # architecture_preflight.md, plan.md (UI)
+│       ├── schemas/                 # eval_criteria.schema.json (UI)
+│       └── templates/               # architecture_preflight.md, plan.md (UI)
 └── ci/
-    ├── quality-gate-example.yml      # Backend: schema validation, boundaries, SonarQube, Snyk
-    ├── eval-gate-example.yml         # Backend: eval prediction check, LLM eval, regression gate
-    ├── ui-quality-gate-example.yml   # UI: type check, ESLint, component tests, jest-axe, bundle size
-    └── ui-eval-gate-example.yml      # UI: eval prediction check, Playwright E2E, axe scans
+    ├── github/                      # GitHub Actions CI templates
+    │   ├── quality-gate.yml         # Schema validation, boundaries, SonarQube, Snyk
+    │   ├── eval-gate.yml            # Eval prediction check, LLM eval, regression gate
+    │   ├── ui-quality-gate.yml      # Type check, ESLint, component tests, jest-axe, bundle size
+    │   └── ui-eval-gate.yml         # Eval prediction check, Playwright E2E, axe scans
+    └── azure/                       # Azure DevOps CI equivalents
+        ├── quality-gate.yml
+        ├── eval-gate.yml
+        ├── ui-quality-gate.yml
+        └── ui-eval-gate.yml
 ```
 
 ---
 
 # Architecture — Backend
 
-* [ARCH_CONTRACT.md](docs/backend/architecture/ARCH_CONTRACT.md)
-* [BOUNDARIES.md](docs/backend/architecture/BOUNDARIES.md)
-* [API_CONVENTIONS.md](docs/backend/architecture/API_CONVENTIONS.md)
+* [ARCH_CONTRACT.md](docs/backend/architecture/ARCH_CONTRACT.md) — Hexagonal Architecture contract
+* [BOUNDARIES.md](docs/backend/architecture/BOUNDARIES.md) — Layer dependency rules
+* [API_CONVENTIONS.md](docs/backend/architecture/API_CONVENTIONS.md) — FastAPI conventions
+* [CLI_CONVENTIONS.md](docs/backend/architecture/CLI_CONVENTIONS.md) — Click/Typer conventions
 * [DESIGN_PRINCIPLES.md](docs/backend/architecture/DESIGN_PRINCIPLES.md) — SOLID, DRY, YAGNI, KISS
 * [GHERKIN_CONVENTIONS.md](docs/backend/architecture/GHERKIN_CONVENTIONS.md) — NFR tags, coverage rules
 * [SECURITY_AUTH_PATTERNS.md](docs/backend/architecture/SECURITY_AUTH_PATTERNS.md)
@@ -385,7 +351,7 @@ governed-ai-delivery/
 # Architecture — UI (Shared)
 
 * [MVVM_CONTRACT.md](docs/ui/architecture/MVVM_CONTRACT.md) — framework-agnostic MVVM contract
-* [ADR/TEMPLATE.md](docs/ui/architecture/ADR/TEMPLATE.md) — UI ADR template
+* [ADR/TEMPLATE.md](docs/ui/architecture/ADR/TEMPLATE.md)
 
 # Architecture — React UI
 
@@ -408,7 +374,7 @@ governed-ai-delivery/
 * [eval_criteria.schema.json](governance/backend/schemas/eval_criteria.schema.json)
 * [EVAL_STACK.md](docs/backend/evaluation/EVAL_STACK.md) — LangSmith, Arize, home-grown framework
 
-**React UI**
+**UI**
 * [eval_criteria.md](docs/ui/evaluation/eval_criteria.md) — FIRST, accessibility, E2E coverage
 * [eval_criteria.schema.json](governance/ui/schemas/eval_criteria.schema.json)
 

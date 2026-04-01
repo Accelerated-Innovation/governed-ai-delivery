@@ -132,7 +132,7 @@ Mitigations:
 
 - Code changes required: implement `SchemaRegistryPort`, `HttpSchemaRegistryAdapter`, `SchemaContractService` per plan increments
 - Documentation updates required: add schema registry to `docs/backend/architecture/TECH_STACK.md`; update OpenAPI spec in Increment 2
-- CI updates required: contract compatibility check in `ci/quality-gate-example.yml` (already configured)
+- CI updates required: contract compatibility check in `ci/github/quality-gate.yml` (already configured)
 - Security review required: yes — new scope `schema:publish` requires token issuance process update
 
 ---

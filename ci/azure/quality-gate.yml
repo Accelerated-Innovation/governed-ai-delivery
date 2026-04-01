@@ -1,0 +1,115 @@
+# Azure DevOps pipeline — Enforces structural and security quality on every PR.
+# Validate with your Azure DevOps admin before use.
+#
+# JOBS:
+#   schema-validation      — validates backend features/*/eval_criteria.yaml against
+#                            governance/backend/schemas/eval_criteria.schema.json
+#   boundary-check         — enforces hexagonal architecture boundaries via import-linter
+#   sonarqube              — SonarQube quality gate (requires SONAR_TOKEN and SONAR_HOST_URL variables)
+#   security-scan          — Snyk vulnerability scan (requires SNYK_TOKEN variable)
+#   contract-compatibility — detects @contract-tagged features and checks backward compatibility
+#
+# REQUIRED VARIABLES (link a variable group): SONAR_TOKEN, SONAR_HOST_URL, SNYK_TOKEN
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: SchemaValidation
+    displayName: Validate eval_criteria.yaml files
+    jobs:
+      - job: SchemaValidation
+        displayName: Validate eval_criteria.yaml files
+        steps:
+          - checkout: self
+
+          - script: pip install check-jsonschema
+            displayName: Install check-jsonschema
+
+          - script: |
+              find features -name "eval_criteria.yaml" | while read file; do
+                echo "Validating $file"
+                check-jsonschema --schemafile governance/backend/schemas/eval_criteria.schema.json "$file"
+              done
+            displayName: Validate all eval_criteria.yaml instances
+
+  - stage: BoundaryCheck
+    displayName: Architecture boundary enforcement
+    dependsOn: []
+    jobs:
+      - job: BoundaryCheck
+        displayName: Architecture boundary enforcement
+        steps:
+          - checkout: self
+
+          - script: pip install import-linter
+            displayName: Install import-linter
+
+          - script: lint-imports
+            displayName: Run boundary checks
+
+  - stage: SonarQube
+    displayName: SonarQube quality gate
+    dependsOn: []
+    jobs:
+      - job: SonarQube
+        displayName: SonarQube quality gate
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - task: SonarQubeAnalyze@5
+            displayName: SonarQube scan
+            env:
+              SONAR_TOKEN: $(SONAR_TOKEN)
+              SONAR_HOST_URL: $(SONAR_HOST_URL)
+
+  - stage: SecurityScan
+    displayName: Security vulnerability scan
+    dependsOn: []
+    jobs:
+      - job: SecurityScan
+        displayName: Security vulnerability scan
+        steps:
+          - checkout: self
+
+          - script: |
+              npm install -g snyk
+              snyk auth $(SNYK_TOKEN)
+              snyk test --severity-threshold=high
+            displayName: Run Snyk security scan
+
+  - stage: ContractCompatibility
+    displayName: Contract compatibility check
+    dependsOn: []
+    jobs:
+      - job: ContractCompatibility
+        displayName: Contract compatibility check
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - script: |
+              # Find features that have @contract-tagged scenarios
+              CONTRACT_FEATURES=$(grep -rl "@contract" features/ --include="*.feature" \
+                | xargs -I{} dirname {} | sort -u | tr '\n' ',')
+              echo "##vso[task.setvariable variable=CONTRACT_FEATURES]$CONTRACT_FEATURES"
+            displayName: Detect contract-producing features
+
+          - script: |
+              # Compare each contract schema against the base branch version.
+              # Replace with your schema registry or file-based comparison tool.
+              # Example using json-schema-diff-validator:
+              #   pip install json-schema-diff-validator
+              #   json-schema-diff-validator --base origin/main --head HEAD governance/backend/schemas/
+              echo "Contract features detected: $(CONTRACT_FEATURES)"
+              echo "Configure your backward-compatibility check here."
+            displayName: Check contract schema backward compatibility
+            condition: ne(variables['CONTRACT_FEATURES'], '')

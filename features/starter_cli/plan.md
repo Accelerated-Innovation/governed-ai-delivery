@@ -1,5 +1,13 @@
 # Feature Plan: <feature_name>
 
+<!-- INSTRUCTIONS
+     Complete this plan before implementation begins.
+     The Evaluation Compliance Summary is mandatory — all score and evidence
+     fields must be populated (no null values) before proceeding to code.
+     See features/schema_contract_example/plan.md for a complete worked example.
+     Template source: governance/backend/templates/plan.md
+-->
+
 ---
 
 ## Objective
@@ -13,13 +21,13 @@
 ## Scope Boundaries
 
 ### In scope
-- 
+-
 
 ### Out of scope
-- 
+-
 
 ### Assumptions
-- 
+-
 
 ---
 
@@ -28,7 +36,7 @@
 ### Relevant contracts
 - docs/backend/architecture/ARCH_CONTRACT.md:
 - docs/backend/architecture/BOUNDARIES.md:
-- docs/backend/architecture/API_CONVENTIONS.md:
+- docs/backend/architecture/CLI_CONVENTIONS.md:
 - docs/backend/architecture/SECURITY_AUTH_PATTERNS.md:
 - docs/backend/evaluation/eval_criteria.md:
 
@@ -105,23 +113,16 @@ If `thresholds_met` is false or any average is below 4.0, this plan must be revi
 
 ## Increments
 
-Each increment should represent a single, committable unit of work.
-
-- Target ~300 lines of production code per increment
-- If an increment exceeds this or spans multiple architectural layers, split it
-- Each increment = one atomic commit
-- Commit message format: `feat(<feature>): increment N — <increment name>`
-
 ### Increment 1: <name>
 
 **Goal**
-- 
+-
 
 **Deliverables**
-- 
+-
 
 **Implementation notes**
-- 
+-
 
 **Architecture impact**
 - Ports affected:
@@ -140,7 +141,7 @@ Each increment should represent a single, committable unit of work.
 - Eval dataset reference:
 
 **Definition of Done**
-- 
+-
 
 ---
 

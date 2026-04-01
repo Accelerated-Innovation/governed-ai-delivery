@@ -10,7 +10,8 @@ Copy the appropriate starter when beginning a new feature. Every starter contain
 
 | Starter | Use for | Copy from |
 |---|---|---|
-| `starter_backend/` | Python / Hexagonal Architecture features | `features/starter_backend/` |
+| `starter_backend/` | Python / Hexagonal Architecture API features | `features/starter_backend/` |
+| `starter_cli/` | Python CLI tools (Click/Typer, Hexagonal Architecture) | `features/starter_cli/` |
 | `starter_ui/` | React or Angular UI features (MVVM) | `features/starter_ui/` |
 
 ---

@@ -234,7 +234,7 @@ evaluation_prediction:
 
 - Risk: breaking change detection relies on manual versioning discipline
   - Impact: a developer could publish a structurally incompatible schema as a new version without bumping the version
-  - Mitigation: CI contract compatibility check in `ci/quality-gate-example.yml` validates schema diff against base branch
+  - Mitigation: CI contract compatibility check in `ci/github/quality-gate.yml` validates schema diff against base branch
 
 ---
 

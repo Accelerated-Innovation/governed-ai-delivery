@@ -1,0 +1,153 @@
+# Azure DevOps pipeline — Enforces structural and accessibility quality on every UI PR.
+# Validate with your Azure DevOps admin before use.
+#
+# JOBS:
+#   type-check          — TypeScript strict mode (tsc --noEmit)
+#   lint                — ESLint including accessibility linting
+#   component-tests     — Jest (or Vitest for React) + React/Angular Testing Library
+#                         Includes jest-axe accessibility checks — zero critical violations
+#   schema-validation   — validates every features/*/eval_criteria.yaml against
+#                         governance/ui/schemas/eval_criteria.schema.json
+#   bundle-size         — advisory bundle size check (configure threshold as needed)
+#
+# FRAMEWORK: Steps marked [React] or [Angular] apply to one framework only.
+#            Steps with no marker apply to both.
+#
+# REQUIRED VARIABLES: none by default
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: TypeCheck
+    displayName: TypeScript type check
+    jobs:
+      - job: TypeCheck
+        displayName: TypeScript type check
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20'
+            displayName: Set up Node.js
+
+          - script: npm ci
+            displayName: Install dependencies
+
+          - script: npx tsc --noEmit
+            displayName: Type check
+
+  - stage: Lint
+    displayName: ESLint
+    dependsOn: []
+    jobs:
+      - job: Lint
+        displayName: ESLint
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20'
+            displayName: Set up Node.js
+
+          - script: npm ci
+            displayName: Install dependencies
+
+          # [React] Uses eslint-plugin-jsx-a11y — configure in .eslintrc
+          # [Angular] Uses @angular-eslint — configure in .eslintrc or angular.json
+          - script: npx eslint . --max-warnings=0
+            displayName: Run ESLint
+
+  - stage: ComponentTests
+    displayName: Component tests (Jest + jest-axe)
+    dependsOn: []
+    jobs:
+      - job: ComponentTests
+        displayName: Component tests (Jest + jest-axe)
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20'
+            displayName: Set up Node.js
+
+          - script: npm ci
+            displayName: Install dependencies
+
+          # [React] Configure your test script in package.json:
+          #   "test:ci": "vitest run --coverage" or "jest --ci --coverage"
+          # [Angular] Configure your test script in package.json:
+          #   "test:ci": "jest --ci --coverage"
+          #
+          # jest-axe is run inside each component test — zero critical violations
+          # will cause the test suite to fail automatically.
+          - script: npm run test:ci
+            displayName: Run component tests
+
+          - publish: coverage/
+            artifact: coverage-report
+            displayName: Upload coverage report
+            condition: always()
+
+  - stage: SchemaValidation
+    displayName: Validate UI eval_criteria.yaml files
+    dependsOn: []
+    jobs:
+      - job: SchemaValidation
+        displayName: Validate UI eval_criteria.yaml files
+        steps:
+          - checkout: self
+
+          - script: pip install check-jsonschema
+            displayName: Install check-jsonschema
+
+          - script: |
+              find features -name "eval_criteria.yaml" | while read file; do
+                echo "Validating $file"
+                check-jsonschema --schemafile governance/ui/schemas/eval_criteria.schema.json "$file"
+              done
+            displayName: Validate all UI eval_criteria.yaml instances
+
+  - stage: BundleSize
+    displayName: Bundle size check (advisory)
+    dependsOn: []
+    jobs:
+      - job: BundleSize
+        displayName: Bundle size check (advisory)
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20'
+            displayName: Set up Node.js
+
+          - script: npm ci
+            displayName: Install dependencies
+
+          # [React] Configure your build script — Vite produces dist/assets/
+          # [Angular] Configure your build script — Angular CLI produces dist/<project>/
+          # Configure your size budget threshold below.
+          - script: npm run build
+            displayName: Build
+
+          # Advisory only — does not block merge by default.
+          # Configure a size threshold appropriate for your project.
+          - script: |
+              # Configure your bundle size tool here.
+              # Options: bundlesize, size-limit, or custom du check.
+              # Example using size-limit:
+              #   npx size-limit
+              echo "Configure bundle size check for your project."
+            displayName: Check bundle size
+            continueOnError: true

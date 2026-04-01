@@ -1,0 +1,141 @@
+# eval-gate-example.yml
+#
+# PURPOSE: Enforces evaluation score predictions and runs LLM eval suites on every PR.
+# Copy this file to .github/workflows/eval-gate.yml and configure the
+# steps marked "Configure your..." before enabling in CI.
+#
+# JOBS:
+#   eval-gate   — checks that every features/*/plan.md contains a completed
+#                 evaluation_prediction block with FIRST and Virtue averages >= 4.0
+#                 (runs as-is once plan.md files are populated)
+#   llm-eval    — detects features with mode: llm in eval_criteria.yaml, runs the
+#                 LLM eval suite, and checks for regressions against stored baselines
+#                 (configure your eval runner and regression checker before enabling)
+#
+# REQUIRED SECRETS: ANTHROPIC_API_KEY (for llm-eval job only)
+# SEE ALSO: ci/github/quality-gate.yml for structural and security gates
+
+name: Eval Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  eval-gate:
+    name: Evaluation criteria gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Check FIRST and Virtue score predictions
+        run: |
+          python - <<'EOF'
+          import yaml, glob, sys
+
+          errors = []
+          for path in glob.glob("features/*/plan.md"):
+              feature = path.split("/")[1]
+              with open(path) as f:
+                  content = f.read()
+              # Look for the evaluation_prediction YAML block
+              if "evaluation_prediction:" not in content:
+                  errors.append(f"{feature}: plan.md missing evaluation_prediction block")
+                  continue
+              # Extract the YAML block between ```yaml and ```
+              import re
+              blocks = re.findall(r"```yaml\n(.*?)```", content, re.DOTALL)
+              prediction = None
+              for block in blocks:
+                  try:
+                      data = yaml.safe_load(block)
+                      if isinstance(data, dict) and "evaluation_prediction" in data:
+                          prediction = data["evaluation_prediction"]
+                          break
+                  except Exception:
+                      continue
+              if not prediction:
+                  errors.append(f"{feature}: could not parse evaluation_prediction block")
+                  continue
+              first_scores = [v["score"] for v in prediction.get("first", {}).values()
+                              if isinstance(v, dict) and v.get("score") is not None]
+              virtue_scores = [v["score"] for v in prediction.get("virtues", {}).values()
+                               if isinstance(v, dict) and v.get("score") is not None]
+              if len(first_scores) < 5:
+                  errors.append(f"{feature}: FIRST prediction incomplete ({len(first_scores)}/5 scored)")
+              elif sum(first_scores) / len(first_scores) < 4:
+                  errors.append(f"{feature}: predicted FIRST average below threshold 4.0")
+              if len(virtue_scores) < 7:
+                  errors.append(f"{feature}: Virtue prediction incomplete ({len(virtue_scores)}/7 scored)")
+              elif sum(virtue_scores) / len(virtue_scores) < 4:
+                  errors.append(f"{feature}: predicted Virtue average below threshold 4.0")
+
+          if errors:
+              for e in errors:
+                  print(f"FAIL: {e}")
+              sys.exit(1)
+          else:
+              print("All evaluation predictions present and above threshold.")
+          EOF
+
+  llm-eval:
+    name: LLM evaluation run
+    runs-on: ubuntu-latest
+    needs: eval-gate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Detect features requiring LLM evaluation
+        id: detect-llm
+        run: |
+          python - <<'EOF'
+          import yaml, glob, os
+
+          llm_features = []
+          for path in glob.glob("features/*/eval_criteria.yaml"):
+              with open(path) as f:
+                  data = yaml.safe_load(f)
+              if data and data.get("mode") == "llm":
+                  llm_features.append(path.split("/")[1])
+
+          features_str = ",".join(llm_features)
+          print(f"LLM features: {features_str}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"llm_features={features_str}\n")
+          EOF
+
+      - name: Run LLM eval suite
+        if: steps.detect-llm.outputs.llm_features != ''
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # Replace with your LLM eval runner invocation.
+          # Example: python scripts/run_evals.py --features ${{ steps.detect-llm.outputs.llm_features }}
+          echo "LLM eval features: ${{ steps.detect-llm.outputs.llm_features }}"
+          echo "Configure your LLM eval runner here."
+
+      - name: Check for regressions
+        if: steps.detect-llm.outputs.llm_features != ''
+        run: |
+          # Compare eval results against stored baselines.
+          # Fail if fail_on_regression: true and any criterion regresses below threshold.
+          # Example: python scripts/check_regression.py --results eval_results/ --baselines eval_baselines/
+          echo "Configure your regression check here."

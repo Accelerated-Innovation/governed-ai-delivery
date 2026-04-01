@@ -1,0 +1,139 @@
+# Azure DevOps pipeline — Enforces evaluation score predictions and runs LLM eval suites on every PR.
+# Validate with your Azure DevOps admin before use.
+#
+# JOBS:
+#   eval-gate   — checks that every features/*/plan.md contains a completed
+#                 evaluation_prediction block with FIRST and Virtue averages >= 4.0
+#   llm-eval    — detects features with mode: llm in eval_criteria.yaml, runs the
+#                 LLM eval suite, and checks for regressions against stored baselines
+#
+# REQUIRED VARIABLES (link a variable group): ANTHROPIC_API_KEY (for llm-eval stage only)
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: EvalGate
+    displayName: Evaluation criteria gate
+    jobs:
+      - job: EvalGate
+        displayName: Evaluation criteria gate
+        steps:
+          - checkout: self
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.11'
+            displayName: Set up Python
+
+          - script: pip install pyyaml
+            displayName: Install dependencies
+
+          - script: |
+              python - <<'EOF'
+              import yaml, glob, sys
+
+              errors = []
+              for path in glob.glob("features/*/plan.md"):
+                  feature = path.split("/")[1]
+                  with open(path) as f:
+                      content = f.read()
+                  # Look for the evaluation_prediction YAML block
+                  if "evaluation_prediction:" not in content:
+                      errors.append(f"{feature}: plan.md missing evaluation_prediction block")
+                      continue
+                  # Extract the YAML block between ```yaml and ```
+                  import re
+                  blocks = re.findall(r"```yaml\n(.*?)```", content, re.DOTALL)
+                  prediction = None
+                  for block in blocks:
+                      try:
+                          data = yaml.safe_load(block)
+                          if isinstance(data, dict) and "evaluation_prediction" in data:
+                              prediction = data["evaluation_prediction"]
+                              break
+                      except Exception:
+                          continue
+                  if not prediction:
+                      errors.append(f"{feature}: could not parse evaluation_prediction block")
+                      continue
+                  first_scores = [v["score"] for v in prediction.get("first", {}).values()
+                                  if isinstance(v, dict) and v.get("score") is not None]
+                  virtue_scores = [v["score"] for v in prediction.get("virtues", {}).values()
+                                   if isinstance(v, dict) and v.get("score") is not None]
+                  if len(first_scores) < 5:
+                      errors.append(f"{feature}: FIRST prediction incomplete ({len(first_scores)}/5 scored)")
+                  elif sum(first_scores) / len(first_scores) < 4:
+                      errors.append(f"{feature}: predicted FIRST average below threshold 4.0")
+                  if len(virtue_scores) < 7:
+                      errors.append(f"{feature}: Virtue prediction incomplete ({len(virtue_scores)}/7 scored)")
+                  elif sum(virtue_scores) / len(virtue_scores) < 4:
+                      errors.append(f"{feature}: predicted Virtue average below threshold 4.0")
+
+              if errors:
+                  for e in errors:
+                      print(f"FAIL: {e}")
+                  sys.exit(1)
+              else:
+                  print("All evaluation predictions present and above threshold.")
+              EOF
+            displayName: Check FIRST and Virtue score predictions
+
+  - stage: LLMEval
+    displayName: LLM evaluation run
+    dependsOn: EvalGate
+    jobs:
+      - job: LLMEval
+        displayName: LLM evaluation run
+        steps:
+          - checkout: self
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.11'
+            displayName: Set up Python
+
+          - script: pip install pyyaml
+            displayName: Install dependencies
+
+          - script: |
+              python - <<'EOF'
+              import yaml, glob, os
+
+              llm_features = []
+              for path in glob.glob("features/*/eval_criteria.yaml"):
+                  with open(path) as f:
+                      data = yaml.safe_load(f)
+                  if data and data.get("mode") == "llm":
+                      llm_features.append(path.split("/")[1])
+
+              features_str = ",".join(llm_features)
+              print(f"LLM features: {features_str}")
+              print(f"##vso[task.setvariable variable=LLM_FEATURES]{features_str}")
+              EOF
+            displayName: Detect features requiring LLM evaluation
+
+          - script: |
+              # Replace with your LLM eval runner invocation.
+              # Example: python scripts/run_evals.py --features $(LLM_FEATURES)
+              echo "LLM eval features: $(LLM_FEATURES)"
+              echo "Configure your LLM eval runner here."
+            displayName: Run LLM eval suite
+            condition: ne(variables['LLM_FEATURES'], '')
+            env:
+              ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)
+
+          - script: |
+              # Compare eval results against stored baselines.
+              # Fail if fail_on_regression: true and any criterion regresses below threshold.
+              # Example: python scripts/check_regression.py --results eval_results/ --baselines eval_baselines/
+              echo "Configure your regression check here."
+            displayName: Check for regressions
+            condition: ne(variables['LLM_FEATURES'], '')

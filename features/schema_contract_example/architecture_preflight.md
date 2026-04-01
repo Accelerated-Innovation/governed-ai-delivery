@@ -47,7 +47,7 @@ Feature folder: `features/schema_contract_example/`
 - Dependency direction: API → domain service via inbound port; domain service → registry via outbound port; adapter implements outbound port — all inward
 - Cross-layer violations introduced: no
 - Boundary risks identified: risk that API route imports adapter directly (bypassing port)
-- Mitigations: import-linter rule added to `ci/quality-gate-example.yml`
+- Mitigations: import-linter rule added to `ci/github/quality-gate.yml`
 
 Compliant with `BOUNDARIES.md`.
 
@@ -84,7 +84,7 @@ From `eval_criteria.yaml` and `docs/backend/evaluation/eval_criteria.md`:
 - 7 Virtue enforcement required: yes — minimum average 4.0
 - LLM criteria affected: none (mode is deterministic)
 - Threshold implications: predicted averages 4.8 (FIRST) and 4.71 (Virtues) — both above threshold
-- CI evaluation gate impact: `ci/eval-gate-example.yml` will check prediction block completeness; `ci/quality-gate-example.yml` will validate eval_criteria.yaml against schema
+- CI evaluation gate impact: `ci/github/eval-gate.yml` will check prediction block completeness; `ci/github/quality-gate.yml` will validate eval_criteria.yaml against schema
 - Refactor risk areas identified: retry logic branching; import-linter boundary enforcement
 
 Evaluation thresholds are achievable given the architecture design.
@@ -111,7 +111,7 @@ ADR required: yes
   - Initial version: 1
   - Breaking change policy: breaking changes require a new integer version; existing versions are immutable
 - Backward compatibility requirement: yes — consumers must not be broken by a new publish
-- Contract validation mechanism: CI contract compatibility check in `ci/quality-gate-example.yml`; triggered by `@contract` tagged scenarios
+- Contract validation mechanism: CI contract compatibility check in `ci/github/quality-gate.yml`; triggered by `@contract` tagged scenarios
 - ADR required for contract ownership: yes — ADR-001
 
 ---
