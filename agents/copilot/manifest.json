@@ -1,6 +1,6 @@
 {
   "agent": "copilot",
-  "description": "GitHub Copilot — path-scoped instructions and reusable Chat prompts",
+  "description": "GitHub Copilot - path-scoped instructions and reusable Chat prompts",
   "options": {
     "type": {
       "prompt": "Project type?",

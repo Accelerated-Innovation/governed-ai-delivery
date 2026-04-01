@@ -169,7 +169,7 @@ def cmd_list(_args: argparse.Namespace) -> None:
 
 
 def cmd_validate(args: argparse.Namespace) -> None:
-    from cli.validate import run_validation
+    from .validate import run_validation
     sys.exit(run_validation(Path(args.target).resolve()))
 
 

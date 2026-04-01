@@ -1,6 +1,6 @@
 {
   "agent": "claude-code",
-  "description": "Claude Code — CLAUDE.md governance, path-scoped rules, and project skills",
+  "description": "Claude Code - CLAUDE.md governance, path-scoped rules, and project skills",
   "options": {
     "type": {
       "prompt": "Project type?",
