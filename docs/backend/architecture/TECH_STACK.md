@@ -13,7 +13,7 @@ New technologies require an **ADR** before use.
 **Python**
 
 Approved version:
-`Python 3.12+`
+`Python 3.11+`
 
 Rules:
 
