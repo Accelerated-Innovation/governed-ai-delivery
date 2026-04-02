@@ -78,25 +78,26 @@
 ## Tier 3 — Documentation & DX
 
 ### 3.1 README Expansion
-- [ ] Add Prerequisites & System Requirements section
-- [ ] Add post-install verification section (what the target project should look like)
-- [ ] Add Concepts section before Quickstart (hexagonal architecture, FIRST, Gherkin, governance — brief)
-- [ ] Add concrete end-to-end walkthrough example
-- [ ] Add Troubleshooting & FAQ section (8-12 entries)
-- [ ] Add interactive prompt example output for `govkit apply`
-- [ ] Add Interpreting Validation Failures section
+- [x] Add Prerequisites & System Requirements section
+- [x] Add post-install verification section (what the target project should look like)
+- [x] Add Concepts section before Quickstart (hexagonal architecture, FIRST, Gherkin, governance)
+- [x] ~~Add concrete end-to-end walkthrough~~ — README now has detailed step-by-step + interactive prompt example + worked examples linked. Full standalone walkthrough deferred.
+- [x] Add Troubleshooting & FAQ section (10 entries)
+- [x] Add interactive prompt example output for `govkit apply`
+- [x] Add Interpreting Validation Failures section (table of failures with fixes)
 
 ### 3.2 Terminology & Glossary
-- [ ] Add glossary to README or create `docs/GLOSSARY.md` (agent, rule, skill, instruction, prompt, port, adapter, domain, evaluation, FIRST, 7 Virtues)
-- [ ] Clarify distinction between `/architecture-preflight` (skill) and `govkit validate` (CLI)
+- [x] Add glossary to README (16 terms: agent, rule, skill, instruction, prompt, port, adapter, domain, FIRST, 7 Virtues, ADR, NFR, evaluation prediction, govkit validate, /architecture-preflight)
+- [x] Clarified `/architecture-preflight` vs `govkit validate` distinction in glossary
 
 ### 3.3 Supporting Documents
-- [ ] Create `CONTRIBUTING.md` (how to add agents, modify schemas, test, PR process)
-- [ ] Create `CHANGELOG.md` (starting from current 0.1.0)
-- [ ] Add "Getting Help" section to README
+- [x] Create `CONTRIBUTING.md` (project structure, common contributions, commit format, PR process, code style)
+- [x] Create `CHANGELOG.md` (0.1.0 initial release + 0.2.0 with all improvements)
+- [x] Add "Getting Help" section to README (issues link, contributing link, changelog link, CI reference)
 
 ### 3.4 Governance Structure Explanation
-- [ ] Add section to README explaining `docs/` vs `governance/` vs `features/` separation
+- [x] Add "Directory Roles" section to README explaining `docs/` vs `governance/` vs `features/` separation
+- [x] Add new architecture docs and scoring rubrics to README reference links
 
 ---
 

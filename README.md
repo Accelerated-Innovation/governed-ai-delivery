@@ -39,6 +39,33 @@ Both agents support the same variant options:
 
 ---
 
+# Key Concepts
+
+Before diving in, here are the foundational ideas behind this toolkit:
+
+**Hexagonal Architecture (Ports & Adapters)** — Your domain logic lives at the center, isolated from infrastructure. Inbound adapters (API routes, CLI commands) call inbound ports. Outbound ports define contracts that adapters (databases, APIs, message queues) implement. Domain code never imports infrastructure libraries.
+
+**MVVM (UI projects)** — Model-View-ViewModel. Components (View) render UI. Hooks or inject functions (ViewModel) provide data and actions. API functions (Model) call the backend. Components never call APIs directly.
+
+**FIRST Principles** — Test quality framework. Tests must be **F**ast, **I**solated, **R**epeatable, **S**elf-verifying, and **T**imely. Each principle is scored 1–5 with a minimum average of 4.0.
+
+**7 Code Virtues** — Implementation quality framework. Code must be **Working**, **Unique**, **Simple**, **Clear**, **Easy** to maintain, **Developed** (tested and clean), and **Brief**. Each virtue is scored 1–5 with a minimum average of 4.0.
+
+**Gherkin Acceptance Criteria** — Features are specified using Given/When/Then scenarios. Scenarios are tagged with NFR categories (`@nfr-performance`, `@nfr-security`) to ensure non-functional requirements have test coverage.
+
+**Governed Development** — The agent reads architecture contracts, evaluation criteria, and feature specs before generating code. CI gates enforce compliance. The agent proposes; your governance artifacts decide.
+
+---
+
+# Prerequisites
+
+- **Python 3.11+** — required to install and run govkit
+- **pip** — for installation (`pip install git+...`)
+- **git** — govkit is installed from a git repository
+- **An AI coding agent** — Claude Code or GitHub Copilot (govkit provides the configuration, not the agent itself)
+
+---
+
 # Quickstart
 
 ## 1. Install govkit
@@ -75,6 +102,52 @@ govkit apply --agent copilot --type api --ui none --ci github --target .
 ```
 
 This installs agent-specific config files, architecture docs, feature starters, governance schemas, and CI templates into your project.
+
+When using interactive mode (no `--type`, `--ui`, `--ci` flags), you'll see prompts like:
+
+```
+$ govkit apply --agent claude-code --target .
+
+Applying govkit agent 'claude-code' to /path/to/your/project
+
+  Project type? [api / cli] (default: api): api
+  UI framework? [none / react / angular] (default: none): react
+  CI platform? [github / azure] (default: github): github
+
+  Configuration: {'type': 'api', 'ui': 'react', 'ci': 'github'}
+
+Agent files:
+  copied  /path/to/your/project/CLAUDE.md
+  copied  /path/to/your/project/.claude/rules/api.md
+  ...
+```
+
+### Verify Installation
+
+After applying, your project should contain:
+
+```
+your-project/
+├── CLAUDE.md (or .github/copilot-instructions.md)
+├── .claude/rules/ (or .github/instructions/)
+│   ├── api.md, services.md, ports.md, adapters.md, security.md
+│   └── (UI rules if --ui was specified)
+├── .claude/skills/ (or .github/prompts/)
+│   ├── architecture-preflight/, spec-planning/, implementation-plan/, adr-author/
+│   └── (UI skills if --ui was specified)
+├── docs/
+│   ├── backend/architecture/   — ARCH_CONTRACT, API_CONVENTIONS, TECH_STACK, etc.
+│   └── backend/evaluation/     — eval_criteria.md, scoring rubrics
+├── features/
+│   ├── starter_backend/        — template for new features (5 artifacts)
+│   └── schema_contract_example/ — worked example
+├── governance/
+│   └── backend/schemas/        — eval_criteria.schema.json
+└── ci/
+    └── github/ (or azure/)     — quality-gate.yml, eval-gate.yml
+```
+
+If `--ui react` or `--ui angular` was specified, you'll also see `docs/ui/`, `features/starter_ui/`, `governance/ui/`, and UI-specific CI pipelines.
 
 ## 4. Customize Your Governance Artifacts — REQUIRED
 
@@ -335,6 +408,71 @@ governed-ai-delivery/
 
 ---
 
+# Directory Roles
+
+Understanding the separation between `docs/`, `governance/`, and `features/`:
+
+| Directory | Contains | Who maintains it | When to update |
+|---|---|---|---|
+| `docs/` | Human-readable architecture contracts and evaluation standards | Architect / tech lead | When architecture decisions change, new patterns are adopted, or standards evolve |
+| `governance/` | Machine-readable schemas (JSON Schema) and templates (Markdown) | Architect / govkit maintainer | When artifact structure changes or new validation rules are added |
+| `features/` | Feature specifications — one folder per feature with 5 required artifacts | Developer / AI agent | Every feature — create from starter, populate, and plan before implementing |
+
+The AI agent reads `docs/` to understand what rules to follow, validates against `governance/` schemas, and produces artifacts in `features/`.
+
+---
+
+# Interpreting Validation Failures
+
+When `govkit validate --target .` reports failures, here's what they mean and how to fix them:
+
+| Failure | Meaning | Fix |
+|---|---|---|
+| `acceptance.feature not found` | Feature folder is missing its Gherkin spec | Copy from starter and write scenarios |
+| `no Feature: keyword` or `no Scenario: keyword` | Gherkin file exists but is malformed | Add `Feature:` header and at least one `Scenario:` with Given/When/Then |
+| `nfrs.md contains TBD entries` | NFR categories have placeholder values | Replace every TBD with a concrete, measurable requirement |
+| `eval_criteria.yaml missing or invalid` | Eval config doesn't match the JSON Schema | Check `governance/*/schemas/eval_criteria.schema.json` for required fields |
+| `plan.md missing evaluation_prediction` | Plan exists but has no prediction block | Add the `evaluation_prediction` YAML block (see worked examples) |
+| `predicted FIRST average below 4.0` | Predicted test quality is below threshold | Revise the plan — improve test strategy or split complex increments |
+| `predicted Virtue average below 4.0` | Predicted code quality is below threshold | Revise the plan — simplify design, reduce complexity, improve separation |
+| `NFR tag coverage incomplete` | Some NFR categories lack corresponding Gherkin tags | Add `@nfr-<category>` tags to relevant scenarios in acceptance.feature |
+
+---
+
+# Troubleshooting & FAQ
+
+**Q: `govkit: command not found` after installation**
+A: Ensure your Python scripts directory is on your PATH. Try `python -m cli.govkit` as a fallback, or reinstall with `pip install --user git+...`.
+
+**Q: `govkit apply` fails with "no agent found"**
+A: Check that you're using a valid agent name (`claude-code` or `copilot`). Run `govkit list` to see available agents.
+
+**Q: The agent ignores my architecture rules**
+A: Verify the rules files were copied to the correct location (`.claude/rules/` or `.github/instructions/`). Check that file paths match what the agent expects — Claude Code loads rules based on the file path you're editing.
+
+**Q: How do I update to a newer version of govkit?**
+A: Run `pip install --upgrade git+https://github.com/Accelerated-Innovation/governed-ai-delivery.git`. Then re-run `govkit apply` — it will skip files that already exist. To force update a specific file, delete it first.
+
+**Q: Can I use govkit on an existing project with existing code?**
+A: Yes. `govkit apply` copies governance artifacts into your project without modifying existing code. You may need to adjust `docs/backend/architecture/ARCH_CONTRACT.md` and other docs to reflect your existing architecture rather than the defaults.
+
+**Q: What if my architecture doesn't match the Hexagonal defaults?**
+A: Customize the architecture docs after install. The agent follows whatever `ARCH_CONTRACT.md` says — if your project uses a different pattern, document it there. Consider creating an ADR explaining the architectural choice.
+
+**Q: Can I use both Claude Code and Copilot in the same project?**
+A: Yes. Run `govkit apply` once for each agent. They install to different paths (`.claude/` vs `.github/`) and share the same `docs/`, `governance/`, and `features/` artifacts. Both agents read the same architecture contracts.
+
+**Q: How do I add a new NFR category?**
+A: Add the category as a `## Heading` in your feature's `nfrs.md`, add corresponding `@nfr-<category>` tags to acceptance scenarios, and update `cli/validate.py`'s `category_to_tag` mapping if you want automated tag coverage validation.
+
+**Q: The CI pipeline fails because SonarQube/Snyk isn't configured**
+A: These tools are optional. If your team doesn't use them, remove or comment out those jobs from the CI pipeline files. See `ci/README.md` for details on required secrets.
+
+**Q: What does "thresholds_met: false" mean in my plan?**
+A: Your predicted FIRST or Virtue average is below 4.0, or a predicted accessibility violation count is above zero. Revise the plan — simplify the design, improve test strategy, or split large increments before proceeding.
+
+---
+
 # Architecture — Backend
 
 * [ARCH_CONTRACT.md](docs/backend/architecture/ARCH_CONTRACT.md) — Hexagonal Architecture contract
@@ -346,6 +484,9 @@ governed-ai-delivery/
 * [SECURITY_AUTH_PATTERNS.md](docs/backend/architecture/SECURITY_AUTH_PATTERNS.md)
 * [TECH_STACK.md](docs/backend/architecture/TECH_STACK.md)
 * [TESTING.md](docs/backend/architecture/TESTING.md)
+* [ERROR_MAPPING.md](docs/backend/architecture/ERROR_MAPPING.md) — Domain exception to HTTP status mapping
+* [OBSERVABILITY_PORT_CONTRACT.md](docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md) — Observability port interface
+* [CROSS_CUTTING_CONCERNS.md](docs/backend/architecture/CROSS_CUTTING_CONCERNS.md) — DTOs, validation, pagination, timestamps
 * [ADR/TEMPLATE.md](docs/backend/architecture/ADR/TEMPLATE.md)
 
 # Architecture — UI (Shared)
@@ -371,12 +512,19 @@ governed-ai-delivery/
 
 **Backend**
 * [eval_criteria.md](docs/backend/evaluation/eval_criteria.md) — FIRST, 7 Code Virtues, LLM eval, scoring model
+* [FIRST_SCORING_RUBRIC.md](docs/backend/evaluation/FIRST_SCORING_RUBRIC.md) — 1-5 scoring definitions per FIRST principle
+* [VIRTUE_SCORING_RUBRIC.md](docs/backend/evaluation/VIRTUE_SCORING_RUBRIC.md) — 1-5 scoring definitions per virtue
 * [eval_criteria.schema.json](governance/backend/schemas/eval_criteria.schema.json)
 * [EVAL_STACK.md](docs/backend/evaluation/EVAL_STACK.md) — LangSmith, Arize, home-grown framework
 
 **UI**
 * [eval_criteria.md](docs/ui/evaluation/eval_criteria.md) — FIRST, accessibility, E2E coverage
+* [FIRST_SCORING_RUBRIC.md](docs/ui/evaluation/FIRST_SCORING_RUBRIC.md) — UI-adapted FIRST scoring
+* [VIRTUE_SCORING_RUBRIC.md](docs/ui/evaluation/VIRTUE_SCORING_RUBRIC.md) — UI-adapted virtue scoring
 * [eval_criteria.schema.json](governance/ui/schemas/eval_criteria.schema.json)
+
+**Shared**
+* [evaluation_prediction.schema.json](governance/schemas/evaluation_prediction.schema.json) — Schema for plan.md prediction blocks
 
 ---
 
@@ -385,6 +533,37 @@ governed-ai-delivery/
 Copyright 2026 Accelerated Innovation
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
+
+---
+
+# Glossary
+
+| Term | Definition |
+|---|---|
+| **Agent** | The AI coding tool (Claude Code or GitHub Copilot) that reads governance artifacts and generates code |
+| **Rule** (Claude Code) | A path-scoped `.md` file in `.claude/rules/` that loads automatically when editing files matching its path |
+| **Skill** (Claude Code) | A reusable prompt in `.claude/skills/` invoked via slash command (e.g., `/architecture-preflight`) |
+| **Instruction** (Copilot) | A path-scoped `.md` file in `.github/instructions/` — Copilot equivalent of a rule |
+| **Prompt** (Copilot) | A reusable Chat prompt in `.github/prompts/` — Copilot equivalent of a skill |
+| **Port** | An interface defining a contract between layers (inbound ports for API entry, outbound ports for infrastructure) |
+| **Adapter** | An implementation of a port that connects to infrastructure (database, external API, message queue) |
+| **Domain** | Business logic that has no dependencies on frameworks or infrastructure |
+| **FIRST** | Test quality framework — Fast, Isolated, Repeatable, Self-verifying, Timely (scored 1–5) |
+| **7 Virtues** | Code quality framework — Working, Unique, Simple, Clear, Easy, Developed, Brief (scored 1–5) |
+| **ADR** | Architecture Decision Record — documents and gates architectural changes |
+| **NFR** | Non-Functional Requirement — performance, security, availability, etc. |
+| **Evaluation Prediction** | Predicted FIRST and Virtue scores in `plan.md` — must average >= 4.0 before implementation |
+| `govkit validate` | CLI command that checks all features for governance compliance (artifact completeness, thresholds) |
+| `/architecture-preflight` | Agent skill/prompt that validates a feature against architecture contracts before planning |
+
+---
+
+# Getting Help
+
+- **Issues:** [github.com/Accelerated-Innovation/governed-ai-delivery/issues](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues)
+- **Contributing:** See [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Changelog:** See [CHANGELOG.md](CHANGELOG.md)
+- **CI Reference:** See [ci/README.md](ci/README.md) for what's enforced vs predicted
 
 ---
 
