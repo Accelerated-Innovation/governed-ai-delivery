@@ -80,6 +80,9 @@ markers = [
     "contract: contract tests"
 ]
 
+# Note: import-linter config below is a reference template for target projects.
+# Target projects should copy this section and adjust root_package/containers
+# to match their own source layout.
 [tool.importlinter]
 root_package = "src"
 

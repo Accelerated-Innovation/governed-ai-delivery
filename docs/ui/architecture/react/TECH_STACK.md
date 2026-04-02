@@ -80,4 +80,6 @@ No Axios. Use the shared base client in `src/shared/api/client.ts`.
 | Component conventions | `docs/ui/architecture/COMPONENT_CONVENTIONS.md` |
 | State management rules | `docs/ui/architecture/STATE_MANAGEMENT.md` |
 | Evaluation criteria | `docs/ui/evaluation/eval_criteria.md` |
+| FIRST scoring rubric | `docs/ui/evaluation/FIRST_SCORING_RUBRIC.md` |
+| Virtue scoring rubric | `docs/ui/evaluation/VIRTUE_SCORING_RUBRIC.md` |
 | ADRs | `docs/ui/architecture/ADR/` |

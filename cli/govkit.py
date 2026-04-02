@@ -41,10 +41,23 @@ def load_manifest(agent: str) -> dict:
     if not manifest_path.exists():
         print(f"Error: no agent '{agent}' found. Run 'govkit list' to see available agents.")
         sys.exit(1)
-    return json.loads(manifest_path.read_text())
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        print(f"Error: invalid JSON in {manifest_path}: {e}")
+        sys.exit(1)
+    required_keys = {"agent", "variants"}
+    missing = required_keys - manifest.keys()
+    if missing:
+        print(f"Error: manifest for '{agent}' missing required keys: {', '.join(sorted(missing))}")
+        sys.exit(1)
+    return manifest
 
 
 def copy_entry(src: Path, dest: Path, skip_existing: bool = False) -> None:
+    if not src.exists():
+        print(f"Error: source path does not exist: {src}")
+        sys.exit(1)
     if src.is_dir():
         dest.mkdir(parents=True, exist_ok=True)
         for item in src.iterdir():
@@ -151,9 +164,15 @@ def cmd_apply(args: argparse.Namespace) -> None:
 def cmd_list(_args: argparse.Namespace) -> None:
     print("\nAvailable agents:\n")
     for agent_dir in sorted(AGENTS_DIR.iterdir()):
+        if not agent_dir.is_dir():
+            continue
         manifest_path = agent_dir / "manifest.json"
         if manifest_path.exists():
-            manifest = json.loads(manifest_path.read_text())
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError) as e:
+                print(f"  Warning: failed to read {manifest_path}: {e}")
+                continue
             name = manifest["agent"]
             desc = manifest.get("description", "")
             options = manifest.get("options", {})

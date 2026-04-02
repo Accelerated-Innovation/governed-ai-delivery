@@ -59,7 +59,10 @@ Every Gherkin scenario tagged `@e2e` must have a corresponding Playwright test. 
 ### Component Tests
 - FIRST score: 0–5 per principle
 - Minimum average: 4.0
+- Any individual score below 3 is a blocking failure
 - Blocking: yes — implementation must not merge below threshold
+- See [FIRST Scoring Rubric](FIRST_SCORING_RUBRIC.md) for detailed score definitions
+- See [Virtue Scoring Rubric](VIRTUE_SCORING_RUBRIC.md) for implementation quality scoring
 
 ### Accessibility
 - Critical violations: 0 permitted

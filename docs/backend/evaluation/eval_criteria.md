@@ -126,17 +126,22 @@ Generation cycle:
 
 * FIRST score: 0–5 per principle
 * Minimum average: 4
+* Any individual score below 3 is a blocking failure
+* See [FIRST Scoring Rubric](FIRST_SCORING_RUBRIC.md) for detailed score definitions
 
 ## Code Quality
 
 * Virtue score: 0–5 per virtue
 * Minimum average: 4
+* Any individual score below 3 is a blocking failure
+* See [Virtue Scoring Rubric](VIRTUE_SCORING_RUBRIC.md) for detailed score definitions
 
 ## Acceptance Threshold
 
 * Tests must pass
 * FIRST average >= 4
 * Virtue average >= 4
+* No individual FIRST or Virtue score below 3
 
 ---
 

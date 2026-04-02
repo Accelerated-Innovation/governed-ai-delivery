@@ -79,4 +79,6 @@ No raw `fetch` or `axios`. Use the shared `ApiService` in `src/shared/api/api.se
 | Component conventions | `docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md` |
 | State management rules | `docs/ui/architecture/angular/STATE_MANAGEMENT.md` |
 | Evaluation criteria | `docs/ui/evaluation/eval_criteria.md` |
+| FIRST scoring rubric | `docs/ui/evaluation/FIRST_SCORING_RUBRIC.md` |
+| Virtue scoring rubric | `docs/ui/evaluation/VIRTUE_SCORING_RUBRIC.md` |
 | ADRs | `docs/ui/architecture/ADR/` |
