@@ -88,7 +88,41 @@ Feature: Schema contract publication
 
 ---
 
-## 6. Enforcement
+## 6. Scenario Outlines
+
+Use `Scenario Outline` for parameterized tests where the same behavior is verified with different inputs:
+
+```gherkin
+@nfr-security
+Scenario Outline: Invalid authentication is rejected
+  Given a request with <credential_type>
+  When the request is made to the schema registry
+  Then the response is <expected_status>
+
+  Examples:
+    | credential_type       | expected_status   |
+    | no credentials        | 401 Unauthorized  |
+    | expired token         | 401 Unauthorized  |
+    | valid token, wrong scope | 403 Forbidden  |
+```
+
+### When to use Scenario Outline vs multiple Scenarios
+
+| Use Scenario Outline when... | Use separate Scenarios when... |
+|---|---|
+| Same Given/When/Then structure, different data | Different flow or steps per case |
+| Testing boundary values or input variations | Testing distinct user journeys |
+| > 3 cases with the same structure | Each case has unique setup or assertions |
+
+### Tagging rules for Scenario Outlines
+
+- Tags on a `Scenario Outline` apply to **all** rows in the `Examples` table
+- If only some rows relate to an NFR, split them into separate `Scenario Outline` blocks with different tags
+- Each row in the Examples table counts as one scenario for coverage purposes
+
+---
+
+## 7. Enforcement
 
 Agents must check tagging coverage during Architecture Preflight (Section 1: Artifact Review) and during plan finalization.
 

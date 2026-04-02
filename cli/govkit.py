@@ -19,6 +19,8 @@ Usage:
     govkit apply --agent claude-code --target /path/to/project
     govkit apply --agent claude-code --type api --ui react --ci github --target /path/to/project
     govkit list
+    govkit init my_feature --target /path/to/project
+    govkit init my_feature --starter backend --target /path/to/project
     govkit validate --target /path/to/project
 """
 
@@ -100,15 +102,24 @@ def resolve_options(manifest: dict, args: argparse.Namespace) -> dict:
 
 
 def resolve_variant_files(manifest: dict, options: dict) -> tuple[list, list]:
-    """Collect files and shared entries from all selected variant dimensions."""
+    """Collect files and shared entries from all selected variant dimensions, deduplicated."""
     all_files = list(manifest.get("base_files", []))
-    all_shared = []
+    all_shared: list[str] = []
+    seen_files: set[tuple[str, str]] = {(f["src"], f["dest"]) for f in all_files}
+    seen_shared: set[str] = set()
     variants = manifest.get("variants", {})
     for dimension, value in options.items():
         variant_group = variants.get(dimension, {})
         selected = variant_group.get(value, {})
-        all_files.extend(selected.get("files", []))
-        all_shared.extend(selected.get("shared", []))
+        for f in selected.get("files", []):
+            key = (f["src"], f["dest"])
+            if key not in seen_files:
+                all_files.append(f)
+                seen_files.add(key)
+        for s in selected.get("shared", []):
+            if s not in seen_shared:
+                all_shared.append(s)
+                seen_shared.add(s)
     return all_files, all_shared
 
 
@@ -187,6 +198,47 @@ def cmd_list(_args: argparse.Namespace) -> None:
     print()
 
 
+def cmd_init(args: argparse.Namespace) -> None:
+    """Create a new feature folder from the appropriate starter template."""
+    target = Path(args.target).resolve()
+    features_dir = target / "features"
+    if not features_dir.exists():
+        print(f"Error: no features/ directory found in {target}. Run 'govkit apply' first.")
+        sys.exit(1)
+
+    feature_name = args.feature
+    feature_dir = features_dir / feature_name
+    if feature_dir.exists():
+        print(f"Error: feature '{feature_name}' already exists at {feature_dir}")
+        sys.exit(1)
+
+    # Determine starter type
+    starter_type = args.starter
+    if starter_type is None:
+        choices = ["backend", "cli", "ui"]
+        prompt_text = f"  Feature type? [{' / '.join(choices)}] (default: backend): "
+        answer = input(prompt_text).strip().lower()
+        if answer == "":
+            answer = "backend"
+        if answer not in choices:
+            print(f"Error: invalid choice '{answer}'. Must be one of: {', '.join(choices)}")
+            sys.exit(1)
+        starter_type = answer
+
+    starter_dir = features_dir / f"starter_{starter_type}"
+    if not starter_dir.exists():
+        print(f"Error: starter template not found at {starter_dir}")
+        sys.exit(1)
+
+    copy_entry(starter_dir, feature_dir)
+    print(f"\nCreated feature '{feature_name}' from starter_{starter_type}")
+    print(f"  Location: {feature_dir}")
+    print("\nNext steps:")
+    print(f"  1. Edit {feature_dir / 'acceptance.feature'} — write your Gherkin scenarios")
+    print(f"  2. Edit {feature_dir / 'nfrs.md'} — replace all TBD entries")
+    print(f"  3. Run /architecture-preflight {feature_name}")
+
+
 def cmd_validate(args: argparse.Namespace) -> None:
     from .validate import run_validation
     sys.exit(run_validation(Path(args.target).resolve()))
@@ -213,6 +265,13 @@ def main() -> None:
     # --- list ---
     subparsers.add_parser("list", help="List available agents and their options")
 
+    # --- init ---
+    init_parser = subparsers.add_parser("init", help="Create a new feature folder from a starter template")
+    init_parser.add_argument("feature", help="Feature name (e.g. user-auth, schema-publish)")
+    init_parser.add_argument("--target", default=".", help="Path to the target project root (default: current directory)")
+    init_parser.add_argument("--starter", choices=["backend", "cli", "ui"], default=None,
+                             help="Starter template type (default: prompted)")
+
     # --- validate ---
     validate_parser = subparsers.add_parser("validate", help="Check governance compliance in a project")
     validate_parser.add_argument("--target", required=True, help="Path to the target project root")
@@ -223,6 +282,8 @@ def main() -> None:
         cmd_apply(args)
     elif args.command == "list":
         cmd_list(args)
+    elif args.command == "init":
+        cmd_init(args)
     elif args.command == "validate":
         cmd_validate(args)
 

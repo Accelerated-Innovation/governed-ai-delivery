@@ -104,25 +104,25 @@
 ## Tier 4 — Polish & Hardening
 
 ### 4.1 Schema & Validation Tightening
-- [ ] Add `eval_class` enum to `governance/backend/schemas/eval_criteria.schema.json`
-- [ ] Create `governance/schemas/agent-manifest.schema.json` for manifest validation
-- [ ] Add Scenario Outline guidance to Gherkin conventions doc
+- [x] Add `eval_class` enum to `governance/backend/schemas/eval_criteria.schema.json` (retrieval_match, safety_classifier, structure_validator, tone_classifier, factual_accuracy, custom)
+- [x] Create `governance/schemas/agent-manifest.schema.json` for manifest validation
+- [x] Add Scenario Outline guidance to Gherkin conventions doc (when to use, tagging rules, examples)
 
 ### 4.2 CI Hardening
-- [ ] Make bundle-size check blocking (remove `continue-on-error: true`) or document why advisory
-- [ ] Remove duplicate schema validation (runs in both quality-gate and eval-gate)
-- [ ] Add SonarQube/Snyk configuration templates or document them as optional with graceful skip
+- [x] ~~Make bundle-size check blocking~~ — intentionally advisory since the tool requires project-specific configuration. Already documented with instructions to make blocking.
+- [x] ~~Remove duplicate schema validation~~ — no actual duplication (backend quality-gate uses backend schema, UI quality-gate uses UI schema, eval-gate doesn't validate schemas). Review agent was incorrect.
+- [x] Document SonarQube/Snyk as optional — updated both GitHub and Azure quality-gate headers to clarify these jobs should be removed if not used
 
 ### 4.3 CLI Polish
-- [ ] Add deduplication to `resolve_variant_files()`
-- [ ] Extract shared manifest options to avoid DRY violation across agents
-- [ ] Add `govkit init` or feature scaffolding command (creates feature folder with correct starter)
+- [x] Add deduplication to `resolve_variant_files()` (tracks seen src/dest pairs and shared paths)
+- [x] ~~Extract shared manifest options~~ — deferred. The duplication is 3 identical option blocks across 2 files. Extraction would add loading complexity for minimal benefit.
+- [x] Add `govkit init` command (creates feature folder from starter, with interactive type prompt and next-steps guidance)
 
 ### 4.4 Test Suite for govkit
-- [ ] Create `tests/` directory with pytest setup
-- [ ] Tests for `copy_entry()`, `resolve_options()`, `resolve_variant_files()`, `load_manifest()`
-- [ ] Tests for all `validate.py` check functions
-- [ ] Add test dependencies to `pyproject.toml`
+- [x] Create `tests/` directory with pytest setup
+- [x] Tests for `copy_entry()`, `resolve_options()`, `resolve_variant_files()`, `load_manifest()`
+- [x] Tests for all `validate.py` check functions
+- [x] Add test dependencies to `pyproject.toml`
 
 ---
 

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Manifest Schema",
+  "description": "Schema for agent manifest.json files in agents/<agent-name>/manifest.json",
+  "type": "object",
+  "required": ["agent", "description", "variants"],
+  "additionalProperties": false,
+  "properties": {
+    "agent": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Agent identifier (e.g., 'claude-code', 'copilot')"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the agent"
+    },
+    "options": {
+      "type": "object",
+      "description": "Variant options presented to the user during govkit apply",
+      "additionalProperties": {
+        "$ref": "#/$defs/option"
+      }
+    },
+    "variants": {
+      "type": "object",
+      "description": "Variant dimensions (type, ui, ci) mapping option values to file lists",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/$defs/variant_config"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "option": {
+      "type": "object",
+      "required": ["prompt", "choices"],
+      "additionalProperties": false,
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "description": "Interactive prompt text shown to the user"
+        },
+        "choices": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Valid choices for this option"
+        },
+        "default": {
+          "type": "string",
+          "description": "Default value if user presses enter without choosing"
+        }
+      }
+    },
+    "file_entry": {
+      "type": "object",
+      "required": ["src", "dest"],
+      "additionalProperties": false,
+      "properties": {
+        "src": {
+          "type": "string",
+          "description": "Source path relative to the agent directory"
+        },
+        "dest": {
+          "type": "string",
+          "description": "Destination path relative to the target project root"
+        }
+      }
+    },
+    "variant_config": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/file_entry" },
+          "description": "Agent-specific files to copy (src relative to agent dir, dest relative to target)"
+        },
+        "shared": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Shared governance paths to copy from repo root to target"
+        }
+      }
+    }
+  }
+}

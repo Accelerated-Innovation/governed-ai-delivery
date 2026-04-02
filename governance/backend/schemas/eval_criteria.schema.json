@@ -127,7 +127,19 @@
         "name": { "type": "string", "minLength": 1 },
         "input": { "type": "string" },
         "expected_behavior": { "type": "string" },
-        "eval_class": { "type": "string", "minLength": 1 },
+        "eval_class": {
+          "type": "string",
+          "minLength": 1,
+          "enum": [
+            "retrieval_match",
+            "safety_classifier",
+            "structure_validator",
+            "tone_classifier",
+            "factual_accuracy",
+            "custom"
+          ],
+          "description": "Evaluation class. Use 'custom' for project-specific eval types not covered by the standard classes."
+        },
         "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
         "fail_on": {
           "type": "string",

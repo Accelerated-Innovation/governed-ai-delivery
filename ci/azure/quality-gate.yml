@@ -11,7 +11,10 @@
 #   governance-artifacts   — checks that required governance artifacts exist for each feature
 #   commit-format          — validates commit message format matches project conventions
 #
-# REQUIRED VARIABLES (link a variable group): SONAR_TOKEN, SONAR_HOST_URL, SNYK_TOKEN
+# REQUIRED VARIABLES (optional — remove stages you don't use):
+#   SONAR_TOKEN, SONAR_HOST_URL — only if using the SonarQube stage
+#   SNYK_TOKEN                  — only if using the SecurityScan stage
+#   If your team doesn't use SonarQube or Snyk, delete those stages entirely.
 
 trigger: none
 

@@ -18,7 +18,11 @@
 #   governance-artifacts   — checks that required governance artifacts exist for each feature
 #   commit-format          — validates commit message format matches project conventions
 #
-# REQUIRED SECRETS: SONAR_TOKEN, SONAR_HOST_URL, SNYK_TOKEN
+# REQUIRED SECRETS (optional — remove jobs you don't use):
+#   SONAR_TOKEN, SONAR_HOST_URL — only if using the sonarqube job
+#   SNYK_TOKEN                  — only if using the security-scan job
+#   If your team doesn't use SonarQube or Snyk, delete those jobs entirely
+#   rather than letting them fail.
 # SEE ALSO: ci/github/eval-gate.yml for evaluation score gates
 
 name: Quality Gate
