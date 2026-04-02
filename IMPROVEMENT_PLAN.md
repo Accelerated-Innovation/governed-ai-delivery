@@ -28,7 +28,7 @@
 ### 1.4 Starter Template Variants
 - [x] ~~Create separate deterministic starter~~ — `starter_cli` already uses mode: deterministic. Added mode selection instructions instead.
 - [x] Add instructions at top of each starter's `eval_criteria.yaml` explaining mode selection (backend, cli — ui already had them)
-- [ ] Update README to reference mode selection in starters
+- [x] Update README to reference mode selection in starters
 
 ### 1.5 Prediction vs Actual CI Gap
 - [x] Document the approach in `ci/README.md` (what's enforced now vs predicted vs stubbed vs agent-only)

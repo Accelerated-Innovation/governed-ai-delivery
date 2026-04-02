@@ -203,6 +203,8 @@ cp -r features/starter_cli/ features/my_feature/
 cp -r features/starter_ui/ features/my_feature/
 ```
 
+Each starter's `eval_criteria.yaml` includes mode selection instructions at the top. Set the `mode` field to match your feature type: `llm` (LLM generation/retrieval), `deterministic` (pure logic), or `none` (configuration artifacts). If the mode is `deterministic` or `none`, delete the `llm_evaluation` section.
+
 ## Step 2: Write Your Acceptance Criteria
 
 Edit `features/my_feature/acceptance.feature` with your Gherkin scenarios:
