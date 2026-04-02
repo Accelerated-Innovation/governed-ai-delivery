@@ -81,9 +81,9 @@ Hard constraints. Never violate without an accepted ADR.
 
 Every feature follows this mandatory sequence:
 
-1. **Architecture Preflight** — `/project:architecture-preflight`
-2. **Spec Planning** — `/project:spec-planning`
-3. **Implementation Planning** — `/project:implementation-plan`
+1. **Architecture Preflight** — `/architecture-preflight`
+2. **Spec Planning** — `/spec-planning`
+3. **Implementation Planning** — `/implementation-plan`
 4. **Implementation** — API → ViewModel → View
 5. **CI & Merge** — all gates must pass
 

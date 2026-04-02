@@ -149,14 +149,14 @@ Ask the agent to validate your feature against the architecture contracts:
 
 | Agent | Command |
 |---|---|
-| Claude Code | `/project:architecture-preflight my_feature` |
+| Claude Code | `/architecture-preflight my_feature` |
 | Copilot | `/architecture-preflight` (with feature context) |
 
 The agent produces `architecture_preflight.md` covering boundary analysis, security impact, evaluation impact, and whether an ADR is needed. If an ADR is required, create it next:
 
 | Agent | Command |
 |---|---|
-| Claude Code | `/project:adr-author my_feature` |
+| Claude Code | `/adr-author my_feature` |
 | Copilot | `/adr-author` |
 
 ## Step 5: Generate the Plan
@@ -165,7 +165,7 @@ Ask the agent to create the implementation plan:
 
 | Agent | Command |
 |---|---|
-| Claude Code | `/project:spec-planning my_feature` |
+| Claude Code | `/spec-planning my_feature` |
 | Copilot | `/spec-planning` |
 
 The agent generates `plan.md` and `eval_criteria.yaml`. The plan includes:
@@ -181,7 +181,7 @@ Ask the agent to break the plan into a detailed task checklist:
 
 | Agent | Command |
 |---|---|
-| Claude Code | `/project:implementation-plan my_feature` |
+| Claude Code | `/implementation-plan my_feature` |
 | Copilot | `/implementation-plan` |
 
 Review and approve before implementation begins.

@@ -48,11 +48,11 @@ Before proceeding to Architecture Preflight or planning:
 
 ## Feature Lifecycle (Mandatory Order — no steps may be skipped)
 
-1. Architecture Preflight → run `/project:architecture-preflight`
+1. Architecture Preflight → run `/architecture-preflight`
 2. ADR creation (if required by preflight)
-3. Plan finalization → run `/project:spec-planning`
+3. Plan finalization → run `/spec-planning`
 4. Evaluation Compliance Summary (must be in `plan.md`)
-5. Incremental implementation → guided by `/project:implementation-plan`
+5. Incremental implementation → guided by `/implementation-plan`
 6. Automated tests
 7. Static analysis and evaluation gates
 
