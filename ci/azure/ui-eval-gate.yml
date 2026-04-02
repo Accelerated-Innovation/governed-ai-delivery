@@ -69,11 +69,17 @@ stages:
                   if not pred.get("thresholds_met"):
                       errors.append(f"{plan_path}: thresholds_met is false or missing")
 
-                  # Check FIRST average
-                  ct = pred.get("component_tests", {})
-                  avg = ct.get("predicted_average", 0)
-                  if avg < 4.0:
-                      errors.append(f"{plan_path}: predicted FIRST average {avg} is below 4.0")
+                  # Check FIRST average (supports both legacy and standardized format)
+                  first = pred.get("first", pred.get("component_tests", {}))
+                  first_avg = first.get("average", first.get("predicted_average", 0))
+                  if first_avg < 4.0:
+                      errors.append(f"{plan_path}: predicted FIRST average {first_avg} is below 4.0")
+
+                  # Check Virtue average
+                  virtues = pred.get("virtues", {})
+                  virtue_avg = virtues.get("average", 0)
+                  if virtues and virtue_avg < 4.0:
+                      errors.append(f"{plan_path}: predicted Virtue average {virtue_avg} is below 4.0")
 
                   # Check accessibility
                   a11y = pred.get("accessibility", {})

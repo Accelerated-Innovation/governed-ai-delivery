@@ -54,7 +54,11 @@ Short, action-oriented statement. Example: “Introduce Redis-based session stor
 
 ---
 
-Respond with a full ADR in Markdown using the above headings. If required information is missing, stop and request clarification before writing the draft.
+Follow the template at `docs/backend/architecture/ADR/TEMPLATE.md`.
+
+Write the ADR to `docs/backend/architecture/ADR/<slug>.md` where `<slug>` is a kebab-case version of the title (e.g., `introduce-redis-session-store.md`).
+
+If required information is missing, stop and request clarification before writing the draft.
 
 
 

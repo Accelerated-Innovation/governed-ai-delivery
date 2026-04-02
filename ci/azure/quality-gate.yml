@@ -8,6 +8,8 @@
 #   sonarqube              — SonarQube quality gate (requires SONAR_TOKEN and SONAR_HOST_URL variables)
 #   security-scan          — Snyk vulnerability scan (requires SNYK_TOKEN variable)
 #   contract-compatibility — detects @contract-tagged features and checks backward compatibility
+#   governance-artifacts   — checks that required governance artifacts exist for each feature
+#   commit-format          — validates commit message format matches project conventions
 #
 # REQUIRED VARIABLES (link a variable group): SONAR_TOKEN, SONAR_HOST_URL, SNYK_TOKEN
 
@@ -113,3 +115,63 @@ stages:
               echo "Configure your backward-compatibility check here."
             displayName: Check contract schema backward compatibility
             condition: ne(variables['CONTRACT_FEATURES'], '')
+
+  - stage: GovernanceArtifacts
+    displayName: Governance artifact checks
+    dependsOn: []
+    jobs:
+      - job: GovernanceArtifacts
+        displayName: Check governance artifacts exist
+        steps:
+          - checkout: self
+
+          - script: |
+              errors=0
+              for plan in features/*/plan.md; do
+                [ -f "$plan" ] || continue
+                feature_dir=$(dirname "$plan")
+                feature=$(basename "$feature_dir")
+                case "$feature" in starter_*) continue;; esac
+                if [ ! -f "$feature_dir/architecture_preflight.md" ]; then
+                  echo "FAIL: $feature has plan.md but no architecture_preflight.md"
+                  errors=$((errors + 1))
+                fi
+              done
+              if [ "$errors" -gt 0 ]; then
+                echo "$errors feature(s) missing architecture_preflight.md"
+                exit 1
+              fi
+              echo "All planned features have architecture preflight artifacts."
+            displayName: Check architecture preflight exists
+
+  - stage: CommitFormat
+    displayName: Commit message format
+    dependsOn: []
+    jobs:
+      - job: CommitFormat
+        displayName: Validate commit messages
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - script: |
+              COMMITS=$(git log --format="%s" origin/main..HEAD 2>/dev/null || true)
+              if [ -z "$COMMITS" ]; then
+                echo "No new commits to check."
+                exit 0
+              fi
+              errors=0
+              while IFS= read -r msg; do
+                if ! echo "$msg" | grep -qE "^(feat|fix|docs|test|refactor|chore)(\(.*\))?: .+"; then
+                  echo "FAIL: '$msg'"
+                  errors=$((errors + 1))
+                fi
+              done <<< "$COMMITS"
+              if [ "$errors" -gt 0 ]; then
+                echo ""
+                echo "$errors commit(s) do not match format: type(scope): description"
+                echo "Allowed types: feat, fix, docs, test, refactor, chore"
+                exit 1
+              fi
+              echo "All commit messages match expected format."
+            displayName: Validate commit message format

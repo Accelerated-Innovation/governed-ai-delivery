@@ -1,0 +1,39 @@
+# import-linter reference configuration for hexagonal architecture enforcement.
+#
+# Copy the sections below into your project's pyproject.toml.
+# Adjust root_package and containers to match your source layout.
+#
+# Install: pip install import-linter
+# Run:     lint-imports
+#
+# This configuration enforces the layering rules defined in:
+#   docs/backend/architecture/ARCH_CONTRACT.md
+#   docs/backend/architecture/BOUNDARIES.md
+
+[tool.importlinter]
+root_package = "src"
+
+# Hexagonal Architecture layer contract
+# Dependencies must flow inward: api → ports → services → adapters → common
+# Violations are blocking — they indicate a boundary breach.
+[tool.importlinter.contracts.hexagonal]
+name = "Hexagonal Architecture"
+type = "layers"
+layers = [
+    "api",
+    "ports",
+    "services",
+    "adapters",
+    "common"
+]
+containers = ["src"]
+
+# Optional: forbid direct cross-feature imports in a modular monolith
+# Uncomment and adjust if your project uses feature-based modules.
+#
+# [tool.importlinter.contracts.no_cross_feature]
+# name = "No cross-feature imports"
+# type = "forbidden"
+# source_modules = ["src.features"]
+# forbidden_modules = ["src.features"]
+# allow_indirect_imports = false

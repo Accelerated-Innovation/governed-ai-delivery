@@ -50,7 +50,7 @@ Choose one:
 
 ---
 
-Output this report as structured Markdown so it can be pasted into a PR, issue comment, or planning doc.
+Write this report to `features/<feature_name>/architecture_preflight.md`.
 
 If any spec inputs are missing, ask the user before proceeding.
 

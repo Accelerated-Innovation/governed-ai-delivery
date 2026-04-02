@@ -59,6 +59,15 @@ Include, at minimum:
 - Dataset or prompt-set reference placeholder if none exists yet
 - Fail-on-regression behavior
 
+### Output A: Evaluation Compliance Summary
+
+plan.md must include an Evaluation Compliance Summary with predicted FIRST and Virtue scores. Use the scoring rubrics for reference:
+
+- FIRST rubric: `docs/backend/evaluation/FIRST_SCORING_RUBRIC.md`
+- Virtue rubric: `docs/backend/evaluation/VIRTUE_SCORING_RUBRIC.md`
+
+Do not proceed if predicted FIRST average or Virtue average is below 4.0.
+
 ## Output rules
 
 - Output A first, then Output B.

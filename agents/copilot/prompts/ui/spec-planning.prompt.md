@@ -39,18 +39,28 @@ For each `@accessibility`-tagged Gherkin scenario: describe the WCAG criteria an
 
 ```yaml
 evaluation_prediction:
-  component_tests:
-    FIRST_scores:
-      fast: { score: 0-5, rationale: "..." }
-      isolated: { score: 0-5, rationale: "..." }
-      repeatable: { score: 0-5, rationale: "..." }
-      self_verifying: { score: 0-5, rationale: "..." }
-      timely: { score: 0-5, rationale: "..." }
-    predicted_average: 0.0
+  first:
+    fast:           { score: 0-5, evidence: "..." }
+    isolated:       { score: 0-5, evidence: "..." }
+    repeatable:     { score: 0-5, evidence: "..." }
+    self_verifying: { score: 0-5, evidence: "..." }
+    timely:         { score: 0-5, evidence: "..." }
+    average: 0.0
+  virtues:
+    working:   { score: 0-5, evidence: "..." }
+    unique:    { score: 0-5, evidence: "..." }
+    simple:    { score: 0-5, evidence: "..." }
+    clear:     { score: 0-5, evidence: "..." }
+    easy:      { score: 0-5, evidence: "..." }
+    developed: { score: 0-5, evidence: "..." }
+    brief:     { score: 0-5, evidence: "..." }
+    average: 0.0
   accessibility:
     predicted_axe_violations: 0
     wcag_level: AA
   thresholds_met: true|false
 ```
 
-Do not proceed to Implementation Planning if `thresholds_met` is false or predicted FIRST average is below 4.0.
+Scoring rubrics: `docs/ui/evaluation/FIRST_SCORING_RUBRIC.md` and `docs/ui/evaluation/VIRTUE_SCORING_RUBRIC.md`
+
+Do not proceed to Implementation Planning if `thresholds_met` is false, predicted FIRST average is below 4.0, or predicted Virtue average is below 4.0.

@@ -198,24 +198,22 @@ Predicted BEFORE implementation begins. All score and evidence fields are popula
 
 ```yaml
 evaluation_prediction:
-  component_tests:
-    FIRST_scores:
-      fast:
-        score: 5
-        rationale: "All API calls mocked via MSW; no real network in any test; hook tests use renderHook with a QueryClient wrapper — no I/O"
-      isolated:
-        score: 5
-        rationale: "Each hook test creates its own QueryClient instance; Zustand store reset between tests via act(); no shared state"
-      repeatable:
-        score: 5
-        rationale: "No time-dependent logic; optimistic update tested via mock mutation state, not timers; deterministic MSW handlers"
-      self_verifying:
-        score: 5
-        rationale: "All scenarios have explicit assertions on rendered output, aria attributes, and query cache state; no log-inspection"
-      timely:
-        score: 4
-        rationale: "Hook tests and component tests written per increment before implementation; minor risk on aria-live timing assertions needing waitFor tuning"
-    predicted_average: 4.8
+  first:
+    fast:           { score: 5, evidence: "All API calls mocked via MSW; no real network; hook tests use renderHook with QueryClient wrapper — no I/O" }
+    isolated:       { score: 5, evidence: "Each hook test creates its own QueryClient; Zustand store reset between tests via act(); no shared state" }
+    repeatable:     { score: 5, evidence: "No time-dependent logic; optimistic update tested via mock mutation state, not timers; deterministic MSW handlers" }
+    self_verifying: { score: 5, evidence: "All scenarios assert on rendered output, aria attributes, and query cache state; no log-inspection" }
+    timely:         { score: 4, evidence: "Tests written per increment before implementation; minor risk on aria-live timing assertions needing waitFor tuning" }
+    average: 4.8
+  virtues:
+    working:   { score: 5, evidence: "All acceptance scenarios covered; loading, error, empty states handled; keyboard navigation and aria-live tested" }
+    unique:    { score: 5, evidence: "No duplicated rendering or hook logic; filter pattern is feature-local with clear extraction path if reused" }
+    simple:    { score: 4, evidence: "Optimistic update adds minor complexity in useMarkTaskComplete; kept to single hook with clear rollback path" }
+    clear:     { score: 5, evidence: "Components named by function (TaskCard, TaskFilter); props interfaces are minimal and typed" }
+    easy:      { score: 5, evidence: "Clean MVVM separation; components depend only on hooks; hooks depend only on API functions; no cross-feature imports" }
+    developed: { score: 5, evidence: "All components and hooks have tests; all @e2e scenarios have Playwright tests; zero dead code" }
+    brief:     { score: 4, evidence: "No speculative abstractions; TaskSkeleton and TaskErrorState are simple single-purpose components" }
+    average: 4.71
   accessibility:
     predicted_axe_violations: 0
     wcag_level: AA

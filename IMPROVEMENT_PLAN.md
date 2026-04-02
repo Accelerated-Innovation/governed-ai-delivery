@@ -40,36 +40,38 @@
 ## Tier 2 — Significant Gaps (incomplete governance)
 
 ### 2.1 Agent/CI Enforcement Alignment
-- [ ] Add CI job: check `features/*/architecture_preflight.md` exists for any feature with a plan.md
-- [ ] Add CI job: validate commit message format `feat|fix|docs|test(<scope>): ...`
-- [ ] Document which governance checks are agent-side vs CI-side in a single reference table
+- [x] Add CI job: check `features/*/architecture_preflight.md` exists for any feature with a plan.md (GitHub + Azure)
+- [x] Add CI job: validate commit message format `feat|fix|docs|test(<scope>): ...` (GitHub + Azure)
+- [x] Document which governance checks are agent-side vs CI-side (done in `ci/README.md` during Tier 1.5)
 
 ### 2.2 Evaluation Prediction Format Alignment
-- [ ] Standardize evaluation_prediction YAML schema (document exact structure)
-- [ ] Align Copilot UI prompts to match the CI-expected format
-- [ ] Align Claude Code UI skills to match the same format
-- [ ] Add the schema to `governance/schemas/evaluation_prediction.schema.json`
+- [x] Standardize evaluation_prediction YAML schema (unified `first`/`virtues`/`accessibility` structure)
+- [x] Align Copilot UI prompts to match the standardized format
+- [x] Align Claude Code UI skills to match the standardized format
+- [x] Add the schema to `governance/schemas/evaluation_prediction.schema.json`
+- [x] Update UI eval-gate CI to parse standardized format with backward compatibility (GitHub + Azure)
+- [x] Update worked example (`ui_task_dashboard/plan.md`) to use standardized format
 
 ### 2.3 Missing Architecture Artifacts
-- [ ] Create `docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md` (port interface definition)
-- [ ] Create `docs/backend/architecture/ERROR_MAPPING.md` (domain exceptions to HTTP status codes)
-- [ ] Create `docs/backend/architecture/CROSS_CUTTING_CONCERNS.md` (DTOs, validation boundaries, audit trails)
-- [ ] Add LangGraph vs LangChain decision matrix to `TECH_STACK.md` Section 4
+- [x] Create `docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md` (port interface, adapter example, testing guidance)
+- [x] Create `docs/backend/architecture/ERROR_MAPPING.md` (domain exception hierarchy, HTTP mapping, handler pattern)
+- [x] Create `docs/backend/architecture/CROSS_CUTTING_CONCERNS.md` (DTOs, validation, pagination, timestamps, soft deletes, audit, config)
+- [x] Add LangGraph vs LangChain decision matrix to `TECH_STACK.md` Section 4
 
 ### 2.4 Import-Linter Config
-- [ ] Create reference `.importlinter` config for Python hexagonal architecture
-- [ ] Add to `agents/claude-code/manifest.json` as a shared artifact
-- [ ] Add to `agents/copilot/manifest.json` as a shared artifact
+- [x] Create reference config at `governance/backend/importlinter-reference.toml` (with merge instructions)
+- [x] ~~Add to manifests~~ — already distributed via `governance/backend/` shared artifact in both agents
 
 ### 2.5 Copilot Prompt Parity
-- [ ] Enhance `adr-author.prompt.md` to match Claude Code skill detail (template location, required sections)
-- [ ] Enhance `spec-planning.prompt.md` with explicit eval_criteria structure
-- [ ] Enhance `implementation-plan.prompt.md` with increment sizing guidance
-- [ ] Enhance `architecture-preflight.prompt.md` with section requirements
+- [x] Enhance `adr-author.prompt.md` — added template location and output path
+- [x] Enhance `spec-planning.prompt.md` — added scoring rubric references
+- [x] Enhance `implementation-plan.prompt.md` — added increment sizing guidance and rubric references
+- [x] Enhance `architecture-preflight.prompt.md` — added output file path (backend + UI)
 
 ### 2.6 Backend vs UI Evaluation Harmonization
-- [ ] Add Virtue scoring check to UI eval-gate (both GitHub Actions and Azure DevOps)
-- [ ] Document why backend and UI gates differ (if intentional) or align them
+- [x] Add Virtue scoring check to UI eval-gate (done in 2.2 — both GitHub and Azure)
+- [x] Aligned prediction format: both backend and UI now use `first`/`virtues`/`accessibility` structure
+- [x] Remaining intentional difference: UI eval-gate additionally checks `accessibility.predicted_axe_violations == 0` (backend does not have accessibility checks). Documented in `ci/README.md`.
 
 ---
 

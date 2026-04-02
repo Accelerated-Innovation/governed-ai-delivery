@@ -64,4 +64,6 @@ If ADR required: implementation must not proceed until the ADR status is Accepte
 - Accessibility compliance risk: Low / Medium / High
 - E2E complexity: Low / Medium / High
 
-Output as structured Markdown. If any required inputs are missing, stop and ask before proceeding.
+Write this report to `features/<feature_name>/architecture_preflight.md`.
+
+If any required inputs are missing, stop and ask before proceeding.

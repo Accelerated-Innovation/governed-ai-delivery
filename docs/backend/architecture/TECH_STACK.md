@@ -112,6 +112,21 @@ Allowed for:
 
 Avoid using LangChain for complex orchestration.
 
+### Decision Matrix
+
+| Scenario | Use | Reason |
+|---|---|---|
+| Single LLM call with structured output | Direct provider SDK (Anthropic, OpenAI) | No orchestration needed; avoids unnecessary abstraction |
+| Prompt template with variable substitution | LangChain `PromptTemplate` | Lightweight utility; no orchestration |
+| Sequential tool calls (> 2 steps) | LangGraph | Stateful graph manages step ordering and error recovery |
+| Branching logic based on LLM output | LangGraph | Conditional edges are a graph concern, not a chain concern |
+| Multi-turn conversation with memory | LangGraph | State persistence across turns requires graph checkpointing |
+| Parallel tool execution | LangGraph | Fan-out/fan-in is a graph pattern |
+| Simple model wrapper (retry, fallback) | LangChain or direct SDK | Either is acceptable; prefer direct SDK for fewer dependencies |
+| RAG pipeline (retrieve → augment → generate) | LangGraph if > 2 steps; direct SDK if simple | Simple RAG can be a single function; complex RAG benefits from graph structure |
+
+**Default rule:** If the task requires more than two sequential LLM interactions or any branching, use LangGraph. Otherwise, prefer the direct provider SDK.
+
 ---
 
 # 5. LLM Providers

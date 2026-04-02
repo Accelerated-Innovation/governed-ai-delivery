@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Evaluation Prediction Schema",
+  "description": "Schema for the evaluation_prediction YAML block embedded in plan.md files. Used by both backend and UI features.",
+  "type": "object",
+  "required": ["evaluation_prediction"],
+  "properties": {
+    "evaluation_prediction": {
+      "type": "object",
+      "required": ["first", "thresholds_met"],
+      "properties": {
+        "first": {
+          "description": "FIRST principle scores for test quality prediction",
+          "type": "object",
+          "required": ["fast", "isolated", "repeatable", "self_verifying", "timely", "average"],
+          "properties": {
+            "fast":           { "$ref": "#/$defs/score_entry" },
+            "isolated":       { "$ref": "#/$defs/score_entry" },
+            "repeatable":     { "$ref": "#/$defs/score_entry" },
+            "self_verifying": { "$ref": "#/$defs/score_entry" },
+            "timely":         { "$ref": "#/$defs/score_entry" },
+            "average":        { "type": "number", "minimum": 0, "maximum": 5 }
+          },
+          "additionalProperties": false
+        },
+        "virtues": {
+          "description": "7 Code Virtue scores for implementation quality prediction",
+          "type": "object",
+          "required": ["working", "unique", "simple", "clear", "easy", "developed", "brief", "average"],
+          "properties": {
+            "working":   { "$ref": "#/$defs/score_entry" },
+            "unique":    { "$ref": "#/$defs/score_entry" },
+            "simple":    { "$ref": "#/$defs/score_entry" },
+            "clear":     { "$ref": "#/$defs/score_entry" },
+            "easy":      { "$ref": "#/$defs/score_entry" },
+            "developed": { "$ref": "#/$defs/score_entry" },
+            "brief":     { "$ref": "#/$defs/score_entry" },
+            "average":   { "type": "number", "minimum": 0, "maximum": 5 }
+          },
+          "additionalProperties": false
+        },
+        "accessibility": {
+          "description": "Accessibility predictions (UI features only)",
+          "type": "object",
+          "properties": {
+            "predicted_axe_violations": { "type": "integer", "minimum": 0 },
+            "wcag_level": { "type": "string", "enum": ["A", "AA", "AAA"] }
+          },
+          "additionalProperties": false
+        },
+        "thresholds_met": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "score_entry": {
+      "type": "object",
+      "required": ["score", "evidence"],
+      "properties": {
+        "score": { "type": "number", "minimum": 1, "maximum": 5 },
+        "evidence": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

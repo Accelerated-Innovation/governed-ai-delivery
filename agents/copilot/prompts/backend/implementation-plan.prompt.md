@@ -113,15 +113,14 @@ Each step must:
 
 ### Evaluation Compliance Summary
 
-Provide a predicted compliance summary before implementation begins:
+Provide a predicted compliance summary before implementation begins using the standardized format:
 
-* Expected FIRST average score (0–5) and justification
-* Expected 7 Virtue average score (0–5) and justification
-* Identified refactor triggers likely to occur
-* Risk areas that may reduce evaluation scores
-* Confirmation that `eval_criteria.yaml` thresholds are satisfied by design
+- FIRST rubric: `docs/backend/evaluation/FIRST_SCORING_RUBRIC.md`
+- Virtue rubric: `docs/backend/evaluation/VIRTUE_SCORING_RUBRIC.md`
 
-If predicted averages are below required thresholds, adjust the plan before proceeding.
+Each increment should target ~300 lines of production code. If an increment exceeds 500 lines, split it.
+
+If predicted FIRST average or Virtue average is below 4.0, adjust the plan before proceeding.
 
 ---
 
