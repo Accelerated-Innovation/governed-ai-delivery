@@ -18,16 +18,26 @@ govkit validate — governance compliance checker
 Checks that all features in a target project have the required governance
 artifacts and that those artifacts meet minimum quality thresholds.
 
+Level-aware: Level 3 checks fewer artifacts and skips evaluation scoring.
+Level 4 checks all 5 artifacts with full evaluation enforcement.
+
 Uses only the Python standard library. Full JSON Schema validation of
 eval_criteria.yaml is deferred to CI or `check-jsonschema` if installed.
 """
 
+import json
 import re
 import subprocess
 from pathlib import Path
 
 
-REQUIRED_ARTIFACTS = [
+L3_REQUIRED_ARTIFACTS = [
+    "acceptance.feature",
+    "nfrs.md",
+    "plan.md",
+]
+
+L4_REQUIRED_ARTIFACTS = [
     "acceptance.feature",
     "nfrs.md",
     "eval_criteria.yaml",
@@ -35,20 +45,30 @@ REQUIRED_ARTIFACTS = [
     "plan.md",
 ]
 
+# Default for backward compatibility
+REQUIRED_ARTIFACTS = L4_REQUIRED_ARTIFACTS
+
 PASS = "\033[32mPASS\033[0m"
 FAIL = "\033[31mFAIL\033[0m"
 WARN = "\033[33mWARN\033[0m"
+
+STARTERS = {
+    "starter_backend", "starter_ui", "starter_cli",
+    "starter_backend_l3", "starter_ui_l3", "starter_cli_l3",
+}
 
 
 # ---------------------------------------------------------------------------
 # Individual checks
 # ---------------------------------------------------------------------------
 
-def check_completeness(feature_dir: Path) -> tuple[bool, str]:
-    """Check that all 5 required artifacts exist and are non-empty."""
+def check_completeness(feature_dir: Path, artifacts: list[str] | None = None) -> tuple[bool, str]:
+    """Check that all required artifacts exist and are non-empty."""
+    if artifacts is None:
+        artifacts = L4_REQUIRED_ARTIFACTS
     missing = []
     empty = []
-    for artifact in REQUIRED_ARTIFACTS:
+    for artifact in artifacts:
         path = feature_dir / artifact
         if not path.exists():
             missing.append(artifact)
@@ -60,9 +80,9 @@ def check_completeness(feature_dir: Path) -> tuple[bool, str]:
             parts.append(f"missing: {', '.join(missing)}")
         if empty:
             parts.append(f"empty: {', '.join(empty)}")
-        present = len(REQUIRED_ARTIFACTS) - len(missing)
-        return False, f"{present}/{len(REQUIRED_ARTIFACTS)} artifacts — {'; '.join(parts)}"
-    return True, f"{len(REQUIRED_ARTIFACTS)}/{len(REQUIRED_ARTIFACTS)} required artifacts present"
+        present = len(artifacts) - len(missing)
+        return False, f"{present}/{len(artifacts)} artifacts — {'; '.join(parts)}"
+    return True, f"{len(artifacts)}/{len(artifacts)} required artifacts present"
 
 
 def check_gherkin_syntax(feature_dir: Path) -> tuple[bool, str]:
@@ -218,7 +238,19 @@ def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[bool, str]:
 # Runner
 # ---------------------------------------------------------------------------
 
-def run_validation(target: Path) -> int:
+def _read_govkit_level(target: Path) -> str | None:
+    """Read the maturity level from the .govkit marker file."""
+    marker = target / ".govkit"
+    if not marker.exists():
+        return None
+    try:
+        data = json.loads(marker.read_text(encoding="utf-8"))
+        return data.get("level")
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def run_validation(target: Path, level: str | None = None) -> int:
     """Run all governance checks on the target project. Returns exit code."""
     if not target.exists():
         print(f"Error: target directory '{target}' does not exist.")
@@ -229,18 +261,42 @@ def run_validation(target: Path) -> int:
         print(f"Error: no features/ directory found in '{target}'.")
         return 1
 
+    # Determine effective level
+    if level is None:
+        level = _read_govkit_level(target) or "4"
+
+    # Select artifact list and checks based on level
+    if level == "3":
+        artifacts = L3_REQUIRED_ARTIFACTS
+        checks = [
+            lambda fd: check_completeness(fd, artifacts),
+            check_gherkin_syntax,
+            check_nfrs_no_tbd,
+            check_gherkin_nfr_coverage,
+        ]
+    else:
+        artifacts = L4_REQUIRED_ARTIFACTS
+        checks = [
+            lambda fd: check_completeness(fd, artifacts),
+            check_gherkin_syntax,
+            check_nfrs_no_tbd,
+            check_eval_criteria,
+            check_plan_eval_prediction,
+            check_gherkin_nfr_coverage,
+        ]
+
     # Collect feature directories (skip starters and non-directories)
-    starters = {"starter_backend", "starter_ui", "starter_cli"}
     feature_dirs = sorted(
         d for d in features_dir.iterdir()
-        if d.is_dir() and d.name not in starters and not d.name.startswith(".")
+        if d.is_dir() and d.name not in STARTERS and not d.name.startswith(".")
     )
 
     if not feature_dirs:
         print("No feature directories found to validate.")
         return 0
 
-    print("\ngovkit validate — governance compliance check\n")
+    level_label = "L3 Spec-Driven" if level == "3" else "L4 Governed AI Delivery"
+    print(f"\ngovkit validate — governance compliance check ({level_label})\n")
 
     total = 0
     passed = 0
@@ -249,15 +305,6 @@ def run_validation(target: Path) -> int:
         total += 1
         feature_ok = True
         print(f"features/{feature_dir.name}/")
-
-        checks = [
-            check_completeness,
-            check_gherkin_syntax,
-            check_nfrs_no_tbd,
-            check_eval_criteria,
-            check_plan_eval_prediction,
-            check_gherkin_nfr_coverage,
-        ]
 
         for check_fn in checks:
             result, message = check_fn(feature_dir)

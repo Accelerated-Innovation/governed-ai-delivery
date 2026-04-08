@@ -6,6 +6,29 @@
 
 ---
 
+## Tier 5 — Maturity Model (v0.3.0)
+
+### 5.1 Level 3 / Level 4 Split
+- [x] Create L3 feature starters (3 artifacts: acceptance.feature, nfrs.md, plan.md)
+- [x] Create L3 plan templates (no evaluation_prediction block)
+- [x] Create L3 generic agent rules (test-first.md, spec-compliance.md)
+- [x] Create L3 CLAUDE.md variants (no architecture contracts, no evaluation scoring)
+- [x] Create L3 agent skills (simplified spec-planning, implementation-plan)
+- [x] Create L3 Copilot equivalents (instructions, prompts)
+- [x] Create L3 CI templates (basic quality gates only)
+- [x] Add `level_3` sub-key override to manifests
+- [x] Add `--level` flag to CLI (apply, init, validate)
+- [x] Write `.govkit` marker file on apply
+- [x] Level-aware validation (3 artifacts for L3, 5 for L4)
+- [x] Update agent-manifest schema for `level_3` override
+- [x] Update tests (70 tests, all passing)
+- [x] Update README, CHANGELOG, CI README
+
+### 5.2 Level 5 — Self-Adapting Systems
+- [ ] Requirements TBD — to be planned once L5 specification is provided
+
+---
+
 ## Tier 1 — Critical Gaps (block effective use)
 
 ### 1.1 FIRST & 7 Virtues Scoring Rubrics

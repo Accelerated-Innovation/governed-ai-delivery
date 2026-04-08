@@ -2,6 +2,18 @@
 
 This directory contains CI pipeline templates for both GitHub Actions and Azure DevOps. These are installed into target projects by `govkit apply`.
 
+## Level 3 vs Level 4 CI
+
+| Pipeline | Level 3 | Level 4 |
+|----------|---------|---------|
+| `l3-quality-gate.yml` | Governance artifacts (3), commit format, SonarQube, Snyk | — |
+| `quality-gate.yml` | — | Schema validation, boundary enforcement, SonarQube, Snyk, contract compatibility, governance artifacts (5), commit format |
+| `eval-gate.yml` | — | FIRST/Virtue prediction thresholds, LLM eval |
+| `ui-quality-gate.yml` | — | Type check, ESLint, component tests, bundle size |
+| `ui-eval-gate.yml` | — | FIRST/Virtue prediction, Playwright E2E, axe scans |
+
+Level 3 projects receive only `l3-quality-gate.yml`. Level 4 projects receive the full set.
+
 ---
 
 ## What's Enforced vs What's Predicted

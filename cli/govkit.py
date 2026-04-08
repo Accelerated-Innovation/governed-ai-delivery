@@ -17,7 +17,7 @@ govkit — governed AI delivery kit installer
 
 Usage:
     govkit apply --agent claude-code --target /path/to/project
-    govkit apply --agent claude-code --type api --ui react --ci github --target /path/to/project
+    govkit apply --agent claude-code --level 3 --type api --ui none --ci github --target /path/to/project
     govkit list
     govkit init my_feature --target /path/to/project
     govkit init my_feature --starter backend --target /path/to/project
@@ -28,6 +28,7 @@ import argparse
 import json
 import shutil
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -74,6 +75,36 @@ def copy_entry(src: Path, dest: Path, skip_existing: bool = False) -> None:
 
 
 # ---------------------------------------------------------------------------
+# .govkit marker
+# ---------------------------------------------------------------------------
+
+def read_govkit_level(target: Path) -> str | None:
+    """Read the maturity level from the .govkit marker file, or None if not found."""
+    marker = target / ".govkit"
+    if not marker.exists():
+        return None
+    try:
+        data = json.loads(marker.read_text(encoding="utf-8"))
+        return data.get("level")
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def write_govkit_marker(target: Path, agent: str, level: str, options: dict) -> None:
+    """Write the .govkit marker file to track the applied configuration."""
+    marker = target / ".govkit"
+    data = {
+        "version": "0.3.0",
+        "level": level,
+        "agent": agent,
+        "options": {k: v for k, v in options.items() if k != "level"},
+        "applied_at": datetime.now(timezone.utc).isoformat(),
+    }
+    marker.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    print(f"\n  .govkit marker written (level {level})")
+
+
+# ---------------------------------------------------------------------------
 # Variant resolution
 # ---------------------------------------------------------------------------
 
@@ -108,9 +139,16 @@ def resolve_variant_files(manifest: dict, options: dict) -> tuple[list, list]:
     seen_files: set[tuple[str, str]] = {(f["src"], f["dest"]) for f in all_files}
     seen_shared: set[str] = set()
     variants = manifest.get("variants", {})
+    level = options.get("level", "4")
+    level_key = f"level_{level}" if level != "4" else None
     for dimension, value in options.items():
+        if dimension == "level":
+            continue
         variant_group = variants.get(dimension, {})
         selected = variant_group.get(value, {})
+        # Use level override if present and level is not 4
+        if level_key and level_key in selected:
+            selected = selected[level_key]
         for f in selected.get("files", []):
             key = (f["src"], f["dest"])
             if key not in seen_files:
@@ -140,6 +178,7 @@ def cmd_apply(args: argparse.Namespace) -> None:
     if "variants" in manifest:
         print(f"\nApplying govkit agent '{args.agent}' to {target}\n")
         options = resolve_options(manifest, args)
+        level = options.get("level", "4")
         print(f"\n  Configuration: {options}\n")
         files, shared = resolve_variant_files(manifest, options)
 
@@ -154,6 +193,8 @@ def cmd_apply(args: argparse.Namespace) -> None:
             src = REPO_ROOT / shared_path
             dest = target / shared_path
             copy_entry(src, dest, skip_existing=True)
+
+        write_govkit_marker(target, args.agent, level, options)
     else:
         # Legacy flat manifest — backward compatibility
         print(f"\nApplying govkit agent '{args.agent}' to {target}\n")
@@ -212,6 +253,9 @@ def cmd_init(args: argparse.Namespace) -> None:
         print(f"Error: feature '{feature_name}' already exists at {feature_dir}")
         sys.exit(1)
 
+    # Determine level
+    level = args.level or read_govkit_level(target) or "4"
+
     # Determine starter type
     starter_type = args.starter
     if starter_type is None:
@@ -225,23 +269,35 @@ def cmd_init(args: argparse.Namespace) -> None:
             sys.exit(1)
         starter_type = answer
 
-    starter_dir = features_dir / f"starter_{starter_type}"
+    # Select level-appropriate starter
+    if level == "3":
+        starter_dir = features_dir / f"starter_{starter_type}_l3"
+        if not starter_dir.exists():
+            starter_dir = features_dir / f"starter_{starter_type}"
+    else:
+        starter_dir = features_dir / f"starter_{starter_type}"
+
     if not starter_dir.exists():
         print(f"Error: starter template not found at {starter_dir}")
         sys.exit(1)
 
     copy_entry(starter_dir, feature_dir)
-    print(f"\nCreated feature '{feature_name}' from starter_{starter_type}")
+    print(f"\nCreated feature '{feature_name}' from {starter_dir.name} (level {level})")
     print(f"  Location: {feature_dir}")
     print("\nNext steps:")
     print(f"  1. Edit {feature_dir / 'acceptance.feature'} — write your Gherkin scenarios")
     print(f"  2. Edit {feature_dir / 'nfrs.md'} — replace all TBD entries")
-    print(f"  3. Run /architecture-preflight {feature_name}")
+    if level == "4":
+        print(f"  3. Run /architecture-preflight {feature_name}")
+    else:
+        print(f"  3. Run /spec-planning {feature_name}")
 
 
 def cmd_validate(args: argparse.Namespace) -> None:
     from .validate import run_validation
-    sys.exit(run_validation(Path(args.target).resolve()))
+    target = Path(args.target).resolve()
+    level = args.level
+    sys.exit(run_validation(target, level=level))
 
 
 def main() -> None:
@@ -255,6 +311,8 @@ def main() -> None:
     apply_parser = subparsers.add_parser("apply", help="Apply an agent spec kit to a target project")
     apply_parser.add_argument("--agent", required=True, help="Agent name (e.g. claude-code, copilot)")
     apply_parser.add_argument("--target", required=True, help="Path to the target project root")
+    apply_parser.add_argument("--level", choices=["3", "4"], default=None,
+                              help="Maturity level (default: prompted)")
     apply_parser.add_argument("--type", choices=["api", "cli"], default=None,
                               help="Project type (default: prompted)")
     apply_parser.add_argument("--ui", choices=["none", "react", "angular"], default=None,
@@ -271,10 +329,14 @@ def main() -> None:
     init_parser.add_argument("--target", default=".", help="Path to the target project root (default: current directory)")
     init_parser.add_argument("--starter", choices=["backend", "cli", "ui"], default=None,
                              help="Starter template type (default: prompted)")
+    init_parser.add_argument("--level", choices=["3", "4"], default=None,
+                             help="Maturity level (default: read from .govkit or 4)")
 
     # --- validate ---
     validate_parser = subparsers.add_parser("validate", help="Check governance compliance in a project")
     validate_parser.add_argument("--target", required=True, help="Path to the target project root")
+    validate_parser.add_argument("--level", choices=["3", "4"], default=None,
+                                 help="Maturity level (default: read from .govkit or 4)")
 
     args = parser.parse_args()
 

@@ -2,6 +2,11 @@
   "agent": "claude-code",
   "description": "Claude Code - CLAUDE.md governance, path-scoped rules, and project skills",
   "options": {
+    "level": {
+      "prompt": "Maturity level? (3=Spec-Driven, 4=Governed AI Delivery)",
+      "choices": ["3", "4"],
+      "default": "4"
+    },
     "type": {
       "prompt": "Project type?",
       "choices": ["api", "cli"],
@@ -38,7 +43,24 @@
           "features/starter_backend/",
           "features/schema_contract_example/",
           "governance/backend/"
-        ]
+        ],
+        "level_3": {
+          "files": [
+            { "src": "claude-md/l3-backend-api.md", "dest": "CLAUDE.md" },
+            { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
+            { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
+            { "src": "skills/backend/l3-spec-planning/", "dest": ".claude/skills/spec-planning/" },
+            { "src": "skills/backend/l3-implementation-plan/", "dest": ".claude/skills/implementation-plan/" }
+          ],
+          "shared": [
+            "docs/backend/architecture/DESIGN_PRINCIPLES.md",
+            "docs/backend/architecture/TESTING.md",
+            "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
+            "docs/backend/architecture/GHERKIN_TAGS.md",
+            "features/starter_backend_l3/",
+            "governance/backend/templates/l3-plan.md"
+          ]
+        }
       },
       "cli": {
         "files": [
@@ -57,7 +79,24 @@
           "docs/backend/",
           "features/starter_cli/",
           "governance/backend/"
-        ]
+        ],
+        "level_3": {
+          "files": [
+            { "src": "claude-md/l3-backend-cli.md", "dest": "CLAUDE.md" },
+            { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
+            { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
+            { "src": "skills/backend/l3-spec-planning/", "dest": ".claude/skills/spec-planning/" },
+            { "src": "skills/backend/l3-implementation-plan/", "dest": ".claude/skills/implementation-plan/" }
+          ],
+          "shared": [
+            "docs/backend/architecture/DESIGN_PRINCIPLES.md",
+            "docs/backend/architecture/TESTING.md",
+            "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
+            "docs/backend/architecture/GHERKIN_TAGS.md",
+            "features/starter_cli_l3/",
+            "governance/backend/templates/l3-plan.md"
+          ]
+        }
       }
     },
     "ui": {
@@ -82,7 +121,20 @@
           "governance/ui/",
           "features/starter_ui/",
           "features/ui_task_dashboard/"
-        ]
+        ],
+        "level_3": {
+          "files": [
+            { "src": "claude-md/l3-ui-react.md", "dest": "CLAUDE-UI.md" },
+            { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
+            { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
+            { "src": "skills/ui/l3-spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
+            { "src": "skills/ui/l3-implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" }
+          ],
+          "shared": [
+            "features/starter_ui_l3/",
+            "governance/ui/templates/l3-plan.md"
+          ]
+        }
       },
       "angular": {
         "files": [
@@ -101,17 +153,38 @@
           "governance/ui/",
           "features/starter_ui/",
           "features/ui_task_dashboard/"
-        ]
+        ],
+        "level_3": {
+          "files": [
+            { "src": "claude-md/l3-ui-angular.md", "dest": "CLAUDE-UI.md" },
+            { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
+            { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
+            { "src": "skills/ui/l3-spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
+            { "src": "skills/ui/l3-implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" }
+          ],
+          "shared": [
+            "features/starter_ui_l3/",
+            "governance/ui/templates/l3-plan.md"
+          ]
+        }
       }
     },
     "ci": {
       "github": {
         "files": [],
-        "shared": ["ci/github/"]
+        "shared": ["ci/github/"],
+        "level_3": {
+          "files": [],
+          "shared": ["ci/github/l3-quality-gate.yml"]
+        }
       },
       "azure": {
         "files": [],
-        "shared": ["ci/azure/"]
+        "shared": ["ci/azure/"],
+        "level_3": {
+          "files": [],
+          "shared": ["ci/azure/l3-quality-gate.yml"]
+        }
       }
     }
   }

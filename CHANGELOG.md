@@ -6,6 +6,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.3.0] — 2026-04-08
+
+### Added
+- **Maturity model** — govkit now supports Level 3 (Spec-Driven Development) and Level 4 (Governed AI Delivery)
+- **`--level` flag** — `govkit apply`, `govkit init`, and `govkit validate` accept `--level 3` or `--level 4`
+- **`.govkit` marker file** — written after `govkit apply`, tracks level and options for auto-detection by `init` and `validate`
+- **Level 3 feature starters** — `starter_backend_l3/`, `starter_cli_l3/`, `starter_ui_l3/` with 3 artifacts (no eval_criteria.yaml, no architecture_preflight.md)
+- **Level 3 plan templates** — simplified plan.md without evaluation_prediction blocks
+- **Level 3 generic agent rules** — `test-first.md` and `spec-compliance.md` (no path-scoped rules)
+- **Level 3 CLAUDE.md variants** — `l3-backend-api.md`, `l3-backend-cli.md`, `l3-ui-react.md`, `l3-ui-angular.md`
+- **Level 3 agent skills** — simplified `/spec-planning` and `/implementation-plan` without evaluation scoring
+- **Level 3 Copilot equivalents** — L3 copilot-instructions and prompts for all project types
+- **Level 3 CI templates** — `l3-quality-gate.yml` for GitHub Actions and Azure DevOps (no eval gates, no boundary checks)
+- **Level-aware validation** — `govkit validate` checks 3 artifacts for L3, 5 for L4; skips eval checks at L3
+- **Manifest `level_3` sub-key** — variant overrides co-located with parent variants; schema updated
+
+### Changed
+- **Manifest schema** — `variant_config` now accepts optional `level_3` override with same shape
+- **`resolve_variant_files()`** — respects level selection, uses `level_3` override when level is "3"
+- **`run_validation()`** — accepts `level` parameter; auto-detects from `.govkit` marker
+- **`check_completeness()`** — parameterized to accept custom artifact list
+- **Starter skip list** — includes L3 starters (`starter_backend_l3`, etc.)
+
+---
+
 ## [0.2.0] — 2026-04-02
 
 ### Added

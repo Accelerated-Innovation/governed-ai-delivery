@@ -275,3 +275,151 @@ class TestResolveVariantFiles:
         files, shared = resolve_variant_files(manifest, {"ci": "nonexistent"})
         assert files == []
         assert shared == []
+
+    def test_level_3_override(self):
+        """When level=3, level_3 sub-key files/shared replace the top-level ones."""
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "l4-api.md", "dest": "CLAUDE.md"}],
+                        "shared": ["docs/backend/"],
+                        "level_3": {
+                            "files": [{"src": "l3-api.md", "dest": "CLAUDE.md"}],
+                            "shared": ["docs/backend/architecture/DESIGN_PRINCIPLES.md"],
+                        },
+                    }
+                }
+            }
+        }
+        files, shared = resolve_variant_files(manifest, {"type": "api", "level": "3"})
+        assert len(files) == 1
+        assert files[0]["src"] == "l3-api.md"
+        assert shared == ["docs/backend/architecture/DESIGN_PRINCIPLES.md"]
+
+    def test_level_4_uses_default(self):
+        """When level=4, top-level files/shared are used (no override)."""
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "l4-api.md", "dest": "CLAUDE.md"}],
+                        "shared": ["docs/backend/"],
+                        "level_3": {
+                            "files": [{"src": "l3-api.md", "dest": "CLAUDE.md"}],
+                            "shared": ["docs/backend/architecture/DESIGN_PRINCIPLES.md"],
+                        },
+                    }
+                }
+            }
+        }
+        files, shared = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        assert len(files) == 1
+        assert files[0]["src"] == "l4-api.md"
+        assert shared == ["docs/backend/"]
+
+    def test_level_default_is_4(self):
+        """When level is not specified, behaves as level 4."""
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "l4-api.md", "dest": "CLAUDE.md"}],
+                        "shared": ["docs/backend/"],
+                        "level_3": {
+                            "files": [{"src": "l3-api.md", "dest": "CLAUDE.md"}],
+                            "shared": ["docs/backend/architecture/DESIGN_PRINCIPLES.md"],
+                        },
+                    }
+                }
+            }
+        }
+        files, shared = resolve_variant_files(manifest, {"type": "api"})
+        assert files[0]["src"] == "l4-api.md"
+
+    def test_level_3_missing_override_falls_through(self):
+        """When level=3 but variant has no level_3 key, use top-level files."""
+        manifest = {
+            "variants": {
+                "ci": {
+                    "github": {
+                        "files": [{"src": "gh.yml", "dest": ".github/gh.yml"}],
+                        "shared": ["ci/github/"],
+                    }
+                }
+            }
+        }
+        files, shared = resolve_variant_files(manifest, {"ci": "github", "level": "3"})
+        assert len(files) == 1
+        assert files[0]["src"] == "gh.yml"
+        assert shared == ["ci/github/"]
+
+    def test_level_3_multiple_dimensions(self):
+        """Level 3 override applies across multiple dimensions."""
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "l4.md", "dest": "CLAUDE.md"}],
+                        "shared": ["docs/"],
+                        "level_3": {
+                            "files": [{"src": "l3.md", "dest": "CLAUDE.md"}],
+                            "shared": ["docs/DESIGN_PRINCIPLES.md"],
+                        },
+                    }
+                },
+                "ci": {
+                    "github": {
+                        "files": [],
+                        "shared": ["ci/github/"],
+                        "level_3": {
+                            "files": [],
+                            "shared": ["ci/github/l3-quality-gate.yml"],
+                        },
+                    }
+                },
+            }
+        }
+        files, shared = resolve_variant_files(
+            manifest, {"type": "api", "ci": "github", "level": "3"}
+        )
+        assert len(files) == 1
+        assert files[0]["src"] == "l3.md"
+        assert "docs/DESIGN_PRINCIPLES.md" in shared
+        assert "ci/github/l3-quality-gate.yml" in shared
+
+
+# ---------------------------------------------------------------------------
+# .govkit marker
+# ---------------------------------------------------------------------------
+
+
+class TestGovkitMarker:
+    def test_write_and_read_marker(self, tmp_path):
+        from cli.govkit import write_govkit_marker, read_govkit_level
+
+        write_govkit_marker(tmp_path, "claude-code", "3", {"type": "api", "level": "3"})
+        assert (tmp_path / ".govkit").exists()
+        level = read_govkit_level(tmp_path)
+        assert level == "3"
+
+    def test_read_missing_marker(self, tmp_path):
+        from cli.govkit import read_govkit_level
+
+        assert read_govkit_level(tmp_path) is None
+
+    def test_read_corrupt_marker(self, tmp_path):
+        from cli.govkit import read_govkit_level
+
+        (tmp_path / ".govkit").write_text("not json", encoding="utf-8")
+        assert read_govkit_level(tmp_path) is None
+
+    def test_marker_excludes_level_from_options(self, tmp_path):
+        import json
+        from cli.govkit import write_govkit_marker
+
+        write_govkit_marker(tmp_path, "claude-code", "3", {"type": "api", "level": "3", "ci": "github"})
+        data = json.loads((tmp_path / ".govkit").read_text(encoding="utf-8"))
+        assert "level" not in data["options"]
+        assert data["options"]["type"] == "api"
+        assert data["level"] == "3"

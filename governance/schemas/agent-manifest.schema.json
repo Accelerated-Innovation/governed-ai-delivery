@@ -83,6 +83,26 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "Shared governance paths to copy from repo root to target"
+        },
+        "level_3": {
+          "$ref": "#/$defs/level_override",
+          "description": "Override files and shared paths when maturity level is 3"
+        }
+      }
+    },
+    "level_override": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/file_entry" },
+          "description": "Level-specific agent files (replaces parent files at this level)"
+        },
+        "shared": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Level-specific shared governance paths (replaces parent shared at this level)"
         }
       }
     }

@@ -2,6 +2,11 @@
   "agent": "copilot",
   "description": "GitHub Copilot - path-scoped instructions and reusable Chat prompts",
   "options": {
+    "level": {
+      "prompt": "Maturity level? (3=Spec-Driven, 4=Governed AI Delivery)",
+      "choices": ["3", "4"],
+      "default": "4"
+    },
     "type": {
       "prompt": "Project type?",
       "choices": ["api", "cli"],
@@ -31,7 +36,22 @@
           "features/starter_backend/",
           "features/schema_contract_example/",
           "governance/backend/"
-        ]
+        ],
+        "level_3": {
+          "files": [
+            { "src": "copilot-instructions/l3-backend-api.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "prompts/backend/l3-spec-planning.prompt.md", "dest": ".github/prompts/spec-planning.prompt.md" },
+            { "src": "prompts/backend/l3-implementation-plan.prompt.md", "dest": ".github/prompts/implementation-plan.prompt.md" }
+          ],
+          "shared": [
+            "docs/backend/architecture/DESIGN_PRINCIPLES.md",
+            "docs/backend/architecture/TESTING.md",
+            "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
+            "docs/backend/architecture/GHERKIN_TAGS.md",
+            "features/starter_backend_l3/",
+            "governance/backend/templates/l3-plan.md"
+          ]
+        }
       },
       "cli": {
         "files": [
@@ -43,7 +63,22 @@
           "docs/backend/",
           "features/starter_cli/",
           "governance/backend/"
-        ]
+        ],
+        "level_3": {
+          "files": [
+            { "src": "copilot-instructions/l3-backend-cli.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "prompts/backend/l3-spec-planning.prompt.md", "dest": ".github/prompts/spec-planning.prompt.md" },
+            { "src": "prompts/backend/l3-implementation-plan.prompt.md", "dest": ".github/prompts/implementation-plan.prompt.md" }
+          ],
+          "shared": [
+            "docs/backend/architecture/DESIGN_PRINCIPLES.md",
+            "docs/backend/architecture/TESTING.md",
+            "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
+            "docs/backend/architecture/GHERKIN_TAGS.md",
+            "features/starter_cli_l3/",
+            "governance/backend/templates/l3-plan.md"
+          ]
+        }
       }
     },
     "ui": {
@@ -62,7 +97,18 @@
           "governance/ui/",
           "features/starter_ui/",
           "features/ui_task_dashboard/"
-        ]
+        ],
+        "level_3": {
+          "files": [
+            { "src": "copilot-instructions/l3-ui-react.md", "dest": ".github/copilot-instructions-ui.md" },
+            { "src": "prompts/ui/l3-spec-planning.prompt.md", "dest": ".github/prompts/ui-spec-planning.prompt.md" },
+            { "src": "prompts/ui/l3-implementation-plan.prompt.md", "dest": ".github/prompts/ui-implementation-plan.prompt.md" }
+          ],
+          "shared": [
+            "features/starter_ui_l3/",
+            "governance/ui/templates/l3-plan.md"
+          ]
+        }
       },
       "angular": {
         "files": [
@@ -75,17 +121,36 @@
           "governance/ui/",
           "features/starter_ui/",
           "features/ui_task_dashboard/"
-        ]
+        ],
+        "level_3": {
+          "files": [
+            { "src": "copilot-instructions/l3-ui-angular.md", "dest": ".github/copilot-instructions-ui.md" },
+            { "src": "prompts/ui/l3-spec-planning.prompt.md", "dest": ".github/prompts/ui-spec-planning.prompt.md" },
+            { "src": "prompts/ui/l3-implementation-plan.prompt.md", "dest": ".github/prompts/ui-implementation-plan.prompt.md" }
+          ],
+          "shared": [
+            "features/starter_ui_l3/",
+            "governance/ui/templates/l3-plan.md"
+          ]
+        }
       }
     },
     "ci": {
       "github": {
         "files": [],
-        "shared": ["ci/github/"]
+        "shared": ["ci/github/"],
+        "level_3": {
+          "files": [],
+          "shared": ["ci/github/l3-quality-gate.yml"]
+        }
       },
       "azure": {
         "files": [],
-        "shared": ["ci/azure/"]
+        "shared": ["ci/azure/"],
+        "level_3": {
+          "files": [],
+          "shared": ["ci/azure/l3-quality-gate.yml"]
+        }
       }
     }
   }

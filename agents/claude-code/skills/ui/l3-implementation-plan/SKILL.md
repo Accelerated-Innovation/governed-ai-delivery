@@ -1,0 +1,58 @@
+---
+description: "Generate an ordered UI implementation checklist from a feature plan — Level 3 Spec-Driven"
+argument-hint: "<feature_name>"
+---
+
+# Implementation Plan — UI (Level 3)
+
+You are producing an Implementation Plan for a UI feature: **$ARGUMENTS**
+
+## Inputs
+
+Read the following before proceeding:
+
+- `features/$ARGUMENTS/plan.md`
+- `features/$ARGUMENTS/acceptance.feature`
+- `features/$ARGUMENTS/nfrs.md`
+
+## Planning Requirements
+
+The plan must:
+
+- Enforce test-first development (tests before implementation in every step)
+- Follow SOLID, DRY, YAGNI, KISS principles
+- Respect existing project structure and conventions
+
+## Output Format
+
+### Feature Summary
+
+- Business goal, user value, success criteria
+
+### Task Breakdown (Ordered Checklist)
+
+List all implementation steps in order. Each step must:
+
+- Specify files/components touched
+- Reference the spec driving it
+- Mark test steps explicitly (write tests before implementation)
+
+### Test Plan
+
+- Component test strategy
+- E2E test strategy (mapped from Gherkin scenarios)
+- Accessibility testing approach
+
+### Refactor Triggers
+
+- Component contains business logic
+- Duplication detected
+- Test flakiness detected
+
+### Risks & Unknowns
+
+Missing constraints, backend dependency risks, performance concerns.
+
+---
+
+Review and approve this plan before beginning implementation. Do not generate implementation code.

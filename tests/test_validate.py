@@ -459,3 +459,176 @@ class TestRunValidation:
         (tmp_path / "features").mkdir()
         result = run_validation(tmp_path)
         assert result == 0
+
+    def test_skips_l3_starters(self, tmp_path):
+        features = tmp_path / "features"
+        make_full_feature(features / "starter_backend_l3")
+        make_full_feature(features / "starter_cli_l3")
+        make_full_feature(features / "starter_ui_l3")
+        result = run_validation(tmp_path)
+        assert result == 0  # no real features, so passes
+
+
+# ---------------------------------------------------------------------------
+# Level 3 validation
+# ---------------------------------------------------------------------------
+
+
+def make_l3_feature(feature_dir: Path, **overrides) -> None:
+    """Create a valid Level 3 feature directory (3 artifacts)."""
+    defaults = {
+        "acceptance.feature": VALID_FEATURE,
+        "nfrs.md": VALID_NFRS,
+        "plan.md": "# Plan\n\n## Increments\n\n### Increment 1\nGoal: implement feature\n",
+    }
+    defaults.update(overrides)
+    feature_dir.mkdir(parents=True, exist_ok=True)
+    for name, content in defaults.items():
+        write(feature_dir / name, content)
+
+
+class TestL3Validation:
+    def test_l3_three_artifacts_pass(self, tmp_path):
+        """L3 validation passes with only 3 artifacts."""
+        from cli.validate import L3_REQUIRED_ARTIFACTS
+
+        features = tmp_path / "features"
+        make_l3_feature(features / "my_feature", **{
+            "acceptance.feature": """\
+                Feature: My feature
+
+                  @nfr-performance
+                  Scenario: Fast response
+                    Given a request
+                    When processed
+                    Then response is fast
+
+                  @nfr-security
+                  Scenario: Auth required
+                    Given no credentials
+                    When request made
+                    Then rejected
+            """,
+        })
+        result = run_validation(tmp_path, level="3")
+        assert result == 0
+
+    def test_l3_missing_artifact_fails(self, tmp_path):
+        """L3 validation fails when one of the 3 required artifacts is missing."""
+        features = tmp_path / "features"
+        feature_dir = features / "incomplete_feature"
+        feature_dir.mkdir(parents=True)
+        write(feature_dir / "acceptance.feature", VALID_FEATURE)
+        write(feature_dir / "nfrs.md", VALID_NFRS)
+        # Missing plan.md
+        result = run_validation(tmp_path, level="3")
+        assert result == 1
+
+    def test_l3_completeness_checks_three(self, tmp_path):
+        """L3 check_completeness only expects 3 artifacts."""
+        from cli.validate import L3_REQUIRED_ARTIFACTS
+
+        make_l3_feature(tmp_path)
+        ok, msg = check_completeness(tmp_path, artifacts=L3_REQUIRED_ARTIFACTS)
+        assert ok is True
+        assert "3/3" in msg
+
+    def test_l3_skips_eval_checks(self, tmp_path):
+        """L3 validation passes without eval_criteria.yaml or evaluation_prediction."""
+        features = tmp_path / "features"
+        make_l3_feature(features / "simple_feature", **{
+            "acceptance.feature": """\
+                Feature: Simple
+
+                  @nfr-performance
+                  Scenario: Fast
+                    Given a request
+                    When processed
+                    Then fast
+
+                  @nfr-security
+                  Scenario: Secure
+                    Given auth
+                    When request
+                    Then ok
+            """,
+        })
+        result = run_validation(tmp_path, level="3")
+        assert result == 0
+
+    def test_l3_still_checks_gherkin(self, tmp_path):
+        """L3 validation still checks Gherkin syntax."""
+        features = tmp_path / "features"
+        make_l3_feature(features / "bad_gherkin", **{
+            "acceptance.feature": "No gherkin here\n",
+        })
+        result = run_validation(tmp_path, level="3")
+        assert result == 1
+
+    def test_l3_still_checks_nfr_tbd(self, tmp_path):
+        """L3 validation still checks for TBD in nfrs.md."""
+        features = tmp_path / "features"
+        make_l3_feature(features / "tbd_feature", **{
+            "nfrs.md": "## Performance\n- TBD\n",
+        })
+        result = run_validation(tmp_path, level="3")
+        assert result == 1
+
+    def test_level_from_govkit_marker(self, tmp_path):
+        """Validation auto-detects level from .govkit marker."""
+        import json
+
+        features = tmp_path / "features"
+        make_l3_feature(features / "my_feature", **{
+            "acceptance.feature": """\
+                Feature: My feature
+
+                  @nfr-performance
+                  Scenario: Fast
+                    Given a request
+                    When processed
+                    Then fast
+
+                  @nfr-security
+                  Scenario: Secure
+                    Given auth
+                    When request
+                    Then ok
+            """,
+        })
+        # Write .govkit marker for level 3
+        marker = tmp_path / ".govkit"
+        marker.write_text(json.dumps({"level": "3"}), encoding="utf-8")
+        # Don't pass level explicitly — should auto-detect from marker
+        result = run_validation(tmp_path)
+        assert result == 0
+
+    def test_explicit_level_overrides_marker(self, tmp_path):
+        """Explicit level parameter takes precedence over .govkit marker."""
+        import json
+
+        features = tmp_path / "features"
+        # Create L3 feature (no eval_criteria, no architecture_preflight)
+        make_l3_feature(features / "my_feature", **{
+            "acceptance.feature": """\
+                Feature: My feature
+
+                  @nfr-performance
+                  Scenario: Fast
+                    Given a request
+                    When processed
+                    Then fast
+
+                  @nfr-security
+                  Scenario: Secure
+                    Given auth
+                    When request
+                    Then ok
+            """,
+        })
+        # Marker says level 3
+        marker = tmp_path / ".govkit"
+        marker.write_text(json.dumps({"level": "3"}), encoding="utf-8")
+        # But we explicitly validate as level 4 — should fail (missing artifacts)
+        result = run_validation(tmp_path, level="4")
+        assert result == 1

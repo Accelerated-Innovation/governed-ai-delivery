@@ -1,0 +1,121 @@
+# l3-quality-gate.yml
+#
+# PURPOSE: Level 3 (Spec-Driven Development) quality gate.
+# Enforces spec compliance and basic quality on every PR.
+# Copy this file to .github/workflows/quality-gate.yml.
+#
+# JOBS:
+#   governance-artifacts   — checks that required L3 governance artifacts exist (3 per feature)
+#   commit-format          — validates commit message format
+#   sonarqube              — SonarQube quality gate (optional, requires SONAR_TOKEN)
+#   security-scan          — Snyk vulnerability scan (optional, requires SNYK_TOKEN)
+#
+# NOTE: This is the Level 3 gate. It does NOT include:
+#   - eval_criteria.yaml schema validation (Level 4)
+#   - Architecture boundary enforcement via import-linter (Level 4)
+#   - Evaluation prediction checks (Level 4)
+#   - Contract compatibility checks (Level 4)
+#
+# REQUIRED SECRETS (optional — remove jobs you don't use):
+#   SONAR_TOKEN, SONAR_HOST_URL — only if using the sonarqube job
+#   SNYK_TOKEN                  — only if using the security-scan job
+
+name: Quality Gate (L3)
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  governance-artifacts:
+    name: Governance artifact checks (L3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check L3 required artifacts exist for each feature
+        run: |
+          errors=0
+          for feature_dir in features/*/; do
+            [ -d "$feature_dir" ] || continue
+            feature=$(basename "$feature_dir")
+            # Skip starter templates
+            case "$feature" in starter_*) continue;; esac
+
+            for artifact in acceptance.feature nfrs.md plan.md; do
+              if [ ! -f "$feature_dir/$artifact" ]; then
+                echo "FAIL: $feature missing $artifact"
+                errors=$((errors + 1))
+              fi
+            done
+          done
+          if [ "$errors" -gt 0 ]; then
+            echo "$errors missing artifact(s)"
+            exit 1
+          fi
+          echo "All features have required L3 artifacts."
+
+  commit-format:
+    name: Commit message format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: |
+          COMMITS=$(git log --format="%s" origin/main..HEAD 2>/dev/null || true)
+          if [ -z "$COMMITS" ]; then
+            echo "No new commits to check."
+            exit 0
+          fi
+          errors=0
+          while IFS= read -r msg; do
+            if ! echo "$msg" | grep -qE "^(feat|fix|docs|test|refactor|chore)(\(.*\))?: .+"; then
+              echo "FAIL: '$msg'"
+              errors=$((errors + 1))
+            fi
+          done <<< "$COMMITS"
+          if [ "$errors" -gt 0 ]; then
+            echo ""
+            echo "$errors commit(s) do not match format: type(scope): description"
+            echo "Allowed types: feat, fix, docs, test, refactor, chore"
+            exit 1
+          fi
+          echo "All commit messages match expected format."
+
+  sonarqube:
+    name: SonarQube quality gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarQube scan
+        uses: SonarSource/sonarqube-scan-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: SonarQube quality gate check
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  security-scan:
+    name: Security vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Snyk
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high

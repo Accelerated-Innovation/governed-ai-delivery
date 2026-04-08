@@ -8,13 +8,34 @@ Install it into any project with one command. The agent gets the rules. You stay
 
 A spec-driven, evaluation-governed scaffolding kit for AI-assisted software delivery. Supports multiple AI coding agents and project types with clean separation of concerns.
 
+## Maturity Levels
+
+govkit supports two maturity levels, allowing teams to adopt incrementally:
+
+| Level | Name | What You Get |
+|-------|------|-------------|
+| **Level 3** | Spec-Driven Development | Spec-first, test-first workflow. 3 artifacts per feature (acceptance.feature, nfrs.md, plan.md). Generic agent rules. Basic CI gates. No architecture changes imposed. |
+| **Level 4** | Governed AI Delivery | Full governance. 5 artifacts per feature (adds eval_criteria.yaml, architecture_preflight.md). Architecture contracts, FIRST/Virtues scoring, evaluation prediction thresholds, boundary enforcement, path-scoped rules. |
+
+**Start at Level 3** if your team wants spec-driven development without changing their existing project structure. **Move to Level 4** when ready for full architectural governance and evaluation scoring.
+
+### Level 3 — Spec-Driven Development
+
 Every feature is:
 
 * Defined with **Gherkin acceptance criteria** tagged to NFR categories
 * Constrained with **fully populated NFRs** (no TBD entries permitted)
+* Planned with **increments that list tests before implementation** (test-first)
+* Enforced by **basic CI gates** (artifact checks, commit format, lint, tests)
+
+### Level 4 — Governed AI Delivery
+
+Everything in Level 3, plus:
+
 * Governed by **evaluation criteria** validated against a JSON Schema
 * Planned through **Architecture Preflight + Implementation Plan prompts**
 * Enforced by **CI gates, quality rules, and evaluation thresholds**
+* Bounded by **hexagonal architecture contracts** with import-linter enforcement
 
 The AI agent operates inside a governed system. Architecture, evaluation, and feature artifacts are the source of truth — not the agent.
 
@@ -33,6 +54,7 @@ Both agents support the same variant options:
 
 | Option | Choices | Default |
 |---|---|---|
+| `--level` | `3`, `4` | `4` |
 | `--type` | `api`, `cli` | `api` |
 | `--ui` | `none`, `react`, `angular` | `none` |
 | `--ci` | `github`, `azure` | `github` |
@@ -91,8 +113,11 @@ govkit apply --agent claude-code --target .
 Or specify all options explicitly:
 
 ```bash
-# Python API backend + React UI + GitHub Actions
-govkit apply --agent claude-code --type api --ui react --ci github --target .
+# Level 3: Spec-driven development (no architecture changes imposed)
+govkit apply --agent claude-code --level 3 --type api --ui none --ci github --target .
+
+# Level 4: Full governed AI delivery (default)
+govkit apply --agent claude-code --level 4 --type api --ui react --ci github --target .
 
 # Python CLI tool + Azure DevOps (no UI)
 govkit apply --agent copilot --type cli --ui none --ci azure --target .
@@ -100,6 +125,8 @@ govkit apply --agent copilot --type cli --ui none --ci azure --target .
 # API backend only + GitHub Actions
 govkit apply --agent copilot --type api --ui none --ci github --target .
 ```
+
+A `.govkit` marker file is written to your project root, tracking the applied level and options. This enables `govkit init` and `govkit validate` to auto-detect your level.
 
 This installs agent-specific config files, architecture docs, feature starters, governance schemas, and CI templates into your project.
 
@@ -180,7 +207,11 @@ These files are the source of truth for your AI agent. The agent reads them befo
 govkit validate --target .
 ```
 
-Checks all features for: required artifacts, Gherkin structure, NFR completeness, evaluation prediction thresholds, and tag coverage.
+Validation is level-aware. Level 3 checks: 3 required artifacts, Gherkin structure, NFR completeness, and tag coverage. Level 4 adds: eval_criteria.yaml schema, evaluation prediction thresholds. The level is auto-detected from `.govkit` or can be overridden:
+
+```bash
+govkit validate --level 3 --target .
+```
 
 ---
 
@@ -190,20 +221,21 @@ Once govkit is installed, here is how you interact with the agent to deliver a f
 
 ## Step 1: Create a Feature Folder
 
-Copy the appropriate starter to a new folder under `features/`:
+Use `govkit init` to create a feature from the appropriate starter:
 
 ```bash
-# Backend API feature
-cp -r features/starter_backend/ features/my_feature/
-
-# CLI tool feature
-cp -r features/starter_cli/ features/my_feature/
-
-# UI feature (React or Angular)
-cp -r features/starter_ui/ features/my_feature/
+govkit init my_feature --target .
 ```
 
-Each starter's `eval_criteria.yaml` includes mode selection instructions at the top. Set the `mode` field to match your feature type: `llm` (LLM generation/retrieval), `deterministic` (pure logic), or `none` (configuration artifacts). If the mode is `deterministic` or `none`, delete the `llm_evaluation` section.
+Or specify the starter type explicitly:
+
+```bash
+govkit init my_feature --starter backend --target .
+```
+
+The command auto-detects your maturity level from `.govkit` and selects the appropriate starter template. Level 3 starters have 3 artifacts; Level 4 starters have 5. You can override with `--level 3` or `--level 4`.
+
+For Level 4 projects, each starter's `eval_criteria.yaml` includes mode selection instructions at the top. Set the `mode` field to match your feature type: `llm` (LLM generation/retrieval), `deterministic` (pure logic), or `none` (configuration artifacts). If the mode is `deterministic` or `none`, delete the `llm_evaluation` section.
 
 ## Step 2: Write Your Acceptance Criteria
 

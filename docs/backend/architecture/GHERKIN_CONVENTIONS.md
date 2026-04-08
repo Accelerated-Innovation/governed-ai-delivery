@@ -30,10 +30,14 @@ Every NFR category populated in `nfrs.md` must have at least one corresponding t
 | Scalability | `@nfr-scalability` |
 | Observability | `@nfr-observability` |
 | Compliance | `@nfr-compliance` |
+| Reliability | `@nfr-reliability` |
+| Compatibility | `@nfr-compatibility` |
 
 A populated NFR category is one where all fields have been filled (no TBD entries).
 
 If a category in `nfrs.md` is not applicable, it must be explicitly marked `N/A` — not left blank or TBD.
+
+For the full tag reference including scenario type tags and governance tags, see `GHERKIN_TAGS.md`.
 
 ---
 
