@@ -129,6 +129,33 @@ Avoid using LangChain for complex orchestration.
 
 ---
 
+# 4a. LLM Gateway (Level 5)
+
+Approved LLM gateway:
+```
+LiteLLM
+```
+
+**LiteLLM is the sole LLM gateway.** All LLM completion and chat requests must route through LiteLLM. No direct provider SDK calls are permitted for inference.
+
+LiteLLM provides:
+
+- Model routing and provider abstraction
+- Fallback chains and retry logic
+- Cost tracking and budget enforcement
+- Rate limiting and load balancing
+
+Rules:
+
+- LiteLLM client lives in `adapters/llm/` — an outbound adapter
+- Domain services call `LLMPort`, never LiteLLM directly
+- Provider SDKs (`openai`, `anthropic`) must not be imported outside `adapters/llm/`
+- When using LangGraph/LangChain, LLM calls must route through LiteLLM
+
+Full contract: `docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
+
+---
+
 # 5. LLM Providers
 
 Providers must be accessed through **adapter layers**.
@@ -245,7 +272,7 @@ AI behavior evaluation is required when features use LLMs.
 Evaluation standards and tooling:
 ```
 docs/backend/evaluation/eval_criteria.md   ← what must be evaluated (non-negotiable)
-docs/evaluation/EVAL_STACK.md      ← approved tools and pipeline by environment
+docs/backend/evaluation/EVAL_STACK.md      ← approved tools and pipeline by environment
 ```
 
 Feature-level configuration:
@@ -259,6 +286,32 @@ Evaluation includes:
 - safety validation
 - structural correctness
 - CI evaluation gates
+
+---
+
+# 10a. LLM Evaluation (Level 5)
+
+Approved LLM evaluation tools:
+```
+DeepEval      — feature-level quality evaluation (dev + CI)
+Promptfoo     — adversarial and regression testing (CI)
+RAGAS         — retrieval-specific evaluation (CI, RAG features only)
+```
+
+| Tool | Sole Responsibility |
+|------|-------------------|
+| DeepEval | Quality metrics: faithfulness, answer relevancy, hallucination, contextual relevancy |
+| Promptfoo | Safety metrics: jailbreak resistance, prompt injection, adversarial robustness |
+| RAGAS | Retrieval metrics: context recall, context precision, answer correctness |
+
+Rules:
+
+- DeepEval is required for all features with `mode: llm`
+- Promptfoo is required for user-facing features or features processing untrusted input
+- RAGAS is required only for RAG (retrieval-augmented generation) features
+- These tools complement FIRST/Virtues — they do not replace them
+
+Full contract: `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
 
 ---
 
@@ -312,6 +365,49 @@ An outbound port (`ObservabilityPort`) must abstract logging and tracing from th
 - Adapter implements the port using `structlog` + OpenTelemetry
 - This keeps the domain layer infrastructure-agnostic (per architecture contract)
 
+### LLM Observability (Level 5)
+
+Approved LLM-specific observability:
+```
+OpenLLMetry    — LLM telemetry emission (auto-instruments LiteLLM)
+Langfuse       — trace storage, prompt versioning, production dashboards
+```
+
+| Tool | Role |
+|------|------|
+| OpenLLMetry | Emits OpenTelemetry spans with LLM-specific attributes (model, tokens, cost, latency) |
+| Langfuse | Receives and stores traces, provides prompt management, evaluation dashboards |
+
+Rules:
+
+- OpenLLMetry and Langfuse SDK imports restricted to `adapters/observability/`
+- OpenLLMetry auto-instruments LiteLLM at startup — no manual span creation for LLM calls
+- Langfuse replaces LangSmith and Arize from the previous stack
+
+Full contract: `docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md`
+
+---
+
+# 11a. Runtime Guardrails (Level 5)
+
+Approved guardrail tools:
+```
+NeMo Guardrails    — conversational safety (dialog flow, topic boundaries, jailbreak prevention)
+Guardrails AI      — structured output validation (schema enforcement on LLM responses)
+```
+
+| Tool | Sole Responsibility |
+|------|-------------------|
+| NeMo Guardrails | Behavioral safety — what the LLM is allowed to discuss and how |
+| Guardrails AI | Structural correctness — whether LLM output matches the expected schema |
+
+Rules:
+
+- Both tools live in `adapters/guardrails/`
+- Neither may be imported in domain or service layers
+- Guardrail mode (`nemo`, `guardrails-ai`, `both`, `none`) is declared in architecture preflight
+
+Full contract: `docs/backend/architecture/GUARDRAILS_CONTRACT.md`
 
 ---
 

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Guardrails Configuration Schema",
+  "description": "Schema for validating guardrails configuration in L5 features.",
+  "type": "object",
+  "required": ["mode"],
+  "additionalProperties": false,
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": ["nemo", "guardrails-ai", "both", "none"],
+      "description": "Guardrail mode. Must match architecture_preflight.md section 12."
+    },
+    "nemo_config_path": {
+      "type": "string",
+      "description": "Path to NeMo Guardrails config directory (required when mode is 'nemo' or 'both')."
+    },
+    "guardrails_ai_validators": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of Guardrails AI validators in use (required when mode is 'guardrails-ai' or 'both')."
+    },
+    "bypass_allowed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether guardrails can be bypassed for internal/non-user-facing calls. Requires ADR if true."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "mode": { "enum": ["nemo", "both"] } }
+      },
+      "then": {
+        "required": ["nemo_config_path"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "mode": { "enum": ["guardrails-ai", "both"] } }
+      },
+      "then": {
+        "required": ["guardrails_ai_validators"]
+      }
+    }
+  ]
+}

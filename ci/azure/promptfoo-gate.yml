@@ -1,0 +1,62 @@
+# Azure DevOps pipeline — Level 5 Promptfoo adversarial evaluation.
+#
+# JOBS:
+#   Promptfoo — detects features with promptfoo_* eval_class, runs adversarial suite
+#
+# REQUIRED VARIABLES:
+#   OPENAI_API_KEY or ANTHROPIC_API_KEY
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Promptfoo
+    displayName: Promptfoo adversarial evaluation
+    jobs:
+      - job: Promptfoo
+        displayName: Run Promptfoo adversarial suites
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20'
+
+          - script: |
+              FEATURES=$(grep -rl "promptfoo_" features/ --include="eval_criteria.yaml" \
+                | xargs -I{} dirname {} | sort -u | tr '\n' ',' || true)
+              echo "##vso[task.setvariable variable=FEATURES]$FEATURES"
+              if [ -z "$FEATURES" ]; then
+                echo "No features with Promptfoo criteria found."
+              fi
+            displayName: Detect features with Promptfoo criteria
+
+          - script: npm install -g promptfoo
+            displayName: Install Promptfoo
+            condition: ne(variables['FEATURES'], '')
+
+          - script: |
+              errors=0
+              for feature_dir in $(echo "$(FEATURES)" | tr ',' '\n'); do
+                [ -z "$feature_dir" ] && continue
+                feature=$(basename "$feature_dir")
+                config="tests/eval/$feature/promptfoo.yaml"
+                if [ -f "$config" ]; then
+                  echo "Running Promptfoo for $feature..."
+                  promptfoo eval -c "$config" --no-cache || errors=$((errors + 1))
+                fi
+              done
+              if [ "$errors" -gt 0 ]; then
+                exit 1
+              fi
+            displayName: Run Promptfoo adversarial suites
+            condition: ne(variables['FEATURES'], '')
+            env:
+              OPENAI_API_KEY: $(OPENAI_API_KEY)

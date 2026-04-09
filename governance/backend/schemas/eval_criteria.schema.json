@@ -136,9 +136,25 @@
             "structure_validator",
             "tone_classifier",
             "factual_accuracy",
-            "custom"
+            "custom",
+            "deepeval_faithfulness",
+            "deepeval_answer_relevancy",
+            "deepeval_hallucination",
+            "deepeval_contextual_relevancy",
+            "deepeval_geval",
+            "promptfoo_adversarial",
+            "promptfoo_regression",
+            "ragas_context_recall",
+            "ragas_faithfulness",
+            "ragas_answer_relevancy",
+            "ragas_context_precision"
           ],
-          "description": "Evaluation class. Use 'custom' for project-specific eval types not covered by the standard classes."
+          "description": "Evaluation class. Standard classes cover deterministic checks. L5 classes (deepeval_*, promptfoo_*, ragas_*) map to specific tool metrics. Use 'custom' for project-specific eval types."
+        },
+        "tool": {
+          "type": "string",
+          "enum": ["deepeval", "promptfoo", "ragas", "custom"],
+          "description": "Optional. Evaluation tool that executes this criterion. Inferred from eval_class prefix if omitted."
         },
         "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
         "fail_on": {

@@ -3,8 +3,8 @@
   "description": "GitHub Copilot - path-scoped instructions and reusable Chat prompts",
   "options": {
     "level": {
-      "prompt": "Maturity level? (3=Spec-Driven, 4=Governed AI Delivery)",
-      "choices": ["3", "4"],
+      "prompt": "Maturity level? (3=Spec-Driven, 4=Governed AI Delivery, 5=GenAI Operations)",
+      "choices": ["3", "4", "5"],
       "default": "4"
     },
     "type": {
@@ -51,6 +51,26 @@
             "features/starter_backend_l3/",
             "governance/backend/templates/l3-plan.md"
           ]
+        },
+        "level_5": {
+          "files": [
+            { "src": "copilot-instructions/l5-backend-api.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "instructions/backend/", "dest": ".github/instructions/" },
+            { "src": "instructions/backend/llm-gateway.instructions.md", "dest": ".github/instructions/llm-gateway.instructions.md" },
+            { "src": "instructions/backend/guardrails.instructions.md", "dest": ".github/instructions/guardrails.instructions.md" },
+            { "src": "instructions/backend/llm-evaluation.instructions.md", "dest": ".github/instructions/llm-evaluation.instructions.md" },
+            { "src": "instructions/backend/llm-observability.instructions.md", "dest": ".github/instructions/llm-observability.instructions.md" },
+            { "src": "prompts/backend/", "dest": ".github/prompts/" },
+            { "src": "prompts/backend/genai-preflight.prompt.md", "dest": ".github/prompts/genai-preflight.prompt.md" },
+            { "src": "prompts/backend/eval-suite-planning.prompt.md", "dest": ".github/prompts/eval-suite-planning.prompt.md" }
+          ],
+          "shared": [
+            "docs/backend/",
+            "features/starter_backend_l5/",
+            "features/schema_contract_example/",
+            "governance/backend/",
+            "governance/schemas/evaluation_prediction.schema.json"
+          ]
         }
       },
       "cli": {
@@ -77,6 +97,25 @@
             "docs/backend/architecture/GHERKIN_TAGS.md",
             "features/starter_cli_l3/",
             "governance/backend/templates/l3-plan.md"
+          ]
+        },
+        "level_5": {
+          "files": [
+            { "src": "copilot-instructions/l5-backend-cli.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "instructions/cli/", "dest": ".github/instructions/" },
+            { "src": "instructions/backend/llm-gateway.instructions.md", "dest": ".github/instructions/llm-gateway.instructions.md" },
+            { "src": "instructions/backend/guardrails.instructions.md", "dest": ".github/instructions/guardrails.instructions.md" },
+            { "src": "instructions/backend/llm-evaluation.instructions.md", "dest": ".github/instructions/llm-evaluation.instructions.md" },
+            { "src": "instructions/backend/llm-observability.instructions.md", "dest": ".github/instructions/llm-observability.instructions.md" },
+            { "src": "prompts/backend/", "dest": ".github/prompts/" },
+            { "src": "prompts/backend/genai-preflight.prompt.md", "dest": ".github/prompts/genai-preflight.prompt.md" },
+            { "src": "prompts/backend/eval-suite-planning.prompt.md", "dest": ".github/prompts/eval-suite-planning.prompt.md" }
+          ],
+          "shared": [
+            "docs/backend/",
+            "features/starter_cli_l5/",
+            "governance/backend/",
+            "governance/schemas/evaluation_prediction.schema.json"
           ]
         }
       }
@@ -142,6 +181,15 @@
         "level_3": {
           "files": [],
           "shared": ["ci/github/l3-quality-gate.yml"]
+        },
+        "level_5": {
+          "files": [],
+          "shared": [
+            "ci/github/",
+            "ci/github/deepeval-gate.yml",
+            "ci/github/promptfoo-gate.yml",
+            "ci/github/guardrails-check.yml"
+          ]
         }
       },
       "azure": {
@@ -150,6 +198,15 @@
         "level_3": {
           "files": [],
           "shared": ["ci/azure/l3-quality-gate.yml"]
+        },
+        "level_5": {
+          "files": [],
+          "shared": [
+            "ci/azure/",
+            "ci/azure/deepeval-gate.yml",
+            "ci/azure/promptfoo-gate.yml",
+            "ci/azure/guardrails-check.yml"
+          ]
         }
       }
     }

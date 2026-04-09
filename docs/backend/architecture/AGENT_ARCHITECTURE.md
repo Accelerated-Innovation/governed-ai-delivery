@@ -130,6 +130,7 @@ Examples:
 - external APIs
 - document retrieval
 - code execution
+- LLM calls (via LiteLLM — see `LLM_GATEWAY_CONTRACT.md`)
 
 Tools must live under:
 ```
@@ -139,6 +140,7 @@ Rules:
 - Agents must call tools through adapters
 - Domain logic must not call tools directly
 - Tool failures must be handled gracefully
+- **LLM calls must route through LiteLLM** (Level 5) — no direct provider SDK usage in agent nodes
 
 ---
 
@@ -198,6 +200,14 @@ Tracing should capture:
 - node timing
 - tool latency
 
+### LLM-Specific Observability (Level 5)
+
+OpenLLMetry auto-instruments LiteLLM calls to capture LLM-specific telemetry:
+- model name, provider, token counts, cost, latency
+- Traces exported to Langfuse for storage and visualization
+
+See `docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md` for full details.
+
 ---
 
 # 10. Evaluation Integration
@@ -219,6 +229,16 @@ Evaluation may include:
 - response structure validation
 
 Evaluation must run in CI.
+
+### LLM Evaluation Tools (Level 5)
+
+| Tool | Responsibility |
+|------|---------------|
+| DeepEval | Quality metrics (faithfulness, relevancy, hallucination) — dev + CI |
+| Promptfoo | Adversarial testing (jailbreak, injection, regression) — CI |
+| RAGAS | Retrieval quality (context recall, precision) — CI, RAG only |
+
+See `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md` for full details.
 
 ---
 
@@ -297,3 +317,20 @@ An agent feature is complete when:
 - architecture boundaries are respected
 - tests pass
 - CI evaluation gates succeed
+
+---
+
+# 16. Guardrails Integration (Level 5)
+
+Agent features that interact with users must implement runtime guardrails.
+
+| Tool | When to Use |
+|------|------------|
+| NeMo Guardrails | Conversational features — topic boundaries, jailbreak prevention, dialog flow control |
+| Guardrails AI | Features requiring structured LLM output — JSON schema enforcement, field validation |
+
+Both tools are adapters behind `GuardrailPort`. NeMo wraps the LLM call chain (pre/post filtering). Guardrails AI validates output structure after the LLM responds.
+
+Guardrail mode (`nemo`, `guardrails-ai`, `both`, `none`) must be declared in the architecture preflight.
+
+See `docs/backend/architecture/GUARDRAILS_CONTRACT.md` for full details.

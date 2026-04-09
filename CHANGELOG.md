@@ -6,6 +6,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.4.0] — 2026-04-09
+
+### Added
+- **Level 5: GenAI Operations** — governed tooling for LLM-powered features
+- **Architecture contracts** — LLM_GATEWAY_CONTRACT.md (LiteLLM), OBSERVABILITY_LLM_CONTRACT.md (OpenLLMetry + Langfuse), GUARDRAILS_CONTRACT.md (NeMo + Guardrails AI), EVALUATION_LLM_CONTRACT.md (DeepEval + Promptfoo + RAGAS)
+- **Practical guides** — 8 usage guides in `docs/backend/guides/` (one per tool)
+- **Guardrails config schema** — `governance/backend/schemas/guardrails_config.schema.json`
+- **L5 feature starters** — `starter_backend_l5/`, `starter_cli_l5/` with LLM NFRs, deepeval criteria, L5 preflight sections
+- **L5 plan and preflight templates** — extended with LLM gateway, guardrails, and evaluation sections
+- **L5 agent rules** — `llm-gateway.md`, `guardrails.md`, `llm-evaluation.md`, `llm-observability.md` (Claude Code + Copilot)
+- **L5 agent skills** — `/genai-preflight` (validates L5 architecture decisions), `/eval-suite-planning` (plans DeepEval/Promptfoo/RAGAS suites)
+- **L5 CI templates** — `deepeval-gate.yml`, `promptfoo-gate.yml`, `guardrails-check.yml` (GitHub Actions + Azure DevOps)
+- **L5 CLAUDE.md variants** — `l5-backend-api.md`, `l5-backend-cli.md`
+- **L5 Copilot instruction variants** — `l5-backend-api.md`, `l5-backend-cli.md`
+- **L5 validation checks** — `check_llm_nfrs()`, `check_l5_eval_criteria()`, `check_l5_preflight_sections()` (9 total checks at L5)
+
+### Changed
+- **eval_criteria.schema.json** — added 11 new eval_class values (deepeval_*, promptfoo_*, ragas_*) and optional `tool` field
+- **evaluation_prediction.schema.json** — added optional `llm_evaluation` object for L5 predictions
+- **agent-manifest.schema.json** — added `level_5` to variant_config properties
+- **TECH_STACK.md** — added sections for LLM Gateway, LLM Evaluation, LLM Observability, Runtime Guardrails
+- **AGENT_ARCHITECTURE.md** — updated tool integration, observability, evaluation, added guardrails section
+- **EVAL_STACK.md** — replaced LangSmith/Arize with Langfuse, added DeepEval/Promptfoo/RAGAS
+- **check_gherkin_nfr_coverage()** — now skips non-standard NFR categories (e.g., LLM-specific)
+- **CLI** — `--level` accepts "5", `cmd_init` selects L5 starters, marker version bumped to 0.4.0
+
+---
+
 ## [0.3.0] — 2026-04-08
 
 ### Added

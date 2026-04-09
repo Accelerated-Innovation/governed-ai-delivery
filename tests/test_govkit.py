@@ -423,3 +423,98 @@ class TestGovkitMarker:
         assert "level" not in data["options"]
         assert data["options"]["type"] == "api"
         assert data["level"] == "3"
+
+    def test_write_level_5_marker(self, tmp_path):
+        import json
+        from cli.govkit import write_govkit_marker, read_govkit_level
+
+        write_govkit_marker(tmp_path, "claude-code", "5", {"type": "api", "level": "5"})
+        data = json.loads((tmp_path / ".govkit").read_text(encoding="utf-8"))
+        assert data["level"] == "5"
+        assert data["version"] == "0.4.0"
+        assert read_govkit_level(tmp_path) == "5"
+
+
+# ---------------------------------------------------------------------------
+# Level 5 variant resolution
+# ---------------------------------------------------------------------------
+
+
+class TestLevel5VariantResolution:
+    def test_level_5_override(self):
+        """When level=5, level_5 sub-key files/shared replace the top-level ones."""
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "l4-api.md", "dest": "CLAUDE.md"}],
+                        "shared": ["docs/backend/"],
+                        "level_5": {
+                            "files": [
+                                {"src": "l5-api.md", "dest": "CLAUDE.md"},
+                                {"src": "llm-gateway.md", "dest": ".claude/rules/llm-gateway.md"},
+                            ],
+                            "shared": ["docs/backend/", "features/starter_backend_l5/"],
+                        },
+                    }
+                }
+            }
+        }
+        files, shared = resolve_variant_files(manifest, {"type": "api", "level": "5"})
+        assert len(files) == 2
+        assert files[0]["src"] == "l5-api.md"
+        assert files[1]["src"] == "llm-gateway.md"
+        assert "features/starter_backend_l5/" in shared
+
+    def test_level_5_does_not_affect_level_4(self):
+        """Level 4 still uses top-level files even when level_5 exists."""
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "l4-api.md", "dest": "CLAUDE.md"}],
+                        "shared": ["docs/backend/"],
+                        "level_5": {
+                            "files": [{"src": "l5-api.md", "dest": "CLAUDE.md"}],
+                            "shared": ["docs/backend/", "features/starter_backend_l5/"],
+                        },
+                    }
+                }
+            }
+        }
+        files, shared = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        assert files[0]["src"] == "l4-api.md"
+        assert "features/starter_backend_l5/" not in shared
+
+    def test_level_5_multiple_dimensions(self):
+        """Level 5 override applies across type + ci dimensions."""
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "l4.md", "dest": "CLAUDE.md"}],
+                        "shared": ["docs/"],
+                        "level_5": {
+                            "files": [{"src": "l5.md", "dest": "CLAUDE.md"}],
+                            "shared": ["docs/", "features/starter_backend_l5/"],
+                        },
+                    }
+                },
+                "ci": {
+                    "github": {
+                        "files": [],
+                        "shared": ["ci/github/"],
+                        "level_5": {
+                            "files": [],
+                            "shared": ["ci/github/", "ci/github/deepeval-gate.yml"],
+                        },
+                    }
+                },
+            }
+        }
+        files, shared = resolve_variant_files(
+            manifest, {"type": "api", "ci": "github", "level": "5"}
+        )
+        assert files[0]["src"] == "l5.md"
+        assert "ci/github/deepeval-gate.yml" in shared
+        assert "features/starter_backend_l5/" in shared

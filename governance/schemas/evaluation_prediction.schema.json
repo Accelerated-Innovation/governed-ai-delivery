@@ -48,6 +48,32 @@
           },
           "additionalProperties": false
         },
+        "llm_evaluation": {
+          "description": "L5 LLM-specific evaluation predictions (optional — only for Level 5 features)",
+          "type": "object",
+          "properties": {
+            "deepeval_metrics": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["metric", "predicted_score", "threshold"],
+                "properties": {
+                  "metric": { "type": "string", "minLength": 1 },
+                  "predicted_score": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "threshold": { "type": "number", "minimum": 0, "maximum": 1 }
+                },
+                "additionalProperties": false
+              }
+            },
+            "promptfoo_required": { "type": "boolean" },
+            "guardrail_mode": {
+              "type": "string",
+              "enum": ["nemo", "guardrails-ai", "both", "none"]
+            },
+            "ragas_required": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
         "thresholds_met": {
           "type": "boolean"
         }

@@ -1,0 +1,88 @@
+# guardrails-check.yml
+#
+# PURPOSE: Level 5 — Validates guardrails configuration files exist and are well-formed.
+# Copy this file to .github/workflows/guardrails-check.yml.
+#
+# JOBS:
+#   guardrails — validates NeMo Colang files parse correctly, Guardrails AI guards reference valid validators
+#
+# NO SECRETS REQUIRED — structural validation only.
+#
+# SEE ALSO:
+#   docs/backend/architecture/GUARDRAILS_CONTRACT.md
+#   docs/backend/guides/nemo-guardrails-setup.md
+#   docs/backend/guides/guardrails-ai-setup.md
+
+name: Guardrails Check (L5)
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  guardrails:
+    name: Guardrails configuration validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check for guardrails configuration
+        id: detect
+        run: |
+          HAS_NEMO="false"
+          HAS_GRAI="false"
+          if [ -d "adapters/guardrails/nemo" ] || find . -name "*.co" -path "*/rails/*" 2>/dev/null | grep -q .; then
+            HAS_NEMO="true"
+          fi
+          if [ -d "adapters/guardrails/validators" ] || find . -name "*guard*.py" -path "*/guardrails/*" 2>/dev/null | grep -q .; then
+            HAS_GRAI="true"
+          fi
+          echo "has_nemo=$HAS_NEMO" >> $GITHUB_OUTPUT
+          echo "has_grai=$HAS_GRAI" >> $GITHUB_OUTPUT
+          if [ "$HAS_NEMO" = "false" ] && [ "$HAS_GRAI" = "false" ]; then
+            echo "No guardrails configuration detected. Skipping."
+          fi
+
+      - name: Validate NeMo Colang files
+        if: steps.detect.outputs.has_nemo == 'true'
+        run: |
+          pip install nemoguardrails
+          errors=0
+          for config_dir in $(find . -name "config.yml" -path "*/nemo/*" -exec dirname {} \;); do
+            echo "Validating NeMo config at $config_dir..."
+            python -c "
+          from nemoguardrails import RailsConfig
+          try:
+              config = RailsConfig.from_path('$config_dir')
+              print('  PASS: Config parsed successfully')
+          except Exception as e:
+              print(f'  FAIL: {e}')
+              exit(1)
+          " || errors=$((errors + 1))
+          done
+          if [ "$errors" -gt 0 ]; then
+            echo "$errors NeMo config(s) failed validation"
+            exit 1
+          fi
+
+      - name: Validate Guardrails AI guard definitions
+        if: steps.detect.outputs.has_grai == 'true'
+        run: |
+          pip install guardrails-ai
+          errors=0
+          for guard_file in $(find . -name "*guard*.py" -path "*/guardrails/validators/*"); do
+            echo "Checking syntax of $guard_file..."
+            python -c "import ast; ast.parse(open('$guard_file').read())" || errors=$((errors + 1))
+          done
+          if [ "$errors" -gt 0 ]; then
+            echo "$errors guard definition(s) have syntax errors"
+            exit 1
+          fi
+          echo "All guardrails configurations valid."

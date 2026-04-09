@@ -94,7 +94,7 @@ def write_govkit_marker(target: Path, agent: str, level: str, options: dict) -> 
     """Write the .govkit marker file to track the applied configuration."""
     marker = target / ".govkit"
     data = {
-        "version": "0.3.0",
+        "version": "0.4.0",
         "level": level,
         "agent": agent,
         "options": {k: v for k, v in options.items() if k != "level"},
@@ -132,6 +132,32 @@ def resolve_options(manifest: dict, args: argparse.Namespace) -> dict:
     return resolved
 
 
+def _select_variant(variants: dict, dimension: str, value: str, level_key: str | None) -> dict:
+    """Select the variant config for a dimension/value, applying level override if present."""
+    variant_group = variants.get(dimension, {})
+    selected = variant_group.get(value, {})
+    if level_key and level_key in selected:
+        return selected[level_key]
+    return selected
+
+
+def _collect_entries(
+    selected: dict,
+    all_files: list, seen_files: set,
+    all_shared: list, seen_shared: set,
+) -> None:
+    """Append deduplicated files and shared paths from a selected variant config."""
+    for f in selected.get("files", []):
+        key = (f["src"], f["dest"])
+        if key not in seen_files:
+            all_files.append(f)
+            seen_files.add(key)
+    for s in selected.get("shared", []):
+        if s not in seen_shared:
+            all_shared.append(s)
+            seen_shared.add(s)
+
+
 def resolve_variant_files(manifest: dict, options: dict) -> tuple[list, list]:
     """Collect files and shared entries from all selected variant dimensions, deduplicated."""
     all_files = list(manifest.get("base_files", []))
@@ -144,20 +170,8 @@ def resolve_variant_files(manifest: dict, options: dict) -> tuple[list, list]:
     for dimension, value in options.items():
         if dimension == "level":
             continue
-        variant_group = variants.get(dimension, {})
-        selected = variant_group.get(value, {})
-        # Use level override if present and level is not 4
-        if level_key and level_key in selected:
-            selected = selected[level_key]
-        for f in selected.get("files", []):
-            key = (f["src"], f["dest"])
-            if key not in seen_files:
-                all_files.append(f)
-                seen_files.add(key)
-        for s in selected.get("shared", []):
-            if s not in seen_shared:
-                all_shared.append(s)
-                seen_shared.add(s)
+        selected = _select_variant(variants, dimension, value, level_key)
+        _collect_entries(selected, all_files, seen_files, all_shared, seen_shared)
     return all_files, all_shared
 
 
@@ -239,6 +253,28 @@ def cmd_list(_args: argparse.Namespace) -> None:
     print()
 
 
+def _prompt_starter_type() -> str:
+    """Interactively prompt for the starter template type."""
+    choices = ["backend", "cli", "ui"]
+    prompt_text = f"  Feature type? [{' / '.join(choices)}] (default: backend): "
+    answer = input(prompt_text).strip().lower()
+    if answer == "":
+        answer = "backend"
+    if answer not in choices:
+        print(f"Error: invalid choice '{answer}'. Must be one of: {', '.join(choices)}")
+        sys.exit(1)
+    return answer
+
+
+def _resolve_starter_dir(features_dir: Path, starter_type: str, level: str) -> Path:
+    """Select the level-appropriate starter directory, falling back to the base starter."""
+    if level in ("3", "5"):
+        level_dir = features_dir / f"starter_{starter_type}_l{level}"
+        if level_dir.exists():
+            return level_dir
+    return features_dir / f"starter_{starter_type}"
+
+
 def cmd_init(args: argparse.Namespace) -> None:
     """Create a new feature folder from the appropriate starter template."""
     target = Path(args.target).resolve()
@@ -253,29 +289,9 @@ def cmd_init(args: argparse.Namespace) -> None:
         print(f"Error: feature '{feature_name}' already exists at {feature_dir}")
         sys.exit(1)
 
-    # Determine level
     level = args.level or read_govkit_level(target) or "4"
-
-    # Determine starter type
-    starter_type = args.starter
-    if starter_type is None:
-        choices = ["backend", "cli", "ui"]
-        prompt_text = f"  Feature type? [{' / '.join(choices)}] (default: backend): "
-        answer = input(prompt_text).strip().lower()
-        if answer == "":
-            answer = "backend"
-        if answer not in choices:
-            print(f"Error: invalid choice '{answer}'. Must be one of: {', '.join(choices)}")
-            sys.exit(1)
-        starter_type = answer
-
-    # Select level-appropriate starter
-    if level == "3":
-        starter_dir = features_dir / f"starter_{starter_type}_l3"
-        if not starter_dir.exists():
-            starter_dir = features_dir / f"starter_{starter_type}"
-    else:
-        starter_dir = features_dir / f"starter_{starter_type}"
+    starter_type = args.starter or _prompt_starter_type()
+    starter_dir = _resolve_starter_dir(features_dir, starter_type, level)
 
     if not starter_dir.exists():
         print(f"Error: starter template not found at {starter_dir}")
@@ -287,7 +303,10 @@ def cmd_init(args: argparse.Namespace) -> None:
     print("\nNext steps:")
     print(f"  1. Edit {feature_dir / 'acceptance.feature'} — write your Gherkin scenarios")
     print(f"  2. Edit {feature_dir / 'nfrs.md'} — replace all TBD entries")
-    if level == "4":
+    if level == "5":
+        print(f"  3. Run /architecture-preflight {feature_name}")
+        print(f"  4. Run /genai-preflight {feature_name}")
+    elif level == "4":
         print(f"  3. Run /architecture-preflight {feature_name}")
     else:
         print(f"  3. Run /spec-planning {feature_name}")
@@ -311,7 +330,7 @@ def main() -> None:
     apply_parser = subparsers.add_parser("apply", help="Apply an agent spec kit to a target project")
     apply_parser.add_argument("--agent", required=True, help="Agent name (e.g. claude-code, copilot)")
     apply_parser.add_argument("--target", required=True, help="Path to the target project root")
-    apply_parser.add_argument("--level", choices=["3", "4"], default=None,
+    apply_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                               help="Maturity level (default: prompted)")
     apply_parser.add_argument("--type", choices=["api", "cli"], default=None,
                               help="Project type (default: prompted)")
@@ -329,13 +348,13 @@ def main() -> None:
     init_parser.add_argument("--target", default=".", help="Path to the target project root (default: current directory)")
     init_parser.add_argument("--starter", choices=["backend", "cli", "ui"], default=None,
                              help="Starter template type (default: prompted)")
-    init_parser.add_argument("--level", choices=["3", "4"], default=None,
+    init_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                              help="Maturity level (default: read from .govkit or 4)")
 
     # --- validate ---
     validate_parser = subparsers.add_parser("validate", help="Check governance compliance in a project")
     validate_parser.add_argument("--target", required=True, help="Path to the target project root")
-    validate_parser.add_argument("--level", choices=["3", "4"], default=None,
+    validate_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                                  help="Maturity level (default: read from .govkit or 4)")
 
     args = parser.parse_args()

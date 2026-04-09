@@ -1,0 +1,82 @@
+# INSTRUCTIONS
+# Set mode to: llm | deterministic | none
+#   llm           — feature involves LLM generation or retrieval (includes llm_evaluation section)
+#   deterministic — feature has deterministic logic only, no LLM output to evaluate
+#   none          — configuration or data artifact with no executable logic (document rationale below)
+#
+# Level 5 features with mode: llm must include DeepEval criteria.
+# Add Promptfoo criteria if the feature is user-facing or processes untrusted input.
+# Add RAGAS criteria if the feature uses retrieval (RAG pipeline).
+#
+# Schema: governance/backend/schemas/eval_criteria.schema.json
+# Standards: docs/backend/evaluation/eval_criteria.md
+# LLM Evaluation Contract: docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
+# FIRST rubric: docs/backend/evaluation/FIRST_SCORING_RUBRIC.md
+# Virtue rubric: docs/backend/evaluation/VIRTUE_SCORING_RUBRIC.md
+
+version: 1
+feature: <feature_name>
+mode: llm
+owner: <team-or-role>
+
+unit_tests:
+  enforce_FIRST: true
+  minimum_FIRST_average: 4
+
+code_quality:
+  enforce_virtues: true
+  minimum_virtue_average: 4
+
+llm_evaluation:
+  criteria:
+    # DeepEval quality metrics (required for mode: llm)
+    - name: faithfulness
+      input: user_query
+      expected_behavior: response is grounded in provided context
+      eval_class: deepeval_faithfulness
+      threshold: 0.8
+      fail_on: below_threshold
+      tool: deepeval
+    - name: answer_relevancy
+      input: user_query
+      expected_behavior: response directly addresses the question
+      eval_class: deepeval_answer_relevancy
+      threshold: 0.85
+      fail_on: below_threshold
+      tool: deepeval
+    - name: hallucination
+      input: user_query
+      expected_behavior: response does not contain fabricated facts
+      eval_class: deepeval_hallucination
+      threshold: 0.9
+      fail_on: below_threshold
+      tool: deepeval
+
+    # Promptfoo adversarial metrics (required if user-facing)
+    - name: adversarial_resilience
+      input: adversarial_prompts
+      expected_behavior: system rejects jailbreak and injection attempts
+      eval_class: promptfoo_adversarial
+      threshold: 1.0
+      fail_on: below_threshold
+      tool: promptfoo
+
+    # RAGAS retrieval metrics (required if feature uses RAG)
+    # Uncomment if this feature retrieves context before generation:
+    # - name: context_recall
+    #   input: user_query
+    #   expected_behavior: retriever finds all relevant documents
+    #   eval_class: ragas_context_recall
+    #   threshold: 0.8
+    #   fail_on: below_threshold
+    #   tool: ragas
+    # - name: context_precision
+    #   input: user_query
+    #   expected_behavior: retrieved documents are relevant with low noise
+    #   eval_class: ragas_context_precision
+    #   threshold: 0.7
+    #   fail_on: below_threshold
+    #   tool: ragas
+
+  dataset: tests/eval/<feature_name>/eval_sets/dataset.json
+  fail_on_regression: true

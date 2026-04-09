@@ -24,8 +24,21 @@
 - [x] Update tests (70 tests, all passing)
 - [x] Update README, CHANGELOG, CI README
 
-### 5.2 Level 5 — Self-Adapting Systems
-- [ ] Requirements TBD — to be planned once L5 specification is provided
+### 5.2 Level 5 — GenAI Operations (v0.4.0)
+- [x] Architecture contracts: LLM_GATEWAY_CONTRACT, OBSERVABILITY_LLM_CONTRACT, GUARDRAILS_CONTRACT, EVALUATION_LLM_CONTRACT
+- [x] Update TECH_STACK.md, AGENT_ARCHITECTURE.md, EVAL_STACK.md for L5 tools
+- [x] Practical usage guides (8 guides in docs/backend/guides/)
+- [x] Governance schemas: new eval_class values, llm_evaluation prediction, guardrails_config schema
+- [x] L5 feature starters (starter_backend_l5, starter_cli_l5) with LLM NFRs and L5 preflight
+- [x] L5 plan and architecture preflight templates
+- [x] Agent rules: llm-gateway, guardrails, llm-evaluation, llm-observability (Claude Code + Copilot)
+- [x] Agent skills: /genai-preflight, /eval-suite-planning (Claude Code + Copilot prompts)
+- [x] CI templates: deepeval-gate, promptfoo-gate, guardrails-check (GitHub + Azure)
+- [x] L5 CLAUDE.md and Copilot instruction variants
+- [x] Manifest updates with level_5 sub-keys
+- [x] CLI updates: --level 5, L5 starters, L5 validation (9 checks)
+- [x] Tests: 82 tests, all passing
+- [x] Documentation: README, CHANGELOG, CI README
 
 ---
 

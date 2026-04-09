@@ -12,7 +12,15 @@ This directory contains CI pipeline templates for both GitHub Actions and Azure 
 | `ui-quality-gate.yml` | — | Type check, ESLint, component tests, bundle size |
 | `ui-eval-gate.yml` | — | FIRST/Virtue prediction, Playwright E2E, axe scans |
 
-Level 3 projects receive only `l3-quality-gate.yml`. Level 4 projects receive the full set.
+Level 3 projects receive only `l3-quality-gate.yml`. Level 4 projects receive the full set. Level 5 projects receive L4 gates plus 3 additional GenAI gates.
+
+### Level 5 CI Gates
+
+| Pipeline | Purpose | Secrets Required |
+|----------|---------|-----------------|
+| `deepeval-gate.yml` | Runs DeepEval LLM quality tests for features with `deepeval_*` eval_class | `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` |
+| `promptfoo-gate.yml` | Runs Promptfoo adversarial/regression suites for features with `promptfoo_*` eval_class | `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` |
+| `guardrails-check.yml` | Validates NeMo Colang and Guardrails AI configurations (structural only) | None |
 
 ---
 
@@ -42,7 +50,7 @@ A critical distinction in this governance framework: some checks enforce **actua
 | Check | Pipeline | What to configure |
 |---|---|---|
 | Contract backward compatibility | quality-gate | Wire up a schema diff tool (e.g., `json-schema-diff-validator`) |
-| LLM eval suite | eval-gate | Wire up your eval runner (e.g., LangSmith, custom script) |
+| LLM eval suite | eval-gate | Wire up your eval runner (e.g., DeepEval, Langfuse, custom script) |
 | LLM regression check | eval-gate | Compare eval results against stored baselines |
 | Bundle size budget | ui-quality-gate | Set a size threshold and change `continue-on-error` to `false` |
 

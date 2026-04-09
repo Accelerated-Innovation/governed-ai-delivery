@@ -632,3 +632,261 @@ class TestL3Validation:
         # But we explicitly validate as level 4 — should fail (missing artifacts)
         result = run_validation(tmp_path, level="4")
         assert result == 1
+
+
+# ---------------------------------------------------------------------------
+# Level 5 validation
+# ---------------------------------------------------------------------------
+
+
+VALID_L5_NFRS = """\
+    ## Performance
+    - Response time < 200ms
+
+    ## Security
+    - Auth required
+
+    ## LLM Latency
+    - p50 < 500ms, p95 < 2s
+
+    ## LLM Cost
+    - per-request < $0.05
+
+    ## LLM Fallback
+    - fallback to secondary model within 3s
+
+    ## LLM Safety
+    - guardrail mode = nemo, zero jailbreak passes
+"""
+
+VALID_L5_EVAL_CRITERIA = """\
+    version: 1
+    mode: llm
+    owner: team-ai
+
+    unit_tests:
+      enforce_FIRST: true
+      minimum_FIRST_average: 4
+
+    code_quality:
+      enforce_virtues: true
+      minimum_virtue_average: 4
+
+    llm_evaluation:
+      criteria:
+        - name: faithfulness
+          eval_class: deepeval_faithfulness
+          threshold: 0.8
+          fail_on: below_threshold
+          tool: deepeval
+        - name: adversarial
+          eval_class: promptfoo_adversarial
+          threshold: 1.0
+          fail_on: below_threshold
+          tool: promptfoo
+      dataset: tests/eval/my_feature/eval_sets/dataset.json
+      fail_on_regression: true
+"""
+
+VALID_L5_PREFLIGHT = """\
+    # Architecture Preflight: my_feature
+
+    ## 1. Artifact Review
+    All present.
+
+    ## 2. Standards Referenced
+    ARCH_CONTRACT, BOUNDARIES
+
+    ## 3. Boundary Analysis
+    No violations.
+
+    ## 4. API Impact
+    No API impact.
+
+    ## 5. Security Impact
+    No security impact.
+
+    ## 6. Evaluation Impact
+    Mode: llm
+
+    ## 7. ADR Determination
+    ADR required: no
+
+    ## 8. Shared Contract Analysis
+    No shared contract produced.
+
+    ## 9. Preflight Conclusion
+    Approved.
+
+    ## 10. LLM Gateway Configuration
+    LiteLLM configured: yes
+
+    ## 11. Observability Configuration
+    OpenLLMetry: yes, Langfuse: yes
+
+    ## 12. Guardrails Configuration
+    Mode: nemo
+
+    ## 13. Evaluation Strategy
+    DeepEval: yes, Promptfoo: yes
+
+    ## 14. LLM NFR Validation
+    All populated.
+"""
+
+
+def make_l5_feature(feature_dir: Path, **overrides) -> None:
+    """Create a valid Level 5 feature directory."""
+    defaults = {
+        "acceptance.feature": """\
+            Feature: L5 feature
+
+              @nfr-performance
+              Scenario: Fast
+                Given a request
+                When processed
+                Then fast
+
+              @nfr-security
+              Scenario: Secure
+                Given auth
+                When request
+                Then ok
+        """,
+        "nfrs.md": VALID_L5_NFRS,
+        "eval_criteria.yaml": VALID_L5_EVAL_CRITERIA,
+        "plan.md": VALID_PLAN,
+        "architecture_preflight.md": VALID_L5_PREFLIGHT,
+    }
+    defaults.update(overrides)
+    feature_dir.mkdir(parents=True, exist_ok=True)
+    for name, content in defaults.items():
+        write(feature_dir / name, content)
+
+
+class TestL5Validation:
+    def test_l5_passes_with_all_checks(self, tmp_path):
+        """Full valid L5 feature passes all 9 checks."""
+        features = tmp_path / "features"
+        make_l5_feature(features / "genai_feature")
+        result = run_validation(tmp_path, level="5")
+        assert result == 0
+
+    def test_l5_missing_llm_nfrs_fails(self, tmp_path):
+        """L5 fails when LLM NFR categories are TBD."""
+        features = tmp_path / "features"
+        make_l5_feature(features / "bad_nfrs", **{
+            "nfrs.md": """\
+                ## Performance
+                - Response < 200ms
+
+                ## Security
+                - Auth required
+
+                ## LLM Latency
+                - TBD
+
+                ## LLM Cost
+                - TBD
+
+                ## LLM Fallback
+                - TBD
+
+                ## LLM Safety
+                - TBD
+            """,
+        })
+        result = run_validation(tmp_path, level="5")
+        assert result == 1
+
+    def test_l5_missing_deepeval_criteria_fails(self, tmp_path):
+        """L5 fails when eval_criteria.yaml has no deepeval/promptfoo eval_class."""
+        features = tmp_path / "features"
+        make_l5_feature(features / "no_deepeval", **{
+            "eval_criteria.yaml": """\
+                version: 1
+                mode: llm
+                unit_tests:
+                  enforce_FIRST: true
+                  minimum_FIRST_average: 4
+                code_quality:
+                  enforce_virtues: true
+                  minimum_virtue_average: 4
+                llm_evaluation:
+                  criteria:
+                    - name: groundedness
+                      eval_class: retrieval_match
+                      threshold: 0.9
+                      fail_on: below_threshold
+                  dataset: eval_sets/test.json
+                  fail_on_regression: true
+            """,
+        })
+        result = run_validation(tmp_path, level="5")
+        assert result == 1
+
+    def test_l5_missing_preflight_sections_fails(self, tmp_path):
+        """L5 fails when architecture_preflight.md is missing L5 sections."""
+        features = tmp_path / "features"
+        make_l5_feature(features / "no_l5_sections", **{
+            "architecture_preflight.md": """\
+                # Architecture Preflight
+                ## 1. Artifact Review
+                All present.
+                ## 9. Preflight Conclusion
+                Approved.
+            """,
+        })
+        result = run_validation(tmp_path, level="5")
+        assert result == 1
+
+    def test_l5_backward_compatible_with_l4(self, tmp_path):
+        """L4 features still validate at L4 even when L5 exists."""
+        features = tmp_path / "features"
+        make_full_feature(features / "l4_feature", **{
+            "acceptance.feature": """\
+                Feature: L4 feature
+
+                  @nfr-performance
+                  Scenario: Fast
+                    Given a request
+                    When processed
+                    Then fast
+
+                  @nfr-security
+                  Scenario: Secure
+                    Given auth
+                    When request
+                    Then ok
+            """,
+        })
+        result = run_validation(tmp_path, level="4")
+        assert result == 0
+
+    def test_l5_skips_llm_checks_for_deterministic(self, tmp_path):
+        """L5 LLM checks are skipped when mode is deterministic."""
+        features = tmp_path / "features"
+        make_l5_feature(features / "deterministic_feature", **{
+            "eval_criteria.yaml": VALID_EVAL_CRITERIA,  # mode: deterministic
+        })
+        result = run_validation(tmp_path, level="5")
+        assert result == 0
+
+    def test_l5_skips_l5_starters(self, tmp_path):
+        """L5 starters are skipped during validation."""
+        features = tmp_path / "features"
+        make_l5_feature(features / "starter_backend_l5")
+        make_l5_feature(features / "starter_cli_l5")
+        result = run_validation(tmp_path, level="5")
+        assert result == 0
+
+    def test_level_5_from_govkit_marker(self, tmp_path):
+        """Validation auto-detects level 5 from .govkit marker."""
+        import json
+
+        features = tmp_path / "features"
+        make_l5_feature(features / "genai_feature")
+        marker = tmp_path / ".govkit"
+        marker.write_text(json.dumps({"level": "5"}), encoding="utf-8")
+        result = run_validation(tmp_path)
+        assert result == 0

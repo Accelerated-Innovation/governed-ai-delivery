@@ -87,6 +87,10 @@
         "level_3": {
           "$ref": "#/$defs/level_override",
           "description": "Override files and shared paths when maturity level is 3"
+        },
+        "level_5": {
+          "$ref": "#/$defs/level_override",
+          "description": "Override files and shared paths when maturity level is 5"
         }
       }
     },

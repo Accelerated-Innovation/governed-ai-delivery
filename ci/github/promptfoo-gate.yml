@@ -1,0 +1,73 @@
+# promptfoo-gate.yml
+#
+# PURPOSE: Level 5 — Runs Promptfoo adversarial and regression test suites.
+# Copy this file to .github/workflows/promptfoo-gate.yml.
+#
+# JOBS:
+#   promptfoo — detects features with promptfoo_* eval_class, runs adversarial suite
+#
+# REQUIRED SECRETS:
+#   OPENAI_API_KEY or ANTHROPIC_API_KEY — required for LLM provider access
+#
+# SEE ALSO:
+#   docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
+#   docs/backend/guides/promptfoo-usage.md
+
+name: Promptfoo Gate (L5)
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  promptfoo:
+    name: Promptfoo adversarial evaluation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Detect features with Promptfoo criteria
+        id: detect
+        run: |
+          FEATURES=$(grep -rl "promptfoo_" features/ --include="eval_criteria.yaml" \
+            | xargs -I{} dirname {} | sort -u | tr '\n' ',' || true)
+          echo "features=$FEATURES" >> $GITHUB_OUTPUT
+          if [ -z "$FEATURES" ]; then
+            echo "No features with Promptfoo criteria found. Skipping."
+          else
+            echo "Features with Promptfoo criteria: $FEATURES"
+          fi
+
+      - name: Install Promptfoo
+        if: steps.detect.outputs.features != ''
+        run: npm install -g promptfoo
+
+      - name: Run Promptfoo adversarial suites
+        if: steps.detect.outputs.features != ''
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          errors=0
+          for feature_dir in $(echo "${{ steps.detect.outputs.features }}" | tr ',' '\n'); do
+            [ -z "$feature_dir" ] && continue
+            feature=$(basename "$feature_dir")
+            config="tests/eval/$feature/promptfoo.yaml"
+            if [ -f "$config" ]; then
+              echo "Running Promptfoo for $feature..."
+              promptfoo eval -c "$config" --no-cache || errors=$((errors + 1))
+            else
+              echo "WARN: No promptfoo.yaml at $config for feature $feature"
+            fi
+          done
+          if [ "$errors" -gt 0 ]; then
+            echo "$errors feature(s) failed Promptfoo evaluation"
+            exit 1
+          fi
+          echo "All Promptfoo evaluations passed."

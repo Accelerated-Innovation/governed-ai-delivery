@@ -10,14 +10,15 @@ A spec-driven, evaluation-governed scaffolding kit for AI-assisted software deli
 
 ## Maturity Levels
 
-govkit supports two maturity levels, allowing teams to adopt incrementally:
+govkit supports three maturity levels, allowing teams to adopt incrementally:
 
 | Level | Name | What You Get |
 |-------|------|-------------|
 | **Level 3** | Spec-Driven Development | Spec-first, test-first workflow. 3 artifacts per feature (acceptance.feature, nfrs.md, plan.md). Generic agent rules. Basic CI gates. No architecture changes imposed. |
 | **Level 4** | Governed AI Delivery | Full governance. 5 artifacts per feature (adds eval_criteria.yaml, architecture_preflight.md). Architecture contracts, FIRST/Virtues scoring, evaluation prediction thresholds, boundary enforcement, path-scoped rules. |
+| **Level 5** | GenAI Operations | Everything in L4 plus governed GenAI tooling: LiteLLM (model routing), OpenLLMetry + Langfuse (observability), DeepEval + Promptfoo + RAGAS (evaluation), NeMo Guardrails + Guardrails AI (runtime safety). LLM-specific NFRs, CI evaluation gates, and adversarial testing. |
 
-**Start at Level 3** if your team wants spec-driven development without changing their existing project structure. **Move to Level 4** when ready for full architectural governance and evaluation scoring.
+**Start at Level 3** if your team wants spec-driven development without changing their existing project structure. **Move to Level 4** when ready for full architectural governance and evaluation scoring. **Move to Level 5** when building LLM-powered features that need governed model routing, evaluation, and safety.
 
 ### Level 3 — Spec-Driven Development
 
@@ -37,6 +38,16 @@ Everything in Level 3, plus:
 * Enforced by **CI gates, quality rules, and evaluation thresholds**
 * Bounded by **hexagonal architecture contracts** with import-linter enforcement
 
+### Level 5 — GenAI Operations
+
+Everything in Level 4, plus:
+
+* Routed through **LiteLLM** as the sole LLM gateway (model routing, fallback, cost tracking)
+* Observed via **OpenLLMetry + Langfuse** (LLM-specific telemetry, trace storage, prompt versioning)
+* Evaluated with **DeepEval** (quality metrics), **Promptfoo** (adversarial testing), and **RAGAS** (retrieval evaluation)
+* Guarded by **NeMo Guardrails** (conversational safety) and **Guardrails AI** (structured output validation)
+* Extended with **LLM-specific NFRs** (latency, cost, fallback, safety) and **3 additional CI gates**
+
 The AI agent operates inside a governed system. Architecture, evaluation, and feature artifacts are the source of truth — not the agent.
 
 ---
@@ -54,7 +65,7 @@ Both agents support the same variant options:
 
 | Option | Choices | Default |
 |---|---|---|
-| `--level` | `3`, `4` | `4` |
+| `--level` | `3`, `4`, `5` | `4` |
 | `--type` | `api`, `cli` | `api` |
 | `--ui` | `none`, `react`, `angular` | `none` |
 | `--ci` | `github`, `azure` | `github` |
@@ -118,6 +129,9 @@ govkit apply --agent claude-code --level 3 --type api --ui none --ci github --ta
 
 # Level 4: Full governed AI delivery (default)
 govkit apply --agent claude-code --level 4 --type api --ui react --ci github --target .
+
+# Level 5: GenAI operations (LLM routing, evaluation, guardrails)
+govkit apply --agent claude-code --level 5 --type api --ui none --ci github --target .
 
 # Python CLI tool + Azure DevOps (no UI)
 govkit apply --agent copilot --type cli --ui none --ci azure --target .
@@ -509,19 +523,38 @@ A: Your predicted FIRST or Virtue average is below 4.0, or a predicted accessibi
 
 # Architecture — Backend
 
+**Core (Level 4)**
 * [ARCH_CONTRACT.md](docs/backend/architecture/ARCH_CONTRACT.md) — Hexagonal Architecture contract
 * [BOUNDARIES.md](docs/backend/architecture/BOUNDARIES.md) — Layer dependency rules
 * [API_CONVENTIONS.md](docs/backend/architecture/API_CONVENTIONS.md) — FastAPI conventions
 * [CLI_CONVENTIONS.md](docs/backend/architecture/CLI_CONVENTIONS.md) — Click/Typer conventions
 * [DESIGN_PRINCIPLES.md](docs/backend/architecture/DESIGN_PRINCIPLES.md) — SOLID, DRY, YAGNI, KISS
 * [GHERKIN_CONVENTIONS.md](docs/backend/architecture/GHERKIN_CONVENTIONS.md) — NFR tags, coverage rules
+* [GHERKIN_TAGS.md](docs/backend/architecture/GHERKIN_TAGS.md) — Standard tag reference
 * [SECURITY_AUTH_PATTERNS.md](docs/backend/architecture/SECURITY_AUTH_PATTERNS.md)
 * [TECH_STACK.md](docs/backend/architecture/TECH_STACK.md)
 * [TESTING.md](docs/backend/architecture/TESTING.md)
+* [AGENT_ARCHITECTURE.md](docs/backend/architecture/AGENT_ARCHITECTURE.md) — AI agent design patterns (LangGraph, tools, evaluation)
 * [ERROR_MAPPING.md](docs/backend/architecture/ERROR_MAPPING.md) — Domain exception to HTTP status mapping
 * [OBSERVABILITY_PORT_CONTRACT.md](docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md) — Observability port interface
 * [CROSS_CUTTING_CONCERNS.md](docs/backend/architecture/CROSS_CUTTING_CONCERNS.md) — DTOs, validation, pagination, timestamps
 * [ADR/TEMPLATE.md](docs/backend/architecture/ADR/TEMPLATE.md)
+
+**GenAI Contracts (Level 5)**
+* [LLM_GATEWAY_CONTRACT.md](docs/backend/architecture/LLM_GATEWAY_CONTRACT.md) — LiteLLM as sole LLM gateway, provider abstraction, fallback, cost tracking
+* [OBSERVABILITY_LLM_CONTRACT.md](docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md) — OpenLLMetry (telemetry emission) + Langfuse (trace storage, prompt versioning)
+* [GUARDRAILS_CONTRACT.md](docs/backend/architecture/GUARDRAILS_CONTRACT.md) — NeMo Guardrails (conversational safety) + Guardrails AI (structured output validation)
+* [EVALUATION_LLM_CONTRACT.md](docs/backend/architecture/EVALUATION_LLM_CONTRACT.md) — DeepEval (quality), Promptfoo (adversarial), RAGAS (retrieval)
+
+**Practical Guides (Level 5)**
+* [litellm-setup.md](docs/backend/guides/litellm-setup.md) — LiteLLM proxy config, model aliases, fallback chains
+* [openllmetry-setup.md](docs/backend/guides/openllmetry-setup.md) — Auto-instrumentation, export to Langfuse
+* [langfuse-integration.md](docs/backend/guides/langfuse-integration.md) — Trace viewing, prompt management, dashboards
+* [deepeval-usage.md](docs/backend/guides/deepeval-usage.md) — Writing DeepEval test cases, metrics, CI integration
+* [promptfoo-usage.md](docs/backend/guides/promptfoo-usage.md) — Adversarial configs, red-team suites
+* [nemo-guardrails-setup.md](docs/backend/guides/nemo-guardrails-setup.md) — Colang dialog definitions, rail configs
+* [guardrails-ai-setup.md](docs/backend/guides/guardrails-ai-setup.md) — Guard definitions, validator config
+* [ragas-evaluation.md](docs/backend/guides/ragas-evaluation.md) — RAG-specific metrics, dataset preparation
 
 # Architecture — UI (Shared)
 
@@ -544,21 +577,30 @@ A: Your predicted FIRST or Virtue average is below 4.0, or a predicted accessibi
 
 # Evaluation
 
-**Backend**
+**Standards (All Levels)**
 * [eval_criteria.md](docs/backend/evaluation/eval_criteria.md) — FIRST, 7 Code Virtues, LLM eval, scoring model
 * [FIRST_SCORING_RUBRIC.md](docs/backend/evaluation/FIRST_SCORING_RUBRIC.md) — 1-5 scoring definitions per FIRST principle
 * [VIRTUE_SCORING_RUBRIC.md](docs/backend/evaluation/VIRTUE_SCORING_RUBRIC.md) — 1-5 scoring definitions per virtue
-* [eval_criteria.schema.json](governance/backend/schemas/eval_criteria.schema.json)
-* [EVAL_STACK.md](docs/backend/evaluation/EVAL_STACK.md) — LangSmith, Arize, home-grown framework
+* [EVAL_STACK.md](docs/backend/evaluation/EVAL_STACK.md) — Evaluation tooling by environment (Langfuse, DeepEval, Promptfoo, RAGAS, home-grown)
 
-**UI**
+**Schemas**
+* [eval_criteria.schema.json](governance/backend/schemas/eval_criteria.schema.json) — Validates feature eval_criteria.yaml (includes L5 eval_class values: deepeval_*, promptfoo_*, ragas_*)
+* [evaluation_prediction.schema.json](governance/schemas/evaluation_prediction.schema.json) — Schema for plan.md prediction blocks (includes optional L5 llm_evaluation section)
+* [guardrails_config.schema.json](governance/backend/schemas/guardrails_config.schema.json) — Validates guardrails configuration (L5)
+
+**UI Evaluation**
 * [eval_criteria.md](docs/ui/evaluation/eval_criteria.md) — FIRST, accessibility, E2E coverage
 * [FIRST_SCORING_RUBRIC.md](docs/ui/evaluation/FIRST_SCORING_RUBRIC.md) — UI-adapted FIRST scoring
 * [VIRTUE_SCORING_RUBRIC.md](docs/ui/evaluation/VIRTUE_SCORING_RUBRIC.md) — UI-adapted virtue scoring
 * [eval_criteria.schema.json](governance/ui/schemas/eval_criteria.schema.json)
 
-**Shared**
-* [evaluation_prediction.schema.json](governance/schemas/evaluation_prediction.schema.json) — Schema for plan.md prediction blocks
+**Evaluation by Level**
+
+| Level | What's Evaluated | Tools |
+|-------|-----------------|-------|
+| L3 | Spec completeness, Gherkin structure, NFR coverage | govkit validate |
+| L4 | L3 + FIRST scores, 7 Virtue scores, eval_criteria schema | govkit validate + CI quality/eval gates |
+| L5 | L4 + LLM quality (DeepEval), adversarial safety (Promptfoo), retrieval quality (RAGAS), guardrails config | govkit validate + deepeval-gate + promptfoo-gate + guardrails-check |
 
 ---
 
@@ -589,6 +631,16 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 | **Evaluation Prediction** | Predicted FIRST and Virtue scores in `plan.md` — must average >= 4.0 before implementation |
 | `govkit validate` | CLI command that checks all features for governance compliance (artifact completeness, thresholds) |
 | `/architecture-preflight` | Agent skill/prompt that validates a feature against architecture contracts before planning |
+| `/genai-preflight` | L5 agent skill that validates LLM gateway, observability, guardrails, and evaluation decisions |
+| `/eval-suite-planning` | L5 agent skill that plans DeepEval, Promptfoo, and RAGAS test suites |
+| **LiteLLM** | L5 sole LLM gateway — model routing, provider abstraction, fallback, cost tracking |
+| **OpenLLMetry** | L5 LLM telemetry emission standard (OpenTelemetry for LLMs) |
+| **Langfuse** | Trace storage, prompt versioning, and production evaluation visibility |
+| **DeepEval** | L5 LLM quality evaluation — faithfulness, relevancy, hallucination metrics |
+| **Promptfoo** | L5 adversarial and regression testing — jailbreak, injection, safety |
+| **RAGAS** | L5 retrieval-specific evaluation — context recall, precision (RAG pipelines only) |
+| **NeMo Guardrails** | L5 conversational safety — dialog flow control, topic boundaries, jailbreak prevention |
+| **Guardrails AI** | L5 structured output validation — JSON schema enforcement on LLM responses |
 
 ---
 

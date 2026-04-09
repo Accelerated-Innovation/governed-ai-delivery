@@ -1,6 +1,6 @@
 # Evaluation Stack
 
-This document defines the approved tooling for LLM evaluation and how each tool fits into the evaluation pipeline.
+This document defines the approved tooling for evaluation and how each tool fits into the evaluation pipeline.
 
 The *what* is defined in `eval_criteria.md`. This document defines the *how*.
 
@@ -8,21 +8,21 @@ The *what* is defined in `eval_criteria.md`. This document defines the *how*.
 
 # 1. Evaluation Architecture
 
-Evaluation is modelled as a hexagonal concern. The home-grown evaluation framework defines the **evaluation port** — the contract that all features must satisfy. LangSmith and Arize are **outbound adapters** that implement observation and reporting against that contract.
+Evaluation is modelled as a hexagonal concern. The home-grown evaluation framework defines the **evaluation port** — the contract that all features must satisfy. Other tools are **outbound adapters** that implement observation, evaluation, and reporting against that contract.
 
 ```
-┌─────────────────────────────────────┐
-│         Evaluation Contract         │  ← eval_criteria.md (non-negotiable)
-│   FIRST · 7 Virtues · LLM criteria  │
-└──────────────┬──────────────────────┘
+┌──────────────────────────────────────────────┐
+│            Evaluation Contract               │  ← eval_criteria.md (non-negotiable)
+│   FIRST · 7 Virtues · LLM criteria          │
+└──────────────┬───────────────────────────────┘
                │
-       ┌───────┼───────────┐
-       ▼       ▼           ▼
-  Home-grown  LangSmith   Arize
-  (CI gates)  (dev/test)  (production)
+       ┌───────┼──────────┬──────────┬──────────┐
+       ▼       ▼          ▼          ▼          ▼
+  Home-grown  DeepEval  Promptfoo  RAGAS    Langfuse
+  (CI gates)  (quality) (safety)  (retrieval) (visibility)
 ```
 
-No single tool owns all three roles. Projects activate the adapters appropriate to their stage.
+No single tool owns all roles. Projects activate the adapters appropriate to their stage and feature type.
 
 ---
 
@@ -30,72 +30,119 @@ No single tool owns all three roles. Projects activate the adapters appropriate 
 
 ## Home-Grown Evaluation Framework
 
-**Role:** CI gate enforcement
+**Role:** CI gate enforcement for FIRST and 7 Virtues
 
-**When:** Every build
+**When:** Every build, all levels
 
-Used to enforce the project's custom evaluation contract at CI time:
+Used to enforce the project's code and test quality contract at CI time:
 
 - FIRST score enforcement
 - 7 Code Virtue score enforcement
 - Feature-level `eval_criteria.yaml` thresholds
 - Fail-fast on regression
 
-This adapter is **required** on all projects. It is the only evaluation tool that blocks merges.
+This adapter is **required** on all projects. It is the only evaluation tool that blocks merges for code quality.
 
 ---
 
-## LangSmith
+## DeepEval
 
-**Role:** Development-time tracing and offline evaluation
+**Role:** Feature-level LLM quality evaluation
 
-**When:** Development and testing
+**When:** Development and CI for features with `mode: llm`
 
-Used to observe and evaluate LLM behaviour during development:
+Used to evaluate LLM output quality:
 
-- LangGraph and LangChain run tracing
-- Prompt versioning and comparison
-- Offline dataset evaluation
-- Regression detection across prompt changes
+- Faithfulness (output grounded in context)
+- Answer relevancy (response addresses the question)
+- Hallucination detection (no fabricated facts)
+- Contextual relevancy (retrieved context is relevant)
+- Custom GEval criteria (LLM-as-judge with user-defined rubrics)
 
 Rules:
 
-- LangSmith tracing must be disabled in production by default (`LANGSMITH_TRACING=false`)
-- Evaluation datasets must be stored in `eval_sets/` and versioned in git
-- Projects not using LangGraph or LangChain may omit this adapter
+- DeepEval tests live in `tests/eval/<feature>/`
+- Evaluation datasets live in `tests/eval/<feature>/eval_sets/` and are versioned in git
+- DeepEval is required for all features with `mode: llm` in `eval_criteria.yaml`
+- CI enforcement via `deepeval-gate.yml`
+- Do not use DeepEval for adversarial testing — Promptfoo owns that
 
 ---
 
-## Arize
+## Promptfoo
 
-**Role:** Production monitoring and drift detection
+**Role:** Adversarial and regression attack suites
 
-**When:** Post-deployment
+**When:** CI for user-facing features or features processing untrusted input
 
-Used to monitor LLM behaviour in production:
+Used to test LLM resilience:
 
-- Embedding drift detection
-- Output distribution monitoring
-- Online evaluation at scale
-- Performance degradation alerting
+- Jailbreak attempts
+- Prompt injection attacks
+- Toxic output elicitation
+- Regression baselines across prompt/model changes
 
 Rules:
 
-- Arize instrumentation must live in `adapters/observability/`
-- Domain layer must not reference Arize directly — route through `ObservabilityPort`
+- Promptfoo configs live in `tests/eval/<feature>/promptfoo.yaml`
+- Architecture preflight must explicitly state whether Promptfoo is required
+- CI enforcement via `promptfoo-gate.yml`
+- Do not use Promptfoo for quality metrics — DeepEval owns that
+
+---
+
+## RAGAS
+
+**Role:** Retrieval-specific evaluation
+
+**When:** CI for RAG (retrieval-augmented generation) features only
+
+Used to evaluate retrieval pipeline quality:
+
+- Context recall (retriever finds all relevant documents)
+- Context precision (retrieved documents are relevant, low noise)
+- Faithfulness (generated answer is faithful to retrieved context)
+- Answer relevancy (generated answer addresses the question)
+
+Rules:
+
+- RAGAS is required only when the feature uses retrieval
+- RAGAS metrics run as part of the DeepEval test suite
+- Architecture preflight must state whether RAGAS is required
+- Do not use RAGAS on non-retrieval features
+
+---
+
+## Langfuse
+
+**Role:** Trace storage, prompt versioning, and production evaluation visibility
+
+**When:** Development through production
+
+Used for:
+
+- End-to-end request trace viewing (LLM calls, latency, cost)
+- Prompt versioning and management (prompts managed in Langfuse, not in code)
+- Evaluation result dashboards (DeepEval and RAGAS results visible in Langfuse)
+- Production monitoring (latency trends, cost trends, error rates)
+
+Rules:
+
+- Langfuse SDK is imported only in `adapters/observability/`
+- Domain layer must not reference Langfuse directly — route through `ObservabilityPort`
+- Langfuse replaces LangSmith (dev tracing) and Arize (production monitoring)
 - Required on projects with production LLM features
-- Optional on projects in early development
 
 ---
 
 # 3. Pipeline by Environment
 
-| Environment | Home-Grown | LangSmith | Arize |
-|---|---|---|---|
-| Local dev | optional | enabled | off |
-| CI | required | optional | off |
-| Staging | required | optional | optional |
-| Production | required | off | required |
+| Environment | Home-Grown | DeepEval | Promptfoo | RAGAS | Langfuse |
+|-------------|-----------|----------|-----------|-------|----------|
+| Local dev | optional | enabled | optional | optional | optional |
+| CI | **required** | **required** (if mode: llm) | **required** (if preflight says so) | **required** (if RAG) | disabled |
+| Staging | required | optional | optional | optional | enabled |
+| Production | required | off | off | off | **required** |
 
 ---
 
@@ -107,15 +154,20 @@ Each project configures active adapters via environment variables:
 # Home-grown (always on in CI)
 GOVKIT_EVAL_ENABLED=true
 
-# LangSmith
-LANGSMITH_TRACING=true
-LANGSMITH_API_KEY=...
-LANGSMITH_PROJECT=<project-name>
+# DeepEval
+DEEPEVAL_API_KEY=...            # Optional — for DeepEval cloud features
+OPENAI_API_KEY=...              # Required — for LLM-as-judge metrics
 
-# Arize
-ARIZE_API_KEY=...
-ARIZE_SPACE_KEY=...
-ARIZE_MODEL_ID=<model-name>
+# Promptfoo
+PROMPTFOO_API_KEY=...           # Optional — for Promptfoo cloud dashboard
+
+# Langfuse
+LANGFUSE_PUBLIC_KEY=...
+LANGFUSE_SECRET_KEY=...
+LANGFUSE_HOST=...               # Self-hosted or cloud URL
+
+# OpenLLMetry (telemetry emission)
+TRACELOOP_BASE_URL=...          # OTel collector endpoint
 ```
 
 Secrets must use `BaseSettings` — never hardcoded.
@@ -126,9 +178,11 @@ Secrets must use `BaseSettings` — never hardcoded.
 
 When applying govkit to a new project, review:
 
-- Which adapters are needed at this project's current stage
-- Whether LangSmith is relevant (required only if using LangChain or LangGraph)
-- Whether Arize is needed (required for production LLM features)
+- Which evaluation adapters are needed at this project's current stage
+- Whether DeepEval is relevant (required for `mode: llm` features)
+- Whether Promptfoo is needed (required for user-facing LLM features)
+- Whether RAGAS is needed (required for RAG features)
+- Whether Langfuse is configured (required for production LLM features)
 - The home-grown framework is always required — thresholds may be tuned in `eval_criteria.yaml`
 
 ---
@@ -138,5 +192,7 @@ When applying govkit to a new project, review:
 An ADR must be created if:
 
 - Replacing or removing the home-grown CI gate adapter
+- Replacing DeepEval, Promptfoo, RAGAS, or Langfuse with a different tool
 - Introducing a new evaluation tool not listed here
 - Changing evaluation thresholds below the minimums defined in `eval_criteria.md`
+- Disabling LLM evaluation for a production feature with `mode: llm`

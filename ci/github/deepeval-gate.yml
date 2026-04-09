@@ -1,0 +1,75 @@
+# deepeval-gate.yml
+#
+# PURPOSE: Level 5 — Runs DeepEval LLM quality evaluation tests for features with deepeval_* criteria.
+# Copy this file to .github/workflows/deepeval-gate.yml.
+#
+# JOBS:
+#   deepeval — detects features with deepeval_* eval_class, runs DeepEval test suite, checks regression
+#
+# REQUIRED SECRETS:
+#   OPENAI_API_KEY or ANTHROPIC_API_KEY — required for LLM-as-judge metrics
+#
+# SEE ALSO:
+#   docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
+#   docs/backend/guides/deepeval-usage.md
+
+name: DeepEval Gate (L5)
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  deepeval:
+    name: DeepEval LLM quality evaluation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Detect features with DeepEval criteria
+        id: detect
+        run: |
+          FEATURES=$(grep -rl "deepeval_" features/ --include="eval_criteria.yaml" \
+            | xargs -I{} dirname {} | sort -u | tr '\n' ',' || true)
+          echo "features=$FEATURES" >> $GITHUB_OUTPUT
+          if [ -z "$FEATURES" ]; then
+            echo "No features with DeepEval criteria found. Skipping."
+          else
+            echo "Features with DeepEval criteria: $FEATURES"
+          fi
+
+      - name: Install dependencies
+        if: steps.detect.outputs.features != ''
+        run: |
+          pip install deepeval pytest
+          pip install -r requirements.txt 2>/dev/null || true
+
+      - name: Run DeepEval test suites
+        if: steps.detect.outputs.features != ''
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          errors=0
+          for feature_dir in $(echo "${{ steps.detect.outputs.features }}" | tr ',' '\n'); do
+            [ -z "$feature_dir" ] && continue
+            feature=$(basename "$feature_dir")
+            test_dir="tests/eval/$feature"
+            if [ -d "$test_dir" ]; then
+              echo "Running DeepEval for $feature..."
+              deepeval test run "$test_dir/" || errors=$((errors + 1))
+            else
+              echo "WARN: No test directory at $test_dir for feature $feature"
+            fi
+          done
+          if [ "$errors" -gt 0 ]; then
+            echo "$errors feature(s) failed DeepEval evaluation"
+            exit 1
+          fi
+          echo "All DeepEval evaluations passed."
