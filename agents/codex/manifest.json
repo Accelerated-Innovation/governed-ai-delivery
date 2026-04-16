@@ -1,0 +1,254 @@
+{
+  "agent": "codex",
+  "description": "OpenAI Codex - AGENTS.md governance, path-scoped nested AGENTS.md rules, and .agents/skills/",
+  "options": {
+    "level": {
+      "prompt": "Maturity level? (3=Spec-Driven, 4=Governed AI Delivery, 5=GenAI Operations)",
+      "choices": ["3", "4", "5"],
+      "default": "4"
+    },
+    "type": {
+      "prompt": "Project type?",
+      "choices": ["api", "cli"],
+      "default": "api"
+    },
+    "ui": {
+      "prompt": "UI framework?",
+      "choices": ["none", "react", "angular"],
+      "default": "none"
+    },
+    "ci": {
+      "prompt": "CI platform?",
+      "choices": ["github", "azure"],
+      "default": "github"
+    }
+  },
+  "variants": {
+    "type": {
+      "api": {
+        "files": [
+          { "src": "agents-md/backend-api.md", "dest": "AGENTS.md" },
+          { "src": "rules/backend/api.md", "dest": "api/AGENTS.md" },
+          { "src": "rules/backend/services.md", "dest": "services/AGENTS.md" },
+          { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md" },
+          { "src": "rules/backend/adapters.md", "dest": "adapters/AGENTS.md" },
+          { "src": "rules/backend/security.md", "dest": "security/AGENTS.md" },
+          { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
+          { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/architecture-preflight/" },
+          { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/implementation-plan/" },
+          { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" }
+        ],
+        "shared": [
+          "docs/backend/",
+          "features/starter_backend/",
+          "features/schema_contract_example/",
+          "governance/backend/"
+        ],
+        "level_3": {
+          "files": [
+            { "src": "agents-md/l3-backend-api.md", "dest": "AGENTS.md" },
+            { "src": "skills/backend/l3-spec-planning/", "dest": ".agents/skills/spec-planning/" },
+            { "src": "skills/backend/l3-implementation-plan/", "dest": ".agents/skills/implementation-plan/" }
+          ],
+          "shared": [
+            "docs/backend/architecture/DESIGN_PRINCIPLES.md",
+            "docs/backend/architecture/TESTING.md",
+            "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
+            "docs/backend/architecture/GHERKIN_TAGS.md",
+            "features/starter_backend_l3/",
+            "governance/backend/templates/l3-plan.md"
+          ]
+        },
+        "level_5": {
+          "files": [
+            { "src": "agents-md/l5-backend-api.md", "dest": "AGENTS.md" },
+            { "src": "rules/backend/api.md", "dest": "api/AGENTS.md" },
+            { "src": "rules/backend/services.md", "dest": "services/AGENTS.md" },
+            { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md" },
+            { "src": "rules/backend/adapters.md", "dest": "adapters/AGENTS.md" },
+            { "src": "rules/backend/security.md", "dest": "security/AGENTS.md" },
+            { "src": "rules/backend/llm-gateway.md", "dest": "adapters/llm/AGENTS.md" },
+            { "src": "rules/backend/guardrails.md", "dest": "adapters/guardrails/AGENTS.md" },
+            { "src": "rules/backend/llm-evaluation.md", "dest": "tests/eval/AGENTS.md" },
+            { "src": "rules/backend/llm-observability.md", "dest": "adapters/observability/AGENTS.md" },
+            { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/implementation-plan/" },
+            { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" },
+            { "src": "skills/backend/genai-preflight/", "dest": ".agents/skills/genai-preflight/" },
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".agents/skills/eval-suite-planning/" }
+          ],
+          "shared": [
+            "docs/backend/",
+            "features/starter_backend_l5/",
+            "features/schema_contract_example/",
+            "governance/backend/",
+            "governance/schemas/evaluation_prediction.schema.json"
+          ]
+        }
+      },
+      "cli": {
+        "files": [
+          { "src": "agents-md/backend-cli.md", "dest": "AGENTS.md" },
+          { "src": "rules/cli/cli.md", "dest": "cli/AGENTS.md" },
+          { "src": "rules/backend/services.md", "dest": "services/AGENTS.md" },
+          { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md" },
+          { "src": "rules/backend/adapters.md", "dest": "adapters/AGENTS.md" },
+          { "src": "rules/backend/security.md", "dest": "security/AGENTS.md" },
+          { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
+          { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/architecture-preflight/" },
+          { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/implementation-plan/" },
+          { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" }
+        ],
+        "shared": [
+          "docs/backend/",
+          "features/starter_cli/",
+          "governance/backend/"
+        ],
+        "level_3": {
+          "files": [
+            { "src": "agents-md/l3-backend-cli.md", "dest": "AGENTS.md" },
+            { "src": "skills/backend/l3-spec-planning/", "dest": ".agents/skills/spec-planning/" },
+            { "src": "skills/backend/l3-implementation-plan/", "dest": ".agents/skills/implementation-plan/" }
+          ],
+          "shared": [
+            "docs/backend/architecture/DESIGN_PRINCIPLES.md",
+            "docs/backend/architecture/TESTING.md",
+            "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
+            "docs/backend/architecture/GHERKIN_TAGS.md",
+            "features/starter_cli_l3/",
+            "governance/backend/templates/l3-plan.md"
+          ]
+        },
+        "level_5": {
+          "files": [
+            { "src": "agents-md/l5-backend-cli.md", "dest": "AGENTS.md" },
+            { "src": "rules/cli/cli.md", "dest": "cli/AGENTS.md" },
+            { "src": "rules/backend/services.md", "dest": "services/AGENTS.md" },
+            { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md" },
+            { "src": "rules/backend/adapters.md", "dest": "adapters/AGENTS.md" },
+            { "src": "rules/backend/security.md", "dest": "security/AGENTS.md" },
+            { "src": "rules/backend/llm-gateway.md", "dest": "adapters/llm/AGENTS.md" },
+            { "src": "rules/backend/guardrails.md", "dest": "adapters/guardrails/AGENTS.md" },
+            { "src": "rules/backend/llm-evaluation.md", "dest": "tests/eval/AGENTS.md" },
+            { "src": "rules/backend/llm-observability.md", "dest": "adapters/observability/AGENTS.md" },
+            { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/implementation-plan/" },
+            { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" },
+            { "src": "skills/backend/genai-preflight/", "dest": ".agents/skills/genai-preflight/" },
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".agents/skills/eval-suite-planning/" }
+          ],
+          "shared": [
+            "docs/backend/",
+            "features/starter_cli_l5/",
+            "governance/backend/",
+            "governance/schemas/evaluation_prediction.schema.json"
+          ]
+        }
+      }
+    },
+    "ui": {
+      "none": {
+        "files": [],
+        "shared": []
+      },
+      "react": {
+        "files": [
+          { "src": "agents-md/ui-react.md", "dest": "src/AGENTS.md" },
+          { "src": "rules/ui-react/components.md", "dest": "src/features/components/AGENTS.md" },
+          { "src": "rules/ui-react/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },
+          { "src": "rules/ui-react/api.md", "dest": "src/features/api/AGENTS.md" },
+          { "src": "rules/ui-react/accessibility.md", "dest": "src/shared/accessibility/AGENTS.md" },
+          { "src": "skills/ui/spec-planning/", "dest": ".agents/skills/ui-spec-planning/" },
+          { "src": "skills/ui/architecture-preflight/", "dest": ".agents/skills/ui-architecture-preflight/" },
+          { "src": "skills/ui/implementation-plan/", "dest": ".agents/skills/ui-implementation-plan/" },
+          { "src": "skills/ui/adr-author/", "dest": ".agents/skills/ui-adr-author/" }
+        ],
+        "shared": [
+          "docs/ui/",
+          "governance/ui/",
+          "features/starter_ui/",
+          "features/ui_task_dashboard/"
+        ],
+        "level_3": {
+          "files": [
+            { "src": "agents-md/l3-ui-react.md", "dest": "src/AGENTS.md" },
+            { "src": "skills/ui/l3-spec-planning/", "dest": ".agents/skills/ui-spec-planning/" },
+            { "src": "skills/ui/l3-implementation-plan/", "dest": ".agents/skills/ui-implementation-plan/" }
+          ],
+          "shared": [
+            "features/starter_ui_l3/",
+            "governance/ui/templates/l3-plan.md"
+          ]
+        }
+      },
+      "angular": {
+        "files": [
+          { "src": "agents-md/ui-angular.md", "dest": "src/AGENTS.md" },
+          { "src": "rules/ui-angular/components.md", "dest": "src/features/components/AGENTS.md" },
+          { "src": "rules/ui-angular/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },
+          { "src": "rules/ui-angular/api.md", "dest": "src/features/api/AGENTS.md" },
+          { "src": "rules/ui-angular/accessibility.md", "dest": "src/shared/accessibility/AGENTS.md" },
+          { "src": "skills/ui/spec-planning/", "dest": ".agents/skills/ui-spec-planning/" },
+          { "src": "skills/ui/architecture-preflight/", "dest": ".agents/skills/ui-architecture-preflight/" },
+          { "src": "skills/ui/implementation-plan/", "dest": ".agents/skills/ui-implementation-plan/" },
+          { "src": "skills/ui/adr-author/", "dest": ".agents/skills/ui-adr-author/" }
+        ],
+        "shared": [
+          "docs/ui/",
+          "governance/ui/",
+          "features/starter_ui/",
+          "features/ui_task_dashboard/"
+        ],
+        "level_3": {
+          "files": [
+            { "src": "agents-md/l3-ui-angular.md", "dest": "src/AGENTS.md" },
+            { "src": "skills/ui/l3-spec-planning/", "dest": ".agents/skills/ui-spec-planning/" },
+            { "src": "skills/ui/l3-implementation-plan/", "dest": ".agents/skills/ui-implementation-plan/" }
+          ],
+          "shared": [
+            "features/starter_ui_l3/",
+            "governance/ui/templates/l3-plan.md"
+          ]
+        }
+      }
+    },
+    "ci": {
+      "github": {
+        "files": [],
+        "shared": ["ci/github/"],
+        "level_3": {
+          "files": [],
+          "shared": ["ci/github/l3-quality-gate.yml"]
+        },
+        "level_5": {
+          "files": [],
+          "shared": [
+            "ci/github/",
+            "ci/github/deepeval-gate.yml",
+            "ci/github/promptfoo-gate.yml",
+            "ci/github/guardrails-check.yml"
+          ]
+        }
+      },
+      "azure": {
+        "files": [],
+        "shared": ["ci/azure/"],
+        "level_3": {
+          "files": [],
+          "shared": ["ci/azure/l3-quality-gate.yml"]
+        },
+        "level_5": {
+          "files": [],
+          "shared": [
+            "ci/azure/",
+            "ci/azure/deepeval-gate.yml",
+            "ci/azure/promptfoo-gate.yml",
+            "ci/azure/guardrails-check.yml"
+          ]
+        }
+      }
+    }
+  }
+}

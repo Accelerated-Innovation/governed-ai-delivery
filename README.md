@@ -54,14 +54,15 @@ The AI agent operates inside a governed system. Architecture, evaluation, and fe
 
 # Supported Agents
 
-govkit ships two agents, each supporting multiple project types through variant selection at install time:
+govkit ships three agents, each supporting multiple project types through variant selection at install time:
 
 | Agent | AI Tool | Installs To |
 |---|---|---|
 | `claude-code` | Claude Code | `CLAUDE.md`, `.claude/rules/`, `.claude/skills/` |
 | `copilot` | GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/`, `.github/prompts/` |
+| `codex` | OpenAI Codex | `AGENTS.md` (root + nested per layer), `.agents/skills/` |
 
-Both agents support the same variant options:
+All agents support the same variant options:
 
 | Option | Choices | Default |
 |---|---|---|
@@ -95,7 +96,7 @@ Before diving in, here are the foundational ideas behind this toolkit:
 - **Python 3.11+** — required to install and run govkit
 - **pip** — for installation (`pip install git+...`)
 - **git** — govkit is installed from a git repository
-- **An AI coding agent** — Claude Code or GitHub Copilot (govkit provides the configuration, not the agent itself)
+- **An AI coding agent** — Claude Code, GitHub Copilot, or OpenAI Codex (govkit provides the configuration, not the agent itself)
 
 ---
 
@@ -138,6 +139,9 @@ govkit apply --agent copilot --type cli --ui none --ci azure --target .
 
 # API backend only + GitHub Actions
 govkit apply --agent copilot --type api --ui none --ci github --target .
+
+# OpenAI Codex, L4 API backend + React UI
+govkit apply --agent codex --type api --ui react --ci github --target .
 ```
 
 A `.govkit` marker file is written to your project root, tracking the applied level and options. This enables `govkit init` and `govkit validate` to auto-detect your level.
@@ -169,11 +173,11 @@ After applying, your project should contain:
 
 ```
 your-project/
-├── CLAUDE.md (or .github/copilot-instructions.md)
-├── .claude/rules/ (or .github/instructions/)
+├── CLAUDE.md (or .github/copilot-instructions.md, or AGENTS.md)
+├── .claude/rules/ (or .github/instructions/, or nested AGENTS.md per layer — api/AGENTS.md, services/AGENTS.md, etc.)
 │   ├── api.md, services.md, ports.md, adapters.md, security.md
 │   └── (UI rules if --ui was specified)
-├── .claude/skills/ (or .github/prompts/)
+├── .claude/skills/ (or .github/prompts/, or .agents/skills/)
 │   ├── architecture-preflight/, spec-planning/, implementation-plan/, adr-author/
 │   └── (UI skills if --ui was specified)
 ├── docs/
@@ -272,6 +276,7 @@ Ask the agent to validate your feature against the architecture contracts:
 |---|---|
 | Claude Code | `/architecture-preflight my_feature` |
 | Copilot | `/architecture-preflight` (with feature context) |
+| Codex | `$architecture-preflight my_feature` |
 
 The agent produces `architecture_preflight.md` covering boundary analysis, security impact, evaluation impact, and whether an ADR is needed. If an ADR is required, create it next:
 
@@ -279,6 +284,7 @@ The agent produces `architecture_preflight.md` covering boundary analysis, secur
 |---|---|
 | Claude Code | `/adr-author my_feature` |
 | Copilot | `/adr-author` |
+| Codex | `$adr-author my_feature` |
 
 ## Step 5: Generate the Plan
 
@@ -288,6 +294,7 @@ Ask the agent to create the implementation plan:
 |---|---|
 | Claude Code | `/spec-planning my_feature` |
 | Copilot | `/spec-planning` |
+| Codex | `$spec-planning my_feature` |
 
 The agent generates `plan.md` and `eval_criteria.yaml`. The plan includes:
 - Increments with deliverables and tests
@@ -304,6 +311,7 @@ Ask the agent to break the plan into a detailed task checklist:
 |---|---|
 | Claude Code | `/implementation-plan my_feature` |
 | Copilot | `/implementation-plan` |
+| Codex | `$implementation-plan my_feature` |
 
 Review and approve before implementation begins.
 
@@ -409,11 +417,16 @@ governed-ai-delivery/
 │   │   ├── claude-md/               # CLAUDE.md variants per project type
 │   │   ├── rules/                   # Path-scoped rules (backend/, cli/, ui-react/, ui-angular/)
 │   │   └── skills/                  # Skills (backend/, ui/)
-│   └── copilot/                     # Copilot agent (variant-based)
+│   ├── copilot/                     # Copilot agent (variant-based)
+│   │   ├── manifest.json
+│   │   ├── copilot-instructions/    # Instruction variants per project type
+│   │   ├── instructions/            # Path-scoped instructions (backend/, cli/, ui-react/, ui-angular/)
+│   │   └── prompts/                 # Chat prompts (backend/, ui/)
+│   └── codex/                       # OpenAI Codex agent (variant-based)
 │       ├── manifest.json
-│       ├── copilot-instructions/    # Instruction variants per project type
-│       ├── instructions/            # Path-scoped instructions (backend/, cli/, ui-react/, ui-angular/)
-│       └── prompts/                 # Chat prompts (backend/, ui/)
+│       ├── agents-md/               # Root AGENTS.md variants per project type and level
+│       ├── rules/                   # Body-only rules installed as nested AGENTS.md per layer
+│       └── skills/                  # SKILL.md skills installed to .agents/skills/
 ├── cli/
 │   ├── govkit.py                    # CLI — apply, list, validate
 │   └── validate.py                  # Governance compliance checker
@@ -493,10 +506,10 @@ When `govkit validate --target .` reports failures, here's what they mean and ho
 A: Ensure your Python scripts directory is on your PATH. Try `python -m cli.govkit` as a fallback, or reinstall with `pip install --user git+...`.
 
 **Q: `govkit apply` fails with "no agent found"**
-A: Check that you're using a valid agent name (`claude-code` or `copilot`). Run `govkit list` to see available agents.
+A: Check that you're using a valid agent name (`claude-code`, `copilot`, or `codex`). Run `govkit list` to see available agents.
 
 **Q: The agent ignores my architecture rules**
-A: Verify the rules files were copied to the correct location (`.claude/rules/` or `.github/instructions/`). Check that file paths match what the agent expects — Claude Code loads rules based on the file path you're editing.
+A: Verify the rules files were copied to the correct location (`.claude/rules/`, `.github/instructions/`, or the nested `AGENTS.md` files for Codex). Check that file paths match what the agent expects — Claude Code loads rules based on the file path you're editing, Codex walks the directory tree from repo root down to the current working directory and concatenates each `AGENTS.md` it finds.
 
 **Q: How do I update to a newer version of govkit?**
 A: Run `pip install --upgrade git+https://github.com/Accelerated-Innovation/governed-ai-delivery.git`. Then re-run `govkit apply` — it will skip files that already exist. To force update a specific file, delete it first.
@@ -507,8 +520,8 @@ A: Yes. `govkit apply` copies governance artifacts into your project without mod
 **Q: What if my architecture doesn't match the Hexagonal defaults?**
 A: Customize the architecture docs after install. The agent follows whatever `ARCH_CONTRACT.md` says — if your project uses a different pattern, document it there. Consider creating an ADR explaining the architectural choice.
 
-**Q: Can I use both Claude Code and Copilot in the same project?**
-A: Yes. Run `govkit apply` once for each agent. They install to different paths (`.claude/` vs `.github/`) and share the same `docs/`, `governance/`, and `features/` artifacts. Both agents read the same architecture contracts.
+**Q: Can I use multiple agents in the same project?**
+A: Yes. Run `govkit apply` once for each agent. They install to different paths (`.claude/`, `.github/`, and `AGENTS.md` + `.agents/` for Codex) and share the same `docs/`, `governance/`, and `features/` artifacts. All agents read the same architecture contracts.
 
 **Q: How do I add a new NFR category?**
 A: Add the category as a `## Heading` in your feature's `nfrs.md`, add corresponding `@nfr-<category>` tags to acceptance scenarios, and update `cli/validate.py`'s `category_to_tag` mapping if you want automated tag coverage validation.
@@ -616,11 +629,13 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 
 | Term | Definition |
 |---|---|
-| **Agent** | The AI coding tool (Claude Code or GitHub Copilot) that reads governance artifacts and generates code |
+| **Agent** | The AI coding tool (Claude Code, GitHub Copilot, or OpenAI Codex) that reads governance artifacts and generates code |
 | **Rule** (Claude Code) | A path-scoped `.md` file in `.claude/rules/` that loads automatically when editing files matching its path |
 | **Skill** (Claude Code) | A reusable prompt in `.claude/skills/` invoked via slash command (e.g., `/architecture-preflight`) |
 | **Instruction** (Copilot) | A path-scoped `.md` file in `.github/instructions/` — Copilot equivalent of a rule |
 | **Prompt** (Copilot) | A reusable Chat prompt in `.github/prompts/` — Copilot equivalent of a skill |
+| **AGENTS.md** (Codex) | A markdown instructions file read by Codex. A root `AGENTS.md` applies globally; nested `AGENTS.md` files at layer directories (e.g., `services/AGENTS.md`) scope rules to that subtree via directory walk |
+| **Skill** (Codex) | A `SKILL.md` under `.agents/skills/<name>/` invoked via `$skill-name` |
 | **Port** | An interface defining a contract between layers (inbound ports for API entry, outbound ports for infrastructure) |
 | **Adapter** | An implementation of a port that connects to infrastructure (database, external API, message queue) |
 | **Domain** | Business logic that has no dependencies on frameworks or infrastructure |
@@ -630,9 +645,9 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 | **NFR** | Non-Functional Requirement — performance, security, availability, etc. |
 | **Evaluation Prediction** | Predicted FIRST and Virtue scores in `plan.md` — must average >= 4.0 before implementation |
 | `govkit validate` | CLI command that checks all features for governance compliance (artifact completeness, thresholds) |
-| `/architecture-preflight` | Agent skill/prompt that validates a feature against architecture contracts before planning |
-| `/genai-preflight` | L5 agent skill that validates LLM gateway, observability, guardrails, and evaluation decisions |
-| `/eval-suite-planning` | L5 agent skill that plans DeepEval, Promptfoo, and RAGAS test suites |
+| `/architecture-preflight` (`$architecture-preflight` in Codex) | Agent skill/prompt that validates a feature against architecture contracts before planning |
+| `/genai-preflight` (`$genai-preflight` in Codex) | L5 agent skill that validates LLM gateway, observability, guardrails, and evaluation decisions |
+| `/eval-suite-planning` (`$eval-suite-planning` in Codex) | L5 agent skill that plans DeepEval, Promptfoo, and RAGAS test suites |
 | **LiteLLM** | L5 sole LLM gateway — model routing, provider abstraction, fallback, cost tracking |
 | **OpenLLMetry** | L5 LLM telemetry emission standard (OpenTelemetry for LLMs) |
 | **Langfuse** | Trace storage, prompt versioning, and production evaluation visibility |
