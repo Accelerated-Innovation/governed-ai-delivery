@@ -1,0 +1,73 @@
+name: Feature request
+description: Suggest an improvement or new capability for GovKit
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an improvement. Please describe the problem, the proposed change, and why it matters.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: Briefly describe the requested feature or improvement
+      placeholder: Add stack reference docs for Node.js projects
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What problem does this solve, or what opportunity does it address?
+      placeholder: Contributors need a clear way to apply GovKit outside Python-specific projects.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the change you would like to see
+      placeholder: Add stack-specific reference docs and update generic agent guidance to point to them.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any alternatives you considered
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - CLI
+        - Agents
+        - Docs
+        - Governance Schemas
+        - CI Templates
+        - Worked Examples
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Expected impact
+      description: Who benefits and how?
+      placeholder: Makes GovKit easier to use across multiple stacks and reduces stack-specific assumptions in the core kit.
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add any related links, examples, mockups, or notes

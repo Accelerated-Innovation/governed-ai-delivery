@@ -1,0 +1,89 @@
+name: Bug report
+description: Report a defect or unexpected behavior in GovKit
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Please provide enough detail for us to reproduce and triage the issue.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: Briefly describe the issue
+      placeholder: govkit validate fails when eval_criteria.yaml uses mode none
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the exact steps needed to reproduce the problem
+      placeholder: |
+        1. Run ...
+        2. Apply ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - CLI
+        - Agents
+        - Docs
+        - Governance Schemas
+        - CI Templates
+        - Worked Examples
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: GovKit version, tag, or commit SHA
+      placeholder: v0.1.0 or commit SHA
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, shell, and any other relevant environment details
+      placeholder: Windows 11, Python 3.11, PowerShell
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output or logs
+      description: Paste error output, tracebacks, or validation messages
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add any other context, screenshots, or related links
