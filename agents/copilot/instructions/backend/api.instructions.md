@@ -2,19 +2,17 @@
 applyTo: "**/api/**"
 ---
 
-Follow the public API conventions defined in `docs/backend/architecture/API_CONVENTIONS.md`.
+# API Layer — Inbound Adapter
 
-All routes in `/api/**` must:
+**Your project's API conventions:** `docs/backend/architecture/API_CONVENTIONS.md`
 
-- Use versioned, resource-first paths (e.g., `/v1/users/login`)
-- Follow HTTP verb and status code standards
-- Define request and response models using `BaseModel`
-- Wrap responses using the standard `ApiResponse` envelope
-- Authenticate using `Depends(get_current_user)`
-- Authorize using `Depends(check_scope(...))` if required
-- Delegate all logic to inbound ports (`ports/inbound/**`)
-- Never access domain services, repositories, or adapter logic directly
-- Avoid leaking FastAPI types into service or port layers
-- Include OpenAPI metadata: summary, description, status codes, response model
+Read this document before implementing any route. It defines your project's routing style, request/response models, authentication mechanism, error handling, and testing approach.
 
-All FastAPI routes are inbound adapters. They must stay thin, authenticated, and port-driven.
+**Universal constraints (apply to any language):**
+- Routes are inbound adapters — delegate all business logic to inbound ports in `ports/inbound/**`
+- Validate and authenticate requests before calling the port layer
+- Map domain exceptions to HTTP responses at this layer, not inside domain code
+- Routes must remain thin — no business logic inline
+- Never expose domain types directly in HTTP responses; translate at the boundary
+- Support both sync and async execution depending on your framework
+- Include metadata in HTTP responses for API documentation (swagger/OpenAPI equivalent)

@@ -3,44 +3,23 @@ paths:
   - "**/services/**"
 ---
 
-# Service Layer Rules
+# Service Layer — Domain Logic
 
-Services implement core business logic in alignment with Hexagonal Architecture.
+**Your project's architecture contract:** `docs/backend/architecture/ARCH_CONTRACT.md`
 
-## Purpose
+Services implement the business logic of your domain. Review the architecture contract for layer structure and boundaries.
 
-- Encapsulate domain rules, state transitions, and orchestration
-- Must not handle HTTP, serialization, or DB logic
-- May call repositories (via outbound ports), validators, and injected helpers
+**Universal constraints (apply to any language):**
+- Services contain business logic, state transitions, and orchestration — nothing else
+- Services must not directly handle HTTP, serialization, database, or network concerns
+- Services must not import from the inbound adapter layer (API, CLI) or the adapter/infrastructure layer
+- All external dependencies must be injected via constructor (no singleton global access, no hardcoded instantiation)
+- Services may only depend on ports and pure domain models
+- Services raise domain-specific exceptions; adapters convert these to API responses
+- One service per domain area; methods should be named after business operations
+- All domain logic that produces business value lives here
 
-## Structure
-
-- One service per domain area (e.g., `UserService`, `PaymentService`)
-- Classes must use the `Service` suffix
-- Expose clear public methods named after business operations (e.g., `create_user()`)
-
-## Dependencies
-
-- Inject dependencies via constructor (no inline instantiation)
-- Accept only ports and pure helpers — no adapters or framework code
-
-```python
-class UserService:
-    def __init__(self, user_repo: UserPort):
-        self.user_repo = user_repo
-```
-
-## Boundaries
-
-Services must not import from `api/`, `adapters/`, or FastAPI. Services may raise domain exceptions and return DTOs or pure Python values.
-
-## Testing
-
-- Unit test all public methods in isolation
-- Mock dependencies (repos, ports)
-- Validate logic, not HTTP behavior
-
-## Violations
-
-- Business logic must never live in route handlers or adapter code
-- All non-API, non-infrastructure logic belongs in the service layer
+**Testing:**
+- Unit test all service public methods in isolation
+- Mock all injected port dependencies
+- Test business logic, not infrastructure details

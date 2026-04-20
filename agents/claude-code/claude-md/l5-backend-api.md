@@ -94,15 +94,33 @@ An ADR is required when:
 
 ---
 
+## Project Documentation
+
+Your project's language- and framework-specific conventions are documented in `docs/backend/architecture/`. Before implementing, read the relevant documents:
+
+| Aspect | Document | Content |
+|---|---|---|
+| API / inbound adapter | `API_CONVENTIONS.md` | Routing, request/response, authentication, error mapping |
+| Services / domain | `ARCH_CONTRACT.md` | Architecture model, layering, approved libraries |
+| LLM gateway | `LLM_GATEWAY_CONTRACT.md` | LiteLLM usage, provider routing, model aliases, cost tracking |
+| Guardrails / safety | `GUARDRAILS_CONTRACT.md` | NeMo Guardrails and Guardrails AI integration |
+| Observability / telemetry | `OBSERVABILITY_LLM_CONTRACT.md` | OpenLLMetry and Langfuse setup |
+| LLM evaluation | `EVALUATION_LLM_CONTRACT.md` | DeepEval, Promptfoo, RAGAS integration |
+| Technology decisions | `TECH_STACK.md` | Approved frameworks, libraries, tools, and versions |
+
+These documents define your stack's implementation. The architecture principles (hexagonal architecture, boundaries, evaluation) are universal; the specific tools and patterns are here.
+
+---
+
 ## Implementation Rules
 
 - Implement one increment at a time
 - Respect all rules in `docs/backend/architecture/BOUNDARIES.md`
 - Follow Hexagonal Architecture (ports and adapters)
 - Use only approved frameworks from `docs/backend/architecture/TECH_STACK.md`
-- **All LLM calls must route through LiteLLM** — see `LLM_GATEWAY_CONTRACT.md`
+- **All LLM calls must route through the LLM gateway** — see `LLM_GATEWAY_CONTRACT.md`
 - **Guardrails must match the declared mode** — see `GUARDRAILS_CONTRACT.md`
-- **Observability via OpenLLMetry + Langfuse** — see `OBSERVABILITY_LLM_CONTRACT.md`
+- **Observability via LLM telemetry** — see `OBSERVABILITY_LLM_CONTRACT.md`
 
 Layer-specific rules load automatically from `.claude/rules/` when editing files in each layer:
 

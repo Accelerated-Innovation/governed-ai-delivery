@@ -94,6 +94,24 @@ An ADR is required when:
 
 ---
 
+## Project Documentation
+
+Your project's language- and framework-specific conventions are documented in `docs/backend/architecture/`. Before implementing, read the relevant documents:
+
+| Aspect | Document | Content |
+|---|---|---|
+| API / inbound adapter | `API_CONVENTIONS.md` | Routing, request/response, authentication, error mapping |
+| Services / domain | `ARCH_CONTRACT.md` | Architecture model, layering, approved libraries |
+| LLM gateway | `LLM_GATEWAY_CONTRACT.md` | LiteLLM usage, provider routing, model aliases |
+| Guardrails / safety | `GUARDRAILS_CONTRACT.md` | NeMo Guardrails and Guardrails AI integration |
+| Observability | `OBSERVABILITY_LLM_CONTRACT.md` | OpenLLMetry and Langfuse setup |
+| LLM evaluation | `EVALUATION_LLM_CONTRACT.md` | DeepEval, Promptfoo, RAGAS integration |
+| Technology decisions | `TECH_STACK.md` | Approved frameworks, libraries, tools, and versions |
+
+These documents define your stack's implementation. The architecture principles (hexagonal architecture, boundaries, evaluation) are universal; the specific tools and patterns are here.
+
+---
+
 ## Implementation Rules
 
 - Implement one increment at a time
