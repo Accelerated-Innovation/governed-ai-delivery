@@ -197,13 +197,13 @@ Tier 5 (Documentation) — enables team self-service
 - [x] 2.6 Codex spec-compliance cross-ref
 
 ### Tier 3: Preflight Skills
-- [ ] 3.1 Claude Code backend preflight
-- [ ] 3.2 Claude Code UI preflight
-- [ ] 3.3 Copilot backend preflight
-- [ ] 3.4 Copilot UI preflight
-- [ ] 3.5 Codex backend preflight
-- [ ] 3.6 Codex UI preflight
-- [ ] 3.7 Shared guidance doc
+- [x] 3.1 Claude Code backend preflight
+- [x] 3.2 Claude Code UI preflight
+- [x] 3.3 Copilot backend preflight
+- [x] 3.4 Copilot UI preflight
+- [x] 3.5 Codex backend preflight
+- [x] 3.6 Codex UI preflight
+- [x] 3.7 Shared guidance doc
 
 ### Tier 4: CI Validation
 - [ ] 4.1 GitHub Actions job template
