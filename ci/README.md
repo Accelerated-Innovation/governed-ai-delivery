@@ -69,6 +69,42 @@ These governance rules are communicated to agents via CLAUDE.md / copilot-instru
 
 ---
 
+## Repository Scope Validation
+
+**File:** `repo-scope-check.yml` (GitHub: `ci/github/repo-scope-check.yml`, Azure: `ci/azure/repo-scope-check.yml`)
+
+**Purpose:** Validates that features declaring cross-repository scope explicitly list this repository as owner. Prevents agents from implementing features in the wrong repository.
+
+**When to use:** Every project should enable this check. It ensures team members don't accidentally write code that belongs in another repository.
+
+**How to enable:**
+
+1. Copy `ci/github/repo-scope-check.yml` to `.github/workflows/repo-scope-check.yml` (GitHub)
+   OR add it to your Azure Pipelines definition
+2. Set the `REPO_OWNER` variable to your repository's name
+   - Examples: `auth-service`, `api-gateway`, `frontend-app`, `client-sdk`
+3. Commit and push
+4. The job runs on every PR that modifies `features/*/nfrs.md`
+
+**What it checks:**
+
+- ✅ "Repository Scope" section exists in `nfrs.md`
+- ✅ Section has a checked box: `[x] This repository only` OR `[x] Multiple repositories`
+- ✅ For multi-repo features: this repo is listed in the "Multi-Repository Details" table
+- ❌ Fails if any feature is missing repo scope or doesn't list this repo as owner
+
+**Typical failures and fixes:**
+
+| Error | Fix |
+|---|---|
+| Missing "## Repository Scope" section | Add the section to the NFR template in progress |
+| No checked box | Check either "This repository only" or "Multiple repositories" |
+| "Multi-repo but does not list <repo> as owner" | Add your repo to the ownership table |
+
+See: `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md` for complete repo scope semantics.
+
+---
+
 ## Pipeline Structure
 
 ### Backend

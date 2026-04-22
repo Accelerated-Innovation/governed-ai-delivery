@@ -1,0 +1,114 @@
+# repo-scope-check.yml
+#
+# PURPOSE: Validate that features declaring cross-repo scope explicitly list this repository as owner.
+# This prevents agents from implementing features in the wrong repository.
+# Copy this file to .github/workflows/repo-scope-check.yml.
+#
+# JOB:
+#   repo-scope-check — validates Repository Scope section in each feature's nfrs.md
+#
+# SETUP:
+#   1. Determine your repository name (e.g., "api-service", "frontend-app", "auth-service")
+#   2. Set the REPO_OWNER variable below to that name
+#   3. Commit and run the workflow
+#
+# BEHAVIOR:
+#   ✅ PASS if:
+#      - Feature nfrs.md has complete "Repository Scope" section
+#      - This repo is listed in the scope table (for multi-repo features)
+#      - OR the feature is marked "single-repo only"
+#   ❌ FAIL if:
+#      - "Repository Scope" section is missing or incomplete
+#      - Multi-repo feature exists but this repo is NOT listed as owner
+#
+
+name: Repository Scope Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'features/*/nfrs.md'
+  push:
+    branches: [main]
+    paths:
+      - 'features/*/nfrs.md'
+
+jobs:
+  repo-scope-check:
+    name: Validate repository scope
+    runs-on: ubuntu-latest
+    env:
+      # CONFIGURE THIS: Set to your repository's name/owner
+      # Examples: "auth-service", "api-gateway", "frontend-app", "client-sdk"
+      REPO_OWNER: YOUR_REPO_NAME
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Repository Scope section
+        run: |
+          set -e
+
+          if [ "${{ env.REPO_OWNER }}" = "YOUR_REPO_NAME" ]; then
+            echo "ERROR: REPO_OWNER not configured in workflow"
+            echo "Edit .github/workflows/repo-scope-check.yml and set REPO_OWNER to your repository name"
+            exit 1
+          fi
+
+          errors=0
+          for nfrs_file in features/*/nfrs.md; do
+            [ -f "$nfrs_file" ] || continue
+            feature=$(basename $(dirname "$nfrs_file"))
+
+            # Skip starters
+            case "$feature" in starter_*) continue;; esac
+
+            # Check if Repository Scope section exists
+            if ! grep -q "## Repository Scope" "$nfrs_file"; then
+              echo "FAIL: $feature nfrs.md missing '## Repository Scope' section"
+              errors=$((errors + 1))
+              continue
+            fi
+
+            # Check if scope declaration checkbox exists
+            if ! grep -q "This feature is contained to:" "$nfrs_file"; then
+              echo "FAIL: $feature nfrs.md Repository Scope missing 'This feature is contained to:' field"
+              errors=$((errors + 1))
+              continue
+            fi
+
+            # Extract scope type (single vs multi-repo)
+            if grep -q "\[x\] This repository only" "$nfrs_file"; then
+              # Single repo — always OK
+              echo "OK: $feature is single-repo only"
+            elif grep -q "\[x\] Multiple repositories" "$nfrs_file"; then
+              # Multi-repo — must check if this repo is listed as owner
+              if ! grep -q "^| *${{ env.REPO_OWNER }} " "$nfrs_file"; then
+                echo "FAIL: $feature is multi-repo but does not list '${{ env.REPO_OWNER }}' as owner"
+                echo "  Add this repo to the 'Multi-Repository Details' table in $nfrs_file"
+                errors=$((errors + 1))
+              else
+                echo "OK: $feature lists ${{ env.REPO_OWNER }} as owner"
+              fi
+            else
+              echo "FAIL: $feature Repository Scope section has no checked box"
+              errors=$((errors + 1))
+            fi
+          done
+
+          if [ "$errors" -gt 0 ]; then
+            echo ""
+            echo "❌ Repository scope validation failed: $errors issue(s)"
+            echo ""
+            echo "Fix:"
+            echo "  1. Open features/<feature>/nfrs.md"
+            echo "  2. Complete the 'Repository Scope' section"
+            echo "  3. Check one of: '[ ] This repository only' OR '[ ] Multiple repositories'"
+            echo "  4. If multi-repo, add your repo to the ownership table"
+            echo "  5. Commit and push"
+            echo ""
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All features have valid repository scope declarations"
