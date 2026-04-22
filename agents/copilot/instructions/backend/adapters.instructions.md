@@ -2,68 +2,28 @@
 applyTo: "**/adapters/**"
 ---
 
-# Adapter Layer Instructions
+# Adapter Layer — Infrastructure Integration
 
-These rules apply to all files under `/adapters/**`.
-Adapters implement technical integrations that satisfy port interfaces.
+**Your project's architecture contract:** `docs/backend/architecture/ARCH_CONTRACT.md` and `BOUNDARIES.md`
 
----
+Adapters implement outbound port contracts, connecting your domain to external systems (databases, APIs, caches). Review the architecture docs for integration patterns and dependency rules.
 
-## 1. Purpose
+**Universal constraints (apply to any language):**
+- Adapters implement outbound port interfaces from `ports/outbound/`
+- Adapters translate between domain/port types and external system types (ORM objects, API responses, etc.)
+- Group adapters by technology/concern (e.g., `postgres_adapter`, `redis_adapter`, `http_client_adapter`)
+- Adapters must not import from services, API layer, or other adapters
+- Adapters must not be called directly; all access goes through their port interface
+- Adapters handle all infrastructure-level error translation and convert to clean domain exceptions
+- Adapters return domain types or DTOs, never raw external library objects
+- Initialization and wiring of adapters happens in a composition root (factory, dependency injection, etc.), not scattered through services
 
-- Implement outbound ports (e.g., database, cache, email, APIs)
-- Translate domain models to/from infrastructure-specific formats
-- Remain infrastructure-aware, but domain-agnostic
+**Error handling:**
+- Catch all infrastructure exceptions (connection errors, timeouts, SDK errors)
+- Translate to domain exception types that services can handle
+- Never leak external library types to the domain
 
----
-
-## 2. Structure
-
-- Group by technology (e.g., `sqlalchemy_adapter`, `redis_adapter`, `s3_adapter`)
-- Each adapter must implement one or more outbound ports from `/ports/outbound/`
-- Do not leak adapter-specific types into service or domain layers
-
----
-
-## 3. Dependency Rules
-
-- Adapters may import:
-  - Port interfaces
-  - Domain DTOs and value objects
-  - Libraries required to interface with the external system
-- Adapters must not import from:
-  - `/services/**`
-  - `/api/**`
-  - Other adapters
-
----
-
-## 4. Implementation Guidelines
-
-- Adapters must be initialized outside of the domain (e.g., in a DI container or app factory)
-- Return domain types or DTOs—not raw ORM or SDK objects
-- Handle all infrastructure exceptions locally and raise clean errors
-
----
-
-## 5. Logging and Observability
-
-- Log integration-specific events with `adapter_name`, `operation`, and `duration_ms`
-- Mask sensitive data in logs
-- Emit Prometheus-compatible metrics where relevant (e.g., latency, retries)
-
----
-
-## 6. Testing
-
-- Use mock infrastructure clients in unit tests
-- Include integration tests (if side effects are testable)
-- Validate compliance with expected port behaviors
-
----
-
-## 7. Violations
-
-- Direct calls to external services from domain or service layers are forbidden
-- Reusing adapter logic without a port contract is disallowed
-- All adapter usage must be mediated by the port it implements
+**Testing:**
+- Mock external service clients (database, API, cache) in unit tests
+- Integration tests use real infrastructure for side-effect validation
+- Verify adapter compliance with port contract

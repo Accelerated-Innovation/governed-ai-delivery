@@ -43,7 +43,25 @@ CLI features may be deterministic (no LLM). If mode is `llm`, all L5 contracts a
 
 ---
 
-## 4. Implementation Rules
+## 4. Project Documentation
+
+Your project's language- and framework-specific conventions are documented in `docs/backend/architecture/`. Before implementing, read the relevant documents:
+
+| Aspect | Document | Content |
+|---|---|---|
+| CLI / inbound adapter | `CLI_CONVENTIONS.md` | Command structure, arguments, output format |
+| Services / domain | `ARCH_CONTRACT.md` | Architecture model, layering, approved libraries |
+| LLM gateway | `LLM_GATEWAY_CONTRACT.md` | LiteLLM usage, provider routing, model aliases |
+| Guardrails / safety | `GUARDRAILS_CONTRACT.md` | NeMo Guardrails and Guardrails AI integration |
+| Observability | `OBSERVABILITY_LLM_CONTRACT.md` | OpenLLMetry and Langfuse setup |
+| LLM evaluation | `EVALUATION_LLM_CONTRACT.md` | DeepEval, Promptfoo, RAGAS integration |
+| Technology decisions | `TECH_STACK.md` | Approved frameworks, libraries, tools, and versions |
+
+These documents define your stack's implementation. The architecture principles (hexagonal architecture, boundaries, evaluation) are universal; the specific tools and patterns are here.
+
+---
+
+## 5. Implementation Rules
 
 * Follow Hexagonal Architecture, CLI conventions
 * All LLM calls through LiteLLM

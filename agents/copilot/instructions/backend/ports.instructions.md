@@ -2,69 +2,22 @@
 applyTo: "**/ports/**"
 ---
 
-# Port Layer Instructions
+# Port Layer — Domain Contracts
 
-These rules apply to all files under `/ports/**`. Ports define interfaces that decouple the domain logic from framework and infrastructure details.
+**Your project's architecture contract:** `docs/backend/architecture/ARCH_CONTRACT.md` and `BOUNDARIES.md`
 
----
+Ports define the contracts between the domain and its adapters. Review the architecture docs for interface guidelines and dependency rules.
 
-## 1. Purpose
+**Universal constraints (apply to any language):**
+- Inbound ports (`ports/inbound/`) define how the domain logic is called (use cases, command handlers)
+- Outbound ports (`ports/outbound/`) define what external systems the domain depends on (storage, APIs, messaging)
+- Ports are pure interfaces/contracts — no implementation logic, no side effects
+- Ports must be framework-agnostic: no web framework, ORM, or infrastructure library references
+- Port method signatures must use domain types or DTOs, never raw framework or infrastructure types
+- Ports may import domain models, value objects, exceptions, and standard language types only
+- Each port file defines a single interface/contract
+- Adapters must implement outbound port interfaces; inbound ports are called by adapters
 
-- Declare clear boundaries between domain and technical layers
-- Inbound ports define how the domain is invoked (e.g., use cases)
-- Outbound ports define what the domain depends on (e.g., storage, messaging)
-
----
-
-## 2. Structure
-
-- Use `ports/inbound/**` for service-facing interfaces
-- Use `ports/outbound/**` for external dependency contracts
-- Each file should define a single interface (abstract base class or Protocol)
-
----
-
-## 3. Guidelines
-
-- Do not implement logic in port files
-- Ports must be framework-agnostic (no FastAPI, SQLAlchemy, etc.)
-- Define type-safe method signatures and docstrings
-- Accept and return domain types or DTOs—not raw infra types
-
----
-
-## 4. Dependencies
-
-- Ports may import:
-  - Domain models, value objects, DTOs
-  - Standard Python typing
-- Ports must not import:
-  - `/api/**`
-  - `/adapters/**`
-  - `/services/**`
-  - Infra libraries (e.g., boto3, SQLAlchemy)
-
----
-
-## 5. Design Expectations
-
-- Keep interfaces minimal and focused
-- Use composition over inheritance for complex flows
-- Apply versioning if ports evolve (e.g., `v1/`, `v2/` folders)
-
----
-
-## 6. Testing
-
-- Ports themselves do not require tests
-- All implementations (adapters) must be testable against the interface
-
----
-
-## 7. Violations
-
-- Logic or side effects in a port file
-- Leaking adapter types into method signatures
-- Circular imports from adapters or services
-
-All port contracts are subject to review and must remain stable for consumers.
+**Testing:**
+- Port files do not themselves require tests
+- All adapter implementations must satisfy their port interface contract (testable in isolation)

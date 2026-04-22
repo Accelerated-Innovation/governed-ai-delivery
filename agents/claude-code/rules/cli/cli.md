@@ -4,22 +4,21 @@ paths:
   - "**/commands/**"
 ---
 
-# CLI Layer Rules
+# CLI Layer — Inbound Adapter
 
-Follow the CLI conventions defined in `docs/backend/architecture/CLI_CONVENTIONS.md`.
+**Your project's CLI conventions:** `docs/backend/architecture/CLI_CONVENTIONS.md`
 
-All commands in `cli/` or `commands/` must:
+Read this document before implementing any CLI command. It defines your project's command structure, argument handling, output format, and error reporting.
 
-- Use Click or Typer for argument parsing and command structure
-- Delegate all logic to inbound ports (`ports/inbound/`)
-- Never access domain services, repositories, or adapter logic directly
-- Validate arguments using Click/Typer parameter types before calling ports
-- Map CLI arguments to domain objects (DTOs or value objects) before port calls
-- Use exit code 0 for success, 1 for user errors, 2 for system errors
-- Send structured output to stdout, error/status messages to stderr
-- Support `--format json|table|plain` for commands that produce data output
-- Include `--verbose` flag for debug-level logging
-- Never expose stack traces or internal details in normal mode
-- Avoid leaking Click/Typer types into service or port layers
-
-All CLI commands are inbound adapters. They must stay thin and port-driven.
+**Universal constraints (apply to any language):**
+- CLI commands are inbound adapters — delegate all business logic to inbound ports in `ports/inbound/`
+- Validate and parse arguments according to your CLI framework before calling ports
+- Map CLI arguments to domain objects (DTOs, value objects) before passing to ports
+- Commands must remain thin — no business logic inline
+- Never expose domain types directly in output; translate at the boundary
+- Use universal exit codes: 0 = success, 1 = user error (invalid input, business rule violation), 2 = system error (infrastructure failure)
+- Send structured output to stdout; send diagnostic/error messages to stderr
+- Provide structured output formats (`--format json|table|plain`) for machine-readable results
+- Include `--verbose` flag to enable debug-level logging
+- Never expose stack traces in normal mode
+- Domain layer must not depend on CLI framework types or libraries

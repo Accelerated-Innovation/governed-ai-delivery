@@ -65,6 +65,20 @@ The plan must:
 
 ---
 
+## Project Documentation
+
+Your project's language- and framework-specific conventions are documented in `docs/backend/architecture/`. When implementing:
+
+- **Architecture decisions:** Review `docs/backend/architecture/DESIGN_PRINCIPLES.md`
+- **Testing approach:** Review `docs/backend/architecture/TESTING.md`
+- **Framework and libraries:** Review `docs/backend/architecture/TECH_STACK.md`
+- **CLI conventions:** Review `docs/backend/architecture/CLI_CONVENTIONS.md`
+- **Boundaries and dependencies:** Review `docs/backend/architecture/BOUNDARIES.md`
+
+These documents define your stack's specific approach to the universal architecture principles (SOLID, DRY, YAGNI, KISS).
+
+---
+
 ## Implementation Rules
 
 - Implement one increment at a time

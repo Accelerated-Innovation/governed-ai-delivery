@@ -87,6 +87,24 @@ ADRs live under `docs/backend/architecture/ADR/`, follow `docs/backend/architect
 
 ---
 
+## Project Documentation
+
+Your project's language- and framework-specific conventions and standards are documented in `docs/backend/architecture/`. Before implementing in each layer, read the corresponding document:
+
+| Layer | Document | Content |
+|---|---|---|
+| CLI / inbound adapter | `CLI_CONVENTIONS.md` | Command structure, argument handling, output formatting, exit codes, testing |
+| Services / domain | `ARCH_CONTRACT.md` | Architecture model, layering, approved libraries, design principles |
+| Ports | `ARCH_CONTRACT.md` | Port interface guidelines and architecture patterns |
+| Adapters / infrastructure | `ARCH_CONTRACT.md` + `BOUNDARIES.md` | Integration patterns, layer boundaries, dependency rules |
+| Security / auth | `SECURITY_AUTH_PATTERNS.md` | Authentication model, token strategy, credential handling, RBAC |
+| Testing | `TESTING.md` | Test philosophy, FIRST principles, BDD approach, test structure |
+| Technology decisions | `TECH_STACK.md` | Approved frameworks, libraries, tools, and versions |
+
+These documents define your stack's specific approach. The architecture principles (hexagonal architecture, boundaries, evaluation) are universal; the implementation details are here.
+
+---
+
 ## Implementation Rules
 
 - Implement one increment at a time
@@ -94,8 +112,8 @@ ADRs live under `docs/backend/architecture/ADR/`, follow `docs/backend/architect
 - Follow Hexagonal Architecture (ports and adapters)
 - Use only approved frameworks from `docs/backend/architecture/TECH_STACK.md`
 - Use approved auth patterns from `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`
-- Follow CLI conventions from `docs/backend/architecture/CLI_CONVENTIONS.md`; CLI commands are inbound adapters that delegate to ports
-- Follow design principles from `docs/backend/architecture/DESIGN_PRINCIPLES.md`; use findings from approved tools (Ruff, SonarQube, Snyk, import-linter) as defined in `docs/backend/architecture/TECH_STACK.md` — blocking findings must be resolved before proceeding
+- Follow CLI conventions from `docs/backend/architecture/CLI_CONVENTIONS.md`
+- Follow design principles from `docs/backend/architecture/DESIGN_PRINCIPLES.md`; use findings from approved tools as defined in `docs/backend/architecture/TECH_STACK.md` — blocking findings must be resolved before proceeding
 
 Layer-specific rules load automatically from `.claude/rules/` when editing files in each layer:
 

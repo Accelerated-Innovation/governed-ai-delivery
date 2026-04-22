@@ -187,6 +187,24 @@ Copilot must not generate implementation code until these conditions are satisfi
 
 ---
 
+## 6. Project Documentation
+
+Your project's language- and framework-specific conventions and standards are documented in `docs/backend/architecture/`. Before implementing in each layer, read the corresponding document:
+
+| Layer | Document | Content |
+|---|---|---|
+| API / inbound adapter | `API_CONVENTIONS.md` | Routing style, request/response models, authentication, error mapping, testing |
+| Services / domain | `ARCH_CONTRACT.md` | Architecture model, layering, approved libraries, design principles |
+| Ports | `ARCH_CONTRACT.md` | Port interface guidelines and architecture patterns |
+| Adapters / infrastructure | `ARCH_CONTRACT.md` + `BOUNDARIES.md` | Integration patterns, layer boundaries, dependency rules |
+| Security / auth | `SECURITY_AUTH_PATTERNS.md` | Authentication model, token strategy, credential handling, RBAC |
+| Testing | `TESTING.md` | Test philosophy, FIRST principles, BDD approach, test structure |
+| Technology decisions | `TECH_STACK.md` | Approved frameworks, libraries, tools, and versions |
+
+These documents define your stack's specific approach. The architecture principles (hexagonal architecture, boundaries, evaluation) are universal; the implementation details are here.
+
+---
+
 ## 7. Implementation Rules
 
 ### 7.1 Incremental Delivery

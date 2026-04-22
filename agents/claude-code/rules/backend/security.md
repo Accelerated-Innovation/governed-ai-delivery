@@ -4,55 +4,25 @@ paths:
   - "**/auth/**"
 ---
 
-# Security and Authentication Rules
+# Security and Authentication — Adapter Layer
 
-Align with architectural patterns in `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`.
+**Your project's security patterns:** `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`
 
-## Authentication
+Read this document before implementing authentication or authorization. It defines your project's auth model, token strategy, and credential handling.
 
-- Use OAuth2 password or client credentials flow
-- Enforce bearer token validation using `Depends(get_current_user)`
-- Token parsing must verify signature, check `exp`/`iat`/`sub` claims, and validate scopes
-- Reject unsigned, malformed, or expired tokens — never decode JWTs without verifying signature
+**Universal constraints (apply to any language):**
+- All inbound routes must authenticate before calling any port
+- Pass a validated `UserContext` or `Claims` object to the domain, never raw tokens
+- Verify token signatures and validate claims (`exp`, `iat`, `sub`) before use
+- Reject unsigned, malformed, or expired tokens — never skip signature verification
+- Use Role-Based Access Control (RBAC) for authorization; roles/scopes come from validated tokens
+- Never hardcode credentials — load all secrets from environment or secure vaults
+- Never log raw credentials, tokens, or sensitive user data
+- Return `401 Unauthorized` for failed authentication, `403 Forbidden` for insufficient authorization
+- Hash passwords using strong algorithms (bcrypt, scrypt, argon2 equivalent)
+- Use secure transport for all credential exchanges (HTTPS-only, secure cookies for tokens)
+- Domain services must not depend on auth libraries or token types
 
-## Authorization
-
-- Use Role-Based Access Control (RBAC) with roles in JWT (`role` or `scope` claim)
-- Use `Depends(check_scope("admin"))` to guard protected endpoints
-- Centralize role checks — do not hardcode inline logic
-
-## Secrets and Config
-
-- Never hardcode credentials — load from environment via `BaseSettings`
-- Never commit `.env`, `.pem`, `.key`, or credential files
-
-## Secure Storage
-
-- Hash passwords using `bcrypt` or `argon2` via `passlib`
-- Never log raw credentials, tokens, or user PII
-
-## Error Handling
-
-- Return `401 Unauthorized` for unauthenticated, `403 Forbidden` for unauthorized
-- Never expose stack traces or debug output to clients
-- All logs must include `request_id` and `user_id` with masked identifiers
-
-## Input Validation
-
-- Use strict `pydantic` models for auth inputs
-- Validate emails via `EmailStr`, passwords with length and format constraints
-
-## Security Headers
-
-Set via middleware: `X-Content-Type-Options`, `X-Frame-Options`, `Strict-Transport-Security`, `Content-Security-Policy`.
-
-## Domain Alignment
-
-Authentication and authorization are handled only in the API and auth adapter layer. Domain services receive a validated `UserContext` — no business logic depends on raw tokens.
-
-## Forbidden
-
-- Decoding JWT without verification
-- Storing tokens in plaintext
-- Using weak hash functions (MD5, SHA1)
-- Using `eval()` or `exec()`
+**Error handling:**
+- Ensure stack traces are never exposed to HTTP clients
+- Include `request_id` and (masked) `user_id` in all security-related logs
