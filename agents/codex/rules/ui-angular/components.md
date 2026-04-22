@@ -1,37 +1,33 @@
-# Component Rules — View Layer
+# Component Rules — Angular
+
+See: `docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md`
 
 Applies to: `src/features/*/components/`, `src/shared/components/`
 
-## Hard Rules
+## Hard Rules (Summary)
 
-- Standalone components only — no NgModule declarations
-- `ChangeDetectionStrategy.OnPush` — always, no exceptions
-- No direct `HttpClient` injection or API service injection in components
-- No business logic or data transformation in component class or template
-- No imports from another feature's internals
-- Use `@if`, `@for`, `@switch` (Angular 17+ control flow) — not `*ngIf`, `*ngFor`
-- Always provide `track` by a unique identifier in `@for` — never by `$index` for mutable lists
+- **Standalone only** → no NgModule declarations
+- **OnPush detection** → always required
+- **No direct API calls** → use query functions (e.g., `injectUserProfile`)
+- **No data transformation** → shape data in query functions via `select`
+- **No business logic** → conditional rendering only
+- **No cross-feature imports** → share via `src/shared/`
+- **No direct store writes** → call named actions
 
-## Structure
-
-- One component per file
-- Template in a separate `.html` file
-- Styles in a separate `.css` file
-- Signal-based inputs (`input()`, `input.required<T>()`) for new code
-- Signal-based outputs (`output<T>()`) for new code
+Full guidance with code examples: see **Section 8** in `docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md`
 
 ## Testing
 
-- Test every component with Jest + Angular Testing Library
-- Query by accessible role, label, or text — not by CSS class or component internals
-- No snapshot tests
-- All tests must satisfy FIRST principles
-- Run jest-axe accessibility check in every component test:
+See: `docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md` **Section 9** for testing requirements.
 
-```typescript
-it('has no accessibility violations', async () => {
-  const { container } = await render(MyComponent, { ... });
-  const results = await axe(container);
-  expect(results).toHaveNoViolations();
-});
-```
+- Vitest + Angular Testing Utilities
+- FIRST principles (Fast, Isolated, Repeatable, Self-Verifying, Timely)
+- **Required:** axe-core accessibility checks in every test
+
+## Accessibility
+
+See: `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md` for complete guidance.
+
+- WCAG 2.1 Level AA mandatory
+- Every test must include axe-core checks
+- Manual screen reader testing required before merge

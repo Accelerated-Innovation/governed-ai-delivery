@@ -2,17 +2,20 @@
 applyTo: "**/*.component.ts,**/*.component.html"
 ---
 
-Follow the component conventions defined in `docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md`.
+# Component Rules — Angular
 
-All Angular components must:
+See: `docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md`
 
-- Be standalone — no NgModule declarations
-- Use `ChangeDetectionStrategy.OnPush` — always, no exceptions
-- Not inject `HttpClient` or API services directly
-- Contain no business logic or data transformation in class or template
-- Not import from another feature's internals
-- Use `@if`, `@for`, `@switch` control flow (Angular 17+) — not `*ngIf`, `*ngFor`
-- Always provide `track` by a unique identifier in `@for` — never by `$index` for mutable lists
-- Use signal-based `input()` and `output()` for new code
+All components must follow:
 
-All components are views. They render. They do not fetch, transform, or decide.
+1. **Standalone only** → no NgModule declarations
+2. **OnPush detection** → always required
+3. **No API calls** → use query functions (e.g., `injectUserProfile`)
+4. **No data transformation** → shape in query functions via `select`
+5. **No business logic** → conditional rendering only
+6. **No cross-feature imports** → share via `src/shared/`
+7. **Modern syntax** → `@if/@for/@switch`, signal `input()`/`output()`
+
+**Testing:** Vitest + Angular Testing Utilities, query by role/label/text, axe-core in every test
+
+**Accessibility:** WCAG 2.1 Level AA required; see `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`

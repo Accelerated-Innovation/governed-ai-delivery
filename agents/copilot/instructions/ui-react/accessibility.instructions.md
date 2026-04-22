@@ -2,23 +2,27 @@
 applyTo: "**/*.tsx"
 ---
 
-All React components must meet WCAG 2.1 Level AA. Zero critical or serious axe-core violations are permitted.
+# Accessibility Rules — React
 
-Every `.tsx` file must:
+See: `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`
 
-- Make every interactive element keyboard operable
-- Provide descriptive `alt` text on all images — empty string only for decorative images
-- Associate every form input with a `<label>` — not placeholder text alone
-- Provide `aria-label` on every icon button
-- Never use color as the sole means of conveying information
-- Keep focus visible at all times — do not suppress outline without a replacement
-- Trap focus in modal dialogs and return focus on close
-- Announce dynamic content updates via `aria-live` where appropriate
+All React components must meet **WCAG 2.1 Level AA** — zero critical axe-core violations permitted.
 
-Every component test must include:
+## Core Requirements
+
+- **Semantic HTML first** — use native elements before ARIA
+- **Keyboard operable** — all interactions via Tab, Enter, Space, Arrows, Escape
+- **Images** — descriptive alt text (empty only for decorative)
+- **Forms** — labels not placeholders; errors via `aria-describedby`
+- **Focus** — always visible; never suppress outline without replacement
+- **Color** — never the sole information carrier
+- **Testing** — axe-core in every component test
+
+## Required in Every Test
 
 ```typescript
-import { axe } from 'jest-axe';
+import { render, screen } from '@testing-library/react';
+import { axe } from 'vitest-axe';
 
 it('has no accessibility violations', async () => {
   const { container } = render(<MyComponent />);
@@ -27,4 +31,4 @@ it('has no accessibility violations', async () => {
 });
 ```
 
-Any intentional WCAG exception requires an ADR.
+Full guidance: `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`

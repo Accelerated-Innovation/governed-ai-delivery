@@ -2,29 +2,36 @@
 applyTo: "**/*.component.ts,**/*.component.html"
 ---
 
-All Angular components must meet WCAG 2.1 Level AA. Zero critical or serious axe-core violations are permitted.
+# Accessibility Rules — Angular
 
-Every component must:
+See: `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`
 
-- Make every interactive element keyboard operable
-- Provide descriptive `alt` on all images — empty string only for decorative images
-- Associate every form control with a `<label>` — not placeholder text alone
-- Provide `aria-label` on every icon button
-- Never use color as the sole means of conveying information
-- Keep focus visible — do not suppress outline without a replacement
-- Use Angular CDK `A11yModule` for focus trapping in dialogs and overlays
-- Use Angular CDK `LiveAnnouncer` for programmatic screen reader announcements
+All Angular components must meet **WCAG 2.1 Level AA** — zero critical axe-core violations permitted.
 
-Every component test must include:
+## Core Requirements
+
+- **Semantic HTML first** — use native elements before ARIA
+- **Keyboard operable** — all interactions via Tab, Enter, Space, Arrows, Escape
+- **Images** — descriptive alt text (empty only for decorative)
+- **Forms** — labels not placeholders; errors via `aria-describedby`
+- **Focus** — always visible; never suppress outline without replacement
+- **Color** — never the sole information carrier
+
+## Angular-Specific
+
+- Use **Angular CDK `A11yModule`** for focus trapping in dialogs/overlays
+- Use **Angular CDK `LiveAnnouncer`** for dynamic screen reader announcements
+
+## Required in Every Test
 
 ```typescript
-import { axe, toHaveNoViolations } from 'jest-axe';
-expect.extend(toHaveNoViolations);
+import { render } from '@testing-library/angular';
+import { axe } from 'vitest-axe';
 
 it('has no accessibility violations', async () => {
-  const { container } = await render(MyComponent, { ... });
+  const { container } = await render(MyComponent);
   expect(await axe(container)).toHaveNoViolations();
 });
 ```
 
-Any intentional WCAG exception requires an ADR.
+Full guidance: `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`
