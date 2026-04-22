@@ -189,12 +189,12 @@ Tier 5 (Documentation) — enables team self-service
 - [ ] 1.7 L3 starters (6 files)
 
 ### Tier 2: Agent Rules
-- [ ] 2.1 Claude Code repo-scope.md
-- [ ] 2.2 Copilot repo-scope.instructions.md
-- [ ] 2.3 Codex repo-scope.md
-- [ ] 2.4 Claude Code spec-compliance cross-ref
-- [ ] 2.5 Copilot spec-compliance cross-ref
-- [ ] 2.6 Codex spec-compliance cross-ref
+- [x] 2.1 Claude Code repo-scope.md
+- [x] 2.2 Copilot repo-scope.instructions.md
+- [x] 2.3 Codex repo-scope.md
+- [x] 2.4 Claude Code spec-compliance cross-ref
+- [x] 2.5 Copilot spec-compliance cross-ref
+- [x] 2.6 Codex spec-compliance cross-ref
 
 ### Tier 3: Preflight Skills
 - [ ] 3.1 Claude Code backend preflight
