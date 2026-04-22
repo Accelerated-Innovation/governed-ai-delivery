@@ -2,22 +2,16 @@
 applyTo: "**/hooks/**,**/store/**"
 ---
 
-Follow the state management rules defined in `docs/ui/architecture/angular/STATE_MANAGEMENT.md`.
+# State Management — Angular
 
-All query inject functions in `**/hooks/**` must:
+See: `docs/ui/architecture/angular/STATE_MANAGEMENT.md`
 
-- Use `injectQuery` or `injectMutation` — never call API services directly in components
-- Wrap in a named inject function — never expose raw query results
-- Transform API responses in the `select` option — never in templates
-- Define query keys as typed constants in `query-keys.ts`
-- Invalidate relevant query keys on mutation success
+## Query Functions
 
-All signal stores in `**/store/**` must:
+Wrap `injectQuery`/`injectMutation` in named inject functions with `select` transforms. Never expose raw query results to components.
 
-- Use Angular Signals for UI-only state — modal open/close, active tab, pagination
-- Never store server data — use TanStack Query cache
-- Expose signals as read-only via `.asReadonly()`
-- Export named action methods — not raw signal setters
-- Never call API services directly
+## Signal Stores
 
-See `docs/ui/architecture/angular/STATE_MANAGEMENT.md` for usage examples.
+Use Angular Signals for UI-only state (modals, tabs, selections). Expose as read-only. Never store server data — use TanStack Query cache instead.
+
+Full guidance with patterns: `docs/ui/architecture/angular/STATE_MANAGEMENT.md`

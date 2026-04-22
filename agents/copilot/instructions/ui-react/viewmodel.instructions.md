@@ -2,22 +2,16 @@
 applyTo: "**/hooks/**,**/store/**"
 ---
 
-Follow the state management rules defined in `docs/ui/architecture/react/STATE_MANAGEMENT.md`.
+# State Management — React
 
-All hooks in `**/hooks/**` must:
+See: `docs/ui/architecture/react/STATE_MANAGEMENT.md`
 
-- Wrap `useQuery` or `useMutation` in a named custom hook — never expose raw query results
-- Transform API responses in the `select` option — never in the component
-- Define query keys as typed constants in a `queryKeys.ts` file
-- Invalidate relevant query keys on mutation success
-- Not import from `components/`
+## Hooks
 
-All stores in `**/store/**` must:
+Wrap `useQuery`/`useMutation` in named hooks with `select` transforms. Never expose raw query results to components.
 
-- Use Zustand for UI-only state — modal open/close, active tab, pagination, selections
-- Never store server data — that belongs in React Query cache
-- Be scoped to a single feature — no global catch-all store
-- Export named typed actions — not raw `set`
-- Never call API functions directly — mutations belong in React Query
+## Stores
 
-See `docs/ui/architecture/react/STATE_MANAGEMENT.md` for usage examples.
+Use Zustand for UI-only state (modals, tabs, selections). Never store server data — use React Query cache instead.
+
+Full guidance with patterns: `docs/ui/architecture/react/STATE_MANAGEMENT.md`
