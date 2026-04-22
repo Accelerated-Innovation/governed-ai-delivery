@@ -188,32 +188,78 @@ This enables the **Red → Green → Refactor** cycle.
 
 All feature work must follow the **Red → Green → Refactor** cycle.
 
-1. Write or generate the test first.
-2. Confirm the test fails.
-3. Implement the minimal code required to make the test pass.
-4. Refactor while keeping tests passing.
+## Discipline
 
-Implementation must adapt to satisfy tests.
+1. **Write the test first.** The test defines the specification before code exists.
+2. **Confirm the test fails.** Red state proves the test can fail and the feature doesn't exist yet.
+3. **Implement minimal code to pass the test.** Green state — no more, no less.
+4. **Refactor while keeping tests passing.** Tests remain your safety net.
 
-Tests must represent the intended specification before code exists.
+## Principle
+
+**Tests are the specification. Code must conform to tests, not vice versa.**
+
+Implementation adapts to satisfy the tests. Tests are immutable until the specification changes.
+
+## Process
+
+Each increment in `plan.md` lists tests before implementation:
+
+```
+## Increment 1: JWT validation
+
+### Tests (write first)
+- test_validate_token_with_valid_signature
+- test_reject_token_with_invalid_signature
+- test_reject_expired_token
+
+### Implementation
+- TokenValidator class
+- RS256 signature verification
+- Expiration check
+```
+
+Do not mark an increment complete until all listed tests pass.
 
 ---
 
-# 5. Prohibited Practice
+# 5. Test Immutability and Prohibited Practices
 
-Tests must **not** be rewritten simply to make failing code pass.
+Tests must **not** be rewritten to make failing code pass.
 
-If a test fails, the default response is:
+## Rule
 
-- fix the implementation
+If a test fails, the default response is: **fix the implementation**.
 
-Tests may only be changed when:
+Tests may ONLY be changed when:
+- The specification actually changed
+- The Gherkin scenario was incorrect
+- The original test did not represent the intended behavior
+- A true design flaw was discovered (rare)
 
-- the specification changed
-- the Gherkin scenario was incorrect
-- the original test did not represent the intended behavior
+## Anti-Patterns (Forbidden)
 
-Weakening tests to satisfy implementation is prohibited.
+These are violations of test-first discipline:
+
+| Anti-Pattern | Why It's Wrong | What To Do Instead |
+|---|---|---|
+| "The test is too strict, let me loosen it" | Tests define the contract; code must meet it | Fix the implementation to be correct |
+| "The test is hard to write, let me skip it" | Skipped tests mean untested code | Solve the design problem that makes the test hard |
+| "The test fails, let me adjust expectations" | Changes the spec to fit broken code | Fix the code to meet the spec |
+| "This test is flaky, let me add sleep/retry" | Masks real timing or concurrency bugs | Fix the actual race condition or non-determinism |
+| "I'll disable this test until I have time to fix it" | Tests can't fail; they're requirements | Enable and fix it now, or defer the feature |
+| "Let me rewrite the test to match my implementation" | Breaks traceability to the spec | Implement to match the test |
+
+## When Tests Are Wrong
+
+If you discover a test is genuinely incorrect:
+
+1. Write a NEW test that clarifies the correct behavior
+2. Do NOT modify the existing test
+3. Fix implementation to pass both tests
+4. Document the correction in a commit message
+
+This preserves the history and intent of the original test.
 
 ---
 
