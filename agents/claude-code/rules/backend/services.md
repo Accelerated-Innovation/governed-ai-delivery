@@ -5,9 +5,11 @@ paths:
 
 # Service Layer — Domain Logic
 
-**Your project's architecture contract:** `docs/backend/architecture/ARCH_CONTRACT.md`
+**Quick reference:** `docs/backend/architecture/LAYER_IMPLEMENTATION.md` section 1
 
-Services implement the business logic of your domain. Review the architecture contract for layer structure and boundaries.
+**Architecture contract:** `docs/backend/architecture/ARCH_CONTRACT.md`
+
+Services implement the business logic of your domain. Read LAYER_IMPLEMENTATION for a consolidated view of all layers with examples.
 
 **Universal constraints (apply to any language):**
 - Services contain business logic, state transitions, and orchestration — nothing else

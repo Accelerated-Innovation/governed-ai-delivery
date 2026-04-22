@@ -1,8 +1,10 @@
 # Adapter Layer — Infrastructure Integration
 
-**Your project's architecture contract:** `docs/backend/architecture/ARCH_CONTRACT.md` and `BOUNDARIES.md`
+**Quick reference:** `docs/backend/architecture/LAYER_IMPLEMENTATION.md` section 4
 
-Adapters implement outbound port contracts, connecting your domain to external systems (databases, APIs, caches). Review the architecture docs for integration patterns and dependency rules.
+**Boundaries:** `docs/backend/architecture/BOUNDARIES.md`
+
+Adapters implement outbound port contracts, connecting your domain to external systems (databases, APIs, caches). Read LAYER_IMPLEMENTATION for a consolidated view with implementation examples.
 
 **Universal constraints (apply to any language):**
 - Adapters implement outbound port interfaces from `ports/outbound/`

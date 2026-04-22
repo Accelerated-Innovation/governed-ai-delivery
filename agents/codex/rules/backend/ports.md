@@ -1,8 +1,10 @@
 # Port Layer — Domain Contracts
 
-**Your project's architecture contract:** `docs/backend/architecture/ARCH_CONTRACT.md` and `BOUNDARIES.md`
+**Quick reference:** `docs/backend/architecture/LAYER_IMPLEMENTATION.md` section 2
 
-Ports define the contracts between the domain and its adapters. Review the architecture docs for interface guidelines and dependency rules.
+**Boundaries:** `docs/backend/architecture/BOUNDARIES.md`
+
+Ports define the contracts between the domain and its adapters. Read LAYER_IMPLEMENTATION for a consolidated view with examples of inbound and outbound ports.
 
 **Universal constraints (apply to any language):**
 - Inbound ports (`ports/inbound/`) define how the domain logic is called (use cases, command handlers)
