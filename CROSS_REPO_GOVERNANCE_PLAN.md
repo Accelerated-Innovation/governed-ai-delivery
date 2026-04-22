@@ -206,10 +206,10 @@ Tier 5 (Documentation) — enables team self-service
 - [x] 3.7 Shared guidance doc
 
 ### Tier 4: CI Validation
-- [ ] 4.1 GitHub Actions job template
-- [ ] 4.2 Azure Pipelines job template
-- [ ] 4.3 CI README documentation
-- [ ] 4.4 Starter template instructions
+- [x] 4.1 GitHub Actions job template
+- [x] 4.2 Azure Pipelines job template
+- [x] 4.3 CI README documentation
+- [x] 4.4 Starter template instructions
 
 ### Tier 5: Documentation
 - [ ] 5.1 Cross-repo features guide
