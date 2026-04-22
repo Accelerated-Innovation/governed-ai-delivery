@@ -212,11 +212,11 @@ Tier 5 (Documentation) — enables team self-service
 - [x] 4.4 Starter template instructions
 
 ### Tier 5: Documentation
-- [ ] 5.1 Cross-repo features guide
-- [ ] 5.2 README multi-repo section
-- [ ] 5.3 Example multi-repo feature
-- [ ] 5.4 BOUNDARIES.md update
-- [ ] 5.5 FAQ entry
+- [x] 5.1 Cross-repo features guide
+- [x] 5.2 README multi-repo section
+- [x] 5.3 Example multi-repo feature
+- [x] 5.4 BOUNDARIES.md update
+- [x] 5.5 FAQ entry
 
 ---
 
