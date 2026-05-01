@@ -1,26 +1,31 @@
-# Component Rules — View Layer
+# Component Rules — React
+
+See: `docs/ui/architecture/react/COMPONENT_CONVENTIONS.md`
 
 Applies to: `src/features/*/components/`, `src/shared/components/`
 
-## Hard Rules
+## Hard Rules (Summary)
 
-- No direct API calls. No `fetch`, `axios`, or `useQuery` at the top of a component file.
-- No data transformation. If the shape coming from the hook isn't right for the view, fix the hook.
-- No business logic. Conditional rendering based on data is fine. Deriving values from raw API responses is not.
-- No imports from another feature's `components/`, `hooks/`, `store/`, or `api/`.
-- No direct Zustand store writes from event handlers — call a clearly named action from the store.
+- **No direct API calls** → use custom hooks wrapping React Query
+- **No data transformation** → transform data in hooks via `select`
+- **No business logic** → conditional rendering only, extract logic to hooks
+- **No cross-feature imports** → share via `src/shared/`
+- **No direct store writes** → call named actions from store
 
-## Structure
-
-- One component per file
-- Props typed with a local `interface` — not imported from `types/` unless shared
-- Default export for the component, named exports for sub-components
-- Co-locate styles with the component (CSS modules or styled-components)
+Full guidance with code examples: see **Section 8** in `docs/ui/architecture/react/COMPONENT_CONVENTIONS.md`
 
 ## Testing
 
-- Test every component with Vitest + React Testing Library
-- Test behaviour, not implementation — query by role, label, or text
-- No snapshot tests
-- All tests must satisfy FIRST principles (see `docs/ui/evaluation/eval_criteria.md`)
-- Run axe-core accessibility check in every component test
+See: `docs/ui/architecture/react/COMPONENT_CONVENTIONS.md` **Section 8** for testing requirements.
+
+- Vitest + React Testing Library
+- FIRST principles (Fast, Isolated, Repeatable, Self-Verifying, Timely)
+- **Required:** axe-core accessibility checks in every test
+
+## Accessibility
+
+See: `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md` for complete guidance.
+
+- WCAG 2.1 Level AA mandatory
+- Every test must include axe-core checks
+- Manual screen reader testing required before merge

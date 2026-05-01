@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from cli.govkit import copy_entry, load_manifest, resolve_options, resolve_variant_files
+from cli.govkit import copy_entry, load_manifest, resolve_options, resolve_variant_files, cmd_apply, cmd_init, write_govkit_marker
 
 
 # ---------------------------------------------------------------------------
@@ -518,3 +518,138 @@ class TestLevel5VariantResolution:
         assert files[0]["src"] == "l5.md"
         assert "ci/github/deepeval-gate.yml" in shared
         assert "features/starter_backend_l5/" in shared
+
+
+# ---------------------------------------------------------------------------
+# Smoke tests — features/ behavior after no-starters-on-apply change
+# ---------------------------------------------------------------------------
+
+
+def _make_fake_agent(tmp_path: Path, shared: list[str] | None = None) -> Path:
+    """Minimal variant-based manifest that includes a features/ shared entry."""
+    agents = tmp_path / "agents" / "claude-code"
+    agents.mkdir(parents=True)
+    manifest = {
+        "agent": "claude-code",
+        "description": "Smoke test agent",
+        "options": {
+            "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
+            "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
+            "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
+            "ui": {"prompt": "UI?", "choices": ["none"], "default": "none"},
+        },
+        "variants": {
+            "type": {
+                "api": {
+                    "files": [],
+                    "shared": shared if shared is not None else ["features/starter_backend/"],
+                }
+            }
+        },
+        "base_files": [],
+    }
+    (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return tmp_path
+
+
+def _apply_args(target: Path, **overrides) -> argparse.Namespace:
+    defaults = dict(agent="claude-code", target=str(target), level="4", type="api", ci="github", ui="none")
+    defaults.update(overrides)
+    return argparse.Namespace(**defaults)
+
+
+class TestSmokeApply:
+    def test_features_dir_created_empty(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        fake_repo = _make_fake_agent(tmp_path)
+        target = tmp_path / "target"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", fake_repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", fake_repo)
+
+        cmd_apply(_apply_args(target))
+
+        features_dir = target / "features"
+        assert features_dir.is_dir(), "features/ should exist after apply"
+        starters = list(features_dir.glob("starter_*"))
+        assert starters == [], f"No starter_* folders should be copied; found: {starters}"
+
+    def test_reminder_message_printed(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        fake_repo = _make_fake_agent(tmp_path)
+        target = tmp_path / "target"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", fake_repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", fake_repo)
+
+        cmd_apply(_apply_args(target))
+
+        out = capsys.readouterr().out
+        assert "govkit init" in out
+
+    def test_non_features_shared_still_copied(self, tmp_path, monkeypatch):
+        """Shared entries that are not under features/ should still be copied."""
+        import cli.govkit as mod
+
+        fake_repo = _make_fake_agent(tmp_path, shared=["features/starter_backend/", "governance/"])
+        (fake_repo / "governance").mkdir()
+        (fake_repo / "governance" / "policy.md").write_text("policy", encoding="utf-8")
+
+        target = tmp_path / "target"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", fake_repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", fake_repo)
+
+        cmd_apply(_apply_args(target))
+
+        assert (target / "governance" / "policy.md").exists()
+        assert not (target / "features" / "starter_backend").exists()
+
+
+class TestSmokeInit:
+    def _bundled_repo(self, tmp_path: Path, starter: str = "starter_backend") -> Path:
+        """Fake govkit install with a minimal bundled starter."""
+        bundled = tmp_path / "govkit_install" / "features" / starter
+        bundled.mkdir(parents=True)
+        (bundled / "acceptance.feature").write_text("Feature: bundled", encoding="utf-8")
+        (bundled / "nfrs.md").write_text("# NFRs", encoding="utf-8")
+        return tmp_path / "govkit_install"
+
+    def test_init_scaffolds_from_bundled_starters(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        fake_repo = self._bundled_repo(tmp_path)
+        monkeypatch.setattr(mod, "REPO_ROOT", fake_repo)
+
+        target = tmp_path / "project"
+        (target / "features").mkdir(parents=True)
+        write_govkit_marker(target, "claude-code", "4", {"type": "api"})
+
+        cmd_init(argparse.Namespace(feature="my-feature", target=str(target), level=None, starter="backend"))
+
+        feature_dir = target / "features" / "my-feature"
+        assert feature_dir.exists()
+        assert (feature_dir / "acceptance.feature").read_text(encoding="utf-8") == "Feature: bundled"
+        assert (feature_dir / "nfrs.md").exists()
+
+    def test_init_ignores_starters_in_target(self, tmp_path, monkeypatch):
+        """Starters left in the target project (from old govkit versions) should not be used."""
+        import cli.govkit as mod
+
+        fake_repo = self._bundled_repo(tmp_path)
+        monkeypatch.setattr(mod, "REPO_ROOT", fake_repo)
+
+        target = tmp_path / "project"
+        features_dir = target / "features"
+        features_dir.mkdir(parents=True)
+        stale = features_dir / "starter_backend"
+        stale.mkdir()
+        (stale / "acceptance.feature").write_text("Feature: stale", encoding="utf-8")
+        write_govkit_marker(target, "claude-code", "4", {"type": "api"})
+
+        cmd_init(argparse.Namespace(feature="new-feature", target=str(target), level=None, starter="backend"))
+
+        content = (target / "features" / "new-feature" / "acceptance.feature").read_text(encoding="utf-8")
+        assert content == "Feature: bundled", "Should use bundled starter, not stale target starter"

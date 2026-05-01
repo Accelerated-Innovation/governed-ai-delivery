@@ -1,6 +1,8 @@
 # Architectural Boundaries
 
-This document defines module boundaries, allowed dependencies, and ownership rules. These boundaries enforce Hexagonal Architecture. All violations must be approved via ADR.
+This document defines module boundaries, allowed dependencies, and ownership rules within a single repository. These boundaries enforce Hexagonal Architecture. All violations must be approved via ADR.
+
+**Note on multi-repository features:** These layer boundaries apply *within* a single repository. For features spanning multiple repositories, see [CROSS_REPO_FEATURES.md](../../CROSS_REPO_FEATURES.md) and [REPO_SCOPE_ANALYSIS_GUIDANCE.md](../../REPO_SCOPE_ANALYSIS_GUIDANCE.md). Repository-level boundaries (which repo owns which modules) are separate from layer-level boundaries (which layer owns which abstractions).
 
 ## 1. Architectural Model
 

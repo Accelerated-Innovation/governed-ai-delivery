@@ -2,6 +2,49 @@
 
 This directory contains CI pipeline templates for both GitHub Actions and Azure DevOps. These are installed into target projects by `govkit apply`.
 
+---
+
+## Quick Start — First-Time CI Setup
+
+Run this once after `govkit apply` to wire up CI in your project.
+
+### 1. Enable Repository Scope Validation
+
+Copy the template to your project's workflow directory:
+
+- **GitHub:** `ci/github/repo-scope-check.yml` → `.github/workflows/repo-scope-check.yml`
+- **Azure:** `ci/azure/repo-scope-check.yml` → your Azure Pipelines definition
+
+Then set your repository name in the workflow file:
+
+```yaml
+REPO_OWNER: your-repo-name   # e.g. api-service, frontend-app, auth-service
+```
+
+Commit and push. The job runs automatically on every PR that modifies `features/*/nfrs.md`.
+
+### 2. Enable Project-Type Workflows
+
+Copy the relevant templates for your project type:
+
+| Workflow | Backend | CLI | UI |
+|---|:---:|:---:|:---:|
+| `quality-gate.yml` | ✓ | ✓ | optional |
+| `eval-gate.yml` (L4+) | ✓ | ✓ | — |
+| `l3-quality-gate.yml` (L3 only) | ✓ | ✓ | — |
+| `ui-quality-gate.yml` | — | — | ✓ |
+| `ui-eval-gate.yml` (L4+) | — | — | ✓ |
+
+### Quick Checklist
+
+- [ ] Copy `repo-scope-check.yml` and set `REPO_OWNER`
+- [ ] Copy project-type workflow(s) from the table above
+- [ ] Commit and push
+- [ ] Verify `repo-scope-check` runs on next PR to `features/*/nfrs.md`
+- [ ] Configure required secrets (see [Required Secrets](#required-secrets) below)
+
+---
+
 ## Level 3 vs Level 4 CI
 
 | Pipeline | Level 3 | Level 4 |
@@ -66,6 +109,42 @@ These governance rules are communicated to agents via CLAUDE.md / copilot-instru
 | ADR required when preflight flags it | No ADR validation | Add a job that checks for ADR files when preflight contains "ADR required" |
 | One increment per commit | No commit granularity check | Add commit message format validation (`feat(<scope>): increment N — ...`) |
 | Gherkin scenarios must map to tests | No test coverage gate | Add a job that cross-references `@nfr-*` tags with test files |
+
+---
+
+## Repository Scope Validation
+
+**File:** `repo-scope-check.yml` (GitHub: `ci/github/repo-scope-check.yml`, Azure: `ci/azure/repo-scope-check.yml`)
+
+**Purpose:** Validates that features declaring cross-repository scope explicitly list this repository as owner. Prevents agents from implementing features in the wrong repository.
+
+**When to use:** Every project should enable this check. It ensures team members don't accidentally write code that belongs in another repository.
+
+**How to enable:**
+
+1. Copy `ci/github/repo-scope-check.yml` to `.github/workflows/repo-scope-check.yml` (GitHub)
+   OR add it to your Azure Pipelines definition
+2. Set the `REPO_OWNER` variable to your repository's name
+   - Examples: `auth-service`, `api-gateway`, `frontend-app`, `client-sdk`
+3. Commit and push
+4. The job runs on every PR that modifies `features/*/nfrs.md`
+
+**What it checks:**
+
+- ✅ "Repository Scope" section exists in `nfrs.md`
+- ✅ Section has a checked box: `[x] This repository only` OR `[x] Multiple repositories`
+- ✅ For multi-repo features: this repo is listed in the "Multi-Repository Details" table
+- ❌ Fails if any feature is missing repo scope or doesn't list this repo as owner
+
+**Typical failures and fixes:**
+
+| Error | Fix |
+|---|---|
+| Missing "## Repository Scope" section | Add the section to the NFR template in progress |
+| No checked box | Check either "This repository only" or "Multiple repositories" |
+| "Multi-repo but does not list <repo> as owner" | Add your repo to the ownership table |
+
+See: `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md` for complete repo scope semantics.
 
 ---
 

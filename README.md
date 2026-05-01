@@ -183,16 +183,16 @@ your-project/
 ├── docs/
 │   ├── backend/architecture/   — ARCH_CONTRACT, API_CONVENTIONS, TECH_STACK, etc.
 │   └── backend/evaluation/     — eval_criteria.md, scoring rubrics
-├── features/
-│   ├── starter_backend/        — template for new features (5 artifacts)
-│   └── schema_contract_example/ — worked example
+├── features/                   — created empty; scaffold your first feature with govkit init
 ├── governance/
 │   └── backend/schemas/        — eval_criteria.schema.json
 └── ci/
     └── github/ (or azure/)     — quality-gate.yml, eval-gate.yml
 ```
 
-If `--ui react` or `--ui angular` was specified, you'll also see `docs/ui/`, `features/starter_ui/`, `governance/ui/`, and UI-specific CI pipelines.
+If `--ui react` or `--ui angular` was specified, you'll also see `docs/ui/`, `governance/ui/`, and UI-specific CI pipelines.
+
+> **Starter templates and worked examples** are bundled inside the govkit package, not copied into your project by `govkit apply`. Use `govkit init <feature-name>` to scaffold a new feature from the appropriate starter, or run `govkit list` to see what is available.
 
 ## 4. Customize Your Governance Artifacts — REQUIRED
 
@@ -614,6 +614,40 @@ A: Your predicted FIRST or Virtue average is below 4.0, or a predicted accessibi
 | L3 | Spec completeness, Gherkin structure, NFR coverage | govkit validate |
 | L4 | L3 + FIRST scores, 7 Virtue scores, eval_criteria schema | govkit validate + CI quality/eval gates |
 | L5 | L4 + LLM quality (DeepEval), adversarial safety (Promptfoo), retrieval quality (RAGAS), guardrails config | govkit validate + deepeval-gate + promptfoo-gate + guardrails-check |
+
+---
+
+# Multi-Repository Features
+
+If your feature spans multiple repositories (e.g., Auth Service + Client SDK + API Gateway), see:
+
+* [CROSS_REPO_FEATURES.md](docs/CROSS_REPO_FEATURES.md) — Complete guide to planning, implementing, and testing features across repos
+* [REPO_SCOPE_ANALYSIS_GUIDANCE.md](docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md) — How to declare repo ownership in your feature spec
+* `features/example-jwt-unification/` — Worked example of a 3-repo JWT authentication feature
+
+The key principle: **Every feature must declare which repositories own which parts.** This prevents agents from writing code in the wrong repo.
+
+## FAQ: Multi-Repo Features
+
+**Q: My feature needs changes in Auth Service, API Gateway, and Frontend. Where do I document this?**
+
+A: In the primary owner repo's `features/<feature>/nfrs.md`, add a "Repository Scope" section with a table listing each repo, owner team, modules, and contracts. See [CROSS_REPO_FEATURES.md#repository-ownership-table](docs/CROSS_REPO_FEATURES.md#repository-ownership-table).
+
+**Q: Can we implement the feature in just one repo and copy code to the others later?**
+
+A: No — this violates ownership and creates duplication. Each repo implements its own portion against the shared contract. See [CROSS_REPO_FEATURES.md#common-pitfalls](docs/CROSS_REPO_FEATURES.md#common-pitfalls).
+
+**Q: Should we wait for Repo A to finish before Repo B starts?**
+
+A: No. Each repo implements in parallel using mocks for external dependencies. Only the final integration tests (after all repos merge) verify cross-repo contracts. See [CROSS_REPO_FEATURES.md#implementation-stage-parallel](docs/CROSS_REPO_FEATURES.md#implementation-stage-parallel).
+
+**Q: How do we test a feature that depends on another repo's code?**
+
+A: Each repo has unit tests (mocking externals) and contract tests (verifying its own implementation). After all repos merge to main, run integration tests to verify end-to-end behavior. See [CROSS_REPO_FEATURES.md#testing-strategy](docs/CROSS_REPO_FEATURES.md#testing-strategy).
+
+**Q: What if the repos have deployment dependencies (one must be live before the other)?**
+
+A: Document the order in your `nfrs.md` "Key Cross-Repo Contracts" section. Ideally, design contracts to be backward-compatible so deployment order is flexible. See [CROSS_REPO_FEATURES.md#integration-stage-sequential](docs/CROSS_REPO_FEATURES.md#integration-stage-sequential).
 
 ---
 

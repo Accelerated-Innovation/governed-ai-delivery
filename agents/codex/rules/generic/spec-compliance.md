@@ -29,6 +29,7 @@ Before writing any implementation code:
 - Verify `nfrs.md` contains no TBD entries
 - Verify `acceptance.feature` has complete scenarios
 - Verify `plan.md` exists with defined increments and tests
+- Verify "Repository Scope" section in `nfrs.md` is complete (see Repository Scope Enforcement rule)
 
 If any artifact is incomplete, stop and request completion before proceeding.
 

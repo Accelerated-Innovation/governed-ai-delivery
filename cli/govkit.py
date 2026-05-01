@@ -204,9 +204,16 @@ def cmd_apply(args: argparse.Namespace) -> None:
 
         print("\nShared governance:")
         for shared_path in shared:
+            if shared_path.startswith("features/"):
+                continue
             src = REPO_ROOT / shared_path
             dest = target / shared_path
             copy_entry(src, dest, skip_existing=True)
+
+        features_dir = target / "features"
+        if not features_dir.exists():
+            features_dir.mkdir(parents=True)
+            print(f"  Created {features_dir} (empty)")
 
         write_govkit_marker(target, args.agent, level, options)
     else:
@@ -220,11 +227,21 @@ def cmd_apply(args: argparse.Namespace) -> None:
 
         print("\nShared governance:")
         for shared_path in manifest.get("shared", []):
+            if shared_path.startswith("features/"):
+                continue
             src = REPO_ROOT / shared_path
             dest = target / shared_path
             copy_entry(src, dest, skip_existing=True)
 
+        features_dir = target / "features"
+        if not features_dir.exists():
+            features_dir.mkdir(parents=True)
+            print(f"  Created {features_dir} (empty)")
+
     print(f"\nDone. '{args.agent}' spec kit applied to {target}")
+    print("\nNext step: add your first feature package.")
+    print("  govkit init <feature-name> --target <target>   # scaffold from a starter template")
+    print("  or drop a feature folder manually into features/")
 
 
 def cmd_list(_args: argparse.Namespace) -> None:
@@ -266,13 +283,14 @@ def _prompt_starter_type() -> str:
     return answer
 
 
-def _resolve_starter_dir(features_dir: Path, starter_type: str, level: str) -> Path:
-    """Select the level-appropriate starter directory, falling back to the base starter."""
+def _resolve_starter_dir(starter_type: str, level: str) -> Path:
+    """Select the level-appropriate starter directory from the bundled govkit templates."""
+    bundled = REPO_ROOT / "features"
     if level in ("3", "5"):
-        level_dir = features_dir / f"starter_{starter_type}_l{level}"
+        level_dir = bundled / f"starter_{starter_type}_l{level}"
         if level_dir.exists():
             return level_dir
-    return features_dir / f"starter_{starter_type}"
+    return bundled / f"starter_{starter_type}"
 
 
 def cmd_init(args: argparse.Namespace) -> None:
@@ -291,7 +309,7 @@ def cmd_init(args: argparse.Namespace) -> None:
 
     level = args.level or read_govkit_level(target) or "4"
     starter_type = args.starter or _prompt_starter_type()
-    starter_dir = _resolve_starter_dir(features_dir, starter_type, level)
+    starter_dir = _resolve_starter_dir(starter_type, level)
 
     if not starter_dir.exists():
         print(f"Error: starter template not found at {starter_dir}")

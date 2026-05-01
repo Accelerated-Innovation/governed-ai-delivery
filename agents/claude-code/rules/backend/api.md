@@ -5,9 +5,11 @@ paths:
 
 # API Layer — Inbound Adapter
 
-**Your project's API conventions:** `docs/backend/architecture/API_CONVENTIONS.md`
+**Quick reference:** `docs/backend/architecture/LAYER_IMPLEMENTATION.md` section 3
 
-Read this document before implementing any route. It defines your project's routing style, request/response models, authentication mechanism, error handling, and testing approach.
+**Detailed conventions:** `docs/backend/architecture/API_CONVENTIONS.md`
+
+Read LAYER_IMPLEMENTATION for a consolidated view of all layers. Read API_CONVENTIONS for routing style, request/response models, authentication, error handling, and testing specifics.
 
 **Universal constraints (apply to any language):**
 - Routes are inbound adapters — delegate all business logic to inbound ports in `ports/inbound/`

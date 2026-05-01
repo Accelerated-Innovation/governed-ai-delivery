@@ -1,6 +1,10 @@
+---
+applyTo: "*"
+---
+
 # Test-First Development
 
-These rules apply to all files in the project.
+These instructions apply when implementing any feature.
 
 See: `docs/backend/architecture/TESTING.md` for complete testing standards.
 

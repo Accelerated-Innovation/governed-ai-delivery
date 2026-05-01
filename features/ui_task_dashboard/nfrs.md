@@ -1,5 +1,11 @@
 # Non-Functional Requirements: Task Dashboard
 
+## Repository Scope
+
+**Scope:** `single-repo`
+
+---
+
 ## Accessibility
 
 - All interactive elements must be keyboard accessible (WCAG 2.1 AA — 2.1.1 Keyboard)

@@ -31,6 +31,27 @@ For each of the following, state which architectural rules apply (cite file and 
 - Are any boundary rules at risk of violation? (from `docs/backend/architecture/BOUNDARIES.md`)
 - Does this require a new interface between services?
 
+## 3.5 Repository Scope Analysis
+
+Before proceeding to ADR determination, validate repository scope. See: `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md`
+
+Verify the "Repository Scope" section in `features/<feature>/nfrs.md` is complete:
+
+- [ ] One box is checked: "This repository only" OR "Multiple repositories" (with table)
+- [ ] If multi-repo: all repos, owners, modules, and contracts are documented
+- [ ] "Primary Owner" and "Key Cross-Repo Contracts" are listed
+
+**HALT if incomplete.** Request the feature owner complete the Repository Scope section. Specify what is missing.
+
+Once complete:
+1. Confirm THIS repo is listed as owner in the scope table (stop if not)
+2. For each external repo listed: document the contract it exposes
+3. Identify module/service impact in THIS repo only — do not implement other repos' portions
+
+**Decision:** Is this a single-repo or multi-repo feature? Proceed with boundary analysis for THIS repo's portion only.
+
+---
+
 ## 4. ADR Decision
 
 Choose one:
