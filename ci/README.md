@@ -2,6 +2,49 @@
 
 This directory contains CI pipeline templates for both GitHub Actions and Azure DevOps. These are installed into target projects by `govkit apply`.
 
+---
+
+## Quick Start — First-Time CI Setup
+
+Run this once after `govkit apply` to wire up CI in your project.
+
+### 1. Enable Repository Scope Validation
+
+Copy the template to your project's workflow directory:
+
+- **GitHub:** `ci/github/repo-scope-check.yml` → `.github/workflows/repo-scope-check.yml`
+- **Azure:** `ci/azure/repo-scope-check.yml` → your Azure Pipelines definition
+
+Then set your repository name in the workflow file:
+
+```yaml
+REPO_OWNER: your-repo-name   # e.g. api-service, frontend-app, auth-service
+```
+
+Commit and push. The job runs automatically on every PR that modifies `features/*/nfrs.md`.
+
+### 2. Enable Project-Type Workflows
+
+Copy the relevant templates for your project type:
+
+| Workflow | Backend | CLI | UI |
+|---|:---:|:---:|:---:|
+| `quality-gate.yml` | ✓ | ✓ | optional |
+| `eval-gate.yml` (L4+) | ✓ | ✓ | — |
+| `l3-quality-gate.yml` (L3 only) | ✓ | ✓ | — |
+| `ui-quality-gate.yml` | — | — | ✓ |
+| `ui-eval-gate.yml` (L4+) | — | — | ✓ |
+
+### Quick Checklist
+
+- [ ] Copy `repo-scope-check.yml` and set `REPO_OWNER`
+- [ ] Copy project-type workflow(s) from the table above
+- [ ] Commit and push
+- [ ] Verify `repo-scope-check` runs on next PR to `features/*/nfrs.md`
+- [ ] Configure required secrets (see [Required Secrets](#required-secrets) below)
+
+---
+
 ## Level 3 vs Level 4 CI
 
 | Pipeline | Level 3 | Level 4 |
