@@ -86,12 +86,16 @@ Multi-repo features are needed when a single capability requires coordinated cha
 
 ## Repository Ownership Table
 
-Every multi-repo feature must document ownership clearly in its primary repo's `nfrs.md`:
+Every multi-repo feature must document ownership clearly in its primary repo's `nfrs.md`. The `**Scope:**` declaration is required — the CI check (`repo-scope-check.yml`) reads this value to determine whether to validate cross-repo ownership.
 
 ```markdown
 ## Repository Scope
 
-This feature spans multiple repositories:
+**Scope:** `multi-repo`
+
+### Multi-Repository Details
+
+*Complete only if scope is `multi-repo`.*
 
 | Repository | Owner Team | Modules/Services | Contracts to Implement |
 |---|---|---|---|

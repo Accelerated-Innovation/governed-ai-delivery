@@ -183,16 +183,16 @@ your-project/
 ├── docs/
 │   ├── backend/architecture/   — ARCH_CONTRACT, API_CONVENTIONS, TECH_STACK, etc.
 │   └── backend/evaluation/     — eval_criteria.md, scoring rubrics
-├── features/
-│   ├── starter_backend/        — template for new features (5 artifacts)
-│   └── schema_contract_example/ — worked example
+├── features/                   — created empty; scaffold your first feature with govkit init
 ├── governance/
 │   └── backend/schemas/        — eval_criteria.schema.json
 └── ci/
     └── github/ (or azure/)     — quality-gate.yml, eval-gate.yml
 ```
 
-If `--ui react` or `--ui angular` was specified, you'll also see `docs/ui/`, `features/starter_ui/`, `governance/ui/`, and UI-specific CI pipelines.
+If `--ui react` or `--ui angular` was specified, you'll also see `docs/ui/`, `governance/ui/`, and UI-specific CI pipelines.
+
+> **Starter templates and worked examples** are bundled inside the govkit package, not copied into your project by `govkit apply`. Use `govkit init <feature-name>` to scaffold a new feature from the appropriate starter, or run `govkit list` to see what is available.
 
 ## 4. Customize Your Governance Artifacts — REQUIRED
 

@@ -1,5 +1,11 @@
 # Non-Functional Requirements: Schema Contract Publication
 
+## Repository Scope
+
+**Scope:** `single-repo`
+
+---
+
 ## Performance
 - Schema publication must complete within 500ms under normal load
 - Schema retrieval by downstream consumers must respond within 100ms at p99

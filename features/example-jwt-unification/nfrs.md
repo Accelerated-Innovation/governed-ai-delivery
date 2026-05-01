@@ -2,6 +2,8 @@
 
 ## Repository Scope
 
+**Scope:** `multi-repo`
+
 This feature spans multiple repositories:
 
 | Repository | Owner Team | Modules/Services | Contracts to Implement |

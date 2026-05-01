@@ -67,18 +67,17 @@ jobs:
                 continue
               fi
 
-              # Check if scope declaration checkbox exists
-              if ! grep -q "This feature is contained to:" "$nfrs_file"; then
-                echo "FAIL: $feature nfrs.md Repository Scope missing 'This feature is contained to:' field"
+              # Extract explicit scope declaration: **Scope:** `single-repo` | `multi-repo`
+              scope_line=$(grep "^\*\*Scope:\*\*" "$nfrs_file" || true)
+              if [ -z "$scope_line" ]; then
+                echo "FAIL: $feature nfrs.md Repository Scope missing '**Scope:**' declaration"
                 errors=$((errors + 1))
                 continue
               fi
 
-              # Extract scope type (single vs multi-repo)
-              if grep -q "\[x\] This repository only" "$nfrs_file"; then
-                # Single repo — always OK
-                echo "OK: $feature is single-repo only"
-              elif grep -q "\[x\] Multiple repositories" "$nfrs_file"; then
+              if echo "$scope_line" | grep -q "single-repo"; then
+                echo "OK: $feature is single-repo"
+              elif echo "$scope_line" | grep -q "multi-repo"; then
                 # Multi-repo — must check if this repo is listed as owner
                 if ! grep -q "^| *$(REPO_OWNER) " "$nfrs_file"; then
                   echo "FAIL: $feature is multi-repo but does not list '$(REPO_OWNER)' as owner"
@@ -88,7 +87,7 @@ jobs:
                   echo "OK: $feature lists $(REPO_OWNER) as owner"
                 fi
               else
-                echo "FAIL: $feature Repository Scope section has no checked box"
+                echo "FAIL: $feature Repository Scope '**Scope:**' has unrecognised value (must be single-repo or multi-repo)"
                 errors=$((errors + 1))
               fi
             done
@@ -100,7 +99,7 @@ jobs:
               echo "Fix:"
               echo "  1. Open features/<feature>/nfrs.md"
               echo "  2. Complete the 'Repository Scope' section"
-              echo "  3. Check one of: '[ ] This repository only' OR '[ ] Multiple repositories'"
+              echo "  3. Set '**Scope:** \`single-repo\`' or '**Scope:** \`multi-repo\`'"
               echo "  4. If multi-repo, add your repo to the ownership table"
               echo "  5. Commit and push"
               echo ""

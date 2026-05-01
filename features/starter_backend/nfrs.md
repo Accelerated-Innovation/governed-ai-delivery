@@ -2,13 +2,12 @@
 
 ## Repository Scope
 
-This feature is contained to:
-- [ ] This repository only
-- [ ] Multiple repositories (complete table below if selected)
+**Scope:** `single-repo`
+<!-- Replace `single-repo` with `multi-repo` if this feature spans multiple repositories, then complete the table below -->
 
 ### Multi-Repository Details
 
-If this feature spans multiple repos, document each below:
+*Complete only if scope is `multi-repo`.*
 
 | Repository | Owner Team | Modules/Services | Contracts to Implement |
 |---|---|---|---|
