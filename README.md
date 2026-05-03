@@ -233,6 +233,56 @@ govkit validate --level 3 --target .
 
 ---
 
+# Switching Tech Stacks
+
+The default installed stack is **Python / FastAPI**. To switch to a different backend language, copy the 6 stack-specific architecture doc files from `docs/stacks/<stack>/` into `docs/backend/architecture/`. The AI agents read those files as the authoritative source of truth — no agent rules, manifests, or CLI configuration changes needed.
+
+## Why only 6 files?
+
+The agent rules and most architecture docs are language-agnostic. Only these 6 files define stack-specific conventions:
+
+| File | What it defines |
+|---|---|
+| `TECH_STACK.md` | Languages, versions, approved frameworks |
+| `API_CONVENTIONS.md` | Route patterns and request/response idioms |
+| `TESTING.md` | Test framework, mocking library, BDD tool |
+| `LAYER_IMPLEMENTATION.md` | DI patterns, interface idioms, DTO style |
+| `SECURITY_AUTH_PATTERNS.md` | Auth libraries, token handling, hashing |
+| `OBSERVABILITY_PORT_CONTRACT.md` | Structured logging library, OTel SDK |
+
+All other docs (DESIGN_PRINCIPLES, ARCH_CONTRACT, BOUNDARIES, GHERKIN_CONVENTIONS, ERROR_MAPPING, etc.) are universal and require no changes.
+
+## Available stacks
+
+| Directory | Stack |
+|---|---|
+| `docs/stacks/dotnet-aspnet/` | C# 12 / .NET 8 / ASP.NET Core Minimal APIs |
+| `docs/stacks/java-spring-boot/` | Java 21 / Spring Boot 3 / Spring Web MVC |
+| `docs/stacks/nodejs-fastify/` | Node.js 20 LTS / TypeScript 5 / Fastify 4 |
+| `docs/stacks/go-gin/` | Go 1.22+ / Gin |
+
+## How to switch
+
+```bash
+# Switch to C# / ASP.NET Core
+cp docs/stacks/dotnet-aspnet/* docs/backend/architecture/
+
+# Switch to Java / Spring Boot
+cp docs/stacks/java-spring-boot/* docs/backend/architecture/
+
+# Switch to Node.js / Fastify
+cp docs/stacks/nodejs-fastify/* docs/backend/architecture/
+
+# Switch to Go / Gin
+cp docs/stacks/go-gin/* docs/backend/architecture/
+```
+
+After copying, review the files and update any project-specific details (approved library versions, internal service names, etc.). Consider raising an ADR to document the stack decision.
+
+See [`docs/stacks/README.md`](docs/stacks/README.md) for the complete guide, including how to add new stacks.
+
+---
+
 # Working With the Agent — Step by Step
 
 Once govkit is installed, here is how you interact with the agent to deliver a feature. This lifecycle applies to **every feature**, regardless of project type or agent.
