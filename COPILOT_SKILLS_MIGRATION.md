@@ -60,7 +60,11 @@ govkit apply copilot --type api --level 5
 # → .github/skills/eval-suite-planning/SKILL.md created
 
 govkit apply copilot --type api --ui react
-# → .github/skills/spec-planning/SKILL.md (overwritten with UI variant)
+# → .github/skills/spec-planning/SKILL.md (backend, unchanged)
+# → .github/skills/ui-spec-planning/SKILL.md (UI variant, separate namespace)
+# → .github/skills/ui-architecture-preflight/SKILL.md
+# → .github/skills/ui-implementation-plan/SKILL.md
+# → .github/skills/ui-adr-author/SKILL.md
 
 pytest
 # → all tests pass

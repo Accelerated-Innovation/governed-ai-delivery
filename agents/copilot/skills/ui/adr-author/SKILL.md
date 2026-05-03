@@ -1,5 +1,5 @@
 ---
-name: adr-author
+name: ui-adr-author
 description: Author an Architecture Decision Record for a React UI architectural decision
 user-invocable: true
 ---

@@ -1,5 +1,5 @@
 ---
-name: implementation-plan
+name: ui-implementation-plan
 description: Produce an ordered implementation checklist for a React UI feature following MVVM layer sequence
 argument-hint: "<feature_name>"
 user-invocable: true

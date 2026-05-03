@@ -1,5 +1,5 @@
 ---
-name: spec-planning
+name: ui-spec-planning
 description: Generate or update plan.md and eval_criteria.yaml for a React UI feature
 argument-hint: "<feature_name>"
 user-invocable: true

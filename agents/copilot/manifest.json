@@ -129,7 +129,10 @@
         "files": [
           { "src": "copilot-instructions/ui-react.md", "dest": ".github/copilot-instructions-ui.md" },
           { "src": "instructions/ui-react/", "dest": ".github/instructions/" },
-          { "src": "skills/ui/", "dest": ".github/skills/" }
+          { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
+          { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
+          { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" },
+          { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" }
         ],
         "shared": [
           "docs/ui/architecture/MVVM_CONTRACT.md",
@@ -144,8 +147,8 @@
         "level_3": {
           "files": [
             { "src": "copilot-instructions/l3-ui-react.md", "dest": ".github/copilot-instructions-ui.md" },
-            { "src": "skills/ui/l3-spec-planning/", "dest": ".github/skills/spec-planning/" },
-            { "src": "skills/ui/l3-implementation-plan/", "dest": ".github/skills/implementation-plan/" }
+            { "src": "skills/ui/l3-spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
+            { "src": "skills/ui/l3-implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui_l3/",
@@ -157,7 +160,10 @@
         "files": [
           { "src": "copilot-instructions/ui-angular.md", "dest": ".github/copilot-instructions-ui.md" },
           { "src": "instructions/ui-angular/", "dest": ".github/instructions/" },
-          { "src": "skills/ui/", "dest": ".github/skills/" }
+          { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
+          { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
+          { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" },
+          { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" }
         ],
         "shared": [
           "docs/ui/architecture/MVVM_CONTRACT.md",
@@ -172,8 +178,8 @@
         "level_3": {
           "files": [
             { "src": "copilot-instructions/l3-ui-angular.md", "dest": ".github/copilot-instructions-ui.md" },
-            { "src": "skills/ui/l3-spec-planning/", "dest": ".github/skills/spec-planning/" },
-            { "src": "skills/ui/l3-implementation-plan/", "dest": ".github/skills/implementation-plan/" }
+            { "src": "skills/ui/l3-spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
+            { "src": "skills/ui/l3-implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui_l3/",

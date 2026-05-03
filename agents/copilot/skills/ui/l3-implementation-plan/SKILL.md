@@ -1,5 +1,5 @@
 ---
-name: l3-implementation-plan
+name: ui-implementation-plan
 description: Generate an ordered UI implementation checklist from a feature plan — Level 3 Spec-Driven
 argument-hint: "<feature_name>"
 user-invocable: true

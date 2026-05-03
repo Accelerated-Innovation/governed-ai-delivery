@@ -1,5 +1,5 @@
 ---
-name: l3-spec-planning
+name: ui-spec-planning
 description: Generate a UI feature plan (plan.md) from NFRs and acceptance scenarios — Level 3 Spec-Driven
 argument-hint: "<feature_name>"
 user-invocable: true

@@ -1,5 +1,5 @@
 ---
-name: architecture-preflight
+name: ui-architecture-preflight
 description: Run before planning any UI feature to validate MVVM boundaries, backend contract availability, accessibility impact, and ADR need
 argument-hint: "<feature_name>"
 user-invocable: true
