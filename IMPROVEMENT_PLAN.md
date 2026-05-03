@@ -40,6 +40,12 @@
 - [x] Tests: 82 tests, all passing
 - [x] Documentation: README, CHANGELOG, CI README
 
+### 5.3 Copilot Open Agent Skills Migration (v0.5.0)
+- [x] Create `agents/copilot/skills/` with 14 SKILL.md files (backend + ui, all levels)
+- [x] Update `agents/copilot/manifest.json` to deploy to `.github/skills/` instead of `.github/prompts/`
+- [x] Remove `agents/copilot/prompts/` directory (14 `.prompt.md` files)
+- [x] Write `COPILOT_SKILLS_MIGRATION.md` at repo root
+
 ---
 
 ## Tier 1 — Critical Gaps (block effective use)

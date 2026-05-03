@@ -161,12 +161,12 @@ Level 5 adds a concrete, non-overlapping GenAI operations stack so teams buildin
 | `agents/claude-code/skills/backend/genai-preflight/SKILL.md` | `/genai-preflight <feature>` | Validates L5-specific decisions: LiteLLM is gateway, tracing defined, eval thresholds set, Promptfoo stated, guardrail mode defined, RAGAS if retrieval, LLM NFRs present. Writes sections 10-14 of architecture_preflight.md. |
 | `agents/claude-code/skills/backend/eval-suite-planning/SKILL.md` | `/eval-suite-planning <feature>` | Plans DeepEval metrics, Promptfoo adversarial scenarios, RAGAS metrics (if retrieval), dataset planning, threshold recommendations. Writes to eval_criteria.yaml llm_evaluation section. |
 
-### New Copilot prompts
+### New Copilot skills
 
 | File | Equivalent To |
 |------|-------------|
-| `agents/copilot/prompts/backend/genai-preflight.prompt.md` | `/genai-preflight` skill |
-| `agents/copilot/prompts/backend/eval-suite-planning.prompt.md` | `/eval-suite-planning` skill |
+| `agents/copilot/skills/backend/genai-preflight/SKILL.md` | `/genai-preflight` skill |
+| `agents/copilot/skills/backend/eval-suite-planning/SKILL.md` | `/eval-suite-planning` skill |
 
 ---
 

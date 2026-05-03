@@ -1,12 +1,15 @@
 ---
+name: ui-spec-planning
 description: Generate or update plan.md and eval_criteria.yaml for a React UI feature
 argument-hint: "<feature_name>"
+user-invocable: true
 ---
 
 # Spec Planning — React UI
 
-You are performing Spec Planning for a React UI feature. Read the following before proceeding:
+You are producing the Spec Plan for a React UI feature.
 
+Before proceeding, read:
 - `features/$ARGUMENTS/acceptance.feature`
 - `features/$ARGUMENTS/nfrs.md`
 - `features/$ARGUMENTS/architecture_preflight.md`
@@ -14,8 +17,6 @@ You are performing Spec Planning for a React UI feature. Read the following befo
 - `docs/ui/evaluation/eval_criteria.md`
 - `governance/ui/templates/plan.md`
 - `governance/ui/schemas/eval_criteria.schema.json`
-
----
 
 Produce or update `features/$ARGUMENTS/plan.md` and `features/$ARGUMENTS/eval_criteria.yaml`.
 
@@ -25,20 +26,16 @@ Produce or update `features/$ARGUMENTS/plan.md` and `features/$ARGUMENTS/eval_cr
 One paragraph describing the feature from the user's perspective.
 
 ### 2. MVVM Breakdown
-For each layer:
-- Components to create (with props interface summary)
-- Hooks to create (query keys, data shape, transform)
-- Zustand store additions (if any)
-- API functions to create (endpoint, method, request/response types)
+For each layer — components (with props summary), hooks (query keys, data shape, transforms), Zustand store additions, and API functions (endpoint, method, request/response types).
 
 ### 3. Increment Breakdown
-Ordered list of implementation increments. Each increment must be independently testable and deployable.
+Ordered list of independently testable increments. Sequence must follow: API → ViewModel → View.
 
 ### 4. Backend Contract Dependencies
-List any backend endpoints this feature depends on. Flag any that are not yet available.
+List all backend endpoints this feature depends on. Flag any that are not yet available.
 
 ### 5. Accessibility Plan
-For each Gherkin scenario tagged `@accessibility`: describe the WCAG criteria and test approach.
+For each `@accessibility`-tagged Gherkin scenario: describe the WCAG criteria and test approach.
 
 ### 6. Evaluation Compliance Summary
 

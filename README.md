@@ -59,7 +59,7 @@ govkit ships three agents, each supporting multiple project types through varian
 | Agent | AI Tool | Installs To |
 |---|---|---|
 | `claude-code` | Claude Code | `CLAUDE.md`, `.claude/rules/`, `.claude/skills/` |
-| `copilot` | GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/`, `.github/prompts/` |
+| `copilot` | GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/`, `.github/skills/` |
 | `codex` | OpenAI Codex | `AGENTS.md` (root + nested per layer), `.agents/skills/` |
 
 All agents support the same variant options:
@@ -177,7 +177,7 @@ your-project/
 ├── .claude/rules/ (or .github/instructions/, or nested AGENTS.md per layer — api/AGENTS.md, services/AGENTS.md, etc.)
 │   ├── api.md, services.md, ports.md, adapters.md, security.md
 │   └── (UI rules if --ui was specified)
-├── .claude/skills/ (or .github/prompts/, or .agents/skills/)
+├── .claude/skills/ (or .github/skills/, or .agents/skills/)
 │   ├── architecture-preflight/, spec-planning/, implementation-plan/, adr-author/
 │   └── (UI skills if --ui was specified)
 ├── docs/
@@ -230,6 +230,56 @@ Validation is level-aware. Level 3 checks: 3 required artifacts, Gherkin structu
 ```bash
 govkit validate --level 3 --target .
 ```
+
+---
+
+# Switching Tech Stacks
+
+The default installed stack is **Python / FastAPI**. To switch to a different backend language, copy the 6 stack-specific architecture doc files from `docs/stacks/<stack>/` into `docs/backend/architecture/`. The AI agents read those files as the authoritative source of truth — no agent rules, manifests, or CLI configuration changes needed.
+
+## Why only 6 files?
+
+The agent rules and most architecture docs are language-agnostic. Only these 6 files define stack-specific conventions:
+
+| File | What it defines |
+|---|---|
+| `TECH_STACK.md` | Languages, versions, approved frameworks |
+| `API_CONVENTIONS.md` | Route patterns and request/response idioms |
+| `TESTING.md` | Test framework, mocking library, BDD tool |
+| `LAYER_IMPLEMENTATION.md` | DI patterns, interface idioms, DTO style |
+| `SECURITY_AUTH_PATTERNS.md` | Auth libraries, token handling, hashing |
+| `OBSERVABILITY_PORT_CONTRACT.md` | Structured logging library, OTel SDK |
+
+All other docs (DESIGN_PRINCIPLES, ARCH_CONTRACT, BOUNDARIES, GHERKIN_CONVENTIONS, ERROR_MAPPING, etc.) are universal and require no changes.
+
+## Available stacks
+
+| Directory | Stack |
+|---|---|
+| `docs/stacks/dotnet-aspnet/` | C# 12 / .NET 8 / ASP.NET Core Minimal APIs |
+| `docs/stacks/java-spring-boot/` | Java 21 / Spring Boot 3 / Spring Web MVC |
+| `docs/stacks/nodejs-fastify/` | Node.js 20 LTS / TypeScript 5 / Fastify 4 |
+| `docs/stacks/go-gin/` | Go 1.22+ / Gin |
+
+## How to switch
+
+```bash
+# Switch to C# / ASP.NET Core
+cp docs/stacks/dotnet-aspnet/* docs/backend/architecture/
+
+# Switch to Java / Spring Boot
+cp docs/stacks/java-spring-boot/* docs/backend/architecture/
+
+# Switch to Node.js / Fastify
+cp docs/stacks/nodejs-fastify/* docs/backend/architecture/
+
+# Switch to Go / Gin
+cp docs/stacks/go-gin/* docs/backend/architecture/
+```
+
+After copying, review the files and update any project-specific details (approved library versions, internal service names, etc.). Consider raising an ADR to document the stack decision.
+
+See [`docs/stacks/README.md`](docs/stacks/README.md) for the complete guide, including how to add new stacks.
 
 ---
 
@@ -667,7 +717,7 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 | **Rule** (Claude Code) | A path-scoped `.md` file in `.claude/rules/` that loads automatically when editing files matching its path |
 | **Skill** (Claude Code) | A reusable prompt in `.claude/skills/` invoked via slash command (e.g., `/architecture-preflight`) |
 | **Instruction** (Copilot) | A path-scoped `.md` file in `.github/instructions/` — Copilot equivalent of a rule |
-| **Prompt** (Copilot) | A reusable Chat prompt in `.github/prompts/` — Copilot equivalent of a skill |
+| **Skill** (Copilot) | A reusable task in `.github/skills/` invoked via slash command (e.g., `/spec-planning`) — open agent skills standard |
 | **AGENTS.md** (Codex) | A markdown instructions file read by Codex. A root `AGENTS.md` applies globally; nested `AGENTS.md` files at layer directories (e.g., `services/AGENTS.md`) scope rules to that subtree via directory walk |
 | **Skill** (Codex) | A `SKILL.md` under `.agents/skills/<name>/` invoked via `$skill-name` |
 | **Port** | An interface defining a contract between layers (inbound ports for API entry, outbound ports for infrastructure) |
