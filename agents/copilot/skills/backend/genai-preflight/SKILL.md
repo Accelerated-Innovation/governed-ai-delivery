@@ -1,18 +1,20 @@
 ---
-description: "Validate Level 5 GenAI architecture decisions before planning"
-agent: "ask"
+name: genai-preflight
+description: Validate Level 5 GenAI architecture decisions before planning
+argument-hint: "<feature_name>"
+user-invocable: true
 ---
 
-# GenAI Preflight Prompt
+# GenAI Preflight
 
-Run after architecture preflight to validate GenAI-specific decisions for: **{{FEATURE_NAME}}**
+Run after architecture preflight to validate GenAI-specific decisions for: **$ARGUMENTS**
 
 ## Inputs to read
 
-- `features/{{FEATURE_NAME}}/nfrs.md`
-- `features/{{FEATURE_NAME}}/acceptance.feature`
-- `features/{{FEATURE_NAME}}/eval_criteria.yaml`
-- `features/{{FEATURE_NAME}}/architecture_preflight.md`
+- `features/$ARGUMENTS/nfrs.md`
+- `features/$ARGUMENTS/acceptance.feature`
+- `features/$ARGUMENTS/eval_criteria.yaml`
+- `features/$ARGUMENTS/architecture_preflight.md`
 - `docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
 - `docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md`
 - `docs/backend/architecture/GUARDRAILS_CONTRACT.md`
@@ -28,6 +30,6 @@ Run after architecture preflight to validate GenAI-specific decisions for: **{{F
 
 ## Output
 
-Update `features/{{FEATURE_NAME}}/architecture_preflight.md` sections 10-14 and set final status.
+Update `features/$ARGUMENTS/architecture_preflight.md` sections 10-14 and set final status.
 
 Do not proceed to planning if any L5 check is blocked.

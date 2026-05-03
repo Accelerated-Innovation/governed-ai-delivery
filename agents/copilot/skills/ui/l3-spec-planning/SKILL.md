@@ -1,16 +1,18 @@
 ---
-description: "Generate a UI feature plan (plan.md) from NFRs and acceptance scenarios — Level 3 Spec-Driven"
-agent: "ask"
+name: l3-spec-planning
+description: Generate a UI feature plan (plan.md) from NFRs and acceptance scenarios — Level 3 Spec-Driven
+argument-hint: "<feature_name>"
+user-invocable: true
 ---
 
 # Spec Planning — UI (Level 3)
 
-Plan the implementation of the UI feature: **{{FEATURE_NAME}}**
+Plan the implementation of the UI feature: **$ARGUMENTS**
 
 ## Inputs to read
 
-- `features/{{FEATURE_NAME}}/acceptance.feature`
-- `features/{{FEATURE_NAME}}/nfrs.md`
+- `features/$ARGUMENTS/acceptance.feature`
+- `features/$ARGUMENTS/nfrs.md`
 
 ## Instructions
 
@@ -22,7 +24,7 @@ Plan the implementation of the UI feature: **{{FEATURE_NAME}}**
 
 ## Output: Plan
 
-Write `features/{{FEATURE_NAME}}/plan.md` based on `governance/ui/templates/l3-plan.md` with:
+Write `features/$ARGUMENTS/plan.md` based on `governance/ui/templates/l3-plan.md` with:
 - Objective, scope boundaries, and assumptions
 - Design alignment (principles, testing approach, dependencies)
 - Ordered increments — each with goal, deliverables, tests (listed first), and definition of done

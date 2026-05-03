@@ -1,9 +1,11 @@
 ---
-description: "Generate an ordered implementation checklist from a feature plan — Level 3 Spec-Driven"
-agent: "ask"
+name: l3-implementation-plan
+description: Generate an ordered implementation checklist from a feature plan — Level 3 Spec-Driven
+argument-hint: "<feature_name>"
+user-invocable: true
 ---
 
-# Implementation Plan Prompt (Level 3)
+# Implementation Plan (Level 3)
 
 You are writing an implementation plan for a feature.
 
@@ -13,9 +15,9 @@ You are writing an implementation plan for a feature.
 
 Use the following artifacts:
 
-* `features/<FEATURE>/nfrs.md`
-* `features/<FEATURE>/acceptance.feature`
-* `features/<FEATURE>/plan.md`
+* `features/$ARGUMENTS/nfrs.md`
+* `features/$ARGUMENTS/acceptance.feature`
+* `features/$ARGUMENTS/plan.md`
 * `docs/backend/architecture/DESIGN_PRINCIPLES.md`
 * `docs/backend/architecture/TESTING.md`
 

@@ -1,6 +1,8 @@
 ---
-description: "Generate or update plan.md and eval_criteria.yaml for a React UI feature"
-agent: "ask"
+name: spec-planning
+description: Generate or update plan.md and eval_criteria.yaml for a React UI feature
+argument-hint: "<feature_name>"
+user-invocable: true
 ---
 
 # Spec Planning — React UI
@@ -8,15 +10,15 @@ agent: "ask"
 You are producing the Spec Plan for a React UI feature.
 
 Before proceeding, read:
-- `features/<feature_name>/acceptance.feature`
-- `features/<feature_name>/nfrs.md`
-- `features/<feature_name>/architecture_preflight.md`
+- `features/$ARGUMENTS/acceptance.feature`
+- `features/$ARGUMENTS/nfrs.md`
+- `features/$ARGUMENTS/architecture_preflight.md`
 - `docs/ui/architecture/MVVM_CONTRACT.md`
 - `docs/ui/evaluation/eval_criteria.md`
 - `governance/ui/templates/plan.md`
 - `governance/ui/schemas/eval_criteria.schema.json`
 
-Produce or update `features/<feature_name>/plan.md` and `features/<feature_name>/eval_criteria.yaml`.
+Produce or update `features/$ARGUMENTS/plan.md` and `features/$ARGUMENTS/eval_criteria.yaml`.
 
 ## plan.md must include:
 

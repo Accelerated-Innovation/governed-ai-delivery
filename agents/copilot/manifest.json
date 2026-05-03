@@ -1,6 +1,6 @@
 {
   "agent": "copilot",
-  "description": "GitHub Copilot - path-scoped instructions and reusable Chat prompts",
+  "description": "GitHub Copilot - path-scoped instructions and open agent skills",
   "options": {
     "level": {
       "prompt": "Maturity level? (3=Spec-Driven, 4=Governed AI Delivery, 5=GenAI Operations)",
@@ -29,7 +29,7 @@
         "files": [
           { "src": "copilot-instructions/backend-api.md", "dest": ".github/copilot-instructions.md" },
           { "src": "instructions/backend/", "dest": ".github/instructions/" },
-          { "src": "prompts/backend/", "dest": ".github/prompts/" }
+          { "src": "skills/backend/", "dest": ".github/skills/" }
         ],
         "shared": [
           "docs/backend/",
@@ -40,8 +40,8 @@
         "level_3": {
           "files": [
             { "src": "copilot-instructions/l3-backend-api.md", "dest": ".github/copilot-instructions.md" },
-            { "src": "prompts/backend/l3-spec-planning.prompt.md", "dest": ".github/prompts/spec-planning.prompt.md" },
-            { "src": "prompts/backend/l3-implementation-plan.prompt.md", "dest": ".github/prompts/implementation-plan.prompt.md" }
+            { "src": "skills/backend/l3-spec-planning/", "dest": ".github/skills/spec-planning/" },
+            { "src": "skills/backend/l3-implementation-plan/", "dest": ".github/skills/implementation-plan/" }
           ],
           "shared": [
             "docs/backend/architecture/DESIGN_PRINCIPLES.md",
@@ -60,9 +60,9 @@
             { "src": "instructions/backend/guardrails.instructions.md", "dest": ".github/instructions/guardrails.instructions.md" },
             { "src": "instructions/backend/llm-evaluation.instructions.md", "dest": ".github/instructions/llm-evaluation.instructions.md" },
             { "src": "instructions/backend/llm-observability.instructions.md", "dest": ".github/instructions/llm-observability.instructions.md" },
-            { "src": "prompts/backend/", "dest": ".github/prompts/" },
-            { "src": "prompts/backend/genai-preflight.prompt.md", "dest": ".github/prompts/genai-preflight.prompt.md" },
-            { "src": "prompts/backend/eval-suite-planning.prompt.md", "dest": ".github/prompts/eval-suite-planning.prompt.md" }
+            { "src": "skills/backend/", "dest": ".github/skills/" },
+            { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/genai-preflight/" },
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" }
           ],
           "shared": [
             "docs/backend/",
@@ -77,7 +77,7 @@
         "files": [
           { "src": "copilot-instructions/backend-cli.md", "dest": ".github/copilot-instructions.md" },
           { "src": "instructions/cli/", "dest": ".github/instructions/" },
-          { "src": "prompts/backend/", "dest": ".github/prompts/" }
+          { "src": "skills/backend/", "dest": ".github/skills/" }
         ],
         "shared": [
           "docs/backend/",
@@ -87,8 +87,8 @@
         "level_3": {
           "files": [
             { "src": "copilot-instructions/l3-backend-cli.md", "dest": ".github/copilot-instructions.md" },
-            { "src": "prompts/backend/l3-spec-planning.prompt.md", "dest": ".github/prompts/spec-planning.prompt.md" },
-            { "src": "prompts/backend/l3-implementation-plan.prompt.md", "dest": ".github/prompts/implementation-plan.prompt.md" }
+            { "src": "skills/backend/l3-spec-planning/", "dest": ".github/skills/spec-planning/" },
+            { "src": "skills/backend/l3-implementation-plan/", "dest": ".github/skills/implementation-plan/" }
           ],
           "shared": [
             "docs/backend/architecture/DESIGN_PRINCIPLES.md",
@@ -107,9 +107,9 @@
             { "src": "instructions/backend/guardrails.instructions.md", "dest": ".github/instructions/guardrails.instructions.md" },
             { "src": "instructions/backend/llm-evaluation.instructions.md", "dest": ".github/instructions/llm-evaluation.instructions.md" },
             { "src": "instructions/backend/llm-observability.instructions.md", "dest": ".github/instructions/llm-observability.instructions.md" },
-            { "src": "prompts/backend/", "dest": ".github/prompts/" },
-            { "src": "prompts/backend/genai-preflight.prompt.md", "dest": ".github/prompts/genai-preflight.prompt.md" },
-            { "src": "prompts/backend/eval-suite-planning.prompt.md", "dest": ".github/prompts/eval-suite-planning.prompt.md" }
+            { "src": "skills/backend/", "dest": ".github/skills/" },
+            { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/genai-preflight/" },
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" }
           ],
           "shared": [
             "docs/backend/",
@@ -129,7 +129,7 @@
         "files": [
           { "src": "copilot-instructions/ui-react.md", "dest": ".github/copilot-instructions-ui.md" },
           { "src": "instructions/ui-react/", "dest": ".github/instructions/" },
-          { "src": "prompts/ui/", "dest": ".github/prompts/" }
+          { "src": "skills/ui/", "dest": ".github/skills/" }
         ],
         "shared": [
           "docs/ui/architecture/MVVM_CONTRACT.md",
@@ -144,8 +144,8 @@
         "level_3": {
           "files": [
             { "src": "copilot-instructions/l3-ui-react.md", "dest": ".github/copilot-instructions-ui.md" },
-            { "src": "prompts/ui/l3-spec-planning.prompt.md", "dest": ".github/prompts/ui-spec-planning.prompt.md" },
-            { "src": "prompts/ui/l3-implementation-plan.prompt.md", "dest": ".github/prompts/ui-implementation-plan.prompt.md" }
+            { "src": "skills/ui/l3-spec-planning/", "dest": ".github/skills/spec-planning/" },
+            { "src": "skills/ui/l3-implementation-plan/", "dest": ".github/skills/implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui_l3/",
@@ -157,7 +157,7 @@
         "files": [
           { "src": "copilot-instructions/ui-angular.md", "dest": ".github/copilot-instructions-ui.md" },
           { "src": "instructions/ui-angular/", "dest": ".github/instructions/" },
-          { "src": "prompts/ui/", "dest": ".github/prompts/" }
+          { "src": "skills/ui/", "dest": ".github/skills/" }
         ],
         "shared": [
           "docs/ui/architecture/MVVM_CONTRACT.md",
@@ -172,8 +172,8 @@
         "level_3": {
           "files": [
             { "src": "copilot-instructions/l3-ui-angular.md", "dest": ".github/copilot-instructions-ui.md" },
-            { "src": "prompts/ui/l3-spec-planning.prompt.md", "dest": ".github/prompts/ui-spec-planning.prompt.md" },
-            { "src": "prompts/ui/l3-implementation-plan.prompt.md", "dest": ".github/prompts/ui-implementation-plan.prompt.md" }
+            { "src": "skills/ui/l3-spec-planning/", "dest": ".github/skills/spec-planning/" },
+            { "src": "skills/ui/l3-implementation-plan/", "dest": ".github/skills/implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui_l3/",

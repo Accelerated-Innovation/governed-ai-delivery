@@ -1,15 +1,17 @@
 ---
-description: "Generate a feature plan (plan.md) from NFRs and acceptance scenarios — Level 3 Spec-Driven"
-agent: "ask"
+name: l3-spec-planning
+description: Generate a feature plan (plan.md) from NFRs and acceptance scenarios — Level 3 Spec-Driven
+argument-hint: "<feature_name>"
+user-invocable: true
 ---
 
-Plan the implementation of the feature: **{{FEATURE_NAME}}**
+Plan the implementation of the feature: **$ARGUMENTS**
 
 ## Inputs to read
 
 Feature specs:
-- NFRs: `features/{{FEATURE_NAME}}/nfrs.md`
-- Acceptance: `features/{{FEATURE_NAME}}/acceptance.feature`
+- NFRs: `features/$ARGUMENTS/nfrs.md`
+- Acceptance: `features/$ARGUMENTS/acceptance.feature`
 
 Design principles:
 - `docs/backend/architecture/DESIGN_PRINCIPLES.md`
@@ -30,7 +32,7 @@ Testing conventions:
 
 ## Output: Plan
 
-Create `features/{{FEATURE_NAME}}/plan.md` based on `governance/backend/templates/l3-plan.md` with:
+Create `features/$ARGUMENTS/plan.md` based on `governance/backend/templates/l3-plan.md` with:
 - Objective, scope boundaries, and assumptions
 - Design alignment (principles, testing approach, dependencies, security)
 - Ordered increments — each with goal, deliverables, tests (listed first), and definition of done

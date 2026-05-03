@@ -1,6 +1,7 @@
 ---
-description: "Author an Architecture Decision Record for a React UI architectural decision"
-agent: "ask"
+name: adr-author
+description: Author an Architecture Decision Record for a React UI architectural decision
+user-invocable: true
 ---
 
 # ADR Author — React UI
