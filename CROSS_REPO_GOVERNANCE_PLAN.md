@@ -62,8 +62,8 @@ Update preflight skills/prompts for all three agents to validate repo scope and 
 |------|------|----------|-------|
 | **3.1** | Add "Repository Scope Analysis" section to Claude Code backend preflight | `agents/claude-code/skills/backend/architecture-preflight/SKILL.md` | Platform |
 | **3.2** | Add "Repository Scope Analysis" section to Claude Code UI preflight | `agents/claude-code/skills/ui/architecture-preflight/SKILL.md` | Platform |
-| **3.3** | Add "Repository Scope Analysis" section to Copilot backend preflight prompt | `agents/copilot/prompts/backend/architecture-preflight.prompt.md` | Platform |
-| **3.4** | Add "Repository Scope Analysis" section to Copilot UI preflight prompt | `agents/copilot/prompts/ui/architecture-preflight.prompt.md` | Platform |
+| **3.3** | Add "Repository Scope Analysis" section to Copilot backend preflight skill | `agents/copilot/skills/backend/architecture-preflight/SKILL.md` | Platform |
+| **3.4** | Add "Repository Scope Analysis" section to Copilot UI preflight skill | `agents/copilot/skills/ui/architecture-preflight/SKILL.md` | Platform |
 | **3.5** | Add "Repository Scope Analysis" section to Codex backend preflight | `agents/codex/skills/backend/architecture-preflight/SKILL.md` | Platform |
 | **3.6** | Add "Repository Scope Analysis" section to Codex UI preflight | `agents/codex/skills/ui/architecture-preflight/SKILL.md` | Platform |
 | **3.7** | Create shared content snippet for "Repository Scope Analysis" | `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md` | Platform |

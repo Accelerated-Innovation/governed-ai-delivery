@@ -59,7 +59,7 @@ govkit ships three agents, each supporting multiple project types through varian
 | Agent | AI Tool | Installs To |
 |---|---|---|
 | `claude-code` | Claude Code | `CLAUDE.md`, `.claude/rules/`, `.claude/skills/` |
-| `copilot` | GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/`, `.github/prompts/` |
+| `copilot` | GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/`, `.github/skills/` |
 | `codex` | OpenAI Codex | `AGENTS.md` (root + nested per layer), `.agents/skills/` |
 
 All agents support the same variant options:
@@ -177,7 +177,7 @@ your-project/
 ├── .claude/rules/ (or .github/instructions/, or nested AGENTS.md per layer — api/AGENTS.md, services/AGENTS.md, etc.)
 │   ├── api.md, services.md, ports.md, adapters.md, security.md
 │   └── (UI rules if --ui was specified)
-├── .claude/skills/ (or .github/prompts/, or .agents/skills/)
+├── .claude/skills/ (or .github/skills/, or .agents/skills/)
 │   ├── architecture-preflight/, spec-planning/, implementation-plan/, adr-author/
 │   └── (UI skills if --ui was specified)
 ├── docs/
@@ -717,7 +717,7 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 | **Rule** (Claude Code) | A path-scoped `.md` file in `.claude/rules/` that loads automatically when editing files matching its path |
 | **Skill** (Claude Code) | A reusable prompt in `.claude/skills/` invoked via slash command (e.g., `/architecture-preflight`) |
 | **Instruction** (Copilot) | A path-scoped `.md` file in `.github/instructions/` — Copilot equivalent of a rule |
-| **Prompt** (Copilot) | A reusable Chat prompt in `.github/prompts/` — Copilot equivalent of a skill |
+| **Skill** (Copilot) | A reusable task in `.github/skills/` invoked via slash command (e.g., `/spec-planning`) — open agent skills standard |
 | **AGENTS.md** (Codex) | A markdown instructions file read by Codex. A root `AGENTS.md` applies globally; nested `AGENTS.md` files at layer directories (e.g., `services/AGENTS.md`) scope rules to that subtree via directory walk |
 | **Skill** (Codex) | A `SKILL.md` under `.agents/skills/<name>/` invoked via `$skill-name` |
 | **Port** | An interface defining a contract between layers (inbound ports for API entry, outbound ports for infrastructure) |
