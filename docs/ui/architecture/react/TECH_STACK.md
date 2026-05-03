@@ -13,7 +13,18 @@
 
 ---
 
-## 2. State Management
+## 2. Styling
+
+| Concern | Tool | Version |
+|---|---|---|
+| CSS framework | Tailwind CSS | 3+ |
+| Component variants | `clsx` + `tailwind-merge` | latest |
+
+No custom global stylesheets. All styles via Tailwind utility classes. Use `clsx`/`twMerge` for conditional class composition in components.
+
+---
+
+## 3. State Management
 
 | Concern | Tool |
 |---|---|
@@ -25,7 +36,7 @@ See `STATE_MANAGEMENT.md` for usage rules.
 
 ---
 
-## 3. Testing
+## 4. Testing
 
 | Concern | Tool |
 |---|---|
@@ -36,7 +47,7 @@ See `STATE_MANAGEMENT.md` for usage rules.
 
 ---
 
-## 4. Observability
+## 5. Observability
 
 | Concern | Tool |
 |---|---|
@@ -48,7 +59,7 @@ OpenTelemetry instrumentation lives in `src/shared/observability/`. Features mus
 
 ---
 
-## 5. HTTP
+## 6. HTTP
 
 | Concern | Tool |
 |---|---|
@@ -59,7 +70,7 @@ No Axios. Use the shared base client in `src/shared/api/client.ts`.
 
 ---
 
-## 6. Quality Gates (CI)
+## 7. Quality Gates (CI)
 
 | Gate | Tool |
 |---|---|
@@ -72,7 +83,7 @@ No Axios. Use the shared base client in `src/shared/api/client.ts`.
 
 ---
 
-## 7. Governance
+## 8. Governance
 
 | Concern | Location |
 |---|---|
