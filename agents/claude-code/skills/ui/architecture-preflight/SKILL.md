@@ -1,3 +1,8 @@
+---
+description: Run before planning any UI feature to validate MVVM boundaries, backend contract availability, accessibility impact, and ADR need
+argument-hint: "<feature_name>"
+---
+
 # Architecture Preflight — React UI
 
 You are performing an Architecture Preflight for a React UI feature. Read the following before proceeding:
@@ -36,7 +41,7 @@ Which layers does this feature touch? For each:
 
 Before proceeding to state management and backend contract decisions, validate repository scope. See: `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md`
 
-Verify the "Repository Scope" section in `features/<feature>/nfrs.md` is complete:
+Verify the "Repository Scope" section in `features/$ARGUMENTS/nfrs.md` is complete:
 
 - [ ] One box is checked: "This repository only" OR "Multiple repositories" (with table)
 - [ ] If multi-repo: all repos, owners, modules, and contracts are documented

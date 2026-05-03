@@ -1,6 +1,8 @@
 ---
-description: "Run before planning any UI feature to validate MVVM boundaries, backend contract availability, accessibility impact, and ADR need"
-agent: "ask"
+name: ui-architecture-preflight
+description: Run before planning any UI feature to validate MVVM boundaries, backend contract availability, accessibility impact, and ADR need
+argument-hint: "<feature_name>"
+user-invocable: true
 ---
 
 # Architecture Preflight — React UI
@@ -40,7 +42,7 @@ If any endpoint does not exist, flag it as a blocker. UI implementation cannot b
 
 Before proceeding to component and state management decisions, validate repository scope. See: `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md`
 
-Verify the "Repository Scope" section in `features/<feature>/nfrs.md` is complete:
+Verify the "Repository Scope" section in `features/$ARGUMENTS/nfrs.md` is complete:
 
 - [ ] One box is checked: "This repository only" OR "Multiple repositories" (with table)
 - [ ] If multi-repo: all repos, owners, modules, and contracts are documented
@@ -85,6 +87,6 @@ If ADR required: implementation must not proceed until the ADR status is Accepte
 - Accessibility compliance risk: Low / Medium / High
 - E2E complexity: Low / Medium / High
 
-Write this report to `features/<feature_name>/architecture_preflight.md`.
+Write this report to `features/$ARGUMENTS/architecture_preflight.md`.
 
 If any required inputs are missing, stop and ask before proceeding.

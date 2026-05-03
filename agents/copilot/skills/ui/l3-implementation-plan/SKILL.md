@@ -1,6 +1,8 @@
 ---
-description: "Generate an ordered UI implementation checklist from a feature plan — Level 3 Spec-Driven"
-agent: "ask"
+name: ui-implementation-plan
+description: Generate an ordered UI implementation checklist from a feature plan — Level 3 Spec-Driven
+argument-hint: "<feature_name>"
+user-invocable: true
 ---
 
 # Implementation Plan — UI (Level 3)
@@ -11,9 +13,9 @@ You are producing an Implementation Plan for a UI feature.
 
 Read the following before proceeding:
 
-- `features/<FEATURE>/plan.md`
-- `features/<FEATURE>/acceptance.feature`
-- `features/<FEATURE>/nfrs.md`
+- `features/$ARGUMENTS/plan.md`
+- `features/$ARGUMENTS/acceptance.feature`
+- `features/$ARGUMENTS/nfrs.md`
 
 ## Planning Requirements
 

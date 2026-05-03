@@ -1,6 +1,8 @@
 ---
-description: "Produce an ordered implementation checklist for a React UI feature following MVVM layer sequence"
-agent: "ask"
+name: ui-implementation-plan
+description: Produce an ordered implementation checklist for a React UI feature following MVVM layer sequence
+argument-hint: "<feature_name>"
+user-invocable: true
 ---
 
 # Implementation Plan — React UI
@@ -8,19 +10,19 @@ agent: "ask"
 You are producing an Implementation Plan for a React UI feature.
 
 Before proceeding, read:
-- `features/<feature_name>/plan.md`
-- `features/<feature_name>/architecture_preflight.md`
+- `features/$ARGUMENTS/plan.md`
+- `features/$ARGUMENTS/architecture_preflight.md`
 - `docs/ui/architecture/MVVM_CONTRACT.md`
 - `docs/ui/architecture/react/STATE_MANAGEMENT.md`
 
 Produce an ordered implementation checklist. Sequence must follow MVVM layer order: API → ViewModel → View.
 
 ## 1. Types and Interfaces
-- [ ] Define request/response types in `src/features/<feature>/types/`
+- [ ] Define request/response types in `src/features/$ARGUMENTS/types/`
 - [ ] Define ViewModel types shaped for component consumption
 
 ## 2. API Layer
-- [ ] Create API functions in `src/features/<feature>/api/`
+- [ ] Create API functions in `src/features/$ARGUMENTS/api/`
 - [ ] Wire to shared base client
 - [ ] Write unit tests — mock fetch at the boundary
 

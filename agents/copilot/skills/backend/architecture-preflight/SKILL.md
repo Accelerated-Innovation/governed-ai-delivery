@@ -1,9 +1,11 @@
 ---
-description: "Run before planning any feature to validate architecture boundaries, standards alignment, and ADR need"
-agent: "ask"
+name: architecture-preflight
+description: Run before planning any feature to validate architecture boundaries, standards alignment, and ADR need
+argument-hint: "<feature_name>"
+user-invocable: true
 ---
 
-# Architecture Preflight Prompt
+# Architecture Preflight
 
 You are preparing to plan and implement a new feature.
 
@@ -35,7 +37,7 @@ For each of the following, state which architectural rules or standards apply (c
 
 Before proceeding to ADR determination, validate repository scope. See: `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md`
 
-Verify the "Repository Scope" section in `features/<feature>/nfrs.md` is complete:
+Verify the "Repository Scope" section in `features/$ARGUMENTS/nfrs.md` is complete:
 
 - [ ] One box is checked: "This repository only" OR "Multiple repositories" (with table)
 - [ ] If multi-repo: all repos, owners, modules, and contracts are documented
@@ -71,7 +73,6 @@ Choose one:
 
 ---
 
-Write this report to `features/<feature_name>/architecture_preflight.md`.
+Write this report to `features/$ARGUMENTS/architecture_preflight.md`.
 
 If any spec inputs are missing, ask the user before proceeding.
-

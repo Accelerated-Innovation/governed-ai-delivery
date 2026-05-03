@@ -1,18 +1,20 @@
 ---
-description: "Plan DeepEval, Promptfoo, and RAGAS evaluation suites for an LLM feature"
-agent: "ask"
+name: eval-suite-planning
+description: Plan DeepEval, Promptfoo, and RAGAS evaluation suites for an LLM feature
+argument-hint: "<feature_name>"
+user-invocable: true
 ---
 
-# Evaluation Suite Planning Prompt
+# Evaluation Suite Planning
 
-Plan the LLM evaluation test suite for: **{{FEATURE_NAME}}**
+Plan the LLM evaluation test suite for: **$ARGUMENTS**
 
 ## Inputs to read
 
-- `features/{{FEATURE_NAME}}/nfrs.md`
-- `features/{{FEATURE_NAME}}/acceptance.feature`
-- `features/{{FEATURE_NAME}}/eval_criteria.yaml`
-- `features/{{FEATURE_NAME}}/architecture_preflight.md`
+- `features/$ARGUMENTS/nfrs.md`
+- `features/$ARGUMENTS/acceptance.feature`
+- `features/$ARGUMENTS/eval_criteria.yaml`
+- `features/$ARGUMENTS/architecture_preflight.md`
 - `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
 - `docs/backend/guides/deepeval-usage.md`
 - `docs/backend/guides/promptfoo-usage.md`
@@ -28,6 +30,6 @@ Plan the LLM evaluation test suite for: **{{FEATURE_NAME}}**
 
 ## Output
 
-Update `features/{{FEATURE_NAME}}/eval_criteria.yaml` with criteria using `deepeval_*`, `promptfoo_*`, and `ragas_*` eval_class values. Set thresholds and dataset paths.
+Update `features/$ARGUMENTS/eval_criteria.yaml` with criteria using `deepeval_*`, `promptfoo_*`, and `ragas_*` eval_class values. Set thresholds and dataset paths.
 
 No implementation code in this step.

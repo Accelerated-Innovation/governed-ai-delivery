@@ -1,15 +1,17 @@
 ---
-description: "Generate a feature plan (plan.md) and eval_criteria.yaml from NFRs and acceptance scenarios"
-agent: "ask"
+name: spec-planning
+description: Generate a feature plan (plan.md) and eval_criteria.yaml from NFRs and acceptance scenarios
+argument-hint: "<feature_name>"
+user-invocable: true
 ---
 
-Plan the implementation of the feature: **{{FEATURE_NAME}}**
+Plan the implementation of the feature: **$ARGUMENTS**
 
 ## Inputs to read
 
 Feature specs:
-- NFRs: `features/{{FEATURE_NAME}}/nfrs.md`
-- Acceptance: `features/{{FEATURE_NAME}}/acceptance.feature`
+- NFRs: `features/$ARGUMENTS/nfrs.md`
+- Acceptance: `features/$ARGUMENTS/acceptance.feature`
 
 Architecture standards:
 - `docs/backend/architecture/**`
@@ -18,7 +20,7 @@ Evaluation standards:
 - Global evaluation contract: `docs/backend/evaluation/eval_criteria.md`
 
 Existing artifacts (read if present, update if needed):
-- Feature eval config: `features/{{FEATURE_NAME}}/eval_criteria.yaml`
+- Feature eval config: `features/$ARGUMENTS/eval_criteria.yaml`
 
 ## Instructions
 
@@ -42,7 +44,7 @@ Existing artifacts (read if present, update if needed):
 6. Produce two outputs:
 
 ### Output A: Plan (Markdown)
-Create `features/{{FEATURE_NAME}}/plan.md` content with:
+Create `features/$ARGUMENTS/plan.md` content with:
 - Task checklist (files/modules to create or edit)
 - Test plan (unit, integration, contract)
 - LLM eval hooks and where they run
@@ -50,7 +52,7 @@ Create `features/{{FEATURE_NAME}}/plan.md` content with:
 - ADR status (required or not required)
 
 ### Output B: Feature Eval Criteria (YAML)
-Create or update `features/{{FEATURE_NAME}}/eval_criteria.yaml` to conform to:
+Create or update `features/$ARGUMENTS/eval_criteria.yaml` to conform to:
 - `docs/backend/evaluation/eval_criteria.md` schema and thresholds
 Include, at minimum:
 - FIRST enforcement settings

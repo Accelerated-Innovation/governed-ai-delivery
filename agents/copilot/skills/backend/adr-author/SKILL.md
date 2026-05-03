@@ -1,9 +1,10 @@
 ---
-description: "Author an Architecture Decision Record for a new pattern, exception, or boundary change"
-agent: "ask"
+name: adr-author
+description: Author an Architecture Decision Record for a new pattern, exception, or boundary change
+user-invocable: true
 ---
 
-# ADR Author Prompt
+# ADR Author
 
 You are writing an Architecture Decision Record (ADR) to document a change or exception to the architecture.
 
@@ -12,7 +13,7 @@ Follow this structure and reasoning model:
 ---
 
 ## Title
-Short, action-oriented statement. Example: “Introduce Redis-based session store for authentication”
+Short, action-oriented statement. Example: "Introduce Redis-based session store for authentication"
 
 ## Context
 - What triggered this decision?
@@ -59,6 +60,3 @@ Follow the template at `docs/backend/architecture/ADR/TEMPLATE.md`.
 Write the ADR to `docs/backend/architecture/ADR/<slug>.md` where `<slug>` is a kebab-case version of the title (e.g., `introduce-redis-session-store.md`).
 
 If required information is missing, stop and request clarification before writing the draft.
-
-
-
