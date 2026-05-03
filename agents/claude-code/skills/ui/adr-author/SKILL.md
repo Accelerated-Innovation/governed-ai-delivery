@@ -1,3 +1,8 @@
+---
+description: Author an Architecture Decision Record for a React UI architectural decision
+argument-hint: "<decision_title>"
+---
+
 # ADR Author — React UI
 
 You are authoring an Architecture Decision Record for a React UI architectural decision.

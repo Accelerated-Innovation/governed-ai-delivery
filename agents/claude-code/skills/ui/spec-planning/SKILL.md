@@ -1,3 +1,8 @@
+---
+description: Generate or update plan.md and eval_criteria.yaml for a React UI feature
+argument-hint: "<feature_name>"
+---
+
 # Spec Planning — React UI
 
 You are performing Spec Planning for a React UI feature. Read the following before proceeding:
