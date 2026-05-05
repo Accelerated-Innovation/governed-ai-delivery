@@ -36,14 +36,56 @@ When a change affects behavior, contributors should update the relevant document
 ## Project Structure
 
 ```text
-agents/         Agent configurations installed into target projects
-cli/            govkit CLI commands and validation logic
-docs/           Architecture contracts, guidance, and reference material
-features/       Feature starters and worked examples
-governance/     JSON Schemas and templates
-ci/             CI pipeline templates
-tests/          Test suite
-````
+governed-ai-delivery/
+├── agents/
+│   ├── claude-code/                  # Claude Code agent (variant-based)
+│   │   ├── manifest.json            # Variant options: type, ui, ci
+│   │   ├── claude-md/               # CLAUDE.md variants per project type
+│   │   ├── rules/                   # Path-scoped rules (backend/, cli/, ui-react/, ui-angular/)
+│   │   └── skills/                  # Skills (backend/, ui/)
+│   ├── copilot/                     # Copilot agent (variant-based)
+│   │   ├── manifest.json
+│   │   ├── copilot-instructions/    # Instruction variants per project type
+│   │   ├── instructions/            # Path-scoped instructions (backend/, cli/, ui-react/, ui-angular/)
+│   │   └── prompts/                 # Chat prompts (backend/, ui/)
+│   └── codex/                       # OpenAI Codex agent (variant-based)
+│       ├── manifest.json
+│       ├── agents-md/               # Root AGENTS.md variants per project type and level
+│       ├── rules/                   # Body-only rules installed as nested AGENTS.md per layer
+│       └── skills/                  # SKILL.md skills installed to .agents/skills/
+├── cli/
+│   ├── govkit.py                    # CLI — apply, list, init, validate
+│   └── validate.py                  # Governance compliance checker
+├── docs/
+│   ├── backend/
+│   │   ├── architecture/            # ARCH_CONTRACT, BOUNDARIES, API_CONVENTIONS, ADR/, etc.
+│   │   ├── evaluation/              # eval_criteria.md, FIRST/Virtue scoring rubrics
+│   │   └── guides/                  # Level 5 tool setup guides (LiteLLM, DeepEval, etc.)
+│   ├── ui/
+│   │   ├── architecture/
+│   │   │   ├── MVVM_CONTRACT.md
+│   │   │   ├── react/               # COMPONENT_CONVENTIONS, STATE_MANAGEMENT, TECH_STACK
+│   │   │   └── angular/             # COMPONENT_CONVENTIONS, STATE_MANAGEMENT, TECH_STACK
+│   │   └── evaluation/              # UI eval_criteria.md, FIRST/Virtue rubrics
+│   └── stacks/                      # Stack-specific architecture doc overrides
+│       ├── dotnet-aspnet/
+│       ├── java-spring-boot/
+│       ├── nodejs-fastify/
+│       └── go-gin/
+├── features/
+│   ├── starter_backend/             # API backend starter (Level 4, 5 artifacts)
+│   ├── starter_cli/                 # CLI project starter
+│   ├── starter_ui/                  # UI starter
+│   └── (worked examples)
+├── governance/
+│   ├── backend/schemas/             # eval_criteria.schema.json, guardrails_config.schema.json
+│   ├── schemas/                     # evaluation_prediction.schema.json
+│   └── ui/schemas/                  # UI eval_criteria.schema.json
+├── ci/
+│   ├── github/                      # GitHub Actions CI templates
+│   └── azure/                       # Azure DevOps CI equivalents
+└── tests/                           # pytest test suite for govkit CLI
+```
 
 ---
 
