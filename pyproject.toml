@@ -9,9 +9,13 @@ description = "Governed AI delivery kit — spec-driven scaffolding for AI codin
 readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [
-  { name = "Accelerated Innovation" }
+  { name = "Accelerated Innovation", email = "marty@acceleratedinnovation.com" }
 ]
-keywords = ["ai", "governance", "scaffolding", "copilot", "claude-code", "specification"]
+keywords = [
+  "ai", "governance", "scaffolding", "copilot", "claude-code", "specification",
+  "spec-driven-development", "ai-agents", "llm", "genai", "agentic",
+  "coding-assistant", "cursor", "gherkin", "bdd", "developer-experience",
+]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
@@ -19,8 +23,11 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Environment :: Console",
   "Topic :: Software Development :: Code Generators",
   "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Testing :: BDD",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 requires-python = ">=3.11"
 
