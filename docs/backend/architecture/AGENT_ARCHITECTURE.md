@@ -102,11 +102,17 @@ Rules:
 
 **Multi-agent system prompt convention:**
 
-When a feature declares `multi_agent: true`, each agent's system prompt must be declared in `features/<feature>/agent_topology.md` using an explicit file path:
+When a feature declares `multi_agent: true`, each agent's system prompt must be declared in `features/<feature>/agent_topology.md` using an explicit file path. Two equivalent formats are accepted — use whichever fits your topology document's style:
 
 ```
+# YAML-like (compact, machine-readable)
 system_prompt: src/agents/<agent_name>/system_prompt.md
+
+# Markdown label (readable in rendered docs)
+- **System Prompt:** `src/agents/<agent_name>/system_prompt.md`
 ```
+
+The CI gate (`multi-agent-gate.yml`) recognises both formats and verifies each declared path exists in the repository.
 
 System prompts are loaded by the adapter at runtime — they are never hardcoded as Python strings in graph node functions. A system prompt change that materially alters agent behavior requires an ADR review.
 

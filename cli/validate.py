@@ -41,8 +41,8 @@ _PLAN_MD = "plan.md"
 _EVAL_CRITERIA_YAML = "eval_criteria.yaml"
 _ARCH_PREFLIGHT_MD = "architecture_preflight.md"
 
-_RE_MODE_LLM = r"^mode:\s*llm"
-_RE_MULTI_AGENT = r"^multi_agent:\s*true"
+_RE_MODE_LLM = r"^\s*mode:\s*llm\b"
+_RE_MULTI_AGENT = r"^\s*multi_agent:\s*true\b"
 _AGENT_TOPOLOGY_MD = "agent_topology.md"
 
 L3_REQUIRED_ARTIFACTS = [

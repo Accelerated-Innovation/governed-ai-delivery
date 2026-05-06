@@ -31,7 +31,7 @@ jobs:
       - name: Detect multi-agent features
         id: detect
         run: |
-          FEATURES=$(find features/ -name "eval_criteria.yaml" -exec grep -l "^multi_agent: true" {} \; 2>/dev/null || true)
+          FEATURES=$(find features/ -name "eval_criteria.yaml" -exec grep -l "^[[:space:]]*multi_agent:[[:space:]]*true" {} \; 2>/dev/null || true)
           if [ -z "$FEATURES" ]; then
             echo "No multi-agent features detected. Skipping."
             echo "has_multi_agent=false" >> $GITHUB_OUTPUT
@@ -39,7 +39,8 @@ jobs:
             echo "Multi-agent features found:"
             echo "$FEATURES"
             echo "has_multi_agent=true" >> $GITHUB_OUTPUT
-            echo "feature_dirs=$(echo "$FEATURES" | xargs -I{} dirname {} | tr '\n' ' ')" >> $GITHUB_OUTPUT
+            feature_dirs="$(printf '%s\n' "$FEATURES" | xargs -I{} dirname {} | tr '\n' ' ')"
+            echo "feature_dirs=$feature_dirs" >> $GITHUB_OUTPUT
           fi
 
       - name: Validate agent_topology.md presence and sections
@@ -77,12 +78,13 @@ jobs:
       - name: Detect multi-agent features
         id: detect
         run: |
-          FEATURES=$(find features/ -name "eval_criteria.yaml" -exec grep -l "^multi_agent: true" {} \; 2>/dev/null || true)
+          FEATURES=$(find features/ -name "eval_criteria.yaml" -exec grep -l "^[[:space:]]*multi_agent:[[:space:]]*true" {} \; 2>/dev/null || true)
           if [ -z "$FEATURES" ]; then
             echo "has_multi_agent=false" >> $GITHUB_OUTPUT
           else
             echo "has_multi_agent=true" >> $GITHUB_OUTPUT
-            echo "feature_dirs=$(echo "$FEATURES" | xargs -I{} dirname {} | tr '\n' ' ')" >> $GITHUB_OUTPUT
+            feature_dirs="$(printf '%s\n' "$FEATURES" | xargs -I{} dirname {} | tr '\n' ' ')"
+            echo "feature_dirs=$feature_dirs" >> $GITHUB_OUTPUT
           fi
 
       - name: Validate system prompt files exist
@@ -93,17 +95,15 @@ jobs:
             topology="$feature_dir/agent_topology.md"
             [ ! -f "$topology" ] && continue
             echo "Checking system prompts declared in $topology..."
-            while IFS= read -r line; do
-              path=$(echo "$line" | sed "s/.*\`\(.*\)\`.*/\1/")
-              if [ "$path" != "$line" ] && [ -n "$path" ]; then
-                if [ ! -f "$path" ]; then
-                  echo "  FAIL: system prompt not found: $path"
-                  errors=$((errors + 1))
-                else
-                  echo "  PASS: $path exists"
-                fi
+            while IFS= read -r path; do
+              [ -z "$path" ] && continue
+              if [ ! -f "$path" ]; then
+                echo "  FAIL: system prompt not found: $path"
+                errors=$((errors + 1))
+              else
+                echo "  PASS: $path exists"
               fi
-            done < <(grep "System Prompt:" "$topology" || true)
+            done < <(TOPOLOGY="$topology" python3 -c 'import re,os;t=open(os.environ["TOPOLOGY"]).read();p=set(re.findall(r"^\s*system_prompt:\s*(\S+)",t,re.M))|set(re.findall(r"\*\*System Prompt:\*\*\s*`([^`]+)`",t));print("\n".join(sorted(x for x in p if x)))')
           done
           if [ "$errors" -gt 0 ]; then
             echo "$errors system prompt file(s) missing"

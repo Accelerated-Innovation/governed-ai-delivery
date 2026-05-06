@@ -30,7 +30,7 @@ stages:
 
           - script: |
               errors=0
-              FEATURES=$(find features/ -name "eval_criteria.yaml" -exec grep -l "^multi_agent: true" {} \; 2>/dev/null || true)
+              FEATURES=$(find features/ -name "eval_criteria.yaml" -exec grep -l "^[[:space:]]*multi_agent:[[:space:]]*true" {} \; 2>/dev/null || true)
               if [ -z "$FEATURES" ]; then
                 echo "No multi-agent features detected. Skipping."
                 exit 0
@@ -63,7 +63,7 @@ stages:
 
           - script: |
               errors=0
-              FEATURES=$(find features/ -name "eval_criteria.yaml" -exec grep -l "^multi_agent: true" {} \; 2>/dev/null || true)
+              FEATURES=$(find features/ -name "eval_criteria.yaml" -exec grep -l "^[[:space:]]*multi_agent:[[:space:]]*true" {} \; 2>/dev/null || true)
               if [ -z "$FEATURES" ]; then
                 echo "No multi-agent features detected. Skipping."
                 exit 0
@@ -72,17 +72,15 @@ stages:
                 topology="$feature_dir/agent_topology.md"
                 [ ! -f "$topology" ] && continue
                 echo "Checking system prompts declared in $topology..."
-                while IFS= read -r line; do
-                  path=$(echo "$line" | sed "s/.*\`\(.*\)\`.*/\1/")
-                  if [ "$path" != "$line" ] && [ -n "$path" ]; then
-                    if [ ! -f "$path" ]; then
-                      echo "  FAIL: $path not found"
-                      errors=$((errors + 1))
-                    else
-                      echo "  PASS: $path exists"
-                    fi
+                while IFS= read -r path; do
+                  [ -z "$path" ] && continue
+                  if [ ! -f "$path" ]; then
+                    echo "  FAIL: $path not found"
+                    errors=$((errors + 1))
+                  else
+                    echo "  PASS: $path exists"
                   fi
-                done < <(grep "System Prompt:" "$topology" || true)
+                done < <(TOPOLOGY="$topology" python3 -c 'import re,os;t=open(os.environ["TOPOLOGY"]).read();p=set(re.findall(r"^\s*system_prompt:\s*(\S+)",t,re.M))|set(re.findall(r"\*\*System Prompt:\*\*\s*`([^`]+)`",t));print("\n".join(sorted(x for x in p if x)))')
               done
               [ "$errors" -gt 0 ] && exit 1
               echo "All system prompt files present."
