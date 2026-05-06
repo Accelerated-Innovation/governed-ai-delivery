@@ -100,6 +100,22 @@ Rules:
 - Prompts must not be embedded directly in code
 - Prompt changes should be reviewed like code changes
 
+**Multi-agent system prompt convention:**
+
+When a feature declares `multi_agent: true`, each agent's system prompt must be declared in `features/<feature>/agent_topology.md` using an explicit file path. Two equivalent formats are accepted — use whichever fits your topology document's style:
+
+```
+# YAML-like (compact, machine-readable)
+system_prompt: src/agents/<agent_name>/system_prompt.md
+
+# Markdown label (readable in rendered docs)
+- **System Prompt:** `src/agents/<agent_name>/system_prompt.md`
+```
+
+The CI gate (`multi-agent-gate.yml`) recognises both formats and verifies each declared path exists in the repository.
+
+System prompts are loaded by the adapter at runtime — they are never hardcoded as Python strings in graph node functions. A system prompt change that materially alters agent behavior requires an ADR review.
+
 ---
 
 # 6. Agent State
@@ -230,6 +246,18 @@ Evaluation may include:
 
 Evaluation must run in CI.
 
+**Cross-agent evaluation (multi-agent features):**
+
+Single-agent evaluation (DeepEval, Promptfoo) measures individual node output quality. Multi-agent features require a system-level evaluation tier that measures the composed output of the full graph — not just individual nodes.
+
+When `multi_agent: true` is declared in `eval_criteria.yaml`, include a `multi_agent_evaluation` block with:
+- `topology_validated` — confirms `agent_topology.md` was reviewed before implementation
+- `system_prompt_governed` — confirms all system prompts are file-based and declared
+- `cross_agent_coherence` — score entry for composed output coherence
+- `orchestrator_routing_accuracy` — score entry for routing correctness
+
+Cross-agent eval runs in CI via `multi-agent-gate.yml`.
+
 ### LLM Evaluation Tools (Level 5)
 
 | Tool | Responsibility |
@@ -301,6 +329,10 @@ An ADR is required when:
 - introducing a new LLM provider
 - introducing a new tool capability
 - modifying evaluation strategies
+- adding or removing nodes in a multi-agent graph
+- rerouting edges between agents
+- making material changes to an agent's system prompt
+- changing the state schema shared between agents
 
 ADR template:
 ```
@@ -323,6 +355,90 @@ An agent feature is complete when:
 # 16. Guardrails Integration (Level 5)
 
 Agent features that interact with users must implement runtime guardrails.
+
+---
+
+# 17. Multi-Agent Topology
+
+When a feature uses multiple coordinated agents, declare `multi_agent: true` in `features/<feature>/eval_criteria.yaml`. This activates multi-agent governance for that feature.
+
+## Required governance artifact: `agent_topology.md`
+
+Every multi-agent feature must have `features/<feature>/agent_topology.md` before architecture preflight begins. Run `/multi-agent-design <feature>` (claude-code/copilot) or `$multi-agent-design <feature>` (codex) to produce it.
+
+**Required sections:**
+
+### Orchestrator
+- Role description
+- System prompt path: `src/agents/<name>/system_prompt.md`
+- LLM model alias (from `TECH_STACK.md`)
+- Routing strategy (conditions for dispatching to each specialist)
+
+### Specialist Agents
+For each specialist:
+- Role description
+- Input state fields (typed)
+- Output state fields (typed)
+- System prompt path: `src/agents/<name>/system_prompt.md`
+- LLM model alias
+- Tools/ports invoked
+
+### Routing Logic
+Explicit edge conditions for the LangGraph graph — which node fires under which conditions. No implicit or unconditional loops.
+
+### Failure Modes
+- Per-node timeout (seconds)
+- Graph-level timeout (seconds)
+- Fallback behavior when a node fails or times out
+
+## Architecture rules for multi-agent systems
+
+- The LangGraph graph definition lives in `services/graphs/<feature>_graph.py` — it is a service, not an adapter
+- Graph state is a `TypedDict` defined in `services/graphs/<feature>_state.py`
+- Each node function signature: `(state: FeatureState) -> dict` — pure transformation, no side effects
+- All LLM calls from node functions route through `LLMPort` — no direct provider SDK imports in graph files
+- System prompts are loaded from declared file paths at startup — never hardcoded as Python strings
+- No direct agent-to-agent calls — all routing goes through LangGraph graph edges
+
+## Example `agent_topology.md` structure
+
+```markdown
+# Agent Topology: <feature_name>
+
+## Orchestrator
+- **Role:** Route user queries to the appropriate specialist
+- **System Prompt:** `src/agents/orchestrator/system_prompt.md`
+- **Model:** `gpt-4o` (alias from TECH_STACK.md)
+- **Routing:** classifier output → specialist selection
+
+## Specialist Agents
+
+### analysis-agent
+- **Role:** Classify and structure the input query
+- **Input State:** `{ query: str, context: list[str] }`
+- **Output State:** `{ classification: str, confidence: float }`
+- **System Prompt:** `src/agents/analysis/system_prompt.md`
+- **Model:** `gpt-4o-mini`
+
+### solution-agent
+- **Role:** Generate a response based on the classification
+- **Input State:** `{ classification: str, confidence: float, query: str }`
+- **Output State:** `{ response: str }`
+- **System Prompt:** `src/agents/solution/system_prompt.md`
+- **Model:** `gpt-4o`
+
+## Routing Logic
+- START → orchestrator
+- orchestrator → analysis-agent (always)
+- analysis-agent → solution-agent (if confidence >= 0.7)
+- analysis-agent → END with escalation flag (if confidence < 0.7)
+- solution-agent → END
+
+## Failure Modes
+- Per-node timeout: 30s
+- Graph timeout: 120s
+- Node failure: return partial state with `error` field set; graph routes to END
+```
 
 | Tool | When to Use |
 |------|------------|

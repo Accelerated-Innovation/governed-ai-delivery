@@ -39,9 +39,11 @@
           { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" }
         ],
         "shared": [
-          "docs/backend/",
           "features/starter_backend/",
-          "features/schema_contract_example/",
+          "features/schema_contract_example/"
+        ],
+        "governed": [
+          "docs/backend/",
           "governance/backend/"
         ],
         "level_3": {
@@ -51,11 +53,13 @@
             { "src": "skills/backend/l3-implementation-plan/", "dest": ".agents/skills/implementation-plan/" }
           ],
           "shared": [
+            "features/starter_backend_l3/"
+          ],
+          "governed": [
             "docs/backend/architecture/DESIGN_PRINCIPLES.md",
             "docs/backend/architecture/TESTING.md",
             "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
             "docs/backend/architecture/GHERKIN_TAGS.md",
-            "features/starter_backend_l3/",
             "governance/backend/templates/l3-plan.md"
           ]
         },
@@ -71,17 +75,21 @@
             { "src": "rules/backend/guardrails.md", "dest": "adapters/guardrails/AGENTS.md" },
             { "src": "rules/backend/llm-evaluation.md", "dest": "tests/eval/AGENTS.md" },
             { "src": "rules/backend/llm-observability.md", "dest": "adapters/observability/AGENTS.md" },
+            { "src": "rules/backend/multi-agent.md", "dest": "services/graphs/AGENTS.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
             { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/architecture-preflight/" },
             { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/implementation-plan/" },
             { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" },
             { "src": "skills/backend/genai-preflight/", "dest": ".agents/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".agents/skills/eval-suite-planning/" }
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".agents/skills/eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".agents/skills/multi-agent-design/" }
           ],
           "shared": [
-            "docs/backend/",
             "features/starter_backend_l5/",
-            "features/schema_contract_example/",
+            "features/schema_contract_example/"
+          ],
+          "governed": [
+            "docs/backend/",
             "governance/backend/",
             "governance/schemas/evaluation_prediction.schema.json"
           ]
@@ -101,8 +109,10 @@
           { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" }
         ],
         "shared": [
+          "features/starter_cli/"
+        ],
+        "governed": [
           "docs/backend/",
-          "features/starter_cli/",
           "governance/backend/"
         ],
         "level_3": {
@@ -112,11 +122,13 @@
             { "src": "skills/backend/l3-implementation-plan/", "dest": ".agents/skills/implementation-plan/" }
           ],
           "shared": [
+            "features/starter_cli_l3/"
+          ],
+          "governed": [
             "docs/backend/architecture/DESIGN_PRINCIPLES.md",
             "docs/backend/architecture/TESTING.md",
             "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
             "docs/backend/architecture/GHERKIN_TAGS.md",
-            "features/starter_cli_l3/",
             "governance/backend/templates/l3-plan.md"
           ]
         },
@@ -132,16 +144,20 @@
             { "src": "rules/backend/guardrails.md", "dest": "adapters/guardrails/AGENTS.md" },
             { "src": "rules/backend/llm-evaluation.md", "dest": "tests/eval/AGENTS.md" },
             { "src": "rules/backend/llm-observability.md", "dest": "adapters/observability/AGENTS.md" },
+            { "src": "rules/backend/multi-agent.md", "dest": "services/graphs/AGENTS.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
             { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/architecture-preflight/" },
             { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/implementation-plan/" },
             { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" },
             { "src": "skills/backend/genai-preflight/", "dest": ".agents/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".agents/skills/eval-suite-planning/" }
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".agents/skills/eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".agents/skills/multi-agent-design/" }
           ],
           "shared": [
+            "features/starter_cli_l5/"
+          ],
+          "governed": [
             "docs/backend/",
-            "features/starter_cli_l5/",
             "governance/backend/",
             "governance/schemas/evaluation_prediction.schema.json"
           ]
@@ -166,14 +182,16 @@
           { "src": "skills/ui/adr-author/", "dest": ".agents/skills/ui-adr-author/" }
         ],
         "shared": [
+          "features/starter_ui/",
+          "features/ui_task_dashboard/"
+        ],
+        "governed": [
           "docs/ui/architecture/MVVM_CONTRACT.md",
           "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
           "docs/ui/architecture/ADR/",
           "docs/ui/architecture/react/",
           "docs/ui/evaluation/",
-          "governance/ui/",
-          "features/starter_ui/",
-          "features/ui_task_dashboard/"
+          "governance/ui/"
         ],
         "level_3": {
           "files": [
@@ -182,7 +200,9 @@
             { "src": "skills/ui/l3-implementation-plan/", "dest": ".agents/skills/ui-implementation-plan/" }
           ],
           "shared": [
-            "features/starter_ui_l3/",
+            "features/starter_ui_l3/"
+          ],
+          "governed": [
             "governance/ui/templates/l3-plan.md"
           ]
         }
@@ -200,14 +220,16 @@
           { "src": "skills/ui/adr-author/", "dest": ".agents/skills/ui-adr-author/" }
         ],
         "shared": [
+          "features/starter_ui/",
+          "features/ui_task_dashboard/"
+        ],
+        "governed": [
           "docs/ui/architecture/MVVM_CONTRACT.md",
           "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
           "docs/ui/architecture/ADR/",
           "docs/ui/architecture/angular/",
           "docs/ui/evaluation/",
-          "governance/ui/",
-          "features/starter_ui/",
-          "features/ui_task_dashboard/"
+          "governance/ui/"
         ],
         "level_3": {
           "files": [
@@ -216,7 +238,9 @@
             { "src": "skills/ui/l3-implementation-plan/", "dest": ".agents/skills/ui-implementation-plan/" }
           ],
           "shared": [
-            "features/starter_ui_l3/",
+            "features/starter_ui_l3/"
+          ],
+          "governed": [
             "governance/ui/templates/l3-plan.md"
           ]
         }
@@ -225,35 +249,43 @@
     "ci": {
       "github": {
         "files": [],
-        "shared": ["ci/github/"],
+        "shared": [],
+        "governed": ["ci/github/"],
         "level_3": {
           "files": [],
-          "shared": ["ci/github/l3-quality-gate.yml"]
+          "shared": [],
+          "governed": ["ci/github/l3-quality-gate.yml"]
         },
         "level_5": {
           "files": [],
-          "shared": [
+          "shared": [],
+          "governed": [
             "ci/github/",
             "ci/github/deepeval-gate.yml",
             "ci/github/promptfoo-gate.yml",
-            "ci/github/guardrails-check.yml"
+            "ci/github/guardrails-check.yml",
+            "ci/github/multi-agent-gate.yml"
           ]
         }
       },
       "azure": {
         "files": [],
-        "shared": ["ci/azure/"],
+        "shared": [],
+        "governed": ["ci/azure/"],
         "level_3": {
           "files": [],
-          "shared": ["ci/azure/l3-quality-gate.yml"]
+          "shared": [],
+          "governed": ["ci/azure/l3-quality-gate.yml"]
         },
         "level_5": {
           "files": [],
-          "shared": [
+          "shared": [],
+          "governed": [
             "ci/azure/",
             "ci/azure/deepeval-gate.yml",
             "ci/azure/promptfoo-gate.yml",
-            "ci/azure/guardrails-check.yml"
+            "ci/azure/guardrails-check.yml",
+            "ci/azure/multi-agent-gate.yml"
           ]
         }
       }

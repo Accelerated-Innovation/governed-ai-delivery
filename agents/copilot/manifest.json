@@ -32,9 +32,11 @@
           { "src": "skills/backend/", "dest": ".github/skills/" }
         ],
         "shared": [
-          "docs/backend/",
           "features/starter_backend/",
-          "features/schema_contract_example/",
+          "features/schema_contract_example/"
+        ],
+        "governed": [
+          "docs/backend/",
           "governance/backend/"
         ],
         "level_3": {
@@ -44,11 +46,13 @@
             { "src": "skills/backend/l3-implementation-plan/", "dest": ".github/skills/implementation-plan/" }
           ],
           "shared": [
+            "features/starter_backend_l3/"
+          ],
+          "governed": [
             "docs/backend/architecture/DESIGN_PRINCIPLES.md",
             "docs/backend/architecture/TESTING.md",
             "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
             "docs/backend/architecture/GHERKIN_TAGS.md",
-            "features/starter_backend_l3/",
             "governance/backend/templates/l3-plan.md"
           ]
         },
@@ -60,14 +64,18 @@
             { "src": "instructions/backend/guardrails.instructions.md", "dest": ".github/instructions/guardrails.instructions.md" },
             { "src": "instructions/backend/llm-evaluation.instructions.md", "dest": ".github/instructions/llm-evaluation.instructions.md" },
             { "src": "instructions/backend/llm-observability.instructions.md", "dest": ".github/instructions/llm-observability.instructions.md" },
+            { "src": "instructions/backend/multi-agent.instructions.md", "dest": ".github/instructions/multi-agent.instructions.md" },
             { "src": "skills/backend/", "dest": ".github/skills/" },
             { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" }
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".github/skills/multi-agent-design/" }
           ],
           "shared": [
-            "docs/backend/",
             "features/starter_backend_l5/",
-            "features/schema_contract_example/",
+            "features/schema_contract_example/"
+          ],
+          "governed": [
+            "docs/backend/",
             "governance/backend/",
             "governance/schemas/evaluation_prediction.schema.json"
           ]
@@ -80,8 +88,10 @@
           { "src": "skills/backend/", "dest": ".github/skills/" }
         ],
         "shared": [
+          "features/starter_cli/"
+        ],
+        "governed": [
           "docs/backend/",
-          "features/starter_cli/",
           "governance/backend/"
         ],
         "level_3": {
@@ -91,11 +101,13 @@
             { "src": "skills/backend/l3-implementation-plan/", "dest": ".github/skills/implementation-plan/" }
           ],
           "shared": [
+            "features/starter_cli_l3/"
+          ],
+          "governed": [
             "docs/backend/architecture/DESIGN_PRINCIPLES.md",
             "docs/backend/architecture/TESTING.md",
             "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
             "docs/backend/architecture/GHERKIN_TAGS.md",
-            "features/starter_cli_l3/",
             "governance/backend/templates/l3-plan.md"
           ]
         },
@@ -107,13 +119,17 @@
             { "src": "instructions/backend/guardrails.instructions.md", "dest": ".github/instructions/guardrails.instructions.md" },
             { "src": "instructions/backend/llm-evaluation.instructions.md", "dest": ".github/instructions/llm-evaluation.instructions.md" },
             { "src": "instructions/backend/llm-observability.instructions.md", "dest": ".github/instructions/llm-observability.instructions.md" },
+            { "src": "instructions/backend/multi-agent.instructions.md", "dest": ".github/instructions/multi-agent.instructions.md" },
             { "src": "skills/backend/", "dest": ".github/skills/" },
             { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" }
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".github/skills/multi-agent-design/" }
           ],
           "shared": [
+            "features/starter_cli_l5/"
+          ],
+          "governed": [
             "docs/backend/",
-            "features/starter_cli_l5/",
             "governance/backend/",
             "governance/schemas/evaluation_prediction.schema.json"
           ]
@@ -135,14 +151,16 @@
           { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" }
         ],
         "shared": [
+          "features/starter_ui/",
+          "features/ui_task_dashboard/"
+        ],
+        "governed": [
           "docs/ui/architecture/MVVM_CONTRACT.md",
           "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
           "docs/ui/architecture/ADR/",
           "docs/ui/architecture/react/",
           "docs/ui/evaluation/",
-          "governance/ui/",
-          "features/starter_ui/",
-          "features/ui_task_dashboard/"
+          "governance/ui/"
         ],
         "level_3": {
           "files": [
@@ -151,7 +169,9 @@
             { "src": "skills/ui/l3-implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
           ],
           "shared": [
-            "features/starter_ui_l3/",
+            "features/starter_ui_l3/"
+          ],
+          "governed": [
             "governance/ui/templates/l3-plan.md"
           ]
         }
@@ -166,14 +186,16 @@
           { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" }
         ],
         "shared": [
+          "features/starter_ui/",
+          "features/ui_task_dashboard/"
+        ],
+        "governed": [
           "docs/ui/architecture/MVVM_CONTRACT.md",
           "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
           "docs/ui/architecture/ADR/",
           "docs/ui/architecture/angular/",
           "docs/ui/evaluation/",
-          "governance/ui/",
-          "features/starter_ui/",
-          "features/ui_task_dashboard/"
+          "governance/ui/"
         ],
         "level_3": {
           "files": [
@@ -182,7 +204,9 @@
             { "src": "skills/ui/l3-implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
           ],
           "shared": [
-            "features/starter_ui_l3/",
+            "features/starter_ui_l3/"
+          ],
+          "governed": [
             "governance/ui/templates/l3-plan.md"
           ]
         }
@@ -191,35 +215,43 @@
     "ci": {
       "github": {
         "files": [],
-        "shared": ["ci/github/"],
+        "shared": [],
+        "governed": ["ci/github/"],
         "level_3": {
           "files": [],
-          "shared": ["ci/github/l3-quality-gate.yml"]
+          "shared": [],
+          "governed": ["ci/github/l3-quality-gate.yml"]
         },
         "level_5": {
           "files": [],
-          "shared": [
+          "shared": [],
+          "governed": [
             "ci/github/",
             "ci/github/deepeval-gate.yml",
             "ci/github/promptfoo-gate.yml",
-            "ci/github/guardrails-check.yml"
+            "ci/github/guardrails-check.yml",
+            "ci/github/multi-agent-gate.yml"
           ]
         }
       },
       "azure": {
         "files": [],
-        "shared": ["ci/azure/"],
+        "shared": [],
+        "governed": ["ci/azure/"],
         "level_3": {
           "files": [],
-          "shared": ["ci/azure/l3-quality-gate.yml"]
+          "shared": [],
+          "governed": ["ci/azure/l3-quality-gate.yml"]
         },
         "level_5": {
           "files": [],
-          "shared": [
+          "shared": [],
+          "governed": [
             "ci/azure/",
             "ci/azure/deepeval-gate.yml",
             "ci/azure/promptfoo-gate.yml",
-            "ci/azure/guardrails-check.yml"
+            "ci/azure/guardrails-check.yml",
+            "ci/azure/multi-agent-gate.yml"
           ]
         }
       }

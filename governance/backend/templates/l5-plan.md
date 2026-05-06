@@ -93,6 +93,21 @@
 
 ---
 
+## Multi-Agent Configuration (skip if multi_agent not declared)
+
+- Agent topology: `features/<feature_name>/agent_topology.md`
+- Graph state schema: `services/graphs/<feature_name>_state.py`
+
+| Agent | Role | System Prompt | Model |
+|---|---|---|---|
+| orchestrator | TBD | `src/agents/orchestrator/system_prompt.md` | TBD |
+| <specialist-1> | TBD | `src/agents/<specialist-1>/system_prompt.md` | TBD |
+
+- `topology_validated`: false → set true after agent_topology.md reviewed
+- `system_prompt_governed`: false → set true after all prompt files confirmed
+
+---
+
 ## Evaluation Compliance Summary (MANDATORY)
 
 Predicted BEFORE implementation begins. All score and evidence fields must be populated — null values are not permitted at plan finalization.

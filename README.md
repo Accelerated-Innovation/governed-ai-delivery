@@ -94,7 +94,7 @@ govkit apply --agent copilot --type api --ui none --ci github --target .
 govkit apply --agent codex --type api --ui react --ci github --target .
 ```
 
-A `.govkit` marker file is written to your project root, tracking the applied level and options. This enables `govkit init` and `govkit validate` to auto-detect your level.
+A `.govkit` marker file is written to your project root, tracking the agent, level, options, and govkit version. This enables `govkit init`, `govkit validate`, and `govkit upgrade` to auto-detect your configuration without re-specifying flags.
 
 When using interactive mode (no `--type`, `--ui`, `--ci` flags), you'll see prompts like:
 
@@ -168,7 +168,38 @@ Before writing a single line of feature code, review and update the following to
 
 These files are the source of truth for your AI agent. The agent reads them before every planning and implementation step. Keep them accurate and up to date as your project evolves.
 
-### 6. Validate governance compliance
+### 6. Keep governance contracts up to date
+
+When you upgrade govkit, run `govkit upgrade` to refresh the files that govkit owns — architecture contracts, CI gate pipelines, plan templates — without touching the files your team owns.
+
+```bash
+pip install --upgrade govkit
+govkit upgrade --target .
+```
+
+govkit distinguishes three categories of files:
+
+| Category | Examples | `apply` | `upgrade` |
+|---|---|---|---|
+| **Agent config** | `CLAUDE.md`, `.claude/rules/`, `.agents/skills/` | Always overwrite | Always overwrite |
+| **Governed contracts** | `docs/backend/architecture/`, `governance/backend/templates/`, `ci/github/` | Write once (skip if present) | **Overwrite** |
+| **Project artifacts** | `features/starter_*/`, your ADRs, filled-in feature files | Write once (skip if present) | Skip |
+
+After upgrading, review the diff and commit:
+
+```bash
+git diff
+git add -p
+git commit -m "chore: upgrade govkit governance contracts to vX.Y.Z"
+```
+
+Use `--force` to re-apply even when the version is already current — useful for resetting a contract file to govkit defaults after an accidental edit:
+
+```bash
+govkit upgrade --target . --force
+```
+
+### 7. Validate governance compliance
 
 ```bash
 govkit validate --target .

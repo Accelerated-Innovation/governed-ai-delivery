@@ -19,6 +19,7 @@ Copilot operates aligned to:
 * Evaluation standards under `docs/backend/evaluation/`
 * Governance rules under `governance/`
 * L5 contracts: `LLM_GATEWAY_CONTRACT.md`, `OBSERVABILITY_LLM_CONTRACT.md`, `GUARDRAILS_CONTRACT.md`, `EVALUATION_LLM_CONTRACT.md`
+* If `eval_criteria.yaml` declares `multi_agent: true`, read `docs/backend/architecture/AGENT_ARCHITECTURE.md` Section 17
 
 ---
 
@@ -32,6 +33,7 @@ CLI features may be deterministic (no LLM). If mode is `llm`, all L5 contracts a
 
 ## 3. Feature Lifecycle
 
+0. **Multi-agent features only:** run `/multi-agent-design` before architecture preflight to produce `agent_topology.md`
 1. Architecture Preflight
 2. GenAI Preflight (if mode: llm)
 3. ADR creation (if required)
@@ -86,3 +88,5 @@ These documents define your stack's implementation. The architecture principles 
 ## 7. Authority
 
 Copilot follows standards. It does not invent them.
+
+Multi-agent ADR triggers: adding/removing/rerouting graph nodes, material system prompt changes, graph state schema changes.

@@ -24,6 +24,7 @@ Before planning or generating code:
 * Read all files under `docs/backend/architecture/`
 * Read `docs/backend/evaluation/eval_criteria.md`
 * Read L5 contracts: `LLM_GATEWAY_CONTRACT.md`, `OBSERVABILITY_LLM_CONTRACT.md`, `GUARDRAILS_CONTRACT.md`, `EVALUATION_LLM_CONTRACT.md`
+* If `eval_criteria.yaml` declares `multi_agent: true`, read `docs/backend/architecture/AGENT_ARCHITECTURE.md` Section 17
 * Confirm required feature artifacts exist
 
 If required inputs are missing, stop and ask.
@@ -46,6 +47,7 @@ Implementation must not begin unless all artifacts exist and are complete.
 
 ## 3. Feature Lifecycle (Mandatory Order)
 
+0. **Multi-agent features only:** run `/multi-agent-design` before architecture preflight to produce `agent_topology.md`
 1. Architecture Preflight
 2. GenAI Preflight (L5-specific validation)
 3. ADR creation (if required)
@@ -132,3 +134,5 @@ Each increment must include:
 ## 9. Authority
 
 Architecture decisions belong to the Architect. Exceptions require an ADR and explicit approval. Copilot follows standards — it does not invent them.
+
+Multi-agent ADR triggers: adding/removing/rerouting graph nodes, material system prompt changes, graph state schema changes.
