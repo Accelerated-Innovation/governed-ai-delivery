@@ -73,12 +73,14 @@
             { "src": "rules/backend/guardrails.md", "dest": ".claude/rules/guardrails.md" },
             { "src": "rules/backend/llm-evaluation.md", "dest": ".claude/rules/llm-evaluation.md" },
             { "src": "rules/backend/llm-observability.md", "dest": ".claude/rules/llm-observability.md" },
+            { "src": "rules/backend/multi-agent.md", "dest": ".claude/rules/multi-agent.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
             { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
             { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" },
             { "src": "skills/backend/adr-author/", "dest": ".claude/skills/adr-author/" },
             { "src": "skills/backend/genai-preflight/", "dest": ".claude/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".claude/skills/eval-suite-planning/" }
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".claude/skills/eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".claude/skills/multi-agent-design/" }
           ],
           "shared": [
             "docs/backend/",
@@ -136,12 +138,14 @@
             { "src": "rules/backend/guardrails.md", "dest": ".claude/rules/guardrails.md" },
             { "src": "rules/backend/llm-evaluation.md", "dest": ".claude/rules/llm-evaluation.md" },
             { "src": "rules/backend/llm-observability.md", "dest": ".claude/rules/llm-observability.md" },
+            { "src": "rules/backend/multi-agent.md", "dest": ".claude/rules/multi-agent.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
             { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
             { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" },
             { "src": "skills/backend/adr-author/", "dest": ".claude/skills/adr-author/" },
             { "src": "skills/backend/genai-preflight/", "dest": ".claude/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".claude/skills/eval-suite-planning/" }
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".claude/skills/eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".claude/skills/multi-agent-design/" }
           ],
           "shared": [
             "docs/backend/",
@@ -244,7 +248,8 @@
             "ci/github/",
             "ci/github/deepeval-gate.yml",
             "ci/github/promptfoo-gate.yml",
-            "ci/github/guardrails-check.yml"
+            "ci/github/guardrails-check.yml",
+            "ci/github/multi-agent-gate.yml"
           ]
         }
       },
@@ -261,7 +266,8 @@
             "ci/azure/",
             "ci/azure/deepeval-gate.yml",
             "ci/azure/promptfoo-gate.yml",
-            "ci/azure/guardrails-check.yml"
+            "ci/azure/guardrails-check.yml",
+            "ci/azure/multi-agent-gate.yml"
           ]
         }
       }

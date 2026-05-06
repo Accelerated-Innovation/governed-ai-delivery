@@ -28,6 +28,8 @@ Run after architecture preflight to validate GenAI-specific decisions for: **$AR
 4. **Evaluation:** DeepEval metrics in eval_criteria.yaml, Promptfoo stated, RAGAS if retrieval
 5. **LLM NFRs:** Latency, Cost, Fallback, Safety all populated in nfrs.md
 
+6. **Multi-Agent** (only when `multi_agent: true`): `agent_topology.md` complete, all system prompt files exist, state schema declared, `multi_agent_evaluation` block in `eval_criteria.yaml`, LangGraph approved in TECH_STACK.md
+
 ## Output
 
 Update `features/$ARGUMENTS/architecture_preflight.md` sections 10-14 and set final status.

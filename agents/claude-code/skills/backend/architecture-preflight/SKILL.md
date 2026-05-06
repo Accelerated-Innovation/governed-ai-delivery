@@ -74,3 +74,24 @@ Choose one:
 Write this report to `features/$ARGUMENTS/architecture_preflight.md`.
 
 If any spec inputs are missing, ask before proceeding.
+
+---
+
+## 15. Agent Topology (multi-agent features only)
+
+Check if `features/$ARGUMENTS/eval_criteria.yaml` declares `multi_agent: true`.
+
+If **not declared**, write: "Section 15: Not applicable — multi_agent not declared." and skip the rest of this section.
+
+If **declared**:
+
+- [ ] `features/$ARGUMENTS/agent_topology.md` exists — if missing, **HALT**: request `/multi-agent-design $ARGUMENTS` first
+- [ ] Orchestrator section is complete: role, system prompt path, model alias, routing strategy
+- [ ] Each specialist agent has: role, typed input state fields, typed output state fields, system prompt path, model alias
+- [ ] All system prompt files declared in `agent_topology.md` exist in the repository
+- [ ] Routing Logic covers all edge conditions — every node has a path to END
+- [ ] Failure Modes define per-node timeout, graph timeout, and node failure behavior
+- [ ] State schema reference is present (TypedDict path declared)
+- [ ] ADR required? (Yes if this is a new multi-agent feature or any topology change from prior preflight)
+
+**Section 15 Status:** Approved / Blocked (strike one — Blocked if any item above is unchecked)

@@ -74,6 +74,24 @@
           },
           "additionalProperties": false
         },
+        "multi_agent_evaluation": {
+          "description": "Multi-agent governance predictions (optional — only for features with multi_agent: true)",
+          "type": "object",
+          "required": ["topology_validated", "system_prompt_governed"],
+          "properties": {
+            "topology_validated": {
+              "type": "boolean",
+              "description": "agent_topology.md was reviewed and approved before implementation"
+            },
+            "system_prompt_governed": {
+              "type": "boolean",
+              "description": "All agent system prompts are file-based and declared in agent_topology.md"
+            },
+            "cross_agent_coherence": { "$ref": "#/$defs/score_entry" },
+            "orchestrator_routing_accuracy": { "$ref": "#/$defs/score_entry" }
+          },
+          "additionalProperties": false
+        },
         "thresholds_met": {
           "type": "boolean"
         }

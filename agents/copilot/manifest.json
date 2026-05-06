@@ -60,9 +60,11 @@
             { "src": "instructions/backend/guardrails.instructions.md", "dest": ".github/instructions/guardrails.instructions.md" },
             { "src": "instructions/backend/llm-evaluation.instructions.md", "dest": ".github/instructions/llm-evaluation.instructions.md" },
             { "src": "instructions/backend/llm-observability.instructions.md", "dest": ".github/instructions/llm-observability.instructions.md" },
+            { "src": "instructions/backend/multi-agent.instructions.md", "dest": ".github/instructions/multi-agent.instructions.md" },
             { "src": "skills/backend/", "dest": ".github/skills/" },
             { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" }
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".github/skills/multi-agent-design/" }
           ],
           "shared": [
             "docs/backend/",
@@ -107,9 +109,11 @@
             { "src": "instructions/backend/guardrails.instructions.md", "dest": ".github/instructions/guardrails.instructions.md" },
             { "src": "instructions/backend/llm-evaluation.instructions.md", "dest": ".github/instructions/llm-evaluation.instructions.md" },
             { "src": "instructions/backend/llm-observability.instructions.md", "dest": ".github/instructions/llm-observability.instructions.md" },
+            { "src": "instructions/backend/multi-agent.instructions.md", "dest": ".github/instructions/multi-agent.instructions.md" },
             { "src": "skills/backend/", "dest": ".github/skills/" },
             { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" }
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".github/skills/multi-agent-design/" }
           ],
           "shared": [
             "docs/backend/",
@@ -202,7 +206,8 @@
             "ci/github/",
             "ci/github/deepeval-gate.yml",
             "ci/github/promptfoo-gate.yml",
-            "ci/github/guardrails-check.yml"
+            "ci/github/guardrails-check.yml",
+            "ci/github/multi-agent-gate.yml"
           ]
         }
       },
@@ -219,7 +224,8 @@
             "ci/azure/",
             "ci/azure/deepeval-gate.yml",
             "ci/azure/promptfoo-gate.yml",
-            "ci/azure/guardrails-check.yml"
+            "ci/azure/guardrails-check.yml",
+            "ci/azure/multi-agent-gate.yml"
           ]
         }
       }

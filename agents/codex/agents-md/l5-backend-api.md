@@ -24,6 +24,7 @@ Before planning or generating code:
   - `docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md`
   - `docs/backend/architecture/GUARDRAILS_CONTRACT.md`
   - `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
+- If `eval_criteria.yaml` declares `multi_agent: true`, read `docs/backend/architecture/AGENT_ARCHITECTURE.md` Section 17
 - Apply architecture, testing, technology, evaluation, and GenAI contracts as binding constraints
 - Confirm required feature artifacts exist
 
@@ -53,6 +54,7 @@ Before proceeding to Architecture Preflight or planning:
 
 ## Feature Lifecycle (Mandatory Order — no steps may be skipped)
 
+0. **Multi-agent features only:** invoke `$multi-agent-design` before architecture preflight to produce `agent_topology.md`
 1. Architecture Preflight → invoke `$architecture-preflight`
 2. GenAI Preflight → invoke `$genai-preflight` (validates L5-specific decisions)
 3. ADR creation (if required by preflight)
@@ -91,6 +93,9 @@ An ADR is required when:
 - A new LLM provider is added to the routing table
 - The guardrail mode is changed for a production feature
 - LiteLLM is bypassed for any LLM call
+- A multi-agent graph node is added, removed, or rerouted
+- An agent's system prompt is materially changed
+- The shared graph state schema is changed
 
 ---
 

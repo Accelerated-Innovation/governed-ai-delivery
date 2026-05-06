@@ -42,6 +42,8 @@ _EVAL_CRITERIA_YAML = "eval_criteria.yaml"
 _ARCH_PREFLIGHT_MD = "architecture_preflight.md"
 
 _RE_MODE_LLM = r"^mode:\s*llm"
+_RE_MULTI_AGENT = r"^multi_agent:\s*true"
+_AGENT_TOPOLOGY_MD = "agent_topology.md"
 
 L3_REQUIRED_ARTIFACTS = [
     _ACCEPTANCE_FEATURE,
@@ -248,6 +250,49 @@ def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[bool, str]:
 LLM_NFR_CATEGORIES = {"llm latency", "llm cost", "llm fallback", "llm safety"}
 
 
+def _is_multi_agent(feature_dir: Path) -> bool | None:
+    """Returns True if eval_criteria.yaml declares multi_agent: true, None if file missing."""
+    eval_path = feature_dir / _EVAL_CRITERIA_YAML
+    if not eval_path.exists():
+        return None
+    return bool(re.search(_RE_MULTI_AGENT, eval_path.read_text(encoding="utf-8"), re.MULTILINE))
+
+
+def check_agent_topology_exists(feature_dir: Path) -> tuple[bool, str]:
+    """When multi_agent: true, agent_topology.md must exist and be non-empty."""
+    is_ma = _is_multi_agent(feature_dir)
+    if not is_ma:
+        return True, "multi_agent not declared — agent topology check not applicable"
+    path = feature_dir / _AGENT_TOPOLOGY_MD
+    if not path.exists():
+        return False, f"{_AGENT_TOPOLOGY_MD} missing — required when multi_agent: true"
+    if path.stat().st_size == 0:
+        return False, f"{_AGENT_TOPOLOGY_MD} is empty"
+    return True, f"{_AGENT_TOPOLOGY_MD} present"
+
+
+def check_agent_topology_sections(feature_dir: Path) -> tuple[bool, str]:
+    """When multi_agent: true, agent_topology.md must have all required sections."""
+    is_ma = _is_multi_agent(feature_dir)
+    if not is_ma:
+        return True, "multi_agent not declared — agent topology sections check not applicable"
+    path = feature_dir / _AGENT_TOPOLOGY_MD
+    if not path.exists():
+        return False, f"{_AGENT_TOPOLOGY_MD} not found"
+    text = path.read_text(encoding="utf-8")
+    required = [
+        (r"^##\s+Orchestrator", "Orchestrator"),
+        (r"^##\s+Specialist Agents", "Specialist Agents"),
+        (r"^##\s+Routing Logic", "Routing Logic"),
+        (r"^##\s+Failure Modes", "Failure Modes"),
+    ]
+    missing = [name for pattern, name in required
+               if not re.search(pattern, text, re.MULTILINE)]
+    if missing:
+        return False, f"{_AGENT_TOPOLOGY_MD} missing sections: {', '.join(missing)}"
+    return True, f"{_AGENT_TOPOLOGY_MD} has all required sections"
+
+
 def _is_mode_llm(feature_dir: Path) -> bool | None:
     """Check if eval_criteria.yaml exists and has mode: llm. Returns None if file missing."""
     eval_path = feature_dir / _EVAL_CRITERIA_YAML
@@ -375,6 +420,8 @@ def _build_checks(level: str) -> tuple[list[str], list]:
             check_llm_nfrs,
             check_l5_eval_criteria,
             check_l5_preflight_sections,
+            check_agent_topology_exists,
+            check_agent_topology_sections,
         ]
     else:
         artifacts = L4_REQUIRED_ARTIFACTS

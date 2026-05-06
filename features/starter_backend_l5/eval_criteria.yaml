@@ -80,3 +80,18 @@ llm_evaluation:
 
   dataset: tests/eval/<feature_name>/eval_sets/dataset.json
   fail_on_regression: true
+
+# ---------------------------------------------------------------------------
+# Multi-agent governance (uncomment when multi_agent: true)
+# ---------------------------------------------------------------------------
+# multi_agent: true
+#
+# multi_agent_evaluation:
+#   topology_validated: false        # set true after agent_topology.md is reviewed
+#   system_prompt_governed: false    # set true after all system prompt paths are declared
+#   cross_agent_coherence:
+#     score: null
+#     evidence: ""
+#   orchestrator_routing_accuracy:
+#     score: null
+#     evidence: ""

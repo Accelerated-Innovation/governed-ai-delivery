@@ -24,6 +24,7 @@ Before planning or generating code:
   - `docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md`
   - `docs/backend/architecture/GUARDRAILS_CONTRACT.md`
   - `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
+- If `eval_criteria.yaml` declares `multi_agent: true`, read `docs/backend/architecture/AGENT_ARCHITECTURE.md` Section 17
 - Apply all contracts as binding constraints
 - Confirm required feature artifacts exist
 
@@ -47,6 +48,7 @@ Implementation must not begin unless all five artifacts exist.
 
 ## Feature Lifecycle (Mandatory Order — no steps may be skipped)
 
+0. **Multi-agent features only:** invoke `$multi-agent-design` before architecture preflight to produce `agent_topology.md`
 1. Architecture Preflight → invoke `$architecture-preflight`
 2. GenAI Preflight → invoke `$genai-preflight` (if feature uses LLM)
 3. ADR creation (if required by preflight)
@@ -112,3 +114,5 @@ Layer-specific rules load automatically via nested `AGENTS.md` files at each sco
 ## Authority
 
 Architecture decisions belong to the Architect. Exceptions require an ADR and explicit approval. Codex follows standards — it does not invent them.
+
+Multi-agent ADR triggers: adding/removing/rerouting graph nodes, material system prompt changes, graph state schema changes.

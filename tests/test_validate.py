@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 
 from cli.validate import (
+    check_agent_topology_exists,
+    check_agent_topology_sections,
     check_completeness,
     check_eval_criteria,
     check_gherkin_nfr_coverage,
@@ -889,4 +891,176 @@ class TestL5Validation:
         marker = tmp_path / ".govkit"
         marker.write_text(json.dumps({"level": "5"}), encoding="utf-8")
         result = run_validation(tmp_path)
+        assert result == 0
+
+
+# ---------------------------------------------------------------------------
+# Multi-agent validation
+# ---------------------------------------------------------------------------
+
+VALID_AGENT_TOPOLOGY = """\
+    # Agent Topology: my_feature
+
+    ## Orchestrator
+    - **Role:** Route queries to specialists
+    - **System Prompt:** `src/agents/orchestrator/system_prompt.md`
+    - **Model:** gpt-4o
+
+    ## Specialist Agents
+
+    ### analysis-agent
+    - **Role:** Classify the input
+    - **Input State:** query: str
+    - **Output State:** classification: str
+    - **System Prompt:** `src/agents/analysis/system_prompt.md`
+
+    ## Routing Logic
+    START → orchestrator
+    orchestrator → analysis-agent (always)
+    analysis-agent → END
+
+    ## Failure Modes
+    - Per-node timeout: 30s
+    - Graph timeout: 120s
+"""
+
+MULTI_AGENT_EVAL_CRITERIA = """\
+    version: 1
+    mode: llm
+    multi_agent: true
+    owner: team-ai
+
+    unit_tests:
+      enforce_FIRST: true
+      minimum_FIRST_average: 4
+
+    code_quality:
+      enforce_virtues: true
+      minimum_virtue_average: 4
+
+    llm_evaluation:
+      criteria:
+        - name: faithfulness
+          eval_class: deepeval_faithfulness
+          threshold: 0.8
+          fail_on: below_threshold
+          tool: deepeval
+      dataset: tests/eval/my_feature/eval_sets/dataset.json
+      fail_on_regression: true
+
+    multi_agent_evaluation:
+      topology_validated: true
+      system_prompt_governed: true
+"""
+
+
+class TestMultiAgentValidation:
+    def test_topology_exists_pass(self, tmp_path):
+        """check_agent_topology_exists passes when agent_topology.md is present."""
+        write(tmp_path / "eval_criteria.yaml", MULTI_AGENT_EVAL_CRITERIA)
+        write(tmp_path / "agent_topology.md", VALID_AGENT_TOPOLOGY)
+        ok, msg = check_agent_topology_exists(tmp_path)
+        assert ok is True
+        assert "agent_topology.md present" in msg
+
+    def test_topology_exists_missing_fails(self, tmp_path):
+        """check_agent_topology_exists fails when multi_agent: true but file missing."""
+        write(tmp_path / "eval_criteria.yaml", MULTI_AGENT_EVAL_CRITERIA)
+        ok, msg = check_agent_topology_exists(tmp_path)
+        assert ok is False
+        assert "missing" in msg
+
+    def test_topology_exists_empty_fails(self, tmp_path):
+        """check_agent_topology_exists fails when agent_topology.md is empty."""
+        write(tmp_path / "eval_criteria.yaml", MULTI_AGENT_EVAL_CRITERIA)
+        (tmp_path / "agent_topology.md").write_text("", encoding="utf-8")
+        ok, msg = check_agent_topology_exists(tmp_path)
+        assert ok is False
+        assert "empty" in msg
+
+    def test_topology_exists_not_declared_skips(self, tmp_path):
+        """check_agent_topology_exists skips when multi_agent not declared."""
+        write(tmp_path / "eval_criteria.yaml", "version: 1\nmode: llm\n")
+        ok, msg = check_agent_topology_exists(tmp_path)
+        assert ok is True
+        assert "not applicable" in msg
+
+    def test_topology_exists_no_eval_criteria_skips(self, tmp_path):
+        """check_agent_topology_exists skips when eval_criteria.yaml is missing."""
+        ok, msg = check_agent_topology_exists(tmp_path)
+        assert ok is True
+        assert "not applicable" in msg
+
+    def test_topology_sections_pass(self, tmp_path):
+        """check_agent_topology_sections passes when all four sections present."""
+        write(tmp_path / "eval_criteria.yaml", MULTI_AGENT_EVAL_CRITERIA)
+        write(tmp_path / "agent_topology.md", VALID_AGENT_TOPOLOGY)
+        ok, msg = check_agent_topology_sections(tmp_path)
+        assert ok is True
+        assert "all required sections" in msg
+
+    def test_topology_sections_missing_one_fails(self, tmp_path):
+        """check_agent_topology_sections fails when a required section is absent."""
+        write(tmp_path / "eval_criteria.yaml", MULTI_AGENT_EVAL_CRITERIA)
+        write(tmp_path / "agent_topology.md", """\
+            # Agent Topology
+
+            ## Orchestrator
+            - Role: route
+
+            ## Specialist Agents
+            ### agent-a
+            - Role: analyse
+
+            ## Routing Logic
+            START → END
+
+            # Missing Failure Modes section
+        """)
+        ok, msg = check_agent_topology_sections(tmp_path)
+        assert ok is False
+        assert "Failure Modes" in msg
+
+    def test_topology_sections_not_declared_skips(self, tmp_path):
+        """check_agent_topology_sections skips when multi_agent not declared."""
+        write(tmp_path / "eval_criteria.yaml", "version: 1\nmode: llm\n")
+        ok, msg = check_agent_topology_sections(tmp_path)
+        assert ok is True
+        assert "not applicable" in msg
+
+    def test_topology_sections_file_missing_fails(self, tmp_path):
+        """check_agent_topology_sections fails when file is missing (multi_agent declared)."""
+        write(tmp_path / "eval_criteria.yaml", MULTI_AGENT_EVAL_CRITERIA)
+        ok, msg = check_agent_topology_sections(tmp_path)
+        assert ok is False
+        assert "not found" in msg
+
+    def test_l5_multi_agent_full_pass(self, tmp_path):
+        """Full L5 validation passes for a multi-agent feature with topology present."""
+        features = tmp_path / "features"
+        make_l5_feature(
+            features / "ma_feature",
+            **{
+                "eval_criteria.yaml": MULTI_AGENT_EVAL_CRITERIA,
+                "agent_topology.md": VALID_AGENT_TOPOLOGY,
+            },
+        )
+        result = run_validation(tmp_path, level="5")
+        assert result == 0
+
+    def test_l5_multi_agent_missing_topology_fails(self, tmp_path):
+        """L5 validation fails when multi_agent: true but agent_topology.md is absent."""
+        features = tmp_path / "features"
+        make_l5_feature(
+            features / "ma_feature",
+            **{"eval_criteria.yaml": MULTI_AGENT_EVAL_CRITERIA},
+        )
+        result = run_validation(tmp_path, level="5")
+        assert result == 1
+
+    def test_l5_non_multi_agent_unaffected(self, tmp_path):
+        """Standard L5 features without multi_agent: true are not affected."""
+        features = tmp_path / "features"
+        make_l5_feature(features / "single_agent_feature")
+        result = run_validation(tmp_path, level="5")
         assert result == 0
