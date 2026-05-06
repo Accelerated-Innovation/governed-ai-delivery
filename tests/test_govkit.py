@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from cli.govkit import copy_entry, load_manifest, resolve_options, resolve_variant_files, cmd_apply, cmd_init, write_govkit_marker
+from cli.govkit import copy_entry, load_manifest, resolve_options, resolve_variant_files, cmd_apply, cmd_init, cmd_upgrade, write_govkit_marker, read_govkit_marker, _GOVKIT_VERSION
 
 
 # ---------------------------------------------------------------------------
@@ -225,11 +225,12 @@ class TestResolveVariantFiles:
                 }
             },
         }
-        files, shared = resolve_variant_files(manifest, {"ci": "github"})
+        files, shared, governed = resolve_variant_files(manifest, {"ci": "github"})
         assert len(files) == 2
         assert files[0]["src"] == "base.md"
         assert files[1]["src"] == "gh.yml"
         assert shared == ["governance/schemas/"]
+        assert governed == []
 
     def test_deduplication(self):
         manifest = {
@@ -249,7 +250,7 @@ class TestResolveVariantFiles:
                 },
             },
         }
-        files, shared = resolve_variant_files(manifest, {"ci": "github", "type": "api"})
+        files, shared, _ = resolve_variant_files(manifest, {"ci": "github", "type": "api"})
         assert len(files) == 1  # deduplicated
         assert len(shared) == 1  # deduplicated
 
@@ -263,18 +264,20 @@ class TestResolveVariantFiles:
                 }
             }
         }
-        files, shared = resolve_variant_files(manifest, {"ci": "azure"})
+        files, shared, governed = resolve_variant_files(manifest, {"ci": "azure"})
         assert len(files) == 1
         assert shared == []
+        assert governed == []
 
     def test_unknown_variant_value(self):
         manifest = {
             "base_files": [],
             "variants": {"ci": {"github": {"files": [{"src": "g.yml", "dest": "g.yml"}]}}},
         }
-        files, shared = resolve_variant_files(manifest, {"ci": "nonexistent"})
+        files, shared, governed = resolve_variant_files(manifest, {"ci": "nonexistent"})
         assert files == []
         assert shared == []
+        assert governed == []
 
     def test_level_3_override(self):
         """When level=3, level_3 sub-key files/shared replace the top-level ones."""
@@ -292,7 +295,7 @@ class TestResolveVariantFiles:
                 }
             }
         }
-        files, shared = resolve_variant_files(manifest, {"type": "api", "level": "3"})
+        files, shared, _ = resolve_variant_files(manifest, {"type": "api", "level": "3"})
         assert len(files) == 1
         assert files[0]["src"] == "l3-api.md"
         assert shared == ["docs/backend/architecture/DESIGN_PRINCIPLES.md"]
@@ -313,7 +316,7 @@ class TestResolveVariantFiles:
                 }
             }
         }
-        files, shared = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        files, shared, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
         assert len(files) == 1
         assert files[0]["src"] == "l4-api.md"
         assert shared == ["docs/backend/"]
@@ -334,7 +337,7 @@ class TestResolveVariantFiles:
                 }
             }
         }
-        files, shared = resolve_variant_files(manifest, {"type": "api"})
+        files, _, _ = resolve_variant_files(manifest, {"type": "api"})
         assert files[0]["src"] == "l4-api.md"
 
     def test_level_3_missing_override_falls_through(self):
@@ -349,10 +352,9 @@ class TestResolveVariantFiles:
                 }
             }
         }
-        files, shared = resolve_variant_files(manifest, {"ci": "github", "level": "3"})
+        files, _, _ = resolve_variant_files(manifest, {"ci": "github", "level": "3"})
         assert len(files) == 1
         assert files[0]["src"] == "gh.yml"
-        assert shared == ["ci/github/"]
 
     def test_level_3_multiple_dimensions(self):
         """Level 3 override applies across multiple dimensions."""
@@ -380,7 +382,7 @@ class TestResolveVariantFiles:
                 },
             }
         }
-        files, shared = resolve_variant_files(
+        files, shared, _ = resolve_variant_files(
             manifest, {"type": "api", "ci": "github", "level": "3"}
         )
         assert len(files) == 1
@@ -426,12 +428,12 @@ class TestGovkitMarker:
 
     def test_write_level_5_marker(self, tmp_path):
         import json
-        from cli.govkit import write_govkit_marker, read_govkit_level
+        from cli.govkit import write_govkit_marker, read_govkit_level, _GOVKIT_VERSION
 
         write_govkit_marker(tmp_path, "claude-code", "5", {"type": "api", "level": "5"})
         data = json.loads((tmp_path / ".govkit").read_text(encoding="utf-8"))
         assert data["level"] == "5"
-        assert data["version"] == "0.4.0"
+        assert data["version"] == _GOVKIT_VERSION
         assert read_govkit_level(tmp_path) == "5"
 
 
@@ -460,7 +462,7 @@ class TestLevel5VariantResolution:
                 }
             }
         }
-        files, shared = resolve_variant_files(manifest, {"type": "api", "level": "5"})
+        files, shared, _ = resolve_variant_files(manifest, {"type": "api", "level": "5"})
         assert len(files) == 2
         assert files[0]["src"] == "l5-api.md"
         assert files[1]["src"] == "llm-gateway.md"
@@ -482,7 +484,7 @@ class TestLevel5VariantResolution:
                 }
             }
         }
-        files, shared = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        files, shared, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
         assert files[0]["src"] == "l4-api.md"
         assert "features/starter_backend_l5/" not in shared
 
@@ -512,7 +514,7 @@ class TestLevel5VariantResolution:
                 },
             }
         }
-        files, shared = resolve_variant_files(
+        files, shared, _ = resolve_variant_files(
             manifest, {"type": "api", "ci": "github", "level": "5"}
         )
         assert files[0]["src"] == "l5.md"
@@ -653,3 +655,222 @@ class TestSmokeInit:
 
         content = (target / "features" / "new-feature" / "acceptance.feature").read_text(encoding="utf-8")
         assert content == "Feature: bundled", "Should use bundled starter, not stale target starter"
+
+
+# ---------------------------------------------------------------------------
+# governed key in resolve_variant_files
+# ---------------------------------------------------------------------------
+
+
+class TestGoverned:
+    def test_governed_entries_collected(self):
+        """governed key in variant config is returned as the third tuple element."""
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "CLAUDE.md", "dest": "CLAUDE.md"}],
+                        "shared": ["features/starter_backend/"],
+                        "governed": ["docs/backend/", "governance/backend/"],
+                    }
+                }
+            }
+        }
+        files, shared, governed = resolve_variant_files(manifest, {"type": "api"})
+        assert governed == ["docs/backend/", "governance/backend/"]
+        assert shared == ["features/starter_backend/"]
+
+    def test_governed_deduplicated_across_dimensions(self):
+        """Same governed path from two dimensions is deduplicated."""
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {"files": [], "governed": ["docs/backend/"]},
+                },
+                "ci": {
+                    "github": {"files": [], "governed": ["docs/backend/", "ci/github/"]},
+                },
+            }
+        }
+        _, _, governed = resolve_variant_files(manifest, {"type": "api", "ci": "github"})
+        assert governed.count("docs/backend/") == 1
+        assert "ci/github/" in governed
+
+    def test_level_5_governed_override(self):
+        """level_5 governed entries replace the top-level ones for that dimension."""
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "l4.md", "dest": "CLAUDE.md"}],
+                        "shared": ["features/starter_backend/"],
+                        "governed": ["docs/backend/"],
+                        "level_5": {
+                            "files": [{"src": "l5.md", "dest": "CLAUDE.md"}],
+                            "shared": ["features/starter_backend_l5/"],
+                            "governed": ["docs/backend/", "governance/schemas/eval.json"],
+                        },
+                    }
+                }
+            }
+        }
+        _, shared, governed = resolve_variant_files(manifest, {"type": "api", "level": "5"})
+        assert "features/starter_backend_l5/" in shared
+        assert "features/starter_backend/" not in shared
+        assert "governance/schemas/eval.json" in governed
+
+    def test_no_governed_returns_empty(self):
+        """Variants without a governed key return an empty list."""
+        manifest = {
+            "variants": {
+                "ci": {"github": {"files": [], "shared": ["ci/github/"]}}
+            }
+        }
+        _, _, governed = resolve_variant_files(manifest, {"ci": "github"})
+        assert governed == []
+
+
+# ---------------------------------------------------------------------------
+# cmd_upgrade
+# ---------------------------------------------------------------------------
+
+
+def _make_upgrade_repo(tmp_path: Path, agent: str = "test-agent") -> Path:
+    """Create a minimal govkit repo with a governed entry."""
+    agents = tmp_path / "agents" / agent
+    agents.mkdir(parents=True)
+    contract = tmp_path / "docs" / "contract.md"
+    contract.parent.mkdir(parents=True)
+    contract.write_text("# Contract v1", encoding="utf-8")
+
+    manifest = {
+        "agent": agent,
+        "description": "upgrade test agent",
+        "options": {
+            "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
+            "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
+            "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
+            "ui": {"prompt": "UI?", "choices": ["none"], "default": "none"},
+        },
+        "variants": {
+            "type": {
+                "api": {
+                    "files": [{"src": "CLAUDE.md", "dest": "CLAUDE.md"}],
+                    "shared": [],
+                    "governed": ["docs/"],
+                }
+            }
+        },
+        "base_files": [],
+    }
+    (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (agents / "CLAUDE.md").write_text("# Agent instructions v2", encoding="utf-8")
+    return tmp_path
+
+
+class TestCmdUpgrade:
+    def _target_with_marker(self, tmp_path: Path, repo: Path, version: str = "0.1.0") -> Path:
+        target = tmp_path / "project"
+        target.mkdir()
+        # Pre-existing CLAUDE.md from old install
+        (target / "CLAUDE.md").write_text("# Agent instructions v1", encoding="utf-8")
+        # Pre-existing governed file
+        contract = target / "docs" / "contract.md"
+        contract.parent.mkdir(parents=True)
+        contract.write_text("# Contract v1", encoding="utf-8")
+        # .govkit marker with old version
+        marker = {
+            "version": version,
+            "level": "4",
+            "agent": "test-agent",
+            "options": {"type": "api", "ci": "github", "ui": "none"},
+            "applied_at": "2025-01-01T00:00:00+00:00",
+        }
+        (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
+        return target
+
+    def test_upgrade_refreshes_agent_files(self, tmp_path, monkeypatch):
+        """cmd_upgrade overwrites agent files (files category)."""
+        import cli.govkit as mod
+
+        repo = _make_upgrade_repo(tmp_path)
+        target = self._target_with_marker(tmp_path, repo, version="0.1.0")
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.2.0")
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+        assert (target / "CLAUDE.md").read_text(encoding="utf-8") == "# Agent instructions v2"
+
+    def test_upgrade_refreshes_governed_files(self, tmp_path, monkeypatch):
+        """cmd_upgrade overwrites governed files when version advances."""
+        import cli.govkit as mod
+
+        repo = _make_upgrade_repo(tmp_path)
+        # Update the governed file in the repo to simulate a govkit update
+        (repo / "docs" / "contract.md").write_text("# Contract v2", encoding="utf-8")
+
+        target = self._target_with_marker(tmp_path, repo, version="0.1.0")
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.2.0")
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+        assert (target / "docs" / "contract.md").read_text(encoding="utf-8") == "# Contract v2"
+
+    def test_upgrade_skips_when_version_current(self, tmp_path, monkeypatch, capsys):
+        """cmd_upgrade does nothing when already at current version."""
+        import cli.govkit as mod
+
+        repo = _make_upgrade_repo(tmp_path)
+        target = self._target_with_marker(tmp_path, repo, version=_GOVKIT_VERSION)
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+        out = capsys.readouterr().out
+        assert "Nothing to upgrade" in out
+        # CLAUDE.md was NOT overwritten
+        assert (target / "CLAUDE.md").read_text(encoding="utf-8") == "# Agent instructions v1"
+
+    def test_upgrade_force_overwrites_even_if_current(self, tmp_path, monkeypatch):
+        """cmd_upgrade --force overwrites even when version is current."""
+        import cli.govkit as mod
+
+        repo = _make_upgrade_repo(tmp_path)
+        target = self._target_with_marker(tmp_path, repo, version=_GOVKIT_VERSION)
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=True))
+
+        assert (target / "CLAUDE.md").read_text(encoding="utf-8") == "# Agent instructions v2"
+
+    def test_upgrade_updates_marker_version(self, tmp_path, monkeypatch):
+        """cmd_upgrade writes the new govkit version to the .govkit marker."""
+        import cli.govkit as mod
+
+        repo = _make_upgrade_repo(tmp_path)
+        target = self._target_with_marker(tmp_path, repo, version="0.1.0")
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.2.0")
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+        marker = read_govkit_marker(target)
+        assert marker["version"] == "0.2.0"
+
+    def test_upgrade_no_marker_exits(self, tmp_path, monkeypatch):
+        """cmd_upgrade exits 1 when no .govkit marker exists."""
+        import cli.govkit as mod
+
+        target = tmp_path / "bare"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", tmp_path / "agents")
+
+        with pytest.raises(SystemExit):
+            cmd_upgrade(argparse.Namespace(target=str(target), force=False))

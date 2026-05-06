@@ -31,6 +31,11 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+try:
+    from importlib.metadata import version as _pkg_version
+    _GOVKIT_VERSION = _pkg_version("govkit")
+except Exception:
+    _GOVKIT_VERSION = "dev"
 
 _HERE = Path(__file__).parent
 # When installed via pip, agents/ is bundled inside the cli package.
@@ -90,18 +95,29 @@ def read_govkit_level(target: Path) -> str | None:
         return None
 
 
+def read_govkit_marker(target: Path) -> dict | None:
+    """Read the full .govkit marker dict, or None if missing or unreadable."""
+    marker = target / ".govkit"
+    if not marker.exists():
+        return None
+    try:
+        return json.loads(marker.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
 def write_govkit_marker(target: Path, agent: str, level: str, options: dict) -> None:
     """Write the .govkit marker file to track the applied configuration."""
     marker = target / ".govkit"
     data = {
-        "version": "0.4.0",
+        "version": _GOVKIT_VERSION,
         "level": level,
         "agent": agent,
         "options": {k: v for k, v in options.items() if k != "level"},
         "applied_at": datetime.now(timezone.utc).isoformat(),
     }
     marker.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-    print(f"\n  .govkit marker written (level {level})")
+    print(f"\n  .govkit marker written (level {level}, govkit {_GOVKIT_VERSION})")
 
 
 # ---------------------------------------------------------------------------
@@ -145,8 +161,9 @@ def _collect_entries(
     selected: dict,
     all_files: list, seen_files: set,
     all_shared: list, seen_shared: set,
+    all_governed: list, seen_governed: set,
 ) -> None:
-    """Append deduplicated files and shared paths from a selected variant config."""
+    """Append deduplicated files, shared, and governed paths from a selected variant config."""
     for f in selected.get("files", []):
         key = (f["src"], f["dest"])
         if key not in seen_files:
@@ -156,14 +173,26 @@ def _collect_entries(
         if s not in seen_shared:
             all_shared.append(s)
             seen_shared.add(s)
+    for g in selected.get("governed", []):
+        if g not in seen_governed:
+            all_governed.append(g)
+            seen_governed.add(g)
 
 
-def resolve_variant_files(manifest: dict, options: dict) -> tuple[list, list]:
-    """Collect files and shared entries from all selected variant dimensions, deduplicated."""
+def resolve_variant_files(manifest: dict, options: dict) -> tuple[list, list, list]:
+    """Collect files, shared, and governed entries from all selected variant dimensions, deduplicated.
+
+    Returns (files, shared, governed):
+      files   — agent config files; always overwritten on apply and upgrade
+      shared  — project-owned paths; written once (skip_existing), never overwritten
+      governed — govkit-owned contracts; written once on apply, refreshed on upgrade
+    """
     all_files = list(manifest.get("base_files", []))
     all_shared: list[str] = []
+    all_governed: list[str] = []
     seen_files: set[tuple[str, str]] = {(f["src"], f["dest"]) for f in all_files}
     seen_shared: set[str] = set()
+    seen_governed: set[str] = set()
     variants = manifest.get("variants", {})
     level = options.get("level", "4")
     level_key = f"level_{level}" if level != "4" else None
@@ -171,8 +200,8 @@ def resolve_variant_files(manifest: dict, options: dict) -> tuple[list, list]:
         if dimension == "level":
             continue
         selected = _select_variant(variants, dimension, value, level_key)
-        _collect_entries(selected, all_files, seen_files, all_shared, seen_shared)
-    return all_files, all_shared
+        _collect_entries(selected, all_files, seen_files, all_shared, seen_shared, all_governed, seen_governed)
+    return all_files, all_shared, all_governed
 
 
 # ---------------------------------------------------------------------------
@@ -194,13 +223,21 @@ def cmd_apply(args: argparse.Namespace) -> None:
         options = resolve_options(manifest, args)
         level = options.get("level", "4")
         print(f"\n  Configuration: {options}\n")
-        files, shared = resolve_variant_files(manifest, options)
+        files, shared, governed = resolve_variant_files(manifest, options)
 
         print("Agent files:")
         for entry in files:
             src = agent_dir / entry["src"]
             dest = target / entry["dest"]
             copy_entry(src, dest)
+
+        print("\nGoverned contracts (skip if present):")
+        for governed_path in governed:
+            if governed_path.startswith("features/"):
+                continue
+            src = REPO_ROOT / governed_path
+            dest = target / governed_path
+            copy_entry(src, dest, skip_existing=True)
 
         print("\nShared governance:")
         for shared_path in shared:
@@ -337,6 +374,67 @@ def cmd_validate(args: argparse.Namespace) -> None:
     sys.exit(run_validation(target, level=level))
 
 
+def cmd_upgrade(args: argparse.Namespace) -> None:
+    """Refresh agent config and governed contracts to the current govkit version."""
+    target = Path(args.target).resolve()
+    if not target.exists():
+        print(f"Error: target directory '{target}' does not exist.")
+        sys.exit(1)
+
+    stored = read_govkit_marker(target)
+    if not stored:
+        print("Error: no .govkit marker found. Run 'govkit apply' first.")
+        sys.exit(1)
+
+    stored_version = stored.get("version", "unknown")
+    agent = stored.get("agent")
+    stored_level = stored.get("level", "4")
+    stored_options = stored.get("options", {})
+
+    if not agent:
+        print("Error: .govkit marker missing 'agent' field. Run 'govkit apply' to reinitialise.")
+        sys.exit(1)
+
+    if stored_version == _GOVKIT_VERSION and not args.force:
+        print(f"\nAlready at govkit {_GOVKIT_VERSION}. Nothing to upgrade.")
+        print("Use --force to re-apply even when the version is current.")
+        return
+
+    print(f"\nUpgrading govkit {stored_version} → {_GOVKIT_VERSION}")
+    print(f"  Agent: {agent}  Level: {stored_level}\n")
+
+    manifest = load_manifest(agent)
+    agent_dir = AGENTS_DIR / agent
+    options = {**stored_options, "level": stored_level}
+    files, shared, governed = resolve_variant_files(manifest, options)
+
+    print("Agent files (refreshed):")
+    for entry in files:
+        src = agent_dir / entry["src"]
+        dest = target / entry["dest"]
+        copy_entry(src, dest)
+
+    print("\nGoverned contracts (refreshed):")
+    for governed_path in governed:
+        if governed_path.startswith("features/"):
+            continue
+        src = REPO_ROOT / governed_path
+        dest = target / governed_path
+        copy_entry(src, dest)
+
+    print("\nShared governance (skip if present):")
+    for shared_path in shared:
+        if shared_path.startswith("features/"):
+            continue
+        src = REPO_ROOT / shared_path
+        dest = target / shared_path
+        copy_entry(src, dest, skip_existing=True)
+
+    write_govkit_marker(target, agent, stored_level, options)
+    print(f"\nDone. '{agent}' upgraded to govkit {_GOVKIT_VERSION} at {target}")
+    print("\nReview changes with: git diff")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="govkit",
@@ -375,6 +473,17 @@ def main() -> None:
     validate_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                                  help="Maturity level (default: read from .govkit or 4)")
 
+    # --- upgrade ---
+    upgrade_parser = subparsers.add_parser(
+        "upgrade",
+        help="Refresh agent config and governed contracts to the current govkit version",
+    )
+    upgrade_parser.add_argument("--target", required=True, help="Path to the target project root")
+    upgrade_parser.add_argument(
+        "--force", action="store_true",
+        help="Re-apply even when the project is already at the current govkit version",
+    )
+
     args = parser.parse_args()
 
     if args.command == "apply":
@@ -385,6 +494,8 @@ def main() -> None:
         cmd_init(args)
     elif args.command == "validate":
         cmd_validate(args)
+    elif args.command == "upgrade":
+        cmd_upgrade(args)
 
 
 if __name__ == "__main__":
