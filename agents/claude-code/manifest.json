@@ -3,9 +3,9 @@
   "description": "Claude Code - CLAUDE.md governance, path-scoped rules, and project skills",
   "options": {
     "level": {
-      "prompt": "Maturity level? (3=Spec-Driven, 4=Governed AI Delivery, 5=GenAI Operations)",
+      "prompt": "Maturity level? (3=Governed AI Delivery (Foundations), 4=Spec-Driven Add-On, 5=GenAI Operations)",
       "choices": ["3", "4", "5"],
-      "default": "4"
+      "default": "3"
     },
     "type": {
       "prompt": "Project type?",
@@ -33,39 +33,36 @@
           { "src": "rules/backend/ports.md", "dest": ".claude/rules/ports.md" },
           { "src": "rules/backend/adapters.md", "dest": ".claude/rules/adapters.md" },
           { "src": "rules/backend/security.md", "dest": ".claude/rules/security.md" },
-          { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
-          { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
-          { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" },
+          { "src": "rules/generic/repo-scope.md", "dest": ".claude/rules/repo-scope.md" },
           { "src": "skills/backend/adr-author/", "dest": ".claude/skills/adr-author/" }
         ],
-        "shared": [
-          "features/starter_backend/",
-          "features/schema_contract_example/"
-        ],
+        "shared": [],
         "governed": [
-          "docs/backend/",
-          "governance/backend/"
+          "docs/backend/architecture/"
         ],
-        "level_3": {
+        "level_4": {
+          "mode": "merge",
           "files": [
-            { "src": "claude-md/l3-backend-api.md", "dest": "CLAUDE.md" },
+            { "src": "claude-md/l4-backend-api.md", "dest": "CLAUDE.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
-            { "src": "skills/backend/l3-spec-planning/", "dest": ".claude/skills/spec-planning/" },
-            { "src": "skills/backend/l3-implementation-plan/", "dest": ".claude/skills/implementation-plan/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" }
           ],
           "shared": [
-            "features/starter_backend_l3/"
+            "features/starter_backend/",
+            "features/schema_contract_example/"
           ],
           "governed": [
-            "docs/backend/architecture/DESIGN_PRINCIPLES.md",
-            "docs/backend/architecture/TESTING.md",
-            "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
-            "docs/backend/architecture/GHERKIN_TAGS.md",
-            "governance/backend/templates/l3-plan.md"
+            "docs/backend/evaluation/",
+            "docs/backend/guides/",
+            "governance/backend/",
+            "governance/schemas/evaluation_prediction.schema.json"
           ]
         },
         "level_5": {
+          "mode": "replace",
           "files": [
             { "src": "claude-md/l5-backend-api.md", "dest": "CLAUDE.md" },
             { "src": "rules/backend/api.md", "dest": ".claude/rules/api.md" },
@@ -78,6 +75,9 @@
             { "src": "rules/backend/llm-evaluation.md", "dest": ".claude/rules/llm-evaluation.md" },
             { "src": "rules/backend/llm-observability.md", "dest": ".claude/rules/llm-observability.md" },
             { "src": "rules/backend/multi-agent.md", "dest": ".claude/rules/multi-agent.md" },
+            { "src": "rules/generic/repo-scope.md", "dest": ".claude/rules/repo-scope.md" },
+            { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
+            { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
             { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
             { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" },
@@ -105,38 +105,35 @@
           { "src": "rules/backend/ports.md", "dest": ".claude/rules/ports.md" },
           { "src": "rules/backend/adapters.md", "dest": ".claude/rules/adapters.md" },
           { "src": "rules/backend/security.md", "dest": ".claude/rules/security.md" },
-          { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
-          { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
-          { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" },
+          { "src": "rules/generic/repo-scope.md", "dest": ".claude/rules/repo-scope.md" },
           { "src": "skills/backend/adr-author/", "dest": ".claude/skills/adr-author/" }
         ],
-        "shared": [
-          "features/starter_cli/"
-        ],
+        "shared": [],
         "governed": [
-          "docs/backend/",
-          "governance/backend/"
+          "docs/backend/architecture/"
         ],
-        "level_3": {
+        "level_4": {
+          "mode": "merge",
           "files": [
-            { "src": "claude-md/l3-backend-cli.md", "dest": "CLAUDE.md" },
+            { "src": "claude-md/l4-backend-cli.md", "dest": "CLAUDE.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
-            { "src": "skills/backend/l3-spec-planning/", "dest": ".claude/skills/spec-planning/" },
-            { "src": "skills/backend/l3-implementation-plan/", "dest": ".claude/skills/implementation-plan/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" }
           ],
           "shared": [
-            "features/starter_cli_l3/"
+            "features/starter_cli/"
           ],
           "governed": [
-            "docs/backend/architecture/DESIGN_PRINCIPLES.md",
-            "docs/backend/architecture/TESTING.md",
-            "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
-            "docs/backend/architecture/GHERKIN_TAGS.md",
-            "governance/backend/templates/l3-plan.md"
+            "docs/backend/evaluation/",
+            "docs/backend/guides/",
+            "governance/backend/",
+            "governance/schemas/evaluation_prediction.schema.json"
           ]
         },
         "level_5": {
+          "mode": "replace",
           "files": [
             { "src": "claude-md/l5-backend-cli.md", "dest": "CLAUDE.md" },
             { "src": "rules/cli/cli.md", "dest": ".claude/rules/cli.md" },
@@ -149,6 +146,9 @@
             { "src": "rules/backend/llm-evaluation.md", "dest": ".claude/rules/llm-evaluation.md" },
             { "src": "rules/backend/llm-observability.md", "dest": ".claude/rules/llm-observability.md" },
             { "src": "rules/backend/multi-agent.md", "dest": ".claude/rules/multi-agent.md" },
+            { "src": "rules/generic/repo-scope.md", "dest": ".claude/rules/repo-scope.md" },
+            { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
+            { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
             { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
             { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" },
@@ -180,36 +180,56 @@
           { "src": "rules/ui-react/viewmodel.md", "dest": ".claude/rules/viewmodel.md" },
           { "src": "rules/ui-react/api.md", "dest": ".claude/rules/ui-api.md" },
           { "src": "rules/ui-react/accessibility.md", "dest": ".claude/rules/accessibility.md" },
-          { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
-          { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/ui-architecture-preflight/" },
-          { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" },
           { "src": "skills/ui/adr-author/", "dest": ".claude/skills/ui-adr-author/" }
         ],
-        "shared": [
-          "features/starter_ui/",
-          "features/ui_task_dashboard/"
-        ],
+        "shared": [],
         "governed": [
           "docs/ui/architecture/MVVM_CONTRACT.md",
           "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
           "docs/ui/architecture/ADR/",
-          "docs/ui/architecture/react/",
-          "docs/ui/evaluation/",
-          "governance/ui/"
+          "docs/ui/architecture/react/"
         ],
-        "level_3": {
+        "level_4": {
+          "mode": "merge",
           "files": [
-            { "src": "claude-md/l3-ui-react.md", "dest": "CLAUDE-UI.md" },
-            { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
-            { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
-            { "src": "skills/ui/l3-spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
-            { "src": "skills/ui/l3-implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" }
+            { "src": "claude-md/l4-ui-react.md", "dest": "CLAUDE-UI.md" },
+            { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" }
           ],
           "shared": [
-            "features/starter_ui_l3/"
+            "features/starter_ui/",
+            "features/ui_task_dashboard/"
           ],
           "governed": [
-            "governance/ui/templates/l3-plan.md"
+            "docs/ui/evaluation/",
+            "governance/ui/"
+          ]
+        },
+        "level_5": {
+          "mode": "replace",
+          "files": [
+            { "src": "claude-md/l4-ui-react.md", "dest": "CLAUDE-UI.md" },
+            { "src": "rules/ui-react/components.md", "dest": ".claude/rules/components.md" },
+            { "src": "rules/ui-react/viewmodel.md", "dest": ".claude/rules/viewmodel.md" },
+            { "src": "rules/ui-react/api.md", "dest": ".claude/rules/ui-api.md" },
+            { "src": "rules/ui-react/accessibility.md", "dest": ".claude/rules/accessibility.md" },
+            { "src": "skills/ui/adr-author/", "dest": ".claude/skills/ui-adr-author/" },
+            { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" }
+          ],
+          "shared": [
+            "features/starter_ui/",
+            "features/ui_task_dashboard/"
+          ],
+          "governed": [
+            "docs/ui/architecture/MVVM_CONTRACT.md",
+            "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
+            "docs/ui/architecture/ADR/",
+            "docs/ui/architecture/react/",
+            "docs/ui/evaluation/",
+            "governance/ui/"
           ]
         }
       },
@@ -220,36 +240,56 @@
           { "src": "rules/ui-angular/viewmodel.md", "dest": ".claude/rules/viewmodel.md" },
           { "src": "rules/ui-angular/api.md", "dest": ".claude/rules/ui-api.md" },
           { "src": "rules/ui-angular/accessibility.md", "dest": ".claude/rules/accessibility.md" },
-          { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
-          { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/ui-architecture-preflight/" },
-          { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" },
           { "src": "skills/ui/adr-author/", "dest": ".claude/skills/ui-adr-author/" }
         ],
-        "shared": [
-          "features/starter_ui/",
-          "features/ui_task_dashboard/"
-        ],
+        "shared": [],
         "governed": [
           "docs/ui/architecture/MVVM_CONTRACT.md",
           "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
           "docs/ui/architecture/ADR/",
-          "docs/ui/architecture/angular/",
-          "docs/ui/evaluation/",
-          "governance/ui/"
+          "docs/ui/architecture/angular/"
         ],
-        "level_3": {
+        "level_4": {
+          "mode": "merge",
           "files": [
-            { "src": "claude-md/l3-ui-angular.md", "dest": "CLAUDE-UI.md" },
-            { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
-            { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
-            { "src": "skills/ui/l3-spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
-            { "src": "skills/ui/l3-implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" }
+            { "src": "claude-md/l4-ui-angular.md", "dest": "CLAUDE-UI.md" },
+            { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" }
           ],
           "shared": [
-            "features/starter_ui_l3/"
+            "features/starter_ui/",
+            "features/ui_task_dashboard/"
           ],
           "governed": [
-            "governance/ui/templates/l3-plan.md"
+            "docs/ui/evaluation/",
+            "governance/ui/"
+          ]
+        },
+        "level_5": {
+          "mode": "replace",
+          "files": [
+            { "src": "claude-md/l4-ui-angular.md", "dest": "CLAUDE-UI.md" },
+            { "src": "rules/ui-angular/components.md", "dest": ".claude/rules/components.md" },
+            { "src": "rules/ui-angular/viewmodel.md", "dest": ".claude/rules/viewmodel.md" },
+            { "src": "rules/ui-angular/api.md", "dest": ".claude/rules/ui-api.md" },
+            { "src": "rules/ui-angular/accessibility.md", "dest": ".claude/rules/accessibility.md" },
+            { "src": "skills/ui/adr-author/", "dest": ".claude/skills/ui-adr-author/" },
+            { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" }
+          ],
+          "shared": [
+            "features/starter_ui/",
+            "features/ui_task_dashboard/"
+          ],
+          "governed": [
+            "docs/ui/architecture/MVVM_CONTRACT.md",
+            "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
+            "docs/ui/architecture/ADR/",
+            "docs/ui/architecture/angular/",
+            "docs/ui/evaluation/",
+            "governance/ui/"
           ]
         }
       }
@@ -258,42 +298,54 @@
       "github": {
         "files": [],
         "shared": [],
-        "governed": ["ci/github/"],
-        "level_3": {
-          "files": [],
-          "shared": [],
-          "governed": ["ci/github/l3-quality-gate.yml"]
-        },
-        "level_5": {
+        "governed": [
+          "ci/github/l3-quality-gate.yml",
+          "ci/github/repo-scope-check.yml"
+        ],
+        "level_4": {
+          "mode": "merge",
           "files": [],
           "shared": [],
           "governed": [
-            "ci/github/",
-            "ci/github/deepeval-gate.yml",
-            "ci/github/promptfoo-gate.yml",
-            "ci/github/guardrails-check.yml",
-            "ci/github/multi-agent-gate.yml"
+            "ci/github/quality-gate.yml",
+            "ci/github/eval-gate.yml",
+            "ci/github/ui-quality-gate.yml",
+            "ci/github/ui-eval-gate.yml"
+          ]
+        },
+        "level_5": {
+          "mode": "replace",
+          "files": [],
+          "shared": [],
+          "governed": [
+            "ci/github/"
           ]
         }
       },
       "azure": {
         "files": [],
         "shared": [],
-        "governed": ["ci/azure/"],
-        "level_3": {
-          "files": [],
-          "shared": [],
-          "governed": ["ci/azure/l3-quality-gate.yml"]
-        },
-        "level_5": {
+        "governed": [
+          "ci/azure/l3-quality-gate.yml",
+          "ci/azure/repo-scope-check.yml"
+        ],
+        "level_4": {
+          "mode": "merge",
           "files": [],
           "shared": [],
           "governed": [
-            "ci/azure/",
-            "ci/azure/deepeval-gate.yml",
-            "ci/azure/promptfoo-gate.yml",
-            "ci/azure/guardrails-check.yml",
-            "ci/azure/multi-agent-gate.yml"
+            "ci/azure/quality-gate.yml",
+            "ci/azure/eval-gate.yml",
+            "ci/azure/ui-quality-gate.yml",
+            "ci/azure/ui-eval-gate.yml"
+          ]
+        },
+        "level_5": {
+          "mode": "replace",
+          "files": [],
+          "shared": [],
+          "governed": [
+            "ci/azure/"
           ]
         }
       }
