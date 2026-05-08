@@ -89,10 +89,6 @@
           "items": { "type": "string" },
           "description": "Govkit-owned governed contracts to copy from repo root to target (refreshed on upgrade)"
         },
-        "level_3": {
-          "$ref": "#/$defs/level_override",
-          "description": "DEPRECATED in v0.7.0 — kept transitionally during the L3/L4 swap. Will be removed once all manifests migrate to top-level (L3) + level_4 add-on."
-        },
         "level_4": {
           "$ref": "#/$defs/level_override",
           "description": "Spec-Driven Add-On overlay applied at maturity level 4 (default mode: merge)"

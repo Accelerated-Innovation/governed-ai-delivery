@@ -279,120 +279,58 @@ class TestResolveVariantFiles:
         assert shared == []
         assert governed == []
 
-    def test_level_3_override(self):
-        """When level=3, level_3 sub-key files/shared replace the top-level ones."""
+    def test_level_4_no_override_uses_base(self):
+        """When level=4 and no level_4 block exists, top-level files are used."""
         manifest = {
             "variants": {
                 "type": {
                     "api": {
-                        "files": [{"src": "l4-api.md", "dest": "CLAUDE.md"}],
+                        "files": [{"src": "base-api.md", "dest": "CLAUDE.md"}],
                         "shared": ["docs/backend/"],
-                        "level_3": {
-                            "files": [{"src": "l3-api.md", "dest": "CLAUDE.md"}],
-                            "shared": ["docs/backend/architecture/DESIGN_PRINCIPLES.md"],
-                        },
-                    }
-                }
-            }
-        }
-        files, shared, _ = resolve_variant_files(manifest, {"type": "api", "level": "3"})
-        assert len(files) == 1
-        assert files[0]["src"] == "l3-api.md"
-        assert shared == ["docs/backend/architecture/DESIGN_PRINCIPLES.md"]
-
-    def test_level_4_uses_default(self):
-        """When level=4, top-level files/shared are used (no override)."""
-        manifest = {
-            "variants": {
-                "type": {
-                    "api": {
-                        "files": [{"src": "l4-api.md", "dest": "CLAUDE.md"}],
-                        "shared": ["docs/backend/"],
-                        "level_3": {
-                            "files": [{"src": "l3-api.md", "dest": "CLAUDE.md"}],
-                            "shared": ["docs/backend/architecture/DESIGN_PRINCIPLES.md"],
-                        },
                     }
                 }
             }
         }
         files, shared, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
         assert len(files) == 1
-        assert files[0]["src"] == "l4-api.md"
+        assert files[0]["src"] == "base-api.md"
         assert shared == ["docs/backend/"]
 
-    def test_level_default_is_3(self):
-        """When level is not specified, behaves as level 3 (v0.7+)."""
-        # The fixture's `level_3` block (legacy replace override) takes effect
-        # at the new default level 3, so the L3 src wins. After Increment 6
-        # (manifest cleanup) live manifests no longer have `level_3` blocks
-        # and the top-level files are themselves the L3 foundation content.
+    def test_level_default_is_3_uses_top_level(self):
+        """When no level is specified, the default is level 3, which uses top-level (base) entries."""
+        # Post-Increment-11: L3 has no override key. The default-level run
+        # resolves to the variant's top-level files/shared/governed.
         manifest = {
             "variants": {
                 "type": {
                     "api": {
-                        "files": [{"src": "l4-api.md", "dest": "CLAUDE.md"}],
-                        "shared": ["docs/backend/"],
-                        "level_3": {
-                            "files": [{"src": "l3-api.md", "dest": "CLAUDE.md"}],
-                            "shared": ["docs/backend/architecture/DESIGN_PRINCIPLES.md"],
-                        },
+                        "files": [{"src": "foundations.md", "dest": "CLAUDE.md"}],
+                        "shared": ["docs/backend/architecture/"],
                     }
                 }
             }
         }
-        files, _, _ = resolve_variant_files(manifest, {"type": "api"})
-        assert files[0]["src"] == "l3-api.md"
+        files, shared, _ = resolve_variant_files(manifest, {"type": "api"})
+        assert files[0]["src"] == "foundations.md"
+        assert shared == ["docs/backend/architecture/"]
 
-    def test_level_3_missing_override_falls_through(self):
-        """When level=3 but variant has no level_3 key, use top-level files."""
+    def test_level_3_uses_base_directly(self):
+        """At level=3 the variant's top-level entries are used (no override key checked)."""
         manifest = {
             "variants": {
                 "ci": {
                     "github": {
-                        "files": [{"src": "gh.yml", "dest": ".github/gh.yml"}],
-                        "shared": ["ci/github/"],
+                        "files": [{"src": "l3-quality-gate.yml", "dest": ".github/workflows/quality-gate.yml"}],
+                        "shared": [],
+                        "governed": ["ci/github/repo-scope-check.yml"],
                     }
                 }
             }
         }
-        files, _, _ = resolve_variant_files(manifest, {"ci": "github", "level": "3"})
+        files, _, governed = resolve_variant_files(manifest, {"ci": "github", "level": "3"})
         assert len(files) == 1
-        assert files[0]["src"] == "gh.yml"
-
-    def test_level_3_multiple_dimensions(self):
-        """Level 3 override applies across multiple dimensions."""
-        manifest = {
-            "variants": {
-                "type": {
-                    "api": {
-                        "files": [{"src": "l4.md", "dest": "CLAUDE.md"}],
-                        "shared": ["docs/"],
-                        "level_3": {
-                            "files": [{"src": "l3.md", "dest": "CLAUDE.md"}],
-                            "shared": ["docs/DESIGN_PRINCIPLES.md"],
-                        },
-                    }
-                },
-                "ci": {
-                    "github": {
-                        "files": [],
-                        "shared": ["ci/github/"],
-                        "level_3": {
-                            "files": [],
-                            "shared": ["ci/github/l3-quality-gate.yml"],
-                        },
-                    }
-                },
-            }
-        }
-        files, shared, _ = resolve_variant_files(
-            manifest, {"type": "api", "ci": "github", "level": "3"}
-        )
-        assert len(files) == 1
-        assert files[0]["src"] == "l3.md"
-        assert "docs/DESIGN_PRINCIPLES.md" in shared
-        assert "ci/github/l3-quality-gate.yml" in shared
+        assert files[0]["src"] == "l3-quality-gate.yml"
+        assert "ci/github/repo-scope-check.yml" in governed
 
 
 # ---------------------------------------------------------------------------

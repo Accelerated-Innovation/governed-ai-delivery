@@ -1,7 +1,7 @@
 """
 Schema validation for agents/*/manifest.json files.
 
-Increment 1 of the L3/L4 maturity-model swap (plan §1, §6.3, §11 row 1).
+Originally added in Increment 1 of the L3/L4 maturity-model swap (plan §6.3).
 
 These tests catch manifest/schema drift that previously slipped through:
 the v0.6.x schema set additionalProperties: false on variant_config but
@@ -9,12 +9,11 @@ omitted the `governed` key, while every live manifest used `governed`.
 
 The v0.7.0 schema:
   - Adds `governed` to variant_config and level_override (fixes the drift).
-  - Adds `level_4` alongside the existing `level_3` (transitional during the swap).
+  - Replaces the transitional `level_3` property with `level_4`.
   - Adds an optional `mode` field on level_override ("merge" | "replace").
 
-After Increment 11 (schema cleanup) the transitional `level_3` key is removed
-and these tests will lock that in via test_schema_no_longer_allows_level_3.
-That test is currently marked xfail; flip to a positive assertion in Increment 11.
+The transitional `level_3` key was removed in Increment 11; the schema now
+rejects manifests that use it (locked in by test_schema_rejects_level_3).
 """
 
 from __future__ import annotations
@@ -102,13 +101,13 @@ class TestSchemaShape:
         props = schema["$defs"]["variant_config"]["properties"]
         assert "level_4" in props, "v0.7.0 schema must define level_4 for the Spec-Driven Add-On"
 
-    def test_variant_config_still_has_level_3_transitionally(self):
-        # Transitional only — removed in Increment 11.
+    def test_schema_no_longer_allows_level_3(self):
+        # Increment 11 cleanup: the transitional level_3 key is gone.
         schema = _load_schema()
         props = schema["$defs"]["variant_config"]["properties"]
-        assert "level_3" in props, (
-            "level_3 is kept transitionally during Increments 1-10 so live manifests "
-            "still validate. Remove this test (and the schema key) in Increment 11."
+        assert "level_3" not in props, (
+            "level_3 must be removed from the schema in v0.7.0+ "
+            "(L3 is now the default top-level base; no override key is used)"
         )
 
     def test_variant_config_has_level_5(self):
@@ -196,6 +195,25 @@ class TestSchemaRejects:
         validator = Draft202012Validator(schema)
         errors = list(validator.iter_errors(manifest))
         assert errors, "file_entry must require both src and dest"
+
+    def test_rejects_level_3_property(self):
+        # Increment 11 cleanup: a manifest carrying a legacy `level_3` block
+        # must fail schema validation under v0.7.0.
+        schema = _load_schema()
+        manifest = {
+            "agent": "x",
+            "description": "y",
+            "variants": {
+                "type": {
+                    "api": {
+                        "level_3": {"files": []}  # legacy v0.6 key — no longer allowed
+                    }
+                }
+            },
+        }
+        validator = Draft202012Validator(schema)
+        errors = list(validator.iter_errors(manifest))
+        assert errors, "Manifest with level_3 block must be rejected post-v0.7.0"
 
 
 # ---------------------------------------------------------------------------

@@ -218,10 +218,7 @@ def _select_variant(
     """Select (base, override, mode) for a (dimension, value) at a given level.
 
     Level handling:
-      L3 (transitional): if a `level_3` block exists, treat as legacy replace override
-                         for backward compatibility with pre-v0.7 manifests. After
-                         Increment 6 every manifest's `level_3` is gone, then this
-                         branch becomes a no-op (returns base only).
+      L3 (default): no override key — returns the dimension's base entries.
       L4: if `level_4` exists, default mode = "merge" (Spec-Driven Add-On).
       L5: if `level_5` exists, default mode = "replace" (current behavior).
       Any level with no matching override key falls back to base only.
@@ -231,7 +228,7 @@ def _select_variant(
     """
     variant_group = variants.get(dimension, {})
     base = variant_group.get(value, {})
-    level_defaults = {"3": ("level_3", "replace"), "4": ("level_4", "merge"), "5": ("level_5", "replace")}
+    level_defaults = {"4": ("level_4", "merge"), "5": ("level_5", "replace")}
     if level in level_defaults:
         key, default_mode = level_defaults[level]
         if key in base:
