@@ -1,12 +1,16 @@
-# GitHub Copilot Instructions — Angular UI
+# GitHub Copilot Instructions — Foundations (Level 3) — Angular UI
 
-These instructions govern how GitHub Copilot plans, reasons, and generates code in this Angular UI repository.
+These instructions govern how GitHub Copilot plans, reasons, and generates
+code in this Angular UI repository. They are mandatory.
 
-They are mandatory.
+Copilot must treat this repository as a governed delivery system, not an open
+coding environment. Repository artifacts are the source of truth. Chat memory
+is not.
 
-Copilot must treat this repository as a governed delivery system, not an open coding environment.
-
-Repository artifacts are the source of truth. Chat memory is not.
+> **Feature artifacts are not part of L3.** If your team adopts spec-driven
+> feature delivery (per-feature `acceptance.feature`, `nfrs.md`, `plan.md`,
+> `eval_criteria.yaml`, and `architecture_preflight.md`), upgrade with
+> `govkit apply --level 4`.
 
 ---
 
@@ -14,148 +18,175 @@ Repository artifacts are the source of truth. Chat memory is not.
 
 Copilot operates aligned to:
 
-* Product specifications under `features/`
 * Architecture contracts under `docs/ui/architecture/`
-* Evaluation standards under `docs/ui/evaluation/`
-* Governance rules under `governance/ui/`
+* Path-scoped instructions under `.github/instructions/`
 
-Before planning or generating code:
+Before generating or modifying code:
 
-* Read all files under `docs/ui/architecture/`
-* Read `docs/ui/evaluation/eval_criteria.md`
-* Apply MVVM contract, component conventions, state management rules, and evaluation standards as binding constraints
+* Read the MVVM contract, component conventions, and state management rules
+* Apply layer-boundary rules and accessibility standards as binding constraints
 
-If required inputs are missing, stop and ask.
+If required inputs are missing or unclear, stop and ask.
 
 ---
 
 ## 2. MVVM Architecture
 
-This project follows MVVM with a vertical slice feature structure:
+This project follows MVVM with a vertical slice source-code structure under
+`src/`. Note: `src/features/` is the Angular source tree (not the govkit
+`features/` directory, which only exists at Level 4+).
 
 ```
 src/
-├── features/<feature>/
+├── features/<slice>/
 │   ├── components/   # View — standalone Angular components, OnPush
 │   ├── hooks/        # ViewModel — TanStack Query inject functions
 │   ├── store/        # ViewModel — Angular Signal stores
-│   ├── api/          # Model — HttpClient wrapper async functions
-│   └── types/        # Feature-local TypeScript types
+│   ├── api/          # Model — HttpClient wrapper functions
+│   └── types/        # Slice-local TypeScript types
 ├── shared/
 │   ├── components/   # Shared UI primitives only
-│   └── api/          # Shared ApiService, auth interceptor
+│   └── api/          # Base ApiService, auth interceptor
 └── app/              # Entry point, routing, app.config.ts
 ```
 
-See `docs/ui/architecture/MVVM_CONTRACT.md` for full rules.
+Read before generating any code:
+
+* `docs/ui/architecture/MVVM_CONTRACT.md`
+* `docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md`
+* `docs/ui/architecture/angular/STATE_MANAGEMENT.md`
+* `docs/ui/architecture/angular/TECH_STACK.md`
+* `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`
 
 ---
 
-## 3. Mandatory Feature Structure
+## 3. Layer Rules
 
-Every feature must live under `features/<feature_name>/` with:
+### View — Components (`src/features/<slice>/components/`)
 
-* `acceptance.feature`, `nfrs.md`, `eval_criteria.yaml`, `plan.md`, `architecture_preflight.md`
-
-Implementation must not begin until all artifacts exist and are complete.
-
----
-
-## 4. Feature Lifecycle (Mandatory Order)
-
-1. Architecture Preflight
-2. ADR creation (if required)
-3. Spec Planning
-4. Implementation Planning
-5. Incremental implementation — API → ViewModel → View
-6. Component and E2E tests
-7. CI gates
-
-Steps may not be skipped.
-
----
-
-## 5. Layer Rules
-
-### View — Components
 * Standalone components with `ChangeDetectionStrategy.OnPush` — always
-* No direct `HttpClient` or API service injection
-* No business logic or data transformation in class or template
+* No direct `HttpClient` calls or API service injections
+* No business logic or data transformation in component class or template
+* All server data via TanStack Query inject functions
+* All client state via Signal store injection
 * Use `@if`, `@for`, `@switch` control flow (Angular 17+)
-* Signal-based inputs/outputs for new code
+* See `.github/instructions/components.instructions.md`
 
-### ViewModel — Query Functions (`hooks/`)
+### ViewModel — Query Functions (`src/features/<slice>/hooks/`)
+
 * All server state via TanStack Angular Query (`injectQuery`, `injectMutation`)
-* Transform API responses in `select` — never in templates
-* Query keys as typed constants in `query-keys.ts`
-* Mutations must invalidate affected query keys on success
+* Transform API responses in `select` — never in templates or components
+* Query keys defined as typed constants in `query-keys.ts` per slice
+* Mutations must invalidate relevant query keys on success
+* See `.github/instructions/viewmodel.instructions.md`
 
-### ViewModel — Signal Store (`store/`)
-* Angular Signals for UI-only state only — never store server data
-* Expose signals as read-only via `.asReadonly()`
-* Feature-scoped — avoid `providedIn: 'root'` for feature state
-* Never call API services from a store
+### ViewModel — Signal Store (`src/features/<slice>/store/`)
 
-### Model — API (`api/`)
-* Plain async functions using the shared `ApiService`
-* No Angular decorators in feature API files
-* All types explicit — no `any`
+* Angular Signals for UI-only state — modals, active tab, pagination,
+  selections
+* Never store server data — use TanStack Query cache
+* Expose read-only signals via `.asReadonly()`
+* Never call API services directly from a store
+
+### Model — API (`src/features/<slice>/api/`)
+
+* Plain functions wrapping `HttpClient`
+* One file per backend resource
+* Use shared base from `src/shared/api/`
+* See `.github/instructions/api.instructions.md`
+
+### Accessibility
+
+* Every interactive component must meet WCAG 2.1 AA
+* See `.github/instructions/accessibility.instructions.md` and
+  `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`
 
 ---
 
-## 6. Boundary Rules
+## 4. Boundary Rules
 
-* Components must not inject API services directly
-* Components must not import from another feature's internals
-* Signal stores must not call API services directly
+These are hard constraints. Never violate without an accepted ADR.
+
+* Components must not import from `api/` directly
+* Components must not import from another slice's internals
+* Signal stores must not call API services directly — use TanStack mutations
 * `shared/` must not import from `features/`
+* No business logic outside `hooks/` and `api/`
 
 ---
 
-## 7. ADR Rules
+## 5. Implementation Rules
 
-An ADR is required when:
-* A new state management library is introduced
-* A new shared component library is introduced
-* Cross-feature state is needed
-* A backend contract does not exist
-* Any MVVM boundary rule is intentionally violated
-* Any intentional WCAG exception
-
-All ADRs live under `docs/ui/architecture/ADR/`. Implementation must not proceed until ADR status is **Accepted**.
+* Respect all boundary rules above
+* Follow MVVM separation strictly
+* Test-first is recommended for new components; the binding test-first rule
+  is part of the Level 4 Spec-Driven Add-On
+* Accessibility checks are part of every change, not a separate phase
 
 ---
 
-## 8. Evaluation Discipline
+## 6. ADR Required For
 
-* Predicted FIRST average must be ≥ 4.0
-* Zero predicted critical axe-core violations
-* All `@e2e` Gherkin scenarios must have planned Playwright tests
+* Adding a new state management library
+* Introducing a new shared component library
+* Changing the API client strategy
+* Cross-slice state dependencies
+* Any deviation from the MVVM layer boundaries
+* Changes to authentication or authorization patterns
 
-If thresholds are not met, revise the plan before generating code.
-
----
-
-## 9. Testing Requirements
-
-Each increment must include:
-* Component tests — Jest + Angular Testing Library (FIRST compliant)
-* jest-axe accessibility check in every component test
-* Query function tests — `TestBed` + `HttpClientTestingModule`
-* E2E — Playwright for every `@e2e`-tagged Gherkin scenario with axe scan
+ADRs live under `docs/ui/architecture/ADR/`. Use the `/adr-author` skill to
+scaffold a new ADR.
 
 ---
 
-## 10. Authority
+## 7. Testing Requirements
 
-Architecture decisions belong to the Architect. Exceptions require an ADR and explicit approval. Copilot follows standards. It does not invent them.
+Each change must include:
+
+* Component tests with Karma/Jasmine or Jest (FIRST compliant)
+* Accessibility checks via axe-core (zero critical violations)
+* Integration tests when crossing layer boundaries
 
 ---
 
-## 11. Commit Discipline
+## 8. Output Expectations
 
-- Complete one increment, then commit before starting the next
-- Each commit must be independently buildable and testable
-- Commit message references the increment: `feat(<feature>): increment N — <name>`
-- Do not combine multiple increments into a single commit
-- If an increment exceeds ~300 lines of production code, split it before committing
+Every implementation output must include:
+
+* Referenced architecture contracts
+* ADR status (Accepted / pending / not required — with justification)
+* Layer-boundary compliance confirmation
+* Test coverage summary including accessibility
+
+If alignment is unclear, stop and ask.
+
+---
+
+## 9. Commit Discipline
+
+* Each commit must be independently buildable and testable
+* Commit message follows your project's convention; reference an ADR when one
+  applies
+* Keep commits focused — split large changes before committing
+
+---
+
+## 10. Upgrading to Spec-Driven Add-On (Level 4)
+
+When your team is ready to adopt per-feature spec contracts, upgrade with:
+
+```
+govkit apply --level 4 --ui angular --target <path>
+```
+
+Level 4 layers the following on top of Level 3:
+
+* `features/<name>/` directory model with the 5-artifact governed contract
+  (separate from `src/features/`)
+* `/ui-spec-planning`, `/ui-architecture-preflight`, `/ui-implementation-plan`
+  skills
+* Test-first and spec-compliance instructions (binding, not just recommended)
+* Evaluation prediction discipline including accessibility, FIRST, and 7
+  Virtues
+* Governance CI jobs: artifact existence, eval-criteria schema, prediction
+  thresholds
