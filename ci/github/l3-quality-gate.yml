@@ -1,26 +1,36 @@
 # l3-quality-gate.yml
 #
-# PURPOSE: Level 3 (Spec-Driven Development) quality gate.
-# Enforces spec compliance and basic quality on every PR.
+# PURPOSE: Level 3 (Governed AI Delivery — Foundations) quality gate.
+# Codebase-wide checks; no per-feature artifact validation.
 # Copy this file to .github/workflows/quality-gate.yml.
 #
 # JOBS:
-#   governance-artifacts   — checks that required L3 governance artifacts exist (3 per feature)
-#   commit-format          — validates commit message format
-#   sonarqube              — SonarQube quality gate (optional, requires SONAR_TOKEN)
-#   security-scan          — Snyk vulnerability scan (optional, requires SNYK_TOKEN)
+#   commit-format     — validates commit message format
+#   boundary-check    — enforces hexagonal architecture boundaries via import-linter
+#                       (requires .importlinter config in your repo root)
+#   sonarqube         — SonarQube quality gate (optional, requires SONAR_TOKEN)
+#   security-scan     — Snyk vulnerability scan (optional, requires SNYK_TOKEN)
 #
-# NOTE: This is the Level 3 gate. It does NOT include:
-#   - eval_criteria.yaml schema validation (Level 4)
-#   - Architecture boundary enforcement via import-linter (Level 4)
-#   - Evaluation prediction checks (Level 4)
-#   - Contract compatibility checks (Level 4)
+# NOTE: This is the Level 3 (Foundations) gate. It does NOT include
+# per-feature governance checks because L3 has no `features/` directory model.
+# Layered checks introduced at higher levels:
+#
+#   Level 4 (Spec-Driven Add-On) adds:
+#     - eval_criteria.yaml schema validation
+#     - Evaluation prediction thresholds (FIRST + 7 Virtues)
+#     - Contract compatibility checks
+#     - Per-feature artifact existence checks
+#
+#   Level 5 (GenAI Operations) adds:
+#     - DeepEval, Promptfoo, RAGAS gates
+#     - Guardrails configuration check
+#     - Multi-agent topology gate
 #
 # REQUIRED SECRETS (optional — remove jobs you don't use):
 #   SONAR_TOKEN, SONAR_HOST_URL — only if using the sonarqube job
 #   SNYK_TOKEN                  — only if using the security-scan job
 
-name: Quality Gate (L3)
+name: Quality Gate (L3 Foundations)
 
 on:
   pull_request:
@@ -29,34 +39,6 @@ on:
     branches: [main]
 
 jobs:
-  governance-artifacts:
-    name: Governance artifact checks (L3)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Check L3 required artifacts exist for each feature
-        run: |
-          errors=0
-          for feature_dir in features/*/; do
-            [ -d "$feature_dir" ] || continue
-            feature=$(basename "$feature_dir")
-            # Skip starter templates
-            case "$feature" in starter_*) continue;; esac
-
-            for artifact in acceptance.feature nfrs.md plan.md; do
-              if [ ! -f "$feature_dir/$artifact" ]; then
-                echo "FAIL: $feature missing $artifact"
-                errors=$((errors + 1))
-              fi
-            done
-          done
-          if [ "$errors" -gt 0 ]; then
-            echo "$errors missing artifact(s)"
-            exit 1
-          fi
-          echo "All features have required L3 artifacts."
-
   commit-format:
     name: Commit message format
     runs-on: ubuntu-latest
@@ -86,6 +68,18 @@ jobs:
             exit 1
           fi
           echo "All commit messages match expected format."
+
+  boundary-check:
+    name: Architecture boundary enforcement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install import-linter
+        run: pip install import-linter
+
+      - name: Run boundary checks
+        run: lint-imports
 
   sonarqube:
     name: SonarQube quality gate
