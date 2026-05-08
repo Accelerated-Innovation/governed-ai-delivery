@@ -148,32 +148,109 @@ def resolve_options(manifest: dict, args: argparse.Namespace) -> dict:
     return resolved
 
 
-def _select_variant(variants: dict, dimension: str, value: str, level_key: str | None) -> dict:
-    """Select the variant config for a dimension/value, applying level override if present."""
+def _select_variant(
+    variants: dict, dimension: str, value: str, level: str,
+) -> tuple[dict, dict | None, str]:
+    """Select (base, override, mode) for a (dimension, value) at a given level.
+
+    Level handling:
+      L3 (transitional): if a `level_3` block exists, treat as legacy replace override
+                         for backward compatibility with pre-v0.7 manifests. After
+                         Increment 6 every manifest's `level_3` is gone, then this
+                         branch becomes a no-op (returns base only).
+      L4: if `level_4` exists, default mode = "merge" (Spec-Driven Add-On).
+      L5: if `level_5` exists, default mode = "replace" (current behavior).
+      Any level with no matching override key falls back to base only.
+
+    The override's optional `mode` field (per the v0.7 schema) takes precedence over
+    the level-specific default.
+    """
     variant_group = variants.get(dimension, {})
-    selected = variant_group.get(value, {})
-    if level_key and level_key in selected:
-        return selected[level_key]
-    return selected
+    base = variant_group.get(value, {})
+    level_defaults = {"3": ("level_3", "replace"), "4": ("level_4", "merge"), "5": ("level_5", "replace")}
+    if level in level_defaults:
+        key, default_mode = level_defaults[level]
+        if key in base:
+            override = base[key]
+            return base, override, override.get("mode", default_mode)
+    return base, None, "merge"
+
+
+def _dimension_entries(
+    base: dict, override: dict | None, mode: str,
+) -> tuple[list, list, list]:
+    """Compute one dimension's effective (files, shared, governed) after applying override.
+
+    merge mode (L4 default):
+      - files: base entries whose `dest` collides with an override entry are dropped;
+        override entries are appended after the surviving base entries (later wins on dest).
+      - shared, governed: append override entries to base, dedup by string equality.
+
+    replace mode (L5 default):
+      - files, shared, governed: take only the override block's entries; ignore base.
+
+    Cross-dimension accumulation (e.g. type.api + ui.react both contributing to
+    .github/instructions/) is handled by `_collect_entries`, not here.
+    """
+    if override is None:
+        return (
+            list(base.get("files", [])),
+            list(base.get("shared", [])),
+            list(base.get("governed", [])),
+        )
+    if mode == "replace":
+        return (
+            list(override.get("files", [])),
+            list(override.get("shared", [])),
+            list(override.get("governed", [])),
+        )
+    # merge mode
+    override_dests = {f["dest"] for f in override.get("files", [])}
+    files = [f for f in base.get("files", []) if f["dest"] not in override_dests]
+    files.extend(override.get("files", []))
+
+    shared = list(base.get("shared", []))
+    for s in override.get("shared", []):
+        if s not in shared:
+            shared.append(s)
+
+    governed = list(base.get("governed", []))
+    for g in override.get("governed", []):
+        if g not in governed:
+            governed.append(g)
+    return files, shared, governed
 
 
 def _collect_entries(
-    selected: dict,
+    files_to_add: list,
+    shared_to_add: list,
+    governed_to_add: list,
     all_files: list, seen_files: set,
     all_shared: list, seen_shared: set,
     all_governed: list, seen_governed: set,
 ) -> None:
-    """Append deduplicated files, shared, and governed paths from a selected variant config."""
-    for f in selected.get("files", []):
+    """Append a dimension's effective entries to running collections, deduplicated.
+
+    Cross-dimension dedup:
+      files: by `(src, dest)` tuple — preserves the legitimate case where multiple
+             source directories install at the same destination (e.g. copilot's
+             `instructions/backend/` and `instructions/ui-react/` both targeting
+             `.github/instructions/`).
+      shared, governed: by string equality.
+
+    Within-dimension override-vs-base collisions on `dest` are resolved upstream
+    by `_dimension_entries` before this function is called.
+    """
+    for f in files_to_add:
         key = (f["src"], f["dest"])
         if key not in seen_files:
             all_files.append(f)
             seen_files.add(key)
-    for s in selected.get("shared", []):
+    for s in shared_to_add:
         if s not in seen_shared:
             all_shared.append(s)
             seen_shared.add(s)
-    for g in selected.get("governed", []):
+    for g in governed_to_add:
         if g not in seen_governed:
             all_governed.append(g)
             seen_governed.add(g)
@@ -194,13 +271,18 @@ def resolve_variant_files(manifest: dict, options: dict) -> tuple[list, list, li
     seen_shared: set[str] = set()
     seen_governed: set[str] = set()
     variants = manifest.get("variants", {})
-    level = options.get("level", "4")
-    level_key = f"level_{level}" if level != "4" else None
+    level = options.get("level", "3")
     for dimension, value in options.items():
         if dimension == "level":
             continue
-        selected = _select_variant(variants, dimension, value, level_key)
-        _collect_entries(selected, all_files, seen_files, all_shared, seen_shared, all_governed, seen_governed)
+        base, override, mode = _select_variant(variants, dimension, value, level)
+        files, shared, governed = _dimension_entries(base, override, mode)
+        _collect_entries(
+            files, shared, governed,
+            all_files, seen_files,
+            all_shared, seen_shared,
+            all_governed, seen_governed,
+        )
     return all_files, all_shared, all_governed
 
 
@@ -221,7 +303,7 @@ def cmd_apply(args: argparse.Namespace) -> None:
     if "variants" in manifest:
         print(f"\nApplying govkit agent '{args.agent}' to {target}\n")
         options = resolve_options(manifest, args)
-        level = options.get("level", "4")
+        level = options.get("level", "3")
         print(f"\n  Configuration: {options}\n")
         files, shared, governed = resolve_variant_files(manifest, options)
 
@@ -247,10 +329,13 @@ def cmd_apply(args: argparse.Namespace) -> None:
             dest = target / shared_path
             copy_entry(src, dest, skip_existing=True)
 
-        features_dir = target / "features"
-        if not features_dir.exists():
-            features_dir.mkdir(parents=True)
-            print(f"  Created {features_dir} (empty)")
+        # L3 (Foundations) ships agent rules + architecture contracts only.
+        # The features/ directory model is part of the L4 Spec-Driven Add-On.
+        if level != "3":
+            features_dir = target / "features"
+            if not features_dir.exists():
+                features_dir.mkdir(parents=True)
+                print(f"  Created {features_dir} (empty)")
 
         write_govkit_marker(target, args.agent, level, options)
     else:
@@ -321,10 +406,18 @@ def _prompt_starter_type() -> str:
 
 
 def _resolve_starter_dir(starter_type: str, level: str) -> Path:
-    """Select the level-appropriate starter directory from the bundled govkit templates."""
+    """Select the level-appropriate starter directory from the bundled govkit templates.
+
+    L3 (Foundations) has no feature starter — `govkit init` is gated to L4+.
+    """
+    if level == "3":
+        raise ValueError(
+            "L3 (Governed AI Delivery — Foundations) has no feature starter. "
+            "Run 'govkit apply --level 4' first to enable the spec-driven feature workflow."
+        )
     bundled = REPO_ROOT / "features"
-    if level in ("3", "5"):
-        level_dir = bundled / f"starter_{starter_type}_l{level}"
+    if level == "5":
+        level_dir = bundled / f"starter_{starter_type}_l5"
         if level_dir.exists():
             return level_dir
     return bundled / f"starter_{starter_type}"
@@ -333,6 +426,20 @@ def _resolve_starter_dir(starter_type: str, level: str) -> Path:
 def cmd_init(args: argparse.Namespace) -> None:
     """Create a new feature folder from the appropriate starter template."""
     target = Path(args.target).resolve()
+
+    # Determine level early so we can gate L3 before any other checks.
+    level = args.level or read_govkit_level(target) or "3"
+
+    if level == "3":
+        print(
+            "Error: 'govkit init' requires Level 4 (Spec-Driven Add-On) or higher.\n"
+            "  Level 3 (Foundations) ships agent rules and architecture contracts only;\n"
+            "  it has no features/ directory model.\n"
+            "  Run 'govkit apply --level 4 --target <path>' to enable the spec-driven\n"
+            "  feature workflow, then re-run 'govkit init'."
+        )
+        sys.exit(1)
+
     features_dir = target / "features"
     if not features_dir.exists():
         print(f"Error: no features/ directory found in {target}. Run 'govkit apply' first.")
@@ -344,7 +451,6 @@ def cmd_init(args: argparse.Namespace) -> None:
         print(f"Error: feature '{feature_name}' already exists at {feature_dir}")
         sys.exit(1)
 
-    level = args.level or read_govkit_level(target) or "4"
     starter_type = args.starter or _prompt_starter_type()
     starter_dir = _resolve_starter_dir(starter_type, level)
 
@@ -361,10 +467,9 @@ def cmd_init(args: argparse.Namespace) -> None:
     if level == "5":
         print(f"  3. Run /architecture-preflight {feature_name}")
         print(f"  4. Run /genai-preflight {feature_name}")
-    elif level == "4":
+    else:  # L4
         print(f"  3. Run /architecture-preflight {feature_name}")
-    else:
-        print(f"  3. Run /spec-planning {feature_name}")
+        print(f"  4. Run /spec-planning {feature_name}")
 
 
 def cmd_validate(args: argparse.Namespace) -> None:
@@ -388,7 +493,7 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
 
     stored_version = stored.get("version", "unknown")
     agent = stored.get("agent")
-    stored_level = stored.get("level", "4")
+    stored_level = stored.get("level", "3")
     stored_options = stored.get("options", {})
 
     if not agent:

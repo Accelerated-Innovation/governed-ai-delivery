@@ -45,12 +45,8 @@ _RE_MODE_LLM = r"^\s*mode:\s*llm\b"
 _RE_MULTI_AGENT = r"^\s*multi_agent:\s*true\b"
 _AGENT_TOPOLOGY_MD = "agent_topology.md"
 
-L3_REQUIRED_ARTIFACTS = [
-    _ACCEPTANCE_FEATURE,
-    _NFRS_MD,
-    _PLAN_MD,
-]
-
+# L3 (Foundations) has no per-feature artifacts; validation short-circuits
+# at L3 in run_validation(). The 5-artifact contract starts at L4.
 L4_REQUIRED_ARTIFACTS = [
     _ACCEPTANCE_FEATURE,
     _NFRS_MD,
@@ -68,7 +64,6 @@ WARN = "\033[33mWARN\033[0m"
 
 STARTERS = {
     "starter_backend", "starter_ui", "starter_cli",
-    "starter_backend_l3", "starter_ui_l3", "starter_cli_l3",
     "starter_backend_l5", "starter_cli_l5",
 }
 
@@ -399,17 +394,14 @@ def _read_govkit_level(target: Path) -> str | None:
 
 
 def _build_checks(level: str) -> tuple[list[str], list]:
-    """Return the artifact list and check functions for a given level."""
-    if level == "3":
-        artifacts = L3_REQUIRED_ARTIFACTS
-        checks = [
-            lambda fd: check_completeness(fd, artifacts),
-            check_gherkin_syntax,
-            check_nfrs_no_tbd,
-            check_gherkin_nfr_coverage,
-        ]
-    elif level == "5":
-        artifacts = L4_REQUIRED_ARTIFACTS
+    """Return the artifact list and check functions for a given level.
+
+    L3 is handled by an early no-op return in run_validation() and never reaches
+    this function. L4 enforces the 5-artifact governed contract; L5 layers in
+    LLM-specific checks on top.
+    """
+    artifacts = L4_REQUIRED_ARTIFACTS
+    if level == "5":
         checks = [
             lambda fd: check_completeness(fd, artifacts),
             check_gherkin_syntax,
@@ -424,7 +416,7 @@ def _build_checks(level: str) -> tuple[list[str], list]:
             check_agent_topology_sections,
         ]
     else:
-        artifacts = L4_REQUIRED_ARTIFACTS
+        # L4 (Spec-Driven Add-On) — full 5-artifact governed contract.
         checks = [
             lambda fd: check_completeness(fd, artifacts),
             check_gherkin_syntax,
@@ -459,13 +451,25 @@ def run_validation(target: Path, level: str | None = None) -> int:
         print(f"Error: target directory '{target}' does not exist.")
         return 1
 
+    if level is None:
+        level = _read_govkit_level(target) or "3"
+
+    # L3 (Foundations) ships agent rules + architecture contracts only — there
+    # are no per-feature artifacts to validate. The CI quality-gate is the L3
+    # compliance surface (lint, tests, import-linter, optional sonar/snyk).
+    if level == "3":
+        print(
+            "\ngovkit validate — Level 3 (Governed AI Delivery (Foundations))\n"
+            "\nLevel 3 ships agent rules and architecture contracts only;\n"
+            "there are no per-feature artifacts to check at this level.\n"
+            "CI quality-gate is the compliance surface for L3.\n"
+        )
+        return 0
+
     features_dir = target / "features"
     if not features_dir.exists():
         print(f"Error: no features/ directory found in '{target}'.")
         return 1
-
-    if level is None:
-        level = _read_govkit_level(target) or "4"
 
     _, checks = _build_checks(level)
 
@@ -478,7 +482,11 @@ def run_validation(target: Path, level: str | None = None) -> int:
         print("No feature directories found to validate.")
         return 0
 
-    level_labels = {"3": "L3 Spec-Driven", "4": "L4 Governed AI Delivery", "5": "L5 GenAI Operations"}
+    level_labels = {
+        "3": "L3 Governed AI Delivery (Foundations)",
+        "4": "L4 Spec-Driven Add-On",
+        "5": "L5 GenAI Operations",
+    }
     level_label = level_labels.get(level, f"L{level}")
     print(f"\ngovkit validate — governance compliance check ({level_label})\n")
 

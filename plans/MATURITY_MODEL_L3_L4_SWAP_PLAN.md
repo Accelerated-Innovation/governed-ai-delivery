@@ -219,25 +219,25 @@ Mode semantics:
 
 ### 4.3 Collision and dedup rules for merge mode
 
-**This is a behavior change to the existing dedup logic.** Today, `_collect_entries` dedups `files` by `(src, dest)` tuple ([cli/govkit.py:168-171](cli/govkit.py#L168-L171)). Under merge mode, `files` must dedup by `dest` alone so L4 entries can override L3 entries at the same destination.
+**Refined design after Increment-2 audit.** A naive "dedup by `dest` alone everywhere" would break copilot, which intentionally installs multiple source directories at the same destination across dimensions (e.g. `instructions/backend/` and `instructions/ui-react/` both copy into `.github/instructions/`). The dedup rules therefore need to distinguish *within-dimension override-vs-base* collisions from *across-dimension* accumulation.
 
-Audit step (Increment 2): grep all live manifests for any pair `{src1, dest}` + `{src2, dest}` — i.e. two distinct sources targeting the same destination. If any are found, both entries are kept today but only one would survive under the new logic. Verify intent and reconcile before merging Increment 2.
+**`files` dedup rules (final):**
+1. **Across dimensions** (e.g. `type.api` + `ui.react` + `ci.github`): keep existing `(src, dest)` tuple dedup. This preserves directory accumulation patterns where multiple sources legitimately install at the same destination directory.
+2. **Within a single dimension's override-vs-base** (e.g. `type.api` base + `type.api.level_4` merge override): the override entries take priority over base entries with the same `dest`. Concretely: when applying a merge-mode override for a dimension, first compute the dimension's effective entries by removing any base entry whose `dest` matches an override entry's `dest`, then concatenating override entries. The result is what gets fed into the cross-dimension accumulator.
+3. **Replace mode** (L5): the override block's entries fully replace the base block's entries for that dimension; no merge across base+override.
 
-**`files` (per-`dest` collision):**
-1. Add base entries to `all_files`, keyed by `dest`.
-2. For each merge-mode override entry: if its `dest` matches an existing entry, **replace** that entry (later wins). Otherwise, **append**.
-3. Existing `(src, dest)` dedup is replaced by `dest`-only dedup.
+**Why this works:** copilot's cross-dimension dest collisions (verified by the Increment-2 audit) accumulate via existing `(src, dest)` semantics. The new behavior introduced by this refactor is strictly within an override-vs-base pair, where the user's intent is clearly "L4 replaces this specific L3 file."
 
 **`shared` (string array):**
-- Append + dedup by string equality. No collision concept (paths are bare strings).
+- Cross-dimension and within-dimension: append + dedup by string equality. No collision concept (paths are bare strings; equal strings dedup naturally).
 - A merge-mode override cannot remove a base `shared` entry. If that's needed in the future, add an explicit `removes` array — out of scope for v0.7.0.
 
 **`governed` (string array):**
 - Same as `shared`: append + dedup by string equality. No removal.
 
-**Verification:** §8.1 tests #11–#12 cover `files`. Add tests for `shared` (`test_l4_merge_appends_shared`, `test_l4_merge_dedups_shared`) and `governed` (`test_l4_merge_appends_governed`, `test_l4_merge_dedups_governed`).
+**Verification:** §8.1 tests #11–#12 cover `files`. Add tests for `shared` (`test_l4_merge_appends_shared`, `test_l4_merge_dedups_shared`), `governed` (`test_l4_merge_appends_governed`, `test_l4_merge_dedups_governed`), and a regression guard `test_cross_dimension_dest_collision_preserved` covering the copilot case.
 
-**`replace` mode (L5):** unchanged from today. The L5 block fully empties and refills `files`/`shared`/`governed` for that variant dimension.
+**`replace` mode (L5):** unchanged from today. The L5 override block fully replaces the L3 base for that variant dimension; cross-dimension accumulation continues as before.
 
 ### 4.4 `_resolve_starter_dir` simplification
 

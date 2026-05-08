@@ -321,8 +321,12 @@ class TestResolveVariantFiles:
         assert files[0]["src"] == "l4-api.md"
         assert shared == ["docs/backend/"]
 
-    def test_level_default_is_4(self):
-        """When level is not specified, behaves as level 4."""
+    def test_level_default_is_3(self):
+        """When level is not specified, behaves as level 3 (v0.7+)."""
+        # The fixture's `level_3` block (legacy replace override) takes effect
+        # at the new default level 3, so the L3 src wins. After Increment 6
+        # (manifest cleanup) live manifests no longer have `level_3` blocks
+        # and the top-level files are themselves the L3 foundation content.
         manifest = {
             "variants": {
                 "type": {
@@ -338,7 +342,7 @@ class TestResolveVariantFiles:
             }
         }
         files, _, _ = resolve_variant_files(manifest, {"type": "api"})
-        assert files[0]["src"] == "l4-api.md"
+        assert files[0]["src"] == "l3-api.md"
 
     def test_level_3_missing_override_falls_through(self):
         """When level=3 but variant has no level_3 key, use top-level files."""
@@ -389,6 +393,212 @@ class TestResolveVariantFiles:
         assert files[0]["src"] == "l3.md"
         assert "docs/DESIGN_PRINCIPLES.md" in shared
         assert "ci/github/l3-quality-gate.yml" in shared
+
+
+# ---------------------------------------------------------------------------
+# Merge-mode semantics (Increment 2 — new in v0.7.0)
+#
+# merge mode applies override entries on top of base entries within a single
+# dimension. Files dedup by `dest` (override wins on collision); shared/governed
+# dedup by string equality (append + skip duplicates).
+# Cross-dimension entries continue to dedup by `(src, dest)` so legitimate
+# directory accumulation patterns (e.g. copilot's .github/instructions/) still work.
+# ---------------------------------------------------------------------------
+
+
+class TestMergeMode:
+    def test_merge_appends_files_when_dests_distinct(self):
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "base.md", "dest": "BASE.md"}],
+                        "level_4": {
+                            "mode": "merge",
+                            "files": [{"src": "addon.md", "dest": "ADDON.md"}],
+                        },
+                    }
+                }
+            }
+        }
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        srcs = [f["src"] for f in files]
+        assert srcs == ["base.md", "addon.md"]
+
+    def test_merge_dest_collision_override_wins(self):
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "l3.md", "dest": "CLAUDE.md"}],
+                        "level_4": {
+                            "mode": "merge",
+                            "files": [{"src": "l4.md", "dest": "CLAUDE.md"}],
+                        },
+                    }
+                }
+            }
+        }
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        claude = [f for f in files if f["dest"] == "CLAUDE.md"]
+        assert len(claude) == 1
+        assert claude[0]["src"] == "l4.md"
+
+    def test_merge_appends_shared(self):
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [],
+                        "shared": ["features/starter_backend/"],
+                        "level_4": {
+                            "mode": "merge",
+                            "shared": ["features/schema_contract_example/"],
+                        },
+                    }
+                }
+            }
+        }
+        _, shared, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        assert "features/starter_backend/" in shared
+        assert "features/schema_contract_example/" in shared
+
+    def test_merge_dedups_shared(self):
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [],
+                        "shared": ["features/starter_backend/"],
+                        "level_4": {
+                            "mode": "merge",
+                            "shared": ["features/starter_backend/", "features/schema_contract_example/"],
+                        },
+                    }
+                }
+            }
+        }
+        _, shared, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        assert shared.count("features/starter_backend/") == 1
+        assert "features/schema_contract_example/" in shared
+
+    def test_merge_appends_governed(self):
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [],
+                        "governed": ["docs/architecture/"],
+                        "level_4": {
+                            "mode": "merge",
+                            "governed": ["governance/backend/"],
+                        },
+                    }
+                }
+            }
+        }
+        _, _, governed = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        assert governed == ["docs/architecture/", "governance/backend/"]
+
+    def test_merge_dedups_governed(self):
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [],
+                        "governed": ["docs/architecture/"],
+                        "level_4": {
+                            "mode": "merge",
+                            "governed": ["docs/architecture/", "governance/backend/"],
+                        },
+                    }
+                }
+            }
+        }
+        _, _, governed = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        assert governed.count("docs/architecture/") == 1
+        assert "governance/backend/" in governed
+
+    def test_merge_default_mode_is_merge_for_level_4(self):
+        # mode key omitted → defaults to merge for level_4 blocks.
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "base.md", "dest": "BASE.md"}],
+                        "level_4": {
+                            "files": [{"src": "addon.md", "dest": "ADDON.md"}],
+                        },
+                    }
+                }
+            }
+        }
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        srcs = [f["src"] for f in files]
+        assert "base.md" in srcs and "addon.md" in srcs
+
+    def test_replace_default_mode_for_level_5(self):
+        # mode key omitted → defaults to replace for level_5 blocks.
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "base.md", "dest": "BASE.md"}],
+                        "level_5": {
+                            "files": [{"src": "l5.md", "dest": "L5.md"}],
+                        },
+                    }
+                }
+            }
+        }
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "5"})
+        srcs = [f["src"] for f in files]
+        assert srcs == ["l5.md"], "L5 default mode must be replace"
+
+    def test_explicit_mode_overrides_default(self):
+        # An explicit mode field in the override block beats the level default.
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "base.md", "dest": "BASE.md"}],
+                        "level_4": {
+                            "mode": "replace",
+                            "files": [{"src": "l4.md", "dest": "L4.md"}],
+                        },
+                    }
+                }
+            }
+        }
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        srcs = [f["src"] for f in files]
+        assert srcs == ["l4.md"], "Explicit mode=replace must override merge default"
+
+    def test_cross_dimension_dest_collision_preserved(self):
+        # Regression guard: copilot legitimately installs `instructions/backend/`
+        # AND `instructions/ui-react/` to the same `.github/instructions/` dest
+        # across the type and ui dimensions. The cross-dimension `(src, dest)`
+        # dedup must keep both.
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "instructions/backend/", "dest": ".github/instructions/"}],
+                    }
+                },
+                "ui": {
+                    "react": {
+                        "files": [{"src": "instructions/ui-react/", "dest": ".github/instructions/"}],
+                    }
+                },
+            }
+        }
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "ui": "react"})
+        srcs = sorted(f["src"] for f in files)
+        assert srcs == ["instructions/backend/", "instructions/ui-react/"], (
+            "Cross-dimension entries with the same dest must both survive "
+            "(legitimate directory accumulation pattern)."
+        )
 
 
 # ---------------------------------------------------------------------------
