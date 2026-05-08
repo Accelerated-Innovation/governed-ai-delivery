@@ -6,6 +6,77 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.7.0] — 2026-05-08
+
+### Breaking changes — maturity model reframed
+
+The meaning of Level 3 and Level 4 has changed. **If your project's `.govkit` marker says `level: "3"` or `level: "4"`, please read this section before upgrading.**
+
+| Level | v0.6.x | v0.7.0 |
+|---|---|---|
+| **L3** | Spec-Driven Development (3 artifacts per feature) | **Governed AI Delivery (Foundations)** — agent rules + architecture docs only; no `features/` directory |
+| **L4** | Governed AI Delivery (5 artifacts per feature) | **Spec-Driven Add-On** — adds `features/` and the 5-artifact contract on top of L3 |
+| **L5** | GenAI Operations | GenAI Operations *(unchanged)* |
+
+The new model is additive (L4 ⊃ L3) and splits at a clearer boundary: whether your project adopts a `features/` directory model.
+
+### What this means for adopters
+
+After upgrading, govkit prints a one-time stderr migration warning per command invocation until you run `govkit upgrade --migrate-levels`. Suppress with `GOVKIT_NO_MIGRATION_WARNING=1` if needed.
+
+**If your marker says `level: "3"`** (3-artifact features under v0.6.x):
+
+Your project's shape (a `features/` directory with 3-artifact dirs) maps most closely to the new **L4**, but L4 requires 5 artifacts per feature. Run `govkit upgrade --migrate-levels` for an interactive prompt with four options:
+
+1. Migrate to L4 with stub generation — govkit creates `eval_criteria.yaml` and `architecture_preflight.md` stubs in each feature dir; you fill them in over time. Stubs use TBD placeholders that will fail validation until completed.
+2. Migrate to L4 without stubs — you author the two new artifacts manually. Validation will fail until you do.
+3. Adopt new-L3 (Foundations) — you confirm we should DELETE your `features/` directory and switch to architecture-only governance (no per-feature artifacts).
+4. Abort — pin `govkit==0.6.*` in your project until you're ready.
+
+**If your marker says `level: "4"`** (5-artifact features under v0.6.x):
+
+No data migration needed. Your project shape is correct under v0.7.0; only the level label flips from "Governed AI Delivery" to "Spec-Driven Add-On". Run `govkit upgrade --migrate-levels` to clear the migration warning.
+
+**If your marker says `level: "5"`:**
+
+Nothing changes for you. Run `govkit upgrade --migrate-levels` to clear the migration warning.
+
+### Changed
+- **CLI default level** — `govkit apply` now defaults to `--level 3` (was `4`). Three agent manifests' `options.level.default` flipped to `"3"`.
+- **`govkit init` at L3 errors** — points to `govkit apply --level 4` (Foundations has no `features/` directory model).
+- **`govkit validate` at L3 is a no-op** — returns 0 with informational message (Foundations has no per-feature artifacts; CI quality-gate is the L3 compliance surface).
+- **`govkit apply --level 3`** — no longer creates an empty `features/` directory in the target.
+- **Manifest schema** — `level_3` key removed; `level_4` key added with optional `mode: "merge" | "replace"`. Default mode for `level_4` is `"merge"`; for `level_5` is `"replace"`. The `governed` array property is now formally allowed (previously the schema rejected it despite all live manifests using it — a long-standing schema bug, fixed here).
+- **L3 CI gate** (`l3-quality-gate.yml`) rewritten as a lean codebase-wide gate: commit-format, import-linter (architecture boundaries), SonarQube, Snyk. No per-feature artifact checks.
+- **Test-first and spec-compliance rules** (`test-first.md`, `spec-compliance.md`) move from L3 to L4. They are still part of the kit; they are now part of the spec-driven add-on (binding rather than recommended).
+
+### Added
+- **`govkit upgrade --migrate-levels`** — interactive marker migration for v0.6.x → v0.7.0 maturity model swap.
+- **One-time migration warning** — `read_govkit_marker` emits a stderr warning when `version < "0.7.0"`. Suppressible via `GOVKIT_NO_MIGRATION_WARNING=1`. Auto-suppressed once the marker is rewritten to `0.7.0+`.
+- **L4 add-on manifest blocks** with `mode: "merge"` semantics — `level_4` entries layer additively over the L3 base, with `dest`-collision resolution preferring the override (used to swap `CLAUDE.md` / `AGENTS.md` / `.github/copilot-instructions.md` between L3 and L4 modes).
+- **Twelve new L3 entry-point instruction files** (4 per agent × 3 agents) — Foundations content focused on architecture-aware development without per-feature artifacts. Existing v0.6 governed instructions preserved at `l4-*.md` paths.
+- **`tests/test_maturity_model.py`, `tests/test_schemas.py`, `tests/test_l3_instructions.py`** — 200+ new tests locking in the model.
+
+### Removed
+- `features/starter_{backend,cli,ui}_l3/` — 3-artifact starters (the new L3 has no `features/` model).
+- `governance/{backend,ui}/templates/l3-plan.md` — L3 has no plan.md artifact.
+- `agents/<a>/skills/<area>/l3-{spec-planning,implementation-plan}/` — replaced by the L4 add-on skills (which now ship at L4 instead of being level-specific).
+- `agents/<a>/<inst>/l3-{backend-api,backend-cli,ui-react,ui-angular}.md` — superseded by the new L3 entry-point files (current top-level paths) and the renamed `l4-*.md` files (preserved L4 content).
+
+### Support and pinning
+
+- v0.6.x will receive bug-fix-only backports through the v0.8.0 release.
+- Pin with `pip install govkit==0.6.*` if you want to defer the migration.
+
+### Migration commands
+
+```bash
+pip install --upgrade govkit
+govkit upgrade --migrate-levels --target /path/to/your/project
+```
+
+---
+
 ## [0.4.0] — 2026-04-09
 
 ### Added

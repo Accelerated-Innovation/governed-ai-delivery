@@ -1,5 +1,12 @@
 # Level 5 Implementation Plan — GenAI Evaluation and Operations Stack
 
+> **Historical note (2026-05-08):** This plan was authored against the v0.4.0
+> maturity model (L4 = Governed AI Delivery, L5 layered on top). The L3 / L4
+> meaning changed in v0.7.0; see [MATURITY_MODEL_L3_L4_SWAP_PLAN.md](MATURITY_MODEL_L3_L4_SWAP_PLAN.md).
+> L5 content itself is unchanged in v0.7.0 — only its base (now L4 Spec-Driven
+> Add-On) was relabeled. References to "L4 Governed AI Delivery" below should
+> be read as "L4 Spec-Driven Add-On" in v0.7.0+.
+
 > Produced 2026-04-09. This is the source of truth for L5 implementation work.
 > Each increment is designed to be independently committable.
 > Do not modify unrelated repository areas.

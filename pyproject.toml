@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "govkit"
-version = "0.6.0"
+version = "0.7.0"
 description = "Governed AI delivery kit — spec-driven scaffolding for AI coding agents"
 readme = "README.md"
 license = { text = "Apache-2.0" }

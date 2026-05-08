@@ -1,5 +1,11 @@
 # Governed AI Delivery — Improvement Plan
 
+> **Historical note (2026-05-08):** This plan describes the v0.3.0 maturity model
+> (L3 = Spec-Driven Development, L4 = Governed AI Delivery). The L3 / L4 meaning
+> changed in v0.7.0; see [MATURITY_MODEL_L3_L4_SWAP_PLAN.md](MATURITY_MODEL_L3_L4_SWAP_PLAN.md)
+> and the [v0.7.0 CHANGELOG entry](../CHANGELOG.md) for the new mapping. This
+> document is preserved as historical context for v0.3.0–v0.6.x.
+
 > Generated 2026-04-02 from a comprehensive expert review of the entire project.
 > This plan is the single source of truth for tracking improvement work.
 > Each increment is designed to be atomic and independently committable.

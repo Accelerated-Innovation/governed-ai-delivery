@@ -37,7 +37,7 @@ These tags categorize scenarios by intent. They are not enforced by validation b
 
 ## Governance Tags (Level 4)
 
-These tags trigger specific CI checks or governance workflows. They apply at Level 4 (Governed AI Delivery) and are optional at Level 3.
+These tags trigger specific CI checks or governance workflows. They apply at Level 4 (Spec-Driven Add-On) and higher. Level 3 (Foundations) ships no `features/` directory and therefore no Gherkin scenarios, so these tags do not appear at L3.
 
 | Tag | Purpose | CI behavior |
 |-----|---------|-------------|

@@ -10,11 +10,11 @@ Verify that the refactored agent rules (which reference `docs/` instead of embed
 
 ## Refactoring Summary
 
-**Changed:** 36 files across 3 agents (Claude Code, GitHub Copilot, OpenAI Codex)
+**Changed:** 48 files across 3 agents (Claude Code, GitHub Copilot, OpenAI Codex)
 - 12 rules files (`agents/*/rules/backend/*.md`, `agents/*/rules/cli/*.md`)
-- 12 main entry files (`agents/*/claude-md/`, `copilot-instructions/`, `agents-md/`)
-- 12 L3 entry files (spec-driven, no eval)
-- 12 L5 entry files (GenAI operations, with eval)
+- 12 top-level entry files (L3 Foundations — `agents/*/claude-md/`, `copilot-instructions/`, `agents-md/`)
+- 12 L4 entry files (Spec-Driven Add-On — `l4-*.md`)
+- 12 L5 entry files (GenAI Operations — `l5-*.md`)
 
 **Pattern:** Every rule now starts with:
 ```markdown

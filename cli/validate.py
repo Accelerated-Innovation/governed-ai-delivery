@@ -382,15 +382,14 @@ def check_l5_preflight_sections(feature_dir: Path) -> tuple[bool, str]:
 # ---------------------------------------------------------------------------
 
 def _read_govkit_level(target: Path) -> str | None:
-    """Read the maturity level from the .govkit marker file."""
-    marker = target / ".govkit"
-    if not marker.exists():
-        return None
-    try:
-        data = json.loads(marker.read_text(encoding="utf-8"))
-        return data.get("level")
-    except (json.JSONDecodeError, OSError):
-        return None
+    """Read the maturity level from the .govkit marker file.
+
+    Delegates to govkit.read_govkit_marker so the one-time v0.6→v0.7
+    migration warning fires from `govkit validate` too.
+    """
+    from .govkit import read_govkit_marker
+    data = read_govkit_marker(target)
+    return data.get("level") if data else None
 
 
 def _build_checks(level: str) -> tuple[list[str], list]:

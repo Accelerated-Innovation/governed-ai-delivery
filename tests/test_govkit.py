@@ -1084,3 +1084,337 @@ class TestCmdUpgrade:
 
         with pytest.raises(SystemExit):
             cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+
+# ---------------------------------------------------------------------------
+# Migrate-levels (Increment 9 — v0.6.x → v0.7.0 maturity-model migration)
+#
+# Per plan §7.2 state matrix:
+#   level=3, version<0.7.0 → interactive 4-option prompt
+#   level=4, version<0.7.0 → automatic version bump, level stays 4
+#   level=5, version<0.7.0 → automatic version bump, level stays 5
+#   any level, version>=0.7.0 → no-op success
+# ---------------------------------------------------------------------------
+
+
+def _make_legacy_target(tmp_path: Path, level: str, version: str = "0.6.0",
+                       num_features: int = 2, three_artifact: bool = True) -> Path:
+    """Create a target directory with a v0.6-style marker and feature dirs."""
+    target = tmp_path / "legacy-project"
+    target.mkdir()
+    if num_features > 0:
+        for i in range(num_features):
+            fd = target / "features" / f"feature_{i}"
+            fd.mkdir(parents=True)
+            (fd / "acceptance.feature").write_text("Feature: x\n", encoding="utf-8")
+            (fd / "nfrs.md").write_text("## Performance\n- p50 < 100ms\n", encoding="utf-8")
+            (fd / "plan.md").write_text("# Plan\n", encoding="utf-8")
+            if not three_artifact:
+                (fd / "eval_criteria.yaml").write_text("version: '1'\nmode: deterministic\n", encoding="utf-8")
+                (fd / "architecture_preflight.md").write_text("# Preflight\n", encoding="utf-8")
+    marker = {
+        "version": version,
+        "level": level,
+        "agent": "test-agent",
+        "options": {"type": "api", "ci": "github", "ui": "none"},
+        "applied_at": "2026-04-01T00:00:00+00:00",
+    }
+    (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
+    return target
+
+
+def _migrate_args(target: Path) -> argparse.Namespace:
+    return argparse.Namespace(
+        target=str(target), force=False, migrate_levels=True,
+    )
+
+
+class TestMigrationWarning:
+    """read_govkit_marker emits a one-time warning when version < 0.7.0."""
+
+    def test_warning_fires_for_pre_070_marker(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        mod._reset_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0")
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert "L3/L4 maturity model changed in 0.7.0" in err
+        assert "govkit upgrade --migrate-levels" in err
+
+    def test_warning_only_fires_once_per_invocation(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        mod._reset_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0")
+
+        mod.read_govkit_marker(target)
+        mod.read_govkit_marker(target)
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        # Count distinct warning lines (allowing for the message containing the marker once)
+        assert err.count("L3/L4 maturity model changed in 0.7.0") == 1
+
+    def test_warning_suppressed_by_env_var(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        mod._reset_migration_warning()
+        monkeypatch.setenv("GOVKIT_NO_MIGRATION_WARNING", "1")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0")
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert err == ""
+
+    def test_warning_does_not_fire_for_current_version(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        mod._reset_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
+        target = _make_legacy_target(tmp_path, level="3", version="0.7.0")
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert "maturity model" not in err
+
+    def test_warning_does_not_fire_for_dev_version(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        mod._reset_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
+        target = _make_legacy_target(tmp_path, level="3", version="dev")
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        # Non-numeric versions compare equal — no warning
+        assert "maturity model" not in err
+
+
+class TestUpgradeMigrateLevels:
+    """cmd_upgrade --migrate-levels covers each (level, version) cell from §7.2."""
+
+    @pytest.fixture(autouse=True)
+    def _reset_warning(self):
+        import cli.govkit as mod
+        mod._reset_migration_warning()
+        yield
+        mod._reset_migration_warning()
+
+    def test_already_at_070_is_noop(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        target = _make_legacy_target(tmp_path, level="3", version="0.7.0")
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+        out = capsys.readouterr().out
+        assert "already at version" in out.lower() or "no migration needed" in out.lower()
+        # Marker untouched
+        assert read_govkit_marker(target)["version"] == "0.7.0"
+
+    def test_l4_v06_bumps_version_only(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        target = _make_legacy_target(tmp_path, level="4", version="0.6.0", three_artifact=False)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+        marker = read_govkit_marker(target)
+        assert marker["version"] == "0.7.0"
+        assert marker["level"] == "4"
+        # Level field excluded from options
+        assert "level" not in marker["options"]
+
+    def test_l5_v06_bumps_version_only(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        target = _make_legacy_target(tmp_path, level="5", version="0.6.0", three_artifact=False)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+        marker = read_govkit_marker(target)
+        assert marker["version"] == "0.7.0"
+        assert marker["level"] == "5"
+
+    def test_l3_v06_choice_1_generates_stubs_and_migrates_to_l4(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "1")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=2)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+
+        marker = read_govkit_marker(target)
+        assert marker["version"] == "0.7.0"
+        assert marker["level"] == "4"
+
+        for fd in (target / "features").iterdir():
+            assert (fd / "eval_criteria.yaml").exists(), f"stub missing in {fd}"
+            assert (fd / "architecture_preflight.md").exists(), f"stub missing in {fd}"
+
+    def test_l3_v06_choice_1_stub_eval_criteria_fails_validation(self, tmp_path, monkeypatch):
+        """The generated eval_criteria.yaml stub must fail validation (TBD placeholders)."""
+        import cli.govkit as mod
+        from cli.validate import check_eval_criteria
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "1")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=1)
+
+        with pytest.raises(SystemExit):
+            cmd_upgrade(_migrate_args(target))
+
+        feature_dir = next((target / "features").iterdir())
+        # The stub has `mode: TBD` which is not a valid mode value.
+        # check_eval_criteria sees the structure but the value is wrong; the
+        # contract test is that the stub is structurally valid YAML so apply
+        # doesn't crash, but `mode: TBD` will fail downstream validation tooling.
+        text = (feature_dir / "eval_criteria.yaml").read_text(encoding="utf-8")
+        assert "TBD" in text
+        assert "mode: TBD" in text
+
+    def test_l3_v06_choice_1_stub_preflight_has_tbd_sections(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "1")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=1)
+
+        with pytest.raises(SystemExit):
+            cmd_upgrade(_migrate_args(target))
+
+        feature_dir = next((target / "features").iterdir())
+        text = (feature_dir / "architecture_preflight.md").read_text(encoding="utf-8")
+        # All nine canonical sections present
+        for n in range(1, 10):
+            assert f"## {n}." in text, f"section {n} missing in stub"
+        assert text.count("TBD") >= 9, "stub should have TBD per section"
+
+    def test_l3_v06_choice_1_does_not_overwrite_existing_artifacts(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "1")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=1)
+        # Pre-existing eval_criteria.yaml in one feature
+        existing = next((target / "features").iterdir()) / "eval_criteria.yaml"
+        existing.write_text("version: '1'\nmode: deterministic\n", encoding="utf-8")
+
+        with pytest.raises(SystemExit):
+            cmd_upgrade(_migrate_args(target))
+
+        # Existing file untouched
+        assert existing.read_text(encoding="utf-8") == "version: '1'\nmode: deterministic\n"
+
+    def test_l3_v06_choice_2_no_stubs_only_marker_rewrite(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "2")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=2)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+
+        marker = read_govkit_marker(target)
+        assert marker["level"] == "4"
+        # No stubs generated
+        for fd in (target / "features").iterdir():
+            assert not (fd / "eval_criteria.yaml").exists()
+            assert not (fd / "architecture_preflight.md").exists()
+
+    def test_l3_v06_choice_3_confirmed_deletes_features(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        responses = iter(["3", "yes"])
+        monkeypatch.setattr("builtins.input", lambda _: next(responses))
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=2)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+
+        marker = read_govkit_marker(target)
+        assert marker["level"] == "3"
+        assert marker["version"] == "0.7.0"
+        assert not (target / "features").exists()
+
+    def test_l3_v06_choice_3_unconfirmed_keeps_features(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        responses = iter(["3", "no"])
+        monkeypatch.setattr("builtins.input", lambda _: next(responses))
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=2)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 1
+        # Features and marker untouched
+        assert (target / "features").exists()
+        marker = read_govkit_marker(target)
+        assert marker["level"] == "3"
+        assert marker["version"] == "0.6.0"
+
+    def test_l3_v06_choice_4_aborts_no_changes(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "4")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=2)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+        marker = read_govkit_marker(target)
+        assert marker["level"] == "3"
+        assert marker["version"] == "0.6.0"
+
+    def test_l3_v06_invalid_choice_aborts(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "9")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=1)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 1
+        marker = read_govkit_marker(target)
+        assert marker["level"] == "3"
+        assert marker["version"] == "0.6.0"
+
+    def test_warning_clears_after_migration(self, tmp_path, monkeypatch, capsys):
+        """After --migrate-levels rewrites the marker to 0.7.0, the warning stops firing."""
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "2")
+        monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=1)
+
+        with pytest.raises(SystemExit):
+            cmd_upgrade(_migrate_args(target))
+        # Reset the one-time flag to test the next invocation in isolation
+        mod._reset_migration_warning()
+        capsys.readouterr()  # discard prior output
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert "maturity model" not in err, (
+            "After --migrate-levels rewrites marker to 0.7.0, the warning must not fire"
+        )

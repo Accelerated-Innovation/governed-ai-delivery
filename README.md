@@ -75,13 +75,13 @@ govkit apply --agent claude-code --target .
 Or specify all options explicitly:
 
 ```bash
-# Level 3: Spec-driven development (no architecture changes imposed)
+# Level 3: Governed AI Delivery (Foundations) — agent rules + architecture docs only (default)
 govkit apply --agent claude-code --level 3 --type api --ui none --ci github --target .
 
-# Level 4: Full governed AI delivery (default)
+# Level 4: Spec-Driven Add-On — adds the features/ directory and 5-artifact contract
 govkit apply --agent claude-code --level 4 --type api --ui react --ci github --target .
 
-# Level 5: GenAI operations (LLM routing, evaluation, guardrails)
+# Level 5: GenAI Operations (LLM routing, evaluation, guardrails)
 govkit apply --agent claude-code --level 5 --type api --ui none --ci github --target .
 
 # Python CLI tool + Azure DevOps (no UI)
@@ -205,43 +205,52 @@ govkit upgrade --target . --force
 govkit validate --target .
 ```
 
-Validation is level-aware. Level 3 checks: 3 required artifacts, Gherkin structure, NFR completeness, and tag coverage. Level 4 adds: eval_criteria.yaml schema validation, evaluation prediction thresholds. The level is auto-detected from `.govkit` or can be overridden:
+Validation is level-aware. **Level 3** is a no-op (Foundations ships agent rules + architecture docs only — there are no per-feature artifacts to check; the CI quality-gate is the L3 compliance surface). **Level 4** runs the full 5-artifact governed contract check (existence + Gherkin structure + NFR completeness + tag coverage + eval_criteria.yaml schema + evaluation prediction thresholds). **Level 5** adds LLM-specific NFR + DeepEval/Promptfoo checks. The level is auto-detected from `.govkit` or can be overridden:
 
 ```bash
-govkit validate --level 3 --target .
+govkit validate --level 4 --target .
 ```
 
 ---
 
 ## Maturity Levels
 
-govkit supports three operating levels, allowing teams to adopt incrementally:
+govkit supports three operating levels in an additive ladder. Each level commits the team to a different **way of working**, not just a different artifact count. The boundary between L3 and L4 sits at the most meaningful place: whether the team adopts a `features/` directory model and per-feature spec contracts.
 
-| Level | Name | What You Get |
-|-------|------|-------------|
-| **Level 3** | Spec-Driven Development | Spec-first, test-first workflow. 3 artifacts per feature (acceptance.feature, nfrs.md, plan.md). Generic agent rules. Basic CI gates. No architecture changes imposed. |
-| **Level 4** | Governed AI Delivery | Full governance. 5 artifacts per feature (adds eval_criteria.yaml, architecture_preflight.md). Architecture contracts, FIRST/Virtues scoring, evaluation prediction thresholds, boundary enforcement, path-scoped rules. |
-| **Level 5** | GenAI Operations | Everything in L4 plus governed GenAI tooling: LiteLLM (model routing), OpenLLMetry + Langfuse (observability), DeepEval + Promptfoo + RAGAS (evaluation), NeMo Guardrails + Guardrails AI (runtime safety). LLM-specific NFRs, CI evaluation gates, and adversarial testing. |
+| Level | Name | What it ships | What the team commits to |
+|-------|------|---------------|--------------------------|
+| **Level 3** | Governed AI Delivery (Foundations) | Agent rules, architecture contracts under `docs/*/architecture/`, `/adr-author` skill, lean CI gate (commit-format + import-linter + sonar/snyk). **No `features/` directory, no per-feature artifacts.** | "Our AI agents follow our architecture contracts." Lowest-friction entry; no project-structure change required. |
+| **Level 4** | Spec-Driven Add-On | Adds the `features/<name>/` 5-artifact contract (`acceptance.feature`, `nfrs.md`, `eval_criteria.yaml`, `plan.md`, `architecture_preflight.md`), feature-coupled skills (`/spec-planning`, `/architecture-preflight`, `/implementation-plan`), test-first + spec-compliance rules (binding), governance CI jobs, and per-feature evaluation prediction (FIRST + 7 Virtues, average ≥ 4.0). | "We adopt spec-first, test-first feature delivery on top of L3." `govkit init` becomes meaningful here. |
+| **Level 5** | GenAI Operations | LLM-specific NFR categories (latency, cost, fallback, safety), `agent_topology.md` for multi-agent features, deepeval/promptfoo/guardrails CI gates, LLM gateway/observability/multi-agent rules, LiteLLM routing, OpenLLMetry + Langfuse, RAGAS, NeMo Guardrails. | "Our LLM features are governed (routing, evaluation, safety)." Builds on L4. |
 
-**Start at Level 3** if your team wants spec-driven development without changing their existing project structure. **Move to Level 4** when ready for full architectural governance and evaluation scoring. **Move to Level 5** when building LLM-powered features that need governed model routing, evaluation, and safety.
+**Start at Level 3 (default)** if you want governed AI agents without restructuring your codebase. **Move to Level 4** when your team is ready to commit to spec-first feature delivery. **Move to Level 5** when shipping LLM-powered features that need governed model routing, evaluation, and safety.
 
-### Level 3 — Spec-Driven Development
+The ladder is **additive**: L4 ⊃ L3, L5 ⊃ L4. Files installed at lower levels are not replaced by higher levels (with one exception: the agent's top-level entry point — `CLAUDE.md` / `.github/copilot-instructions.md` / `AGENTS.md` — is re-issued at each level so the agent sees the right operating mode).
 
-Every feature is:
+### Level 3 — Governed AI Delivery (Foundations)
 
-- Defined with **Gherkin acceptance criteria** tagged to NFR categories
-- Constrained with **fully populated NFRs** (no TBD entries permitted)
-- Planned with **increments that list tests before implementation** (test-first)
-- Enforced by **basic CI gates** (artifact checks, commit format, lint, tests)
+Your AI agent operates aligned to your architecture contracts:
 
-### Level 4 — Governed AI Delivery
+- Reads `docs/<area>/architecture/` (ARCH_CONTRACT, BOUNDARIES, TESTING, SECURITY_AUTH_PATTERNS, etc.) on every turn
+- Path-scoped rules trigger when editing files in each layer (api/, services/, ports/, adapters/, security/)
+- ADRs required for any standard extension, override, or boundary change — scaffolded with `/adr-author`
+- Test-first is recommended (the binding rule lives at L4)
+- CI quality-gate enforces commit-format, import-linter (architecture boundaries), SonarQube, Snyk
+- **No `features/` directory is created.** `govkit init` errors at L3 with a pointer to `--level 4`.
+- `govkit validate` is a no-op (returns 0 with informational message).
+
+### Level 4 — Spec-Driven Add-On
 
 Everything in Level 3, plus:
 
+Every feature lives under `features/<name>/` with five required artifacts:
+
+- Defined with **Gherkin acceptance criteria** tagged to NFR categories
+- Constrained with **fully populated NFRs** (no TBD entries permitted)
 - Governed by **evaluation criteria** validated against a JSON Schema
-- Planned through **Architecture Preflight + Implementation Plan prompts**
-- Enforced by **CI gates, quality rules, and evaluation thresholds**
-- Bounded by **hexagonal architecture contracts** with import-linter enforcement
+- Planned through **Architecture Preflight + Spec Planning + Implementation Plan** skills
+- Bounded by **hexagonal architecture contracts** with FIRST + 7 Virtues prediction (average ≥ 4.0)
+- Enforced by **governance CI jobs** (artifact existence, eval-criteria schema, prediction thresholds, contract compatibility)
 
 ### Level 5 — GenAI Operations
 
@@ -254,6 +263,16 @@ Everything in Level 4, plus:
 - Extended with **LLM-specific NFRs** (latency, cost, fallback, safety) and **3 additional CI gates**
 
 The AI agent operates inside a governed system. Architecture, evaluation, and feature artifacts are the source of truth — not the agent.
+
+### Migrating from v0.6.x
+
+The L3 / L4 maturity-model meaning changed in v0.7.0. If your `.govkit` marker says `level: "3"` (the v0.6 simpler 3-artifact model), run:
+
+```bash
+govkit upgrade --migrate-levels --target .
+```
+
+You'll be prompted to choose: migrate your existing 3-artifact features to the new L4 (with stub generation for the two new artifacts), or adopt new-L3 (no `features/`). See [CHANGELOG.md](CHANGELOG.md) for the full migration guide.
 
 ---
 
@@ -271,7 +290,7 @@ All agents support the same variant options:
 
 | Option | Choices | Default |
 |---|---|---|
-| `--level` | `3`, `4`, `5` | `4` |
+| `--level` | `3`, `4`, `5` | `3` |
 | `--type` | `api`, `cli` | `api` |
 | `--ui` | `none`, `react`, `angular` | `none` |
 | `--ci` | `github`, `azure` | `github` |
@@ -312,7 +331,7 @@ Or specify the starter type explicitly:
 govkit init my_feature --starter backend --target .
 ```
 
-The command auto-detects your maturity level from `.govkit` and selects the appropriate starter template. Level 3 starters have 3 artifacts; Level 4 starters have 5. You can override with `--level 3` or `--level 4`.
+The command auto-detects your maturity level from `.govkit`. **`govkit init` requires Level 4 or higher** — Level 3 (Foundations) ships agent rules and architecture contracts only and has no `features/` directory model. Running `govkit init` at L3 errors with a pointer to `govkit apply --level 4`. At L4 the bundled starter has all 5 artifacts; at L5 the starter adds `agent_topology.md` for multi-agent features.
 
 For Level 4 projects, each starter's `eval_criteria.yaml` includes mode selection instructions at the top. Set the `mode` field to match your feature type: `llm` (LLM generation/retrieval), `deterministic` (pure logic), or `none` (configuration artifacts). If the mode is `deterministic` or `none`, delete the `llm_evaluation` section.
 
@@ -670,9 +689,9 @@ A: Document the order in your `nfrs.md` "Key Cross-Repo Contracts" section. Idea
 
 | Level | What's Evaluated | Tools |
 |-------|-----------------|-------|
-| L3 | Spec completeness, Gherkin structure, NFR coverage | `govkit validate` |
-| L4 | L3 + FIRST scores, 7 Virtue scores, eval_criteria schema | `govkit validate` + CI quality/eval gates |
-| L5 | L4 + LLM quality (DeepEval), adversarial safety (Promptfoo), retrieval quality (RAGAS), guardrails config | `govkit validate` + deepeval-gate + promptfoo-gate + guardrails-check |
+| L3 | Architecture-boundary compliance + commit format + lint/security (codebase-wide; no per-feature artifacts) | `l3-quality-gate.yml` (import-linter + sonar/snyk + commit-format) |
+| L4 | L3 + spec completeness, Gherkin structure, NFR coverage, FIRST + 7 Virtue scores, eval_criteria schema | `govkit validate` + `quality-gate.yml` + `eval-gate.yml` |
+| L5 | L4 + LLM quality (DeepEval), adversarial safety (Promptfoo), retrieval quality (RAGAS), guardrails config, multi-agent topology | `govkit validate` + deepeval-gate + promptfoo-gate + guardrails-check + multi-agent-gate |
 
 ---
 

@@ -58,8 +58,8 @@ governed-ai-delivery/
 │   └── validate.py                  # Governance compliance checker
 ├── docs/
 │   ├── backend/
-│   │   ├── architecture/            # ARCH_CONTRACT, BOUNDARIES, API_CONVENTIONS, ADR/, etc.
-│   │   ├── evaluation/              # eval_criteria.md, FIRST/Virtue scoring rubrics
+│   │   ├── architecture/            # ARCH_CONTRACT, BOUNDARIES, API_CONVENTIONS, ADR/, etc. (L3+)
+│   │   ├── evaluation/              # eval_criteria.md, FIRST/Virtue scoring rubrics (L4+)
 │   │   └── guides/                  # Level 5 tool setup guides (LiteLLM, DeepEval, etc.)
 │   ├── ui/
 │   │   ├── architecture/
@@ -72,8 +72,8 @@ governed-ai-delivery/
 │       ├── java-spring-boot/
 │       ├── nodejs-fastify/
 │       └── go-gin/
-├── features/
-│   ├── starter_backend/             # API backend starter (Level 4, 5 artifacts)
+├── features/                        # bundled with govkit, scaffolded by `govkit init` at L4+
+│   ├── starter_backend/             # API backend starter (Level 4 Spec-Driven Add-On, 5 artifacts)
 │   ├── starter_cli/                 # CLI project starter
 │   ├── starter_ui/                  # UI starter
 │   └── (worked examples)

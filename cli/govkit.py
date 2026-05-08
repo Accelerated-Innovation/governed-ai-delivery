@@ -26,6 +26,7 @@ Usage:
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from datetime import datetime, timezone
@@ -36,6 +37,64 @@ try:
     _GOVKIT_VERSION = _pkg_version("govkit")
 except Exception:
     _GOVKIT_VERSION = "dev"
+
+
+# ---------------------------------------------------------------------------
+# Version comparison + one-time migration warning (Increment 9 — v0.7.0 swap)
+# ---------------------------------------------------------------------------
+
+# Set once per process. Reset by tests via _reset_migration_warning().
+_MIGRATION_WARNING_PRINTED = False
+
+
+def _compare_version(v1: str, v2: str) -> int:
+    """Compare dotted version strings. Returns -1, 0, or 1.
+
+    Non-parseable versions (e.g. 'dev', 'unknown') compare equal to anything,
+    so development builds and corrupt markers don't trigger the migration
+    warning.
+    """
+    try:
+        t1 = tuple(int(p) for p in v1.split("."))
+        t2 = tuple(int(p) for p in v2.split("."))
+    except (ValueError, AttributeError):
+        return 0
+    if t1 < t2:
+        return -1
+    if t1 > t2:
+        return 1
+    return 0
+
+
+def _maybe_warn_migration(stored_version: str | None) -> None:
+    """Print one-time migration warning if marker version is pre-0.7.0.
+
+    Suppressed by env var GOVKIT_NO_MIGRATION_WARNING=1 (for CI / scripts).
+    Auto-suppressed once the marker is rewritten with version >= 0.7.0
+    (because the version comparison stops triggering).
+    """
+    global _MIGRATION_WARNING_PRINTED
+    if _MIGRATION_WARNING_PRINTED:
+        return
+    if not stored_version:
+        return
+    if os.environ.get("GOVKIT_NO_MIGRATION_WARNING") == "1":
+        return
+    if _compare_version(stored_version, "0.7.0") < 0:
+        print(
+            f"warning: .govkit marker version {stored_version} detected. "
+            "The L3/L4 maturity model changed in 0.7.0. "
+            "Run 'govkit upgrade --migrate-levels' to migrate. "
+            "(Set GOVKIT_NO_MIGRATION_WARNING=1 to suppress.)",
+            file=sys.stderr,
+        )
+        _MIGRATION_WARNING_PRINTED = True
+
+
+def _reset_migration_warning() -> None:
+    """Test helper: reset the one-time warning flag between test cases."""
+    global _MIGRATION_WARNING_PRINTED
+    _MIGRATION_WARNING_PRINTED = False
 
 _HERE = Path(__file__).parent
 # When installed via pip, agents/ is bundled inside the cli package.
@@ -84,26 +143,31 @@ def copy_entry(src: Path, dest: Path, skip_existing: bool = False) -> None:
 # ---------------------------------------------------------------------------
 
 def read_govkit_level(target: Path) -> str | None:
-    """Read the maturity level from the .govkit marker file, or None if not found."""
+    """Read the maturity level from the .govkit marker file, or None if not found.
+
+    Delegates to read_govkit_marker so the one-time migration warning fires
+    from any command that reads the level (cmd_init, cmd_validate, etc.).
+    """
+    data = read_govkit_marker(target)
+    return data.get("level") if data else None
+
+
+def read_govkit_marker(target: Path) -> dict | None:
+    """Read the full .govkit marker dict, or None if missing or unreadable.
+
+    Side effect: emits a one-time stderr warning when the stored version is
+    pre-0.7.0 (the L3/L4 maturity-model swap). Suppressible via
+    GOVKIT_NO_MIGRATION_WARNING=1.
+    """
     marker = target / ".govkit"
     if not marker.exists():
         return None
     try:
         data = json.loads(marker.read_text(encoding="utf-8"))
-        return data.get("level")
     except (json.JSONDecodeError, OSError):
         return None
-
-
-def read_govkit_marker(target: Path) -> dict | None:
-    """Read the full .govkit marker dict, or None if missing or unreadable."""
-    marker = target / ".govkit"
-    if not marker.exists():
-        return None
-    try:
-        return json.loads(marker.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return None
+    _maybe_warn_migration(data.get("version"))
+    return data
 
 
 def write_govkit_marker(target: Path, agent: str, level: str, options: dict) -> None:
@@ -480,7 +544,11 @@ def cmd_validate(args: argparse.Namespace) -> None:
 
 
 def cmd_upgrade(args: argparse.Namespace) -> None:
-    """Refresh agent config and governed contracts to the current govkit version."""
+    """Refresh agent config and governed contracts to the current govkit version.
+
+    With --migrate-levels, run the v0.6→v0.7 maturity-model migration flow
+    instead of the standard refresh.
+    """
     target = Path(args.target).resolve()
     if not target.exists():
         print(f"Error: target directory '{target}' does not exist.")
@@ -499,6 +567,9 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     if not agent:
         print("Error: .govkit marker missing 'agent' field. Run 'govkit apply' to reinitialise.")
         sys.exit(1)
+
+    if getattr(args, "migrate_levels", False):
+        sys.exit(_cmd_upgrade_migrate_levels(target, stored_version, stored_level, agent, stored_options))
 
     if stored_version == _GOVKIT_VERSION and not args.force:
         print(f"\nAlready at govkit {_GOVKIT_VERSION}. Nothing to upgrade.")
@@ -538,6 +609,186 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     write_govkit_marker(target, agent, stored_level, options)
     print(f"\nDone. '{agent}' upgraded to govkit {_GOVKIT_VERSION} at {target}")
     print("\nReview changes with: git diff")
+
+
+# ---------------------------------------------------------------------------
+# Migrate-levels command (v0.6.x → v0.7.0 maturity-model swap)
+# ---------------------------------------------------------------------------
+
+_EVAL_CRITERIA_STUB = """\
+# Auto-generated stub by `govkit upgrade --migrate-levels`.
+# Complete this file before running `govkit validate`.
+# Replace TBD placeholders with values appropriate for your feature.
+version: "1"
+mode: TBD  # one of: deterministic | llm | none
+criteria: []
+"""
+
+_ARCH_PREFLIGHT_STUB = """\
+# Architecture Preflight (auto-generated stub)
+
+> Generated by `govkit upgrade --migrate-levels`.
+> Replace TBD placeholders with the architecture preflight findings for this
+> feature. See `governance/backend/templates/architecture_preflight.md` for the
+> canonical template and section guidance.
+
+## 1. Artifact Review
+
+TBD
+
+## 2. Standards Referenced
+
+TBD
+
+## 3. Boundary Analysis
+
+TBD
+
+## 4. API Impact
+
+TBD
+
+## 5. Security Impact
+
+TBD
+
+## 6. Evaluation Impact
+
+TBD
+
+## 7. ADR Determination
+
+TBD
+
+## 8. Shared Contract Analysis
+
+TBD
+
+## 9. Preflight Conclusion
+
+TBD
+"""
+
+
+def _list_user_features(features_dir: Path) -> list[Path]:
+    """Return sorted feature directories, excluding starters and dotfiles."""
+    if not features_dir.exists():
+        return []
+    return sorted(
+        d for d in features_dir.iterdir()
+        if d.is_dir()
+        and not d.name.startswith("starter_")
+        and not d.name.startswith(".")
+    )
+
+
+def _cmd_upgrade_migrate_levels(
+    target: Path, stored_version: str, stored_level: str,
+    agent: str, stored_options: dict,
+) -> int:
+    """Execute the v0.6→v0.7 maturity-model migration flow.
+
+    Returns an exit code (0 = success / no-op, 1 = aborted or invalid input).
+    See plans/MATURITY_MODEL_L3_L4_SWAP_PLAN.md §7.2 for the state matrix.
+    """
+    if _compare_version(stored_version, "0.7.0") >= 0:
+        print(f"\nMarker is already at version {stored_version} (>= 0.7.0). No migration needed.")
+        return 0
+
+    options = {k: v for k, v in stored_options.items() if k != "level"}
+
+    if stored_level == "5":
+        print(f"\nDetected .govkit marker: version={stored_version}  level=5")
+        print("L5 (GenAI Operations) content is unchanged in v0.7.0; updating version only.")
+        write_govkit_marker(target, agent, "5", options)
+        return 0
+
+    if stored_level == "4":
+        print(f"\nDetected .govkit marker: version={stored_version}  level=4")
+        print("Your project shape is correct under v0.7.0; the level label flips")
+        print('from "Governed AI Delivery" to "Spec-Driven Add-On" but no data migration is needed.')
+        write_govkit_marker(target, agent, "4", options)
+        return 0
+
+    if stored_level == "3":
+        return _migrate_l3_interactive(target, stored_version, agent, options)
+
+    print(f"\nUnknown stored level {stored_level!r}. Aborting without changes.")
+    return 1
+
+
+def _migrate_l3_interactive(
+    target: Path, stored_version: str, agent: str, options: dict,
+) -> int:
+    """Interactive 4-option prompt for v0.6 L3 (3-artifact) projects."""
+    features_dir = target / "features"
+    feature_dirs = _list_user_features(features_dir)
+
+    print(f"\nDetected .govkit marker: version={stored_version}  level=3")
+    print(
+        f"Project has {len(feature_dirs)} feature director(ies) under features/, "
+        "each with 3 artifacts.\n"
+    )
+    print(
+        "Under govkit v0.7.0, your project's shape (features/ + 3-artifact dirs) maps\n"
+        "to Level 4 (Spec-Driven Add-On). L4 requires 5 artifacts per feature.\n"
+    )
+    print("How would you like to migrate?")
+    print("  [1] Migrate to L4 — generate stub eval_criteria.yaml and")
+    print("      architecture_preflight.md in each feature dir (you fill them in later).")
+    print(f"      Marker becomes level=4, version={_GOVKIT_VERSION}.")
+    print("  [2] Migrate to L4 — do NOT generate stubs. You will author the two new")
+    print("      artifacts per feature manually. Validation will fail until you do.")
+    print(f"      Marker becomes level=4, version={_GOVKIT_VERSION}.")
+    print("  [3] Adopt new-L3 (Foundations) — you confirm we should DELETE features/")
+    print("      and switch to architecture-only governance.")
+    print(f"      Marker becomes level=3, version={_GOVKIT_VERSION}.")
+    print("  [4] Abort — make no changes. Pin govkit==0.6.* in your project.\n")
+
+    choice = input("  Choice [1-4]: ").strip()
+
+    if choice == "1":
+        for fd in feature_dirs:
+            eval_path = fd / "eval_criteria.yaml"
+            if not eval_path.exists():
+                eval_path.write_text(_EVAL_CRITERIA_STUB, encoding="utf-8")
+            preflight_path = fd / "architecture_preflight.md"
+            if not preflight_path.exists():
+                preflight_path.write_text(_ARCH_PREFLIGHT_STUB, encoding="utf-8")
+        write_govkit_marker(target, agent, "4", options)
+        print(f"\n  Generated stubs in {len(feature_dirs)} feature director(ies).")
+        print("\n  Next: edit each feature's eval_criteria.yaml and architecture_preflight.md")
+        print("  to replace TBD placeholders. Then run `govkit validate`.")
+        return 0
+
+    if choice == "2":
+        write_govkit_marker(target, agent, "4", options)
+        print("\n  Marker rewritten without stub generation.")
+        print("  Next: author eval_criteria.yaml and architecture_preflight.md per")
+        print("  feature manually. `govkit validate` will fail until you do.")
+        return 0
+
+    if choice == "3":
+        confirm = input(
+            f"\n  This will DELETE {features_dir} and all its contents. "
+            "Type 'yes' to confirm: "
+        ).strip().lower()
+        if confirm != "yes":
+            print("  Cancelled.")
+            return 1
+        if features_dir.exists():
+            shutil.rmtree(features_dir)
+        write_govkit_marker(target, agent, "3", options)
+        print(f"\n  Removed {features_dir}.")
+        return 0
+
+    if choice == "4":
+        print("\n  No changes made.")
+        print("  Pin `govkit==0.6.*` in your project until you're ready to migrate.")
+        return 0
+
+    print(f"\n  Invalid choice: {choice!r}. Aborting without changes.")
+    return 1
 
 
 def main() -> None:
@@ -587,6 +838,11 @@ def main() -> None:
     upgrade_parser.add_argument(
         "--force", action="store_true",
         help="Re-apply even when the project is already at the current govkit version",
+    )
+    upgrade_parser.add_argument(
+        "--migrate-levels", action="store_true", dest="migrate_levels",
+        help="Run the v0.6.x → v0.7.0 maturity-model migration "
+             "(L3/L4 swap; interactive for legacy L3 projects)",
     )
 
     args = parser.parse_args()
