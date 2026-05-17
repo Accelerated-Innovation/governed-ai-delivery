@@ -1,10 +1,6 @@
----
-applyTo: "*"
----
+# Repository Scope Enforcement — Backend
 
-# Repository Scope Enforcement
-
-These instructions apply when planning any feature that may span multiple repositories.
+These rules apply to all files in this backend project.
 
 ---
 
@@ -30,7 +26,7 @@ When you prepare an architecture preflight or implementation plan:
    - If listed: proceed to identify which modules/services in THIS repo will be affected
 
 2. **For each external repo listed** (if multi-repo):
-   - Document the contract it exposes (e.g., "Backend provides authenticated API at `/api/v1`")
+   - Document the contract it exposes (e.g., "Auth Service publishes `/jwks` endpoint")
    - Note that implementation of the contract belongs in the external repo
    - This repo consumes the contract, not implements it
 
@@ -46,12 +42,12 @@ When implementing a feature:
 
 **Allowed:**
 - Code that implements features listed under this repo's ownership in the scope table
-- Code that calls external contracts (REST APIs, GraphQL endpoints, shared component libraries)
+- Code that calls external contracts (REST APIs, gRPC services, shared schemas, message queues)
 - Test code that mocks external contracts for integration testing
 
 **Forbidden:**
 - Writing implementation code for modules owned by another repo
-- Adding code to components, services, or adapters that belongs in another repo's codebase
+- Adding code to `services/`, `adapters/`, `ports/`, or `api/` that belongs in another repo's codebase
 - Creating dependencies on code that hasn't been published by the external repo yet (coordinate in nfrs.md first)
 - Assuming a cross-cutting concern can be fully implemented in one repo without explicit owner assignment
 
@@ -63,7 +59,7 @@ If a feature spans multiple repos (determined in nfrs.md):
 
 1. **Coordinate in NFRs first**
    - List all repos, owners, and modules
-   - Define the contracts upfront (REST endpoints, GraphQL schemas, shared types, etc.)
+   - Define the contracts upfront (API schemas, message formats, gRPC protobuf, etc.)
    - Document which repo owns which part
 
 2. **Each repo executes its own portion**
@@ -73,14 +69,14 @@ If a feature spans multiple repos (determined in nfrs.md):
 
 3. **Contract-Driven Integration**
    - Each repo implements against the shared contract (not tight coupling)
-   - Integration happens at contract boundaries (HTTP calls, API contracts, shared types)
+   - Integration happens at contract boundaries (HTTP, gRPC, message schemas)
    - Cross-repo integration tests (if any) verify contracts are met
 
 ---
 
 ## Anti-Patterns
 
-- **"I'll implement it all in this repo and they can use it later"** — violates ownership, coupling, and duplicates effort
+- **"I'll implement it all in this repo and they can call it later"** — violates ownership, coupling, and duplicates effort
 - **"The contract can be figured out during implementation"** — blocks parallel work and causes scope creep
 - **"We don't need to list repos in nfrs.md because it's obvious"** — agents need explicit scope to avoid mistakes
 - **"I'll add their code here and they can copy it to their repo"** — violates DRY, creates maintenance debt, violates ownership

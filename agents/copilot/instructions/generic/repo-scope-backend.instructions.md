@@ -1,6 +1,10 @@
-# Repository Scope Enforcement
+---
+applyTo: "**/*.{py,go,ts,js,java,rs,cs,rb,php}"
+---
 
-These rules apply to all files in the project.
+# Repository Scope Enforcement — Backend
+
+These instructions apply when planning any backend feature that may span multiple repositories.
 
 ---
 
@@ -42,12 +46,12 @@ When implementing a feature:
 
 **Allowed:**
 - Code that implements features listed under this repo's ownership in the scope table
-- Code that calls external contracts (APIs, gRPC services, shared schemas)
+- Code that calls external contracts (REST APIs, gRPC services, shared schemas, message queues)
 - Test code that mocks external contracts for integration testing
 
 **Forbidden:**
 - Writing implementation code for modules owned by another repo
-- Adding code to `services/`, `adapters/`, or `ports/` that belongs in another repo's codebase
+- Adding code to `services/`, `adapters/`, `ports/`, or `api/` that belongs in another repo's codebase
 - Creating dependencies on code that hasn't been published by the external repo yet (coordinate in nfrs.md first)
 - Assuming a cross-cutting concern can be fully implemented in one repo without explicit owner assignment
 
