@@ -100,3 +100,11 @@ docker-compose.override.yml
 *.swp
 *.swo
 *.stackdump
+
+# ----------------------------
+# Smoke test sandboxes (scripts/)
+# ----------------------------
+scripts/projects/
+scripts/projects-ui/
+scripts/projects-dotnet/
+scripts/.venv/
