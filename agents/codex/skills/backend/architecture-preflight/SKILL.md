@@ -1,6 +1,6 @@
 ---
 name: architecture-preflight
-description: Run before planning any feature to validate architecture boundaries, standards alignment, and ADR need
+description: Validate architecture boundaries, standards alignment, and ADR need before planning a feature. Use when starting a new feature or invoking /architecture-preflight.
 ---
 
 # Architecture Preflight
@@ -12,7 +12,7 @@ Before generating any code or detailed plan, produce an Architecture Preflight R
 ## 1. Summary
 
 - What is the feature or change?
-- What input specs are being used (NFRs: `features/<feature_name>/nfrs.md`, Gherkin: `features/<feature_name>/acceptance.feature`)?
+- What input specs are being used (NFRs: `features/<feature_name>/nfrs.md`, Gherkin: `features/<feature_name>/acceptance.feature`, Eval criteria: `features/<feature_name>/eval_criteria.yaml`)?
 - What affected modules or layers are in scope?
 
 ## 2. Standards Check
@@ -79,13 +79,13 @@ If any spec inputs are missing, ask before proceeding.
 
 ## 15. Agent Topology (multi-agent features only)
 
-Check if `features/$ARGUMENTS/eval_criteria.yaml` declares `multi_agent: true`.
+Check if `features/<feature_name>/eval_criteria.yaml` declares `multi_agent: true`.
 
 If **not declared**, write: "Section 15: Not applicable — multi_agent not declared." and skip the rest of this section.
 
 If **declared**:
 
-- [ ] `features/$ARGUMENTS/agent_topology.md` exists — if missing, **HALT**: request `$multi-agent-design $ARGUMENTS` first
+- [ ] `features/<feature_name>/agent_topology.md` exists — if missing, **HALT**: request `/multi-agent-design <feature_name>` first
 - [ ] Orchestrator section is complete: role, system prompt path, model alias, routing strategy
 - [ ] Each specialist agent has: role, typed input state fields, typed output state fields, system prompt path, model alias
 - [ ] All system prompt files declared in `agent_topology.md` exist in the repository

@@ -7,17 +7,20 @@
   Parallel to smoke.ps1 but the embedded smoke feature describes an ASP.NET
   Core minimal API instead of a generic backend. Validation rules in
   cli/validate.py are stack-agnostic, so what differs here is the realism of
-  plan.md and architecture_preflight.md (project layout, xUnit + FIRST,
-  controller-vs-minimal-API note). Useful for confirming the scaffolding
-  reads cleanly when a real .NET team would adopt it.
+  the spec inputs (Kestrel/xUnit/WebApplicationFactory phrasing). Useful for
+  confirming the scaffolding reads cleanly when a real .NET team would adopt it.
 
   Does NOT invoke `dotnet build` or scaffold an actual .NET project. Use a
   separate script if you want to exercise the SDK end to end.
 
+  Drops the 3 spec inputs (acceptance.feature, nfrs.md, eval_criteria.yaml).
+  plan.md and architecture_preflight.md are intentionally absent so the
+  /architecture-preflight and /spec-planning skills can be invoked against
+  the sandbox to generate them.
+
   L3: validate short-circuits (no per-feature artifacts).
-  L4: full 5-artifact validation against hello_world_dotnet_api.
-  L5: applies and creates the folder. The smoke feature is deterministic mode
-      and WILL FAIL the L5-specific LLM checks. That is expected.
+  L4: validate is expected to FAIL until the planning artifacts are generated.
+  L5: validate also expected to fail (missing artifacts plus mode is not llm).
 
 .PARAMETER SandboxRoot
   Where the per-config project folders are created. Default: this script's directory.
@@ -128,142 +131,13 @@ code_quality:
   minimum_virtue_average: 4
 '@
 
-$featurePlan = @'
-# Feature Plan: hello_world_dotnet_api
-
-## Objective
-
-- Provide a minimal `GET /hello` endpoint on an ASP.NET Core 8 minimal API
-  returning a fixed JSON greeting
-- Used as a smoke test for govkit scaffolding on the .NET stack
-- Success: both acceptance scenarios pass; p95 latency < 50ms
-
-## Scope Boundaries
-
-### In scope
-- One minimal API endpoint mapped via `app.MapGet("/hello", ...)`
-- One xUnit test project asserting status code and body
-
-### Out of scope
-- Authentication, OpenAPI customisation beyond the default Swashbuckle generation
-- Persistence, EF Core, background services
-- Deployment manifests
-
-### Assumptions
-- Target framework: net8.0 (LTS)
-- Test framework: xUnit + Microsoft.AspNetCore.Mvc.Testing (`WebApplicationFactory`)
-- Service is reachable on a Kestrel-bound localhost port during tests
-
-## Architecture Alignment
-
-### Relevant contracts
-- docs/backend/evaluation/eval_criteria.md: FIRST principles, 7 Virtues, deterministic mode
-- docs/backend/architecture/API_CONVENTIONS.md: REST route naming and JSON error model
-
-### ADRs
-- No new ADRs required for this smoke endpoint.
-
-## Evaluation Compliance Summary (MANDATORY)
-
-```yaml
-evaluation_prediction:
-  first:
-    fast:           { score: 5, evidence: "WebApplicationFactory keeps tests in-process; no Kestrel socket" }
-    isolated:       { score: 5, evidence: "Each test creates its own factory; no shared state" }
-    repeatable:     { score: 5, evidence: "Deterministic response body" }
-    self_verifying: { score: 5, evidence: "Assertions on HttpResponseMessage status and content" }
-    timely:         { score: 4, evidence: "Tests written before the MapGet handler" }
-    average: 4.8
-  virtues:
-    working:   { score: 5, evidence: "Both acceptance scenarios automated via WebApplicationFactory" }
-    unique:    { score: 5, evidence: "Single MapGet; no duplication" }
-    simple:    { score: 5, evidence: "Minimal API, no controllers, no DI graph" }
-    clear:     { score: 5, evidence: "Route literal matches the scenario" }
-    easy:      { score: 5, evidence: "No service dependencies to inject" }
-    developed: { score: 5, evidence: "No dead code or TODOs" }
-    brief:     { score: 5, evidence: "Single file Program.cs" }
-    average: 5.0
-  thresholds_met: true
-```
-
-## Increments
-
-### Increment 1: Implement `/hello`
-
-**Goal**
-- Add `app.MapGet("/hello", () => Results.Ok(new { message = "hello, world" }))` in `Program.cs`
-
-**Deliverables**
-- `src/HelloApi/Program.cs` (minimal API)
-- `tests/HelloApi.Tests/HelloEndpointTests.cs` (xUnit + WebApplicationFactory)
-
-**Definition of Done**
-- Both acceptance scenarios pass under `dotnet test`
-- p95 latency target met under a local k6 or BenchmarkDotNet run
-'@
-
-$featurePreflight = @'
-# Architecture Preflight: hello_world_dotnet_api
-
-## 1. Artifact Review
-
-- acceptance.feature reviewed: yes
-- nfrs.md reviewed: yes
-- eval_criteria.yaml exists: yes
-- plan.md exists: yes
-- Gherkin scenarios cover all populated NFR categories: yes
-  - @nfr-performance: yes (1 scenario)
-
-## 2. Standards Referenced
-
-- docs/backend/architecture/API_CONVENTIONS.md
-- docs/backend/evaluation/eval_criteria.md
-
-## 3. Boundary Analysis
-
-- Single MapGet handler in Program.cs; no domain/adapter split required for a fixed response.
-- Compliant with BOUNDARIES.md (no cross-layer imports because there is only one layer).
-
-## 4. API Impact
-
-- Routes affected: `GET /hello` (new)
-- Versioning impact: new route -- no breaking change
-- OpenAPI updates: Swashbuckle picks up the MapGet automatically; no manual swagger edits
-
-## 5. Security Impact
-
-- Endpoint is unauthenticated by design (smoke test only)
-- No PII; HTTPS redirection inherited from the default Program.cs template
-- No request body, so no model-binding attack surface
-
-## 6. Evaluation Impact
-
-- Mode: deterministic
-- Predicted FIRST 4.8 / Virtues 5.0 -- above 4.0 threshold
-
-## 7. ADR Determination
-
-- ADR required: no -- no architectural commitment beyond a smoke endpoint
-
-## 8. Shared Contract Analysis
-
-- Produces shared artifact: no
-
-## 9. Preflight Conclusion
-
-- Architecture, security, evaluation alignment: compliant
-- Final status: Approved for planning
-'@
-
 function Write-HelloDotnetFeature {
     param([string]$ProjectRoot)
     $dir = Join-Path $ProjectRoot "features\hello_world_dotnet_api"
     New-Item -ItemType Directory -Path $dir -Force | Out-Null
-    Set-Content -Path (Join-Path $dir "acceptance.feature")        -Value $featureAcceptance -Encoding utf8
-    Set-Content -Path (Join-Path $dir "nfrs.md")                   -Value $featureNfrs       -Encoding utf8
-    Set-Content -Path (Join-Path $dir "eval_criteria.yaml")        -Value $featureEval       -Encoding utf8
-    Set-Content -Path (Join-Path $dir "plan.md")                   -Value $featurePlan       -Encoding utf8
-    Set-Content -Path (Join-Path $dir "architecture_preflight.md") -Value $featurePreflight  -Encoding utf8
+    Set-Content -Path (Join-Path $dir "acceptance.feature") -Value $featureAcceptance -Encoding utf8
+    Set-Content -Path (Join-Path $dir "nfrs.md")            -Value $featureNfrs       -Encoding utf8
+    Set-Content -Path (Join-Path $dir "eval_criteria.yaml") -Value $featureEval       -Encoding utf8
 }
 
 # ----------------------------------------------------------------------------
@@ -332,10 +206,13 @@ Write-Host " .NET Summary" -ForegroundColor Green
 Write-Host "================================================================" -ForegroundColor Green
 $results | Format-Table -AutoSize
 
-$failed = $results | Where-Object { $_.Apply -like "FAIL*" -or ($_.Validate -like "FAIL*" -and $_.Config -notlike "*-l5") }
+$failed = $results | Where-Object {
+    $_.Apply -like "FAIL*" -or
+    ($_.Validate -like "FAIL*" -and $_.Config -notlike "*-l4" -and $_.Config -notlike "*-l5")
+}
 if ($failed) {
-    Write-Host "Some configs failed (L5 validate-fails are expected for this smoke feature)." -ForegroundColor Red
+    Write-Host "Some configs failed (L4/L5 validate-fails are expected; only L3 validate must pass)." -ForegroundColor Red
     exit 1
 }
-Write-Host "All apply steps and L3/L4 validates passed. L5 validate is expected to fail until the smoke feature is extended with LLM artifacts." -ForegroundColor Green
+Write-Host "All apply steps and L3 validate passed. L4/L5 validate are expected to fail until /architecture-preflight and /spec-planning generate the missing artifacts." -ForegroundColor Green
 exit 0

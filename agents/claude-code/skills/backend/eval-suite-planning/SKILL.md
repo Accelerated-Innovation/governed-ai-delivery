@@ -1,19 +1,19 @@
 ---
-description: "Plan DeepEval, Promptfoo, and RAGAS evaluation suites for an LLM feature"
-argument-hint: "<feature_name>"
+name: eval-suite-planning
+description: Plan DeepEval, Promptfoo, and RAGAS evaluation suites for an LLM feature. Use when the user asks to plan LLM evaluations or invokes /eval-suite-planning.
 ---
 
 # Evaluation Suite Planning
 
-Plan the LLM evaluation test suite for: **$ARGUMENTS**
+Plan the LLM evaluation test suite for a feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
 ## Inputs to read
 
 Feature specs:
-- `features/$ARGUMENTS/nfrs.md`
-- `features/$ARGUMENTS/acceptance.feature`
-- `features/$ARGUMENTS/eval_criteria.yaml`
-- `features/$ARGUMENTS/architecture_preflight.md` (sections 10-14)
+- `features/<feature_name>/nfrs.md`
+- `features/<feature_name>/acceptance.feature`
+- `features/<feature_name>/eval_criteria.yaml`
+- `features/<feature_name>/architecture_preflight.md` (sections 10-14)
 
 Contracts and guides:
 - `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
@@ -54,7 +54,7 @@ Contracts and guides:
 
 ## Output
 
-Update `features/$ARGUMENTS/eval_criteria.yaml` with:
+Update `features/<feature_name>/eval_criteria.yaml` with:
 - DeepEval criteria using `deepeval_*` eval_class values
 - Promptfoo criteria using `promptfoo_*` eval_class values (if required)
 - RAGAS criteria using `ragas_*` eval_class values (if required)
@@ -63,7 +63,7 @@ Update `features/$ARGUMENTS/eval_criteria.yaml` with:
 
 Provide recommended test file structure:
 ```
-tests/eval/$ARGUMENTS/
+tests/eval/<feature_name>/
 ├── test_quality.py           # DeepEval test cases
 ├── promptfoo.yaml            # Promptfoo config (if required)
 └── eval_sets/

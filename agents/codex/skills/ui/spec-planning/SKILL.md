@@ -1,6 +1,6 @@
 ---
 name: ui-spec-planning
-description: Generate a UI feature plan (plan.md) and eval_criteria.yaml from NFRs, acceptance scenarios, and architecture preflight
+description: Generate a UI feature plan (plan.md) and eval_criteria.yaml from NFRs, acceptance scenarios, and architecture preflight. Use when the user asks to plan a UI feature or invokes /ui-spec-planning.
 ---
 
 # Spec Planning — UI

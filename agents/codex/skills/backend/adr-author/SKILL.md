@@ -1,6 +1,6 @@
 ---
 name: adr-author
-description: Author an Architecture Decision Record for a new pattern, exception, or boundary change
+description: Author an Architecture Decision Record for a new pattern, exception, or boundary change. Use when the user asks to write an ADR or invokes /adr-author.
 ---
 
 # ADR Author

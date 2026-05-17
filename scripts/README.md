@@ -66,15 +66,18 @@ The script will create `c:\users\marty\source\sandbox\govkit-test\.venv\` and `c
 
 ## Expected results
 
-- **L3 apply + validate** — green. L3 validate short-circuits (no per-feature artifacts).
-- **L4 apply + validate** — green. Each sandbox gets a minimal smoke feature (`hello_world_api`, `hello_world_ui`, or `hello_world_dotnet_api`) covering the 5-artifact contract.
-- **L5 apply** — green. The folder is created and the level-5 root file is installed.
-- **L5 validate** — **FAILS as expected**. The smoke features are `mode: deterministic`; L5-specific checks require `mode: llm`. The script's exit code excludes L5 validate failures from the overall pass/fail decision.
+Each smoke feature ships only the **3 spec inputs** — `acceptance.feature`, `nfrs.md`, `eval_criteria.yaml`. `plan.md` and `architecture_preflight.md` are intentionally absent so the `/architecture-preflight` and `/spec-planning` skills can be invoked against the sandbox to generate them. This means L4 (and L5) validate will fail by design.
 
-A successful overall run prints:
+- **L3 apply + validate** — green. L3 validate short-circuits (no per-feature artifacts).
+- **L4 apply** — green.
+- **L4 validate** — **FAILS as expected**. Missing `plan.md` and `architecture_preflight.md` are the trigger. Run `/architecture-preflight <feature>` and `/spec-planning <feature>` in the agent against the sandbox to populate them; re-run `govkit validate` and it should pass.
+- **L5 apply** — green.
+- **L5 validate** — **FAILS as expected**. Same artifacts missing, plus `mode: deterministic` doesn't satisfy L5-specific LLM checks.
+
+The script's exit code excludes L4 and L5 validate failures from the overall pass/fail decision. A successful overall run prints:
 ```
-All apply steps and L3/L4 validates passed. L5 validate is expected to fail until
-the smoke feature is extended with LLM artifacts.
+All apply steps and L3 validate passed. L4/L5 validate are expected to fail
+until /architecture-preflight and /spec-planning generate the missing artifacts.
 ```
 
 ## Inspecting sandboxes (`smoke-inspect.ps1`)

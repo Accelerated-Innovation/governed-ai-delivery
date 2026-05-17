@@ -1,18 +1,18 @@
 ---
-description: "Run before planning any feature to validate architecture boundaries, standards alignment, and ADR need"
-argument-hint: "<feature_name>"
+name: architecture-preflight
+description: Validate architecture boundaries, standards alignment, and ADR need before planning a feature. Use when starting a new feature or invoking /architecture-preflight.
 ---
 
 # Architecture Preflight
 
-You are preparing to plan and implement the feature: **$ARGUMENTS**
+You are preparing to plan and implement a feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
 Before generating any code or detailed plan, produce an Architecture Preflight Report.
 
 ## 1. Summary
 
 - What is the feature or change?
-- What input specs are being used (NFRs: `features/$ARGUMENTS/nfrs.md`, Gherkin: `features/$ARGUMENTS/acceptance.feature`)?
+- What input specs are being used (NFRs: `features/<feature_name>/nfrs.md`, Gherkin: `features/<feature_name>/acceptance.feature`, Eval criteria: `features/<feature_name>/eval_criteria.yaml`)?
 - What affected modules or layers are in scope?
 
 ## 2. Standards Check
@@ -71,7 +71,7 @@ Choose one:
 
 ---
 
-Write this report to `features/$ARGUMENTS/architecture_preflight.md`.
+Write this report to `features/<feature_name>/architecture_preflight.md`.
 
 If any spec inputs are missing, ask before proceeding.
 
@@ -79,13 +79,13 @@ If any spec inputs are missing, ask before proceeding.
 
 ## 15. Agent Topology (multi-agent features only)
 
-Check if `features/$ARGUMENTS/eval_criteria.yaml` declares `multi_agent: true`.
+Check if `features/<feature_name>/eval_criteria.yaml` declares `multi_agent: true`.
 
 If **not declared**, write: "Section 15: Not applicable — multi_agent not declared." and skip the rest of this section.
 
 If **declared**:
 
-- [ ] `features/$ARGUMENTS/agent_topology.md` exists — if missing, **HALT**: request `/multi-agent-design $ARGUMENTS` first
+- [ ] `features/<feature_name>/agent_topology.md` exists — if missing, **HALT**: request `/multi-agent-design <feature_name>` first
 - [ ] Orchestrator section is complete: role, system prompt path, model alias, routing strategy
 - [ ] Each specialist agent has: role, typed input state fields, typed output state fields, system prompt path, model alias
 - [ ] All system prompt files declared in `agent_topology.md` exist in the repository

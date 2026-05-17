@@ -1,43 +1,41 @@
 ---
 name: architecture-preflight
-description: Run before planning any feature to validate architecture boundaries, standards alignment, and ADR need
-argument-hint: "<feature_name>"
-user-invocable: true
+description: Validate architecture boundaries, standards alignment, and ADR need before planning a feature. Use when starting a new feature or invoking /architecture-preflight.
 ---
 
 # Architecture Preflight
 
-You are preparing to plan and implement a new feature.
+You are preparing to plan and implement a feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
-Before generating any code or detailed plan, produce an Architecture Preflight Report that includes:
+Before generating any code or detailed plan, produce an Architecture Preflight Report.
 
 ## 1. Summary
 
 - What is the feature or change?
-- What input specs are being used (NFRs, Gherkin, LLM evals)?
+- What input specs are being used (NFRs: `features/<feature_name>/nfrs.md`, Gherkin: `features/<feature_name>/acceptance.feature`, Eval criteria: `features/<feature_name>/eval_criteria.yaml`)?
 - What affected modules or layers are in scope?
 
 ## 2. Standards Check
 
-For each of the following, state which architectural rules or standards apply (cite file and section):
+For each of the following, state which architectural rules apply (cite file and section):
 
-- Layering (from `ARCH_CONTRACT.md`)
-- API conventions (from `API_CONVENTIONS.md`)
-- Auth/security patterns (from `SECURITY_AUTH_PATTERNS.md`)
+- Layering (from `docs/backend/architecture/ARCH_CONTRACT.md`)
+- API conventions (from `docs/backend/architecture/API_CONVENTIONS.md`)
+- Auth/security patterns (from `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`)
 - Error model and response shape
 - Logging and observability expectations
 
 ## 3. Boundary Analysis
 
 - What modules or services will this code touch?
-- Are any boundary rules at risk of violation? (from `BOUNDARIES.md`)
+- Are any boundary rules at risk of violation? (from `docs/backend/architecture/BOUNDARIES.md`)
 - Does this require a new interface between services?
 
 ## 3.5 Repository Scope Analysis
 
 Before proceeding to ADR determination, validate repository scope. See: `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md`
 
-Verify the "Repository Scope" section in `features/$ARGUMENTS/nfrs.md` is complete:
+Verify the "Repository Scope" section in `features/<feature>/nfrs.md` is complete:
 
 - [ ] One box is checked: "This repository only" OR "Multiple repositories" (with table)
 - [ ] If multi-repo: all repos, owners, modules, and contracts are documented
@@ -58,8 +56,8 @@ Once complete:
 
 Choose one:
 
-- ✅ ADR required → Include proposed ADR title and reason
-- ✅ No ADR needed → Explain why
+- ADR required → Include proposed ADR title and reason
+- No ADR needed → Explain why
 
 ## 5. Tests Required
 
@@ -73,21 +71,21 @@ Choose one:
 
 ---
 
-Write this report to `features/$ARGUMENTS/architecture_preflight.md`.
+Write this report to `features/<feature_name>/architecture_preflight.md`.
 
-If any spec inputs are missing, ask the user before proceeding.
+If any spec inputs are missing, ask before proceeding.
 
 ---
 
 ## 15. Agent Topology (multi-agent features only)
 
-Check if `features/$ARGUMENTS/eval_criteria.yaml` declares `multi_agent: true`.
+Check if `features/<feature_name>/eval_criteria.yaml` declares `multi_agent: true`.
 
 If **not declared**, write: "Section 15: Not applicable — multi_agent not declared." and skip the rest of this section.
 
 If **declared**:
 
-- [ ] `features/$ARGUMENTS/agent_topology.md` exists — if missing, **HALT**: request `/multi-agent-design $ARGUMENTS` first
+- [ ] `features/<feature_name>/agent_topology.md` exists — if missing, **HALT**: request `/multi-agent-design <feature_name>` first
 - [ ] Orchestrator section is complete: role, system prompt path, model alias, routing strategy
 - [ ] Each specialist agent has: role, typed input state fields, typed output state fields, system prompt path, model alias
 - [ ] All system prompt files declared in `agent_topology.md` exist in the repository
