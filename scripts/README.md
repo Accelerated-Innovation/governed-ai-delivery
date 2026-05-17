@@ -9,6 +9,7 @@ PowerShell scripts that exercise `govkit apply` and `govkit validate` across the
 | `smoke.ps1` | 3 agents × 3 levels (`--type api`) | `scripts/projects/` |
 | `smoke-ui.ps1` | 3 agents × 2 frameworks × 3 levels (`--type api --ui react\|angular`) | `scripts/projects-ui/` |
 | `smoke-dotnet.ps1` | 3 agents × 3 levels (`--type api`, .NET-realistic feature content) | `scripts/projects-dotnet/` |
+| `smoke-inspect.ps1` | Visual inspection helper (no apply/validate) | Reads from `scripts/projects*/` |
 
 Output dirs and the bootstrapped `.venv/` are gitignored — running the scripts won't dirty your working tree.
 
@@ -75,6 +76,37 @@ A successful overall run prints:
 All apply steps and L3/L4 validates passed. L5 validate is expected to fail until
 the smoke feature is extended with LLM artifacts.
 ```
+
+## Inspecting sandboxes (`smoke-inspect.ps1`)
+
+After running a smoke script, use `smoke-inspect.ps1` to open one or more sandbox dirs for visual review. It does not apply or validate — it only reads what's already on disk under `scripts/projects*/`.
+
+Select exactly one of:
+
+| Parameter | Example | Behaviour |
+|---|---|---|
+| `-Config <name>` | `-Config claude-code-l3` | Open one sandbox by exact leaf name (case-insensitive). |
+| `-Pattern <wildcard>` | `-Pattern "*ui*-l4"` | Open every sandbox whose leaf name matches the PowerShell wildcard. |
+| `-All` | `-All` | Open every sandbox under every `projects*` directory. |
+
+Then pick a viewer with `-Editor`:
+
+| Mode | Effect |
+|---|---|
+| `explorer` (default) | `Invoke-Item` — one Windows Explorer window per dir. |
+| `code` | Launches each dir in VS Code via the `code` CLI (must be on PATH). |
+| `tree` | Prints a recursive `Get-ChildItem -Force` listing with file sizes to stdout. Safe to redirect with `>`. |
+
+Examples:
+
+```powershell
+.\scripts\smoke-inspect.ps1 -Config claude-code-l3
+.\scripts\smoke-inspect.ps1 -Pattern "*ui*-l4" -Editor code
+.\scripts\smoke-inspect.ps1 -All -Editor tree > tmp\baseline.txt
+.\scripts\smoke-inspect.ps1 -Pattern "codex-*" -Editor tree -SandboxRoot c:\users\marty\source\sandbox\govkit-test
+```
+
+Tree mode writes through the success stream, so it is the right choice when you want to snapshot every sandbox to a file (e.g. the pre-refactor baseline in Increment 0c of the project-shape refactor plan).
 
 ## Troubleshooting
 
