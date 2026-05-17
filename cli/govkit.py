@@ -801,7 +801,7 @@ def main() -> None:
     apply_parser.add_argument("--target", required=True, help="Path to the target project root")
     apply_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                               help="Maturity level (default: prompted)")
-    apply_parser.add_argument("--type", choices=["api", "cli"], default=None,
+    apply_parser.add_argument("--type", choices=["api", "cli", "ui-react", "ui-angular"], default=None,
                               help="Project type (default: prompted)")
     apply_parser.add_argument("--ui", choices=["none", "react", "angular"], default=None,
                               help="UI framework (default: prompted)")
