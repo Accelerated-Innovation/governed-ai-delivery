@@ -915,3 +915,118 @@ class TestMultiAgentValidation:
         make_l5_feature(features / "single_agent_feature")
         result = run_validation(tmp_path, level="5")
         assert result == 0
+
+
+# ---------------------------------------------------------------------------
+# UI-shape validation (v0.8)
+# ---------------------------------------------------------------------------
+
+
+def _write_ui_marker(target: Path, level: str, ui_type: str = "ui-react") -> None:
+    """Write a v0.8 .govkit marker for a UI-shape install."""
+    marker = {
+        "version": "0.8.0",
+        "level": level,
+        "agent": "claude-code",
+        "options": {"type": ui_type, "ci": "github"},
+        "applied_at": "2026-05-18T00:00:00+00:00",
+    }
+    (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
+
+
+class TestValidateUiShapes:
+    """v0.8 UI shapes (--type ui-react / ui-angular) must validate identically to backend.
+
+    Validate logic is stack-agnostic — the 5-artifact contract, FIRST/Virtue
+    prediction, and Gherkin coverage rules apply regardless of `type`. These
+    tests lock that in for UI markers per plan §8.2.
+    """
+
+    def test_ui_react_l3_no_op(self, tmp_path, monkeypatch):
+        """L3 UI install validates clean — L3 short-circuits regardless of type."""
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+        _write_ui_marker(tmp_path, level="3", ui_type="ui-react")
+        result = run_validation(tmp_path)
+        assert result == 0, "L3 UI install must short-circuit and return 0"
+
+    def test_ui_react_l4_5_artifact_passes(self, tmp_path, monkeypatch):
+        """L4 UI install with a complete 5-artifact feature validates clean."""
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+        _write_ui_marker(tmp_path, level="4", ui_type="ui-react")
+        features = tmp_path / "features"
+        make_full_feature(features / "hello_world_ui", **{
+            "nfrs.md": "## Performance\n- LCP under 2500ms on 4G\n",
+            "acceptance.feature": """\
+                Feature: Hello World UI Card
+
+                  @e2e
+                  Scenario: Render the default greeting
+                    Given the hello card page is loaded
+                    When the page finishes rendering
+                    Then the card displays "hello, world"
+
+                  @e2e @nfr-performance
+                  Scenario: Page meets LCP target
+                    Given the hello card page is loaded
+                    When Core Web Vitals are measured
+                    Then LCP is below 2500ms
+            """,
+        })
+        result = run_validation(tmp_path)
+        assert result == 0, "L4 UI install with 5-artifact feature must validate clean"
+
+    def test_ui_angular_l4_5_artifact_passes(self, tmp_path, monkeypatch):
+        """Same as the react case but with ui-angular marker — type is opaque to validate."""
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+        _write_ui_marker(tmp_path, level="4", ui_type="ui-angular")
+        features = tmp_path / "features"
+        make_full_feature(features / "hello_world_ui", **{
+            "nfrs.md": "## Performance\n- LCP under 2500ms on 4G\n",
+            "acceptance.feature": """\
+                Feature: Hello World UI Card
+
+                  @e2e
+                  Scenario: Render
+                    Given the page is loaded
+                    When rendered
+                    Then the card displays "hello, world"
+
+                  @e2e @nfr-performance
+                  Scenario: LCP target
+                    Given the page is loaded
+                    When measured
+                    Then LCP is below 2500ms
+            """,
+        })
+        result = run_validation(tmp_path)
+        assert result == 0, "L4 UI install (angular) with 5-artifact feature must validate clean"
+
+    def test_ui_marker_read_does_not_crash(self, tmp_path, monkeypatch):
+        """`.govkit` carrying `type: ui-react` is read tolerantly by validate's marker path.
+
+        Regression guard for the v0.8 marker shape — validate must not assume
+        type ∈ {api, cli} when reading the marker.
+        """
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+        _write_ui_marker(tmp_path, level="3", ui_type="ui-react")
+        # No features/ dir — L3 still short-circuits cleanly via the marker level read.
+        result = run_validation(tmp_path)
+        assert result == 0
+
+    def test_legacy_ui_option_in_marker_tolerated(self, tmp_path, monkeypatch):
+        """Pre-v0.8 markers with `options.ui` must still be readable from validate's path.
+
+        Locks in plan §7: legacy markers warn but never crash. The shape-migration
+        warning is suppressed here so the test focuses on tolerance, not noise.
+        """
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+        marker = {
+            "version": "0.7.0",
+            "level": "3",
+            "agent": "claude-code",
+            "options": {"type": "api", "ci": "github", "ui": "react"},  # legacy ui key
+            "applied_at": "2026-04-01T00:00:00+00:00",
+        }
+        (tmp_path / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
+        result = run_validation(tmp_path)
+        assert result == 0, "Legacy marker with options.ui must still validate (L3 short-circuit)"
