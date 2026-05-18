@@ -1,5 +1,5 @@
 ---
-applyTo: "**/hooks/**,**/store/**"
+applyTo: "src/**/hooks/**,src/**/store/**"
 ---
 
 # State Management — Angular

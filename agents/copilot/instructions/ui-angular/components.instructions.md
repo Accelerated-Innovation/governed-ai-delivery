@@ -1,5 +1,5 @@
 ---
-applyTo: "**/*.component.ts,**/*.component.html"
+applyTo: "src/**/*.component.ts,src/**/*.component.html"
 ---
 
 # Component Rules — Angular

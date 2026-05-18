@@ -1,5 +1,5 @@
 ---
-applyTo: "**/components/**"
+applyTo: "src/**/components/**/*.tsx"
 ---
 
 # Component Rules — React

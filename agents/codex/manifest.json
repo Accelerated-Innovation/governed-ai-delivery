@@ -170,6 +170,7 @@
       "ui-react": {
         "files": [
           { "src": "agents-md/ui-react.md", "dest": "AGENTS.md" },
+          { "src": "agents-md/src-ui-react.md", "dest": "src/AGENTS.md" },
           { "src": "rules/ui-react/components.md", "dest": "src/features/components/AGENTS.md" },
           { "src": "rules/ui-react/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },
           { "src": "rules/ui-react/api.md", "dest": "src/features/api/AGENTS.md" },
@@ -207,6 +208,7 @@
           "mode": "replace",
           "files": [
             { "src": "agents-md/l5-ui-react.md", "dest": "AGENTS.md" },
+            { "src": "agents-md/src-ui-react.md", "dest": "src/AGENTS.md" },
             { "src": "rules/ui-react/components.md", "dest": "src/features/components/AGENTS.md" },
             { "src": "rules/ui-react/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },
             { "src": "rules/ui-react/api.md", "dest": "src/features/api/AGENTS.md" },
@@ -236,6 +238,7 @@
       "ui-angular": {
         "files": [
           { "src": "agents-md/ui-angular.md", "dest": "AGENTS.md" },
+          { "src": "agents-md/src-ui-angular.md", "dest": "src/AGENTS.md" },
           { "src": "rules/ui-angular/components.md", "dest": "src/features/components/AGENTS.md" },
           { "src": "rules/ui-angular/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },
           { "src": "rules/ui-angular/api.md", "dest": "src/features/api/AGENTS.md" },
@@ -273,6 +276,7 @@
           "mode": "replace",
           "files": [
             { "src": "agents-md/l5-ui-angular.md", "dest": "AGENTS.md" },
+            { "src": "agents-md/src-ui-angular.md", "dest": "src/AGENTS.md" },
             { "src": "rules/ui-angular/components.md", "dest": "src/features/components/AGENTS.md" },
             { "src": "rules/ui-angular/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },
             { "src": "rules/ui-angular/api.md", "dest": "src/features/api/AGENTS.md" },
