@@ -95,6 +95,11 @@
           "items": { "type": "string" },
           "description": "Govkit-owned governed contracts to copy from repo root to target (refreshed on upgrade)"
         },
+        "by_type": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/by_type_entry" },
+          "description": "v0.8 type-dispatched entries. Keys are values of the `type` option (e.g. 'api', 'ui-react'); each maps to a partial block whose files/shared/governed are folded into the parent block at resolve time. Currently used by the ci dimension to ship type-specific gates."
+        },
         "level_4": {
           "$ref": "#/$defs/level_override",
           "description": "Spec-Driven Add-On overlay applied at maturity level 4 (default mode: merge)"
@@ -128,6 +133,29 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "Level-specific govkit-owned governed contracts. Behavior depends on 'mode'."
+        },
+        "by_type": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/by_type_entry" },
+          "description": "v0.8 type-dispatched entries at this level. Same shape as the base by_type."
+        }
+      }
+    },
+    "by_type_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/file_entry" }
+        },
+        "shared": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "governed": {
+          "type": "array",
+          "items": { "type": "string" }
         }
       }
     }

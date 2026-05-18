@@ -512,6 +512,116 @@ class TestMergeMode:
         srcs = [f["src"] for f in files]
         assert srcs == ["l4.md"], "Explicit mode=replace must override merge default"
 
+    def test_by_type_dispatch_backend_gets_backend_gates(self):
+        """variants.ci with by_type: --type api routes to api-specific governed entries."""
+        manifest = {
+            "variants": {
+                "type": {"api": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": ["ci/github/repo-scope-check.yml"],
+                        "by_type": {
+                            "api":      {"governed": ["ci/github/l3-quality-gate.yml"]},
+                            "ui-react": {"governed": ["ci/github/l3-ui-quality-gate.yml"]},
+                        },
+                    }
+                },
+            }
+        }
+        _, _, governed = resolve_variant_files(manifest, {"type": "api", "ci": "github"})
+        assert "ci/github/repo-scope-check.yml" in governed, "common base entry must always ship"
+        assert "ci/github/l3-quality-gate.yml" in governed, "by_type[api] entry must ship"
+        assert "ci/github/l3-ui-quality-gate.yml" not in governed, "by_type[ui-react] must NOT ship for type=api"
+
+    def test_by_type_dispatch_ui_gets_ui_gates(self):
+        """variants.ci with by_type: --type ui-react routes to ui-specific governed entries."""
+        manifest = {
+            "variants": {
+                "type": {"ui-react": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": ["ci/github/repo-scope-check.yml"],
+                        "by_type": {
+                            "api":      {"governed": ["ci/github/l3-quality-gate.yml"]},
+                            "ui-react": {"governed": ["ci/github/l3-ui-quality-gate.yml"]},
+                        },
+                    }
+                },
+            }
+        }
+        _, _, governed = resolve_variant_files(manifest, {"type": "ui-react", "ci": "github"})
+        assert "ci/github/repo-scope-check.yml" in governed
+        assert "ci/github/l3-ui-quality-gate.yml" in governed
+        assert "ci/github/l3-quality-gate.yml" not in governed, "backend gate must NOT ship for type=ui-react"
+
+    def test_by_type_dispatch_at_level_4_merge(self):
+        """by_type works in both base and level_4 override (merge mode)."""
+        manifest = {
+            "variants": {
+                "type": {"api": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": [],
+                        "by_type": {"api": {"governed": ["base.yml"]}},
+                        "level_4": {
+                            "mode": "merge",
+                            "governed": [],
+                            "by_type": {"api": {"governed": ["l4.yml"]}},
+                        },
+                    }
+                },
+            }
+        }
+        _, _, governed = resolve_variant_files(
+            manifest, {"type": "api", "ci": "github", "level": "4"}
+        )
+        assert governed == ["base.yml", "l4.yml"], (
+            f"L4 merge must include base.by_type + override.by_type; got {governed}"
+        )
+
+    def test_by_type_dispatch_at_level_5_replace(self):
+        """by_type at level_5 (replace mode) discards base entirely."""
+        manifest = {
+            "variants": {
+                "type": {"api": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": ["base.yml"],
+                        "by_type": {"api": {"governed": ["base-api.yml"]}},
+                        "level_5": {
+                            "mode": "replace",
+                            "governed": ["l5-common.yml"],
+                            "by_type": {"api": {"governed": ["l5-api.yml"]}},
+                        },
+                    }
+                },
+            }
+        }
+        _, _, governed = resolve_variant_files(
+            manifest, {"type": "api", "ci": "github", "level": "5"}
+        )
+        assert governed == ["l5-common.yml", "l5-api.yml"], (
+            f"L5 replace must use only override + override.by_type; got {governed}"
+        )
+
+    def test_by_type_missing_entry_falls_through(self):
+        """If by_type has no entry for the current type value, only base entries ship."""
+        manifest = {
+            "variants": {
+                "type": {"api": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": ["common.yml"],
+                        "by_type": {"ui-react": {"governed": ["ui-only.yml"]}},
+                    }
+                },
+            }
+        }
+        _, _, governed = resolve_variant_files(manifest, {"type": "api", "ci": "github"})
+        assert governed == ["common.yml"], (
+            f"Missing by_type[api] entry must fall through to base only; got {governed}"
+        )
+
     def test_cross_dimension_dest_collision_preserved(self):
         # Synthetic guard for the cross-dimension `(src, dest)` dedup mechanism
         # in `_collect_entries`. Two distinct dimensions contributing different

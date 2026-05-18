@@ -303,55 +303,135 @@
       "github": {
         "files": [],
         "shared": [],
-        "governed": [
-          "ci/github/l3-quality-gate.yml",
-          "ci/github/repo-scope-check.yml"
-        ],
+        "governed": ["ci/github/repo-scope-check.yml"],
+        "by_type": {
+          "api":        { "governed": ["ci/github/l3-quality-gate.yml"] },
+          "cli":        { "governed": ["ci/github/l3-quality-gate.yml"] },
+          "ui-react":   { "governed": ["ci/github/l3-ui-quality-gate.yml"] },
+          "ui-angular": { "governed": ["ci/github/l3-ui-quality-gate.yml"] }
+        },
         "level_4": {
           "mode": "merge",
           "files": [],
           "shared": [],
-          "governed": [
-            "ci/github/quality-gate.yml",
-            "ci/github/eval-gate.yml",
-            "ci/github/ui-quality-gate.yml",
-            "ci/github/ui-eval-gate.yml"
-          ]
+          "governed": [],
+          "by_type": {
+            "api":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml"] },
+            "cli":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml"] },
+            "ui-react":   { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml"] },
+            "ui-angular": { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml"] }
+          }
         },
         "level_5": {
           "mode": "replace",
           "files": [],
           "shared": [],
-          "governed": [
-            "ci/github/"
-          ]
+          "governed": ["ci/github/repo-scope-check.yml"],
+          "by_type": {
+            "api": { "governed": [
+              "ci/github/l3-quality-gate.yml",
+              "ci/github/quality-gate.yml",
+              "ci/github/eval-gate.yml",
+              "ci/github/deepeval-gate.yml",
+              "ci/github/guardrails-check.yml",
+              "ci/github/multi-agent-gate.yml",
+              "ci/github/promptfoo-gate.yml"
+            ] },
+            "cli": { "governed": [
+              "ci/github/l3-quality-gate.yml",
+              "ci/github/quality-gate.yml",
+              "ci/github/eval-gate.yml",
+              "ci/github/deepeval-gate.yml",
+              "ci/github/guardrails-check.yml",
+              "ci/github/multi-agent-gate.yml",
+              "ci/github/promptfoo-gate.yml"
+            ] },
+            "ui-react": { "governed": [
+              "ci/github/l3-ui-quality-gate.yml",
+              "ci/github/ui-quality-gate.yml",
+              "ci/github/ui-eval-gate.yml",
+              "ci/github/deepeval-gate.yml",
+              "ci/github/guardrails-check.yml",
+              "ci/github/multi-agent-gate.yml",
+              "ci/github/promptfoo-gate.yml"
+            ] },
+            "ui-angular": { "governed": [
+              "ci/github/l3-ui-quality-gate.yml",
+              "ci/github/ui-quality-gate.yml",
+              "ci/github/ui-eval-gate.yml",
+              "ci/github/deepeval-gate.yml",
+              "ci/github/guardrails-check.yml",
+              "ci/github/multi-agent-gate.yml",
+              "ci/github/promptfoo-gate.yml"
+            ] }
+          }
         }
       },
       "azure": {
         "files": [],
         "shared": [],
-        "governed": [
-          "ci/azure/l3-quality-gate.yml",
-          "ci/azure/repo-scope-check.yml"
-        ],
+        "governed": ["ci/azure/repo-scope-check.yml"],
+        "by_type": {
+          "api":        { "governed": ["ci/azure/l3-quality-gate.yml"] },
+          "cli":        { "governed": ["ci/azure/l3-quality-gate.yml"] },
+          "ui-react":   { "governed": ["ci/azure/l3-ui-quality-gate.yml"] },
+          "ui-angular": { "governed": ["ci/azure/l3-ui-quality-gate.yml"] }
+        },
         "level_4": {
           "mode": "merge",
           "files": [],
           "shared": [],
-          "governed": [
-            "ci/azure/quality-gate.yml",
-            "ci/azure/eval-gate.yml",
-            "ci/azure/ui-quality-gate.yml",
-            "ci/azure/ui-eval-gate.yml"
-          ]
+          "governed": [],
+          "by_type": {
+            "api":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml"] },
+            "cli":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml"] },
+            "ui-react":   { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml"] },
+            "ui-angular": { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml"] }
+          }
         },
         "level_5": {
           "mode": "replace",
           "files": [],
           "shared": [],
-          "governed": [
-            "ci/azure/"
-          ]
+          "governed": ["ci/azure/repo-scope-check.yml"],
+          "by_type": {
+            "api": { "governed": [
+              "ci/azure/l3-quality-gate.yml",
+              "ci/azure/quality-gate.yml",
+              "ci/azure/eval-gate.yml",
+              "ci/azure/deepeval-gate.yml",
+              "ci/azure/guardrails-check.yml",
+              "ci/azure/multi-agent-gate.yml",
+              "ci/azure/promptfoo-gate.yml"
+            ] },
+            "cli": { "governed": [
+              "ci/azure/l3-quality-gate.yml",
+              "ci/azure/quality-gate.yml",
+              "ci/azure/eval-gate.yml",
+              "ci/azure/deepeval-gate.yml",
+              "ci/azure/guardrails-check.yml",
+              "ci/azure/multi-agent-gate.yml",
+              "ci/azure/promptfoo-gate.yml"
+            ] },
+            "ui-react": { "governed": [
+              "ci/azure/l3-ui-quality-gate.yml",
+              "ci/azure/ui-quality-gate.yml",
+              "ci/azure/ui-eval-gate.yml",
+              "ci/azure/deepeval-gate.yml",
+              "ci/azure/guardrails-check.yml",
+              "ci/azure/multi-agent-gate.yml",
+              "ci/azure/promptfoo-gate.yml"
+            ] },
+            "ui-angular": { "governed": [
+              "ci/azure/l3-ui-quality-gate.yml",
+              "ci/azure/ui-quality-gate.yml",
+              "ci/azure/ui-eval-gate.yml",
+              "ci/azure/deepeval-gate.yml",
+              "ci/azure/guardrails-check.yml",
+              "ci/azure/multi-agent-gate.yml",
+              "ci/azure/promptfoo-gate.yml"
+            ] }
+          }
         }
       }
     }
