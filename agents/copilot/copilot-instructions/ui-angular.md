@@ -176,7 +176,7 @@ If alignment is unclear, stop and ask.
 When your team is ready to adopt per-feature spec contracts, upgrade with:
 
 ```
-govkit apply --level 4 --ui angular --target <path>
+govkit apply --type ui-angular --level 4 --target <path>
 ```
 
 Level 4 layers the following on top of Level 3:

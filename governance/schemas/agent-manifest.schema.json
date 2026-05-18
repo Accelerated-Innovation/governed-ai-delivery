@@ -17,14 +17,20 @@
     },
     "options": {
       "type": "object",
-      "description": "Variant options presented to the user during govkit apply",
+      "description": "Variant options presented to the user during govkit apply. In v0.8 the allowed dimensions are level, type, and ci; the legacy `ui` dimension was removed by the project-shape refactor.",
+      "propertyNames": {
+        "enum": ["level", "type", "ci"]
+      },
       "additionalProperties": {
         "$ref": "#/$defs/option"
       }
     },
     "variants": {
       "type": "object",
-      "description": "Variant dimensions (type, ui, ci) mapping option values to file lists",
+      "description": "Variant dimensions (type, ci) mapping option values to file lists. The `level` option drives level_4/level_5 overrides inside each variant rather than its own top-level dimension.",
+      "propertyNames": {
+        "enum": ["type", "ci"]
+      },
       "additionalProperties": {
         "type": "object",
         "additionalProperties": {

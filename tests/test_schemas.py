@@ -215,6 +215,41 @@ class TestSchemaRejects:
         errors = list(validator.iter_errors(manifest))
         assert errors, "Manifest with level_3 block must be rejected post-v0.7.0"
 
+    def test_rejects_options_ui(self):
+        # v0.8 project-shape refactor: the legacy `ui` option dimension was
+        # removed. The schema must reject manifests that still declare it.
+        schema = _load_schema()
+        manifest = {
+            "agent": "x",
+            "description": "y",
+            "options": {
+                "type": {"prompt": "Type?", "choices": ["api"]},
+                "ui": {"prompt": "UI?", "choices": ["none", "react", "angular"]},
+            },
+            "variants": {"type": {"api": {"files": []}}},
+        }
+        validator = Draft202012Validator(schema)
+        errors = list(validator.iter_errors(manifest))
+        assert errors, "Manifest with options.ui must be rejected after v0.8 shape refactor"
+        assert any("ui" in str(e.message) or "propertyNames" in e.message for e in errors), (
+            f"At least one error must reference the rejected `ui` key; got: {[e.message for e in errors]}"
+        )
+
+    def test_rejects_variants_ui(self):
+        # Same v0.8 cleanup at the variants layer.
+        schema = _load_schema()
+        manifest = {
+            "agent": "x",
+            "description": "y",
+            "variants": {
+                "type": {"api": {"files": []}},
+                "ui": {"react": {"files": []}},
+            },
+        }
+        validator = Draft202012Validator(schema)
+        errors = list(validator.iter_errors(manifest))
+        assert errors, "Manifest with variants.ui must be rejected after v0.8 shape refactor"
+
 
 # ---------------------------------------------------------------------------
 # Positive: example manifests showing the new shapes
@@ -288,3 +323,26 @@ class TestSchemaAcceptsNewShapes:
         validator = Draft202012Validator(schema)
         errors = list(validator.iter_errors(manifest))
         assert not errors, f"mode must be optional on level_4; got: {errors}"
+
+    @pytest.mark.parametrize("ui_type", ["ui-react", "ui-angular"])
+    def test_accepts_new_ui_type_in_choices_and_variants(self, ui_type):
+        # v0.8 introduces the flat ui-react / ui-angular type values. The
+        # schema must accept them in type.choices and as variants.type keys.
+        schema = _load_schema()
+        manifest = {
+            "agent": "x",
+            "description": "y",
+            "options": {
+                "type": {"prompt": "Type?", "choices": ["api", "cli", "ui-react", "ui-angular"]},
+            },
+            "variants": {
+                "type": {
+                    ui_type: {
+                        "files": [{"src": f"claude-md/{ui_type}.md", "dest": "CLAUDE.md"}],
+                    }
+                }
+            },
+        }
+        validator = Draft202012Validator(schema)
+        errors = list(validator.iter_errors(manifest))
+        assert not errors, f"Schema must accept --type {ui_type}; got: {errors}"

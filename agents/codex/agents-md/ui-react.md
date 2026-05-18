@@ -157,7 +157,7 @@ If alignment is unclear, stop and ask.
 When your team is ready to adopt per-feature spec contracts, upgrade with:
 
 ```
-govkit apply --level 4 --ui react --target <path>
+govkit apply --type ui-react --level 4 --target <path>
 ```
 
 Level 4 layers the following on top of Level 3:

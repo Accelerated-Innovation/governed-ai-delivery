@@ -124,4 +124,4 @@ They shouldn't be — the `.gitignore` covers them. If they show up in `git stat
 
 ## Related plans
 
-- [plans/PROJECT_SHAPE_REFACTOR_PLAN.md](../plans/PROJECT_SHAPE_REFACTOR_PLAN.md) — these scripts are baseline tooling for the v0.8.0 refactor. Increment 0b adds a visual-inspection helper (`smoke-inspect.ps1`). Increment 11 rewrites the apply invocations (drops `--ui`, splits backend/UI by `--type`).
+- [plans/PROJECT_SHAPE_REFACTOR_PLAN.md](../plans/PROJECT_SHAPE_REFACTOR_PLAN.md) — these scripts are baseline tooling for the v0.8.0 refactor. `smoke-inspect.ps1` is the visual-inspection helper (Inc 0b). `smoke.ps1` / `smoke-ui.ps1` / `smoke-dotnet.ps1` now use the flat `--type {api,cli,ui-react,ui-angular}` enumeration (Inc 11 dropped the legacy `--ui` cross-product).

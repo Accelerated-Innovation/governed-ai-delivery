@@ -492,7 +492,7 @@ def cmd_list(_args: argparse.Namespace) -> None:
 
 def _prompt_starter_type() -> str:
     """Interactively prompt for the starter template type."""
-    choices = ["backend", "cli", "ui"]
+    choices = ["backend", "cli", "ui-react", "ui-angular"]
     prompt_text = f"  Feature type? [{' / '.join(choices)}] (default: backend): "
     answer = input(prompt_text).strip().lower()
     if answer == "":
@@ -501,6 +501,20 @@ def _prompt_starter_type() -> str:
         print(f"Error: invalid choice '{answer}'. Must be one of: {', '.join(choices)}")
         sys.exit(1)
     return answer
+
+
+def _starter_dir_slug(starter_type: str) -> str:
+    """Map a starter_type to its bundled directory slug.
+
+    Most types map 1:1 (backend → starter_backend). UI variants currently
+    share a single framework-agnostic starter — both ui-react and ui-angular
+    resolve to starter_ui. If they diverge later, separate starter_ui_react
+    and starter_ui_angular dirs can be added without resolver changes (the
+    1:1 path is the default).
+    """
+    if starter_type in ("ui-react", "ui-angular"):
+        return "ui"
+    return starter_type
 
 
 def _resolve_starter_dir(starter_type: str, level: str) -> Path:
@@ -514,11 +528,12 @@ def _resolve_starter_dir(starter_type: str, level: str) -> Path:
             "Run 'govkit apply --level 4' first to enable the spec-driven feature workflow."
         )
     bundled = REPO_ROOT / "features"
+    slug = _starter_dir_slug(starter_type)
     if level == "5":
-        level_dir = bundled / f"starter_{starter_type}_l5"
+        level_dir = bundled / f"starter_{slug}_l5"
         if level_dir.exists():
             return level_dir
-    return bundled / f"starter_{starter_type}"
+    return bundled / f"starter_{slug}"
 
 
 def cmd_init(args: argparse.Namespace) -> None:
@@ -850,7 +865,7 @@ def main() -> None:
     init_parser = subparsers.add_parser("init", help="Create a new feature folder from a starter template")
     init_parser.add_argument("feature", help="Feature name (e.g. user-auth, schema-publish)")
     init_parser.add_argument("--target", default=".", help="Path to the target project root (default: current directory)")
-    init_parser.add_argument("--starter", choices=["backend", "cli", "ui"], default=None,
+    init_parser.add_argument("--starter", choices=["backend", "cli", "ui-react", "ui-angular"], default=None,
                              help="Starter template type (default: prompted)")
     init_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                              help="Maturity level (default: read from .govkit or 4)")

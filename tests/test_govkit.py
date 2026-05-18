@@ -806,6 +806,38 @@ class TestSmokeInit:
         content = (target / "features" / "new-feature" / "acceptance.feature").read_text(encoding="utf-8")
         assert content == "Feature: bundled", "Should use bundled starter, not stale target starter"
 
+    @pytest.mark.parametrize("ui_starter", ["ui-react", "ui-angular"])
+    def test_init_ui_variants_resolve_to_starter_ui(self, tmp_path, monkeypatch, ui_starter):
+        """ui-react and ui-angular both map to the framework-agnostic starter_ui dir."""
+        import cli.govkit as mod
+
+        fake_repo = self._bundled_repo(tmp_path, starter="starter_ui")
+        monkeypatch.setattr(mod, "REPO_ROOT", fake_repo)
+
+        target = tmp_path / "project"
+        (target / "features").mkdir(parents=True)
+        write_govkit_marker(target, "claude-code", "4", {"type": ui_starter})
+
+        cmd_init(argparse.Namespace(feature="my-ui-feature", target=str(target), level=None, starter=ui_starter))
+
+        feature_dir = target / "features" / "my-ui-feature"
+        assert (feature_dir / "acceptance.feature").read_text(encoding="utf-8") == "Feature: bundled"
+
+    @pytest.mark.parametrize("ui_starter,level", [
+        ("ui-react", "4"), ("ui-react", "5"),
+        ("ui-angular", "4"), ("ui-angular", "5"),
+    ])
+    def test_resolve_starter_dir_ui_variants(self, tmp_path, monkeypatch, ui_starter, level):
+        """_resolve_starter_dir maps both UI variants to starter_ui (no starter_ui_l5 today)."""
+        import cli.govkit as mod
+        fake_repo = self._bundled_repo(tmp_path, starter="starter_ui")
+        monkeypatch.setattr(mod, "REPO_ROOT", fake_repo)
+
+        result = mod._resolve_starter_dir(ui_starter, level)
+        assert result.name == "starter_ui", (
+            f"--starter {ui_starter} --level {level} must resolve to starter_ui, got {result.name}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # governed key in resolve_variant_files
