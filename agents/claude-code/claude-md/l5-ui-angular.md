@@ -87,12 +87,12 @@ Implementation must not begin unless all five artifacts exist.
 
 ## Layer Rules
 
-Layer-specific rules load automatically from `.claude/rules/` when editing files in each layer:
+Layer-specific rules are consolidated in `src/CLAUDE.md`. Claude Code loads it automatically when working anywhere under `src/`. Categories covered:
 
-- `components.md` — `**/components/**`
-- `viewmodel.md` — `**/hooks/**`, `**/store/**`
-- `ui-api.md` — `**/api/**`
-- `accessibility.md` — all UI files
+- Component rules — `**/components/**`
+- ViewModel rules (hooks + store) — `**/hooks/**`, `**/store/**`
+- API (Model) rules — `**/api/**`
+- Accessibility rules — all UI files
 
 ### View — Components (`src/features/<feature>/components/`)
 - Standalone Angular components only — no `NgModule` registration

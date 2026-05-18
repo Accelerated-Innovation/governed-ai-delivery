@@ -8,6 +8,7 @@ PowerShell scripts that exercise `govkit apply` and `govkit validate` across the
 |---|---|---|
 | `smoke.ps1` | 3 agents × 3 levels (`--type api`) | `scripts/projects/` |
 | `smoke-ui.ps1` | 3 agents × 2 frameworks × 3 levels (`--type api --ui react\|angular`) | `scripts/projects-ui/` |
+| `smoke-ui-new.ps1` | 3 agents × 2 UI shapes × 3 levels (`--type ui-react\|ui-angular`) — tactical, superseded by Phase 4 Inc 11 | `scripts/projects-ui-new/` |
 | `smoke-dotnet.ps1` | 3 agents × 3 levels (`--type api`, .NET-realistic feature content) | `scripts/projects-dotnet/` |
 | `smoke-inspect.ps1` | Visual inspection helper (no apply/validate) | Reads from `scripts/projects*/` |
 

@@ -41,21 +41,21 @@ Read before generating any code:
 - All server data via TanStack Query inject functions
 - All client state via Signal store injection
 - Use `@if`, `@for`, `@switch` control flow (Angular 17+)
-- See `.claude/rules/components.md`
+- See `src/CLAUDE.md`
 
 ### ViewModel — Query Functions (`src/features/<feature>/hooks/`)
 - All server state via TanStack Angular Query (`injectQuery`, `injectMutation`)
 - Transform API responses in `select` — never in templates or components
 - Query keys defined as typed constants in `query-keys.ts` per feature
 - Mutations must invalidate relevant query keys on success
-- See `.claude/rules/viewmodel.md`
+- See `src/CLAUDE.md`
 
 ### ViewModel — Signal Store (`src/features/<feature>/store/`)
 - Angular Signals for UI-only state — modals, active tab, pagination, selections
 - Never store server data — use TanStack Query cache
 - Expose read-only signals via `.asReadonly()`
 - Never call API services directly from a store
-- See `.claude/rules/viewmodel.md`
+- See `src/CLAUDE.md`
 
 ### Model — API (`src/features/<feature>/api/`)
 - Plain async functions using the shared `ApiService`

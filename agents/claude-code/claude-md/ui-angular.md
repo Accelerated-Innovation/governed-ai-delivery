@@ -51,7 +51,7 @@ Read before generating any code:
 - All server data via TanStack Query inject functions
 - All client state via Signal store injection
 - Use `@if`, `@for`, `@switch` control flow (Angular 17+)
-- See `.claude/rules/components.md`
+- See `src/CLAUDE.md`
 
 ### ViewModel — Query Functions (`src/features/<slice>/hooks/`)
 
@@ -59,7 +59,7 @@ Read before generating any code:
 - Transform API responses in `select` — never in templates or components
 - Query keys defined as typed constants in `query-keys.ts` per slice
 - Mutations must invalidate relevant query keys on success
-- See `.claude/rules/viewmodel.md`
+- See `src/CLAUDE.md`
 
 ### ViewModel — Signal Store (`src/features/<slice>/store/`)
 
@@ -68,19 +68,19 @@ Read before generating any code:
 - Never store server data — use TanStack Query cache
 - Expose read-only signals via `.asReadonly()`
 - Never call API services directly from a store
-- See `.claude/rules/viewmodel.md`
+- See `src/CLAUDE.md`
 
 ### Model — API (`src/features/<slice>/api/`)
 
 - Plain functions wrapping `HttpClient`
 - One file per backend resource
 - Use shared base from `src/shared/api/`
-- See `.claude/rules/ui-api.md`
+- See `src/CLAUDE.md`
 
 ### Accessibility
 
 - Every interactive component must meet WCAG 2.1 AA
-- See `.claude/rules/accessibility.md` and
+- See `src/CLAUDE.md` and
   `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`
 
 ---
