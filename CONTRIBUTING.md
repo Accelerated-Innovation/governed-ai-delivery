@@ -39,20 +39,20 @@ When a change affects behavior, contributors should update the relevant document
 governed-ai-delivery/
 ├── agents/
 │   ├── claude-code/                  # Claude Code agent (variant-based)
-│   │   ├── manifest.json            # Variant options: type, ui, ci
-│   │   ├── claude-md/               # CLAUDE.md variants per project type
-│   │   ├── rules/                   # Path-scoped rules (backend/, cli/, ui-react/, ui-angular/)
-│   │   └── skills/                  # Skills (backend/, ui/)
+│   │   ├── manifest.json            # Variant options: level, type, ci (v0.8 — no more `ui`)
+│   │   ├── claude-md/               # CLAUDE.md variants per project shape (api, cli, ui-react, ui-angular)
+│   │   ├── rules/                   # Path-scoped rules (backend/, cli/, ui-react/, ui-angular/, generic/)
+│   │   └── skills/                  # Open Skills format (backend/, ui/) — installed to .claude/skills/
 │   ├── copilot/                     # Copilot agent (variant-based)
 │   │   ├── manifest.json
-│   │   ├── copilot-instructions/    # Instruction variants per project type
-│   │   ├── instructions/            # Path-scoped instructions (backend/, cli/, ui-react/, ui-angular/)
-│   │   └── prompts/                 # Chat prompts (backend/, ui/)
+│   │   ├── copilot-instructions/    # .github/copilot-instructions.md variants per shape
+│   │   ├── instructions/            # Path-scoped instructions with applyTo: globs (backend/, cli/, ui-react/, ui-angular/, generic/)
+│   │   └── skills/                  # Open Skills format — installed to .github/skills/
 │   └── codex/                       # OpenAI Codex agent (variant-based)
 │       ├── manifest.json
-│       ├── agents-md/               # Root AGENTS.md variants per project type and level
+│       ├── agents-md/               # Root AGENTS.md variants per shape and level
 │       ├── rules/                   # Body-only rules installed as nested AGENTS.md per layer
-│       └── skills/                  # SKILL.md skills installed to .agents/skills/
+│       └── skills/                  # Open Skills format — installed to .agents/skills/
 ├── cli/
 │   ├── govkit.py                    # CLI — apply, list, init, validate
 │   └── validate.py                  # Governance compliance checker
@@ -109,6 +109,29 @@ Changes should:
 * Include an ADR when introducing or changing a significant pattern
 * Be reflected in related agent instructions, templates, or examples when they affect generated output
 * Avoid placing stack-specific rules in generic guidance unless intentionally scoped
+
+### Modifying Skills (Open Skills Format)
+
+All `SKILL.md` files across the three agents follow the **Open Skills** standard:
+
+```yaml
+---
+name: <skill-name>
+description: <one sentence describing WHAT the skill does AND WHEN to use it. The harness uses this to decide whether to invoke.>
+---
+
+<body — operates on natural-language arguments derived from context; no $ARGUMENTS substitution>
+```
+
+When modifying or adding a skill:
+
+* **Frontmatter must be byte-identical** across all three agents for the same skill (e.g., `agents/{claude-code,codex,copilot}/skills/backend/spec-planning/SKILL.md` must share the same `name:` and `description:`). The parity test in `tests/test_govkit.py::TestNoUiDimensionInManifests` and the test suite generally lock this in.
+* **No `$ARGUMENTS` substitution** — derive feature names and other arguments from the user's natural-language request; ask if not provided.
+* **No agent-specific extensions** like `argument-hint:` (Claude Code) or `user-invocable:` (Copilot) — these were removed in v0.8.
+* **Body content can differ slightly** between agents only in path-notation conventions (e.g., Copilot uses `**` globs; Codex references nested `AGENTS.md` paths). The substantive instructions must match.
+* For Codex's root files (`agents-md/*.md`), use `$skill-name` invocation syntax (Codex-native). For Claude Code (`claude-md/*.md`) and Copilot (`copilot-instructions/*.md`), use `/skill-name`.
+
+If you add a new skill, ship it for all three agents in lockstep. The test suite enforces parity.
 
 ### Modifying Schemas
 

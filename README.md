@@ -29,6 +29,7 @@ One command installs govkit. One more applies it to your project. The governance
 - [Key Concepts](#key-concepts)
 - [Working With the Agent](#working-with-the-agent)
 - [Project Type Details](#project-type-details)
+- [Monorepo (Fullstack) Pattern](#monorepo-fullstack-pattern)
 - [Switching Tech Stacks](#switching-tech-stacks)
 - [Interpreting Validation Failures](#interpreting-validation-failures)
 - [Troubleshooting & FAQ](#troubleshooting--faq)
@@ -72,73 +73,90 @@ From your project root, run `govkit apply` and answer the prompts:
 govkit apply --agent claude-code --target .
 ```
 
-Or specify all options explicitly:
+Or specify all options explicitly. Each `govkit apply` configures **one project shape**: backend (`api` / `cli`) or UI (`ui-react` / `ui-angular`). Fullstack-in-one-repo is supported via the [monorepo pattern](docs/MONOREPO_PATTERN.md) — one `govkit apply` per subdirectory.
 
 ```bash
 # Level 3: Governed AI Delivery (Foundations) — agent rules + architecture docs only (default)
-govkit apply --agent claude-code --level 3 --type api --ui none --ci github --target .
+govkit apply --agent claude-code --level 3 --type api --ci github --target .
 
 # Level 4: Spec-Driven Add-On — adds the features/ directory and 5-artifact contract
-govkit apply --agent claude-code --level 4 --type api --ui react --ci github --target .
+govkit apply --agent claude-code --level 4 --type api --ci github --target .
 
 # Level 5: GenAI Operations (LLM routing, evaluation, guardrails)
-govkit apply --agent claude-code --level 5 --type api --ui none --ci github --target .
+govkit apply --agent claude-code --level 5 --type api --ci github --target .
 
-# Python CLI tool + Azure DevOps (no UI)
-govkit apply --agent copilot --type cli --ui none --ci azure --target .
+# Python CLI tool + Azure DevOps
+govkit apply --agent copilot --type cli --ci azure --target .
 
-# API backend only + GitHub Actions
-govkit apply --agent copilot --type api --ui none --ci github --target .
+# React UI project (L4)
+govkit apply --agent copilot --level 4 --type ui-react --ci github --target .
 
-# OpenAI Codex, L4 API backend + React UI
-govkit apply --agent codex --type api --ui react --ci github --target .
+# Angular UI project (L4) on OpenAI Codex
+govkit apply --agent codex --level 4 --type ui-angular --ci github --target .
 ```
 
 A `.govkit` marker file is written to your project root, tracking the agent, level, options, and govkit version. This enables `govkit init`, `govkit validate`, and `govkit upgrade` to auto-detect your configuration without re-specifying flags.
 
-When using interactive mode (no `--type`, `--ui`, `--ci` flags), you'll see prompts like:
+When using interactive mode (no `--type`, `--ci` flags), you'll see prompts like:
 
 ```
 $ govkit apply --agent claude-code --target .
 
 Applying govkit agent 'claude-code' to /path/to/your/project
 
-  Project type? [api / cli] (default: api): api
-  UI framework? [none / react / angular] (default: none): react
+  Project type? [api / cli / ui-react / ui-angular] (default: api): ui-react
   CI platform? [github / azure] (default: github): github
 
-  Configuration: {'type': 'api', 'ui': 'react', 'ci': 'github'}
+  Configuration: {'type': 'ui-react', 'ci': 'github'}
 
 Agent files:
   copied  /path/to/your/project/CLAUDE.md
-  copied  /path/to/your/project/.claude/rules/api.md
+  copied  /path/to/your/project/src/CLAUDE.md
+  copied  /path/to/your/project/.claude/rules/repo-scope.md
   ...
 ```
 
 ### 4. Verify installation
 
-After applying, your project will contain:
+After applying, your project will contain artifacts appropriate to the shape you picked.
+
+**Backend shape** (`--type api` or `--type cli`):
 
 ```
 your-project/
 ├── CLAUDE.md (or .github/copilot-instructions.md, or AGENTS.md)
 ├── .claude/rules/ (or .github/instructions/, or nested AGENTS.md per layer)
-│   ├── api.md, services.md, ports.md, adapters.md, security.md
-│   └── (UI rules if --ui was specified)
+│   └── api.md, services.md, ports.md, adapters.md, security.md, repo-scope.md
 ├── .claude/skills/ (or .github/skills/, or .agents/skills/)
-│   ├── architecture-preflight/, spec-planning/, implementation-plan/, adr-author/
-│   └── (UI skills if --ui was specified)
-├── docs/
-│   ├── backend/architecture/   — ARCH_CONTRACT, API_CONVENTIONS, TECH_STACK, etc.
-│   └── backend/evaluation/     — eval_criteria.md, scoring rubrics
-├── features/                   — created empty; scaffold your first feature with govkit init
-├── governance/
-│   └── backend/schemas/        — eval_criteria.schema.json
-└── ci/
-    └── github/ (or azure/)     — quality-gate.yml, eval-gate.yml
+│   └── architecture-preflight/, spec-planning/, implementation-plan/, adr-author/
+├── docs/backend/
+│   ├── architecture/   — ARCH_CONTRACT, API_CONVENTIONS, TECH_STACK, etc.
+│   └── evaluation/     — eval_criteria.md, scoring rubrics
+├── features/           — created empty at L4+; scaffold your first feature with govkit init
+├── governance/backend/schemas/   — eval_criteria.schema.json
+└── ci/github/ (or azure/)        — l3-quality-gate.yml + L4/L5 gates
 ```
 
-If `--ui react` or `--ui angular` was specified, you'll also see `docs/ui/`, `governance/ui/`, and UI-specific CI pipelines.
+**UI shape** (`--type ui-react` or `--type ui-angular`):
+
+```
+your-project/
+├── CLAUDE.md (or .github/copilot-instructions.md, or AGENTS.md)
+├── src/CLAUDE.md       — Claude only: nested UI layer rules under src/
+│                         (Codex uses src/AGENTS.md + nested AGENTS.md per layer;
+│                          Copilot uses .github/instructions/ with src-scoped applyTo: globs)
+├── .claude/rules/ (or .github/instructions/)
+│   └── repo-scope.md, test-first.md (L4+), spec-compliance.md (L4+)
+├── .claude/skills/
+│   └── ui-architecture-preflight/, ui-spec-planning/, ui-implementation-plan/, ui-adr-author/
+├── docs/ui/
+│   ├── architecture/   — MVVM_CONTRACT, ACCESSIBILITY_STANDARDS, react|angular subdirs
+│   └── evaluation/     — eval_criteria.md, scoring rubrics
+├── governance/ui/      — schemas, templates
+└── ci/github/ (or azure/)  — l3-ui-quality-gate.yml + L4/L5 UI gates
+```
+
+Backend installs ship no UI artifacts; UI installs ship no backend artifacts. The CI dispatch is type-aware: backend types get `l3-quality-gate.yml`, UI types get `l3-ui-quality-gate.yml`. For fullstack monorepos, run one `govkit apply` per app subdirectory — see the [monorepo pattern](docs/MONOREPO_PATTERN.md).
 
 > **Starter templates and worked examples** are bundled inside the govkit package, not copied into your project by `govkit apply`. Use `govkit init <feature-name>` to scaffold a new feature from the appropriate starter, or run `govkit list` to see what is available.
 
@@ -291,9 +309,10 @@ All agents support the same variant options:
 | Option | Choices | Default |
 |---|---|---|
 | `--level` | `3`, `4`, `5` | `3` |
-| `--type` | `api`, `cli` | `api` |
-| `--ui` | `none`, `react`, `angular` | `none` |
+| `--type` | `api`, `cli`, `ui-react`, `ui-angular` | `api` |
 | `--ci` | `github`, `azure` | `github` |
+
+The `--type` choices are flat — one install configures one project shape. The legacy `--ui` cross-product was removed in v0.8. For fullstack monorepos see the [monorepo pattern](docs/MONOREPO_PATTERN.md).
 
 ---
 
@@ -471,6 +490,27 @@ The 8-step workflow above applies to all project types. Key differences by type:
 **Implementation order:** API functions → TanStack Query inject functions → Signal stores → Standalone components → E2E tests
 
 **CI gates:** `ci/github/ui-quality-gate.yml`, `ci/github/ui-eval-gate.yml`
+
+---
+
+## Monorepo (Fullstack) Pattern
+
+Each `govkit apply` configures **one project shape**. There is no `--type fullstack`. Teams that need both backend and UI in a single repo run `govkit apply` once per subdirectory:
+
+```bash
+govkit apply --agent claude-code --type api      --level 4 --ci github --target apps/api
+govkit apply --agent claude-code --type ui-react --level 4 --ci github --target apps/web
+```
+
+Each subdir becomes a self-contained govkit install — separate `.govkit` marker, separate `features/`, separate CI gates. The three agents all support subpath governance natively:
+
+- **Claude Code** — recursive `CLAUDE.md` discovery picks up the right shape based on the open file's directory
+- **Codex** — directory-walk loader concatenates `AGENTS.md` from leaf to root
+- **Copilot** — `applyTo:` globs in each instructions file (one small post-install adjustment to prefix the app path so globs don't cross app boundaries)
+
+For the complete setup — directory layout, CI workflow examples, the Copilot `applyTo:` prefix tweak, feature governance per app, upgrade flow, and gotchas — see [docs/MONOREPO_PATTERN.md](docs/MONOREPO_PATTERN.md).
+
+If your backend and UI live in **separate repositories** instead of subdirectories of a monorepo, see [Multi-Repository Features](#multi-repository-features) below — different coordination problem.
 
 ---
 
