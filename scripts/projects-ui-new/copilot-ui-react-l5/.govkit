@@ -1,0 +1,11 @@
+{
+  "version": "0.7.0",
+  "level": "5",
+  "agent": "copilot",
+  "options": {
+    "type": "ui-react",
+    "ui": "none",
+    "ci": "github"
+  },
+  "applied_at": "2026-05-18T09:31:56.813528+00:00"
+}

@@ -1,0 +1,181 @@
+# quality-gate-example.yml
+#
+# PURPOSE: Enforces structural and security quality on every PR.
+# Copy this file to .github/workflows/quality-gate.yml and configure the
+# steps marked "Configure your..." before enabling in CI.
+#
+# JOBS:
+#   schema-validation      — validates backend features/*/eval_criteria.yaml against
+#                            governance/backend/schemas/eval_criteria.schema.json
+#                            NOTE: UI features use governance/ui/schemas/eval_criteria.schema.json
+#                            (validated separately in ci/github/ui-quality-gate.yml)
+#   boundary-check         — enforces hexagonal architecture boundaries via import-linter
+#                            (requires .importlinter config in your repo root)
+#   sonarqube              — SonarQube quality gate (requires SONAR_TOKEN and SONAR_HOST_URL secrets)
+#   security-scan          — Snyk vulnerability scan (requires SNYK_TOKEN secret)
+#   contract-compatibility — detects @contract-tagged features and checks backward compatibility
+#                            (configure your schema diff tool in the final step)
+#   governance-artifacts   — checks that required governance artifacts exist for each feature
+#   commit-format          — validates commit message format matches project conventions
+#
+# REQUIRED SECRETS (optional — remove jobs you don't use):
+#   SONAR_TOKEN, SONAR_HOST_URL — only if using the sonarqube job
+#   SNYK_TOKEN                  — only if using the security-scan job
+#   If your team doesn't use SonarQube or Snyk, delete those jobs entirely
+#   rather than letting them fail.
+# SEE ALSO: ci/github/eval-gate.yml for evaluation score gates
+
+name: Quality Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  schema-validation:
+    name: Validate eval_criteria.yaml files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install check-jsonschema
+        run: pip install check-jsonschema
+
+      - name: Validate all eval_criteria.yaml instances
+        run: |
+          find features -name "eval_criteria.yaml" | while read file; do
+            echo "Validating $file"
+            check-jsonschema --schemafile governance/backend/schemas/eval_criteria.schema.json "$file"
+          done
+
+  boundary-check:
+    name: Architecture boundary enforcement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install import-linter
+        run: pip install import-linter
+
+      - name: Run boundary checks
+        run: lint-imports
+
+  sonarqube:
+    name: SonarQube quality gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarQube scan
+        uses: SonarSource/sonarqube-scan-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: SonarQube quality gate check
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  security-scan:
+    name: Security vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Snyk
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+  contract-compatibility:
+    name: Contract compatibility check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect contract-producing features
+        id: detect-contracts
+        run: |
+          # Find features that have @contract-tagged scenarios
+          CONTRACT_FEATURES=$(grep -rl "@contract" features/ --include="*.feature" \
+            | xargs -I{} dirname {} | sort -u | tr '\n' ',')
+          echo "contract_features=$CONTRACT_FEATURES" >> $GITHUB_OUTPUT
+
+      - name: Check contract schema backward compatibility
+        if: steps.detect-contracts.outputs.contract_features != ''
+        run: |
+          # Compare each contract schema against the base branch version.
+          # Replace with your schema registry or file-based comparison tool.
+          # Example using json-schema-diff-validator:
+          #   pip install json-schema-diff-validator
+          #   json-schema-diff-validator --base origin/main --head HEAD governance/backend/schemas/
+          echo "Contract features detected: ${{ steps.detect-contracts.outputs.contract_features }}"
+          echo "Configure your backward-compatibility check here."
+
+  governance-artifacts:
+    name: Governance artifact checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check architecture preflight exists for planned features
+        run: |
+          errors=0
+          for plan in features/*/plan.md; do
+            [ -f "$plan" ] || continue
+            feature_dir=$(dirname "$plan")
+            feature=$(basename "$feature_dir")
+            # Skip starter templates
+            case "$feature" in starter_*) continue;; esac
+            if [ ! -f "$feature_dir/architecture_preflight.md" ]; then
+              echo "FAIL: $feature has plan.md but no architecture_preflight.md"
+              errors=$((errors + 1))
+            fi
+          done
+          if [ "$errors" -gt 0 ]; then
+            echo "$errors feature(s) missing architecture_preflight.md"
+            exit 1
+          fi
+          echo "All planned features have architecture preflight artifacts."
+
+  commit-format:
+    name: Commit message format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: |
+          # Check commits on this PR branch (not on main)
+          COMMITS=$(git log --format="%s" origin/main..HEAD 2>/dev/null || true)
+          if [ -z "$COMMITS" ]; then
+            echo "No new commits to check."
+            exit 0
+          fi
+          errors=0
+          while IFS= read -r msg; do
+            # Allow: feat|fix|docs|test|refactor|chore with optional scope
+            if ! echo "$msg" | grep -qE "^(feat|fix|docs|test|refactor|chore)(\(.*\))?: .+"; then
+              echo "FAIL: '$msg'"
+              errors=$((errors + 1))
+            fi
+          done <<< "$COMMITS"
+          if [ "$errors" -gt 0 ]; then
+            echo ""
+            echo "$errors commit(s) do not match format: type(scope): description"
+            echo "Allowed types: feat, fix, docs, test, refactor, chore"
+            exit 1
+          fi
+          echo "All commit messages match expected format."

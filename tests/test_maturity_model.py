@@ -104,7 +104,6 @@ def _apply_args(target: Path, **overrides) -> argparse.Namespace:
         level=None,
         type="api",
         ci="github",
-        ui="none",
     )
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
@@ -191,12 +190,10 @@ class TestApplyFeaturesDirBehavior:
                 "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "3"},
                 "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
                 "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
-                "ui": {"prompt": "UI?", "choices": ["none"], "default": "none"},
             },
             "variants": {
                 "type": {"api": {"files": [], "shared": [], "governed": []}},
                 "ci": {"github": {"files": [], "shared": [], "governed": []}},
-                "ui": {"none": {"files": [], "shared": [], "governed": []}},
             },
             "base_files": [],
         }

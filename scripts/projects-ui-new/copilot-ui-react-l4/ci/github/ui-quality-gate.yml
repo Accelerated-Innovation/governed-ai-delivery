@@ -1,0 +1,146 @@
+# ui-quality-gate-example.yml
+#
+# PURPOSE: Enforces structural and accessibility quality on every UI PR.
+# Copy this file to .github/workflows/ui-quality-gate.yml and configure the
+# steps marked "Configure your..." before enabling in CI.
+#
+# JOBS:
+#   type-check          — TypeScript strict mode (tsc --noEmit)
+#   lint                — ESLint including accessibility linting
+#                         React: eslint-plugin-jsx-a11y
+#                         Angular: @angular-eslint
+#   component-tests     — Jest (or Vitest for React) + React/Angular Testing Library
+#                         Includes jest-axe accessibility checks — zero critical violations
+#   schema-validation   — validates every features/*/eval_criteria.yaml against
+#                         governance/ui/schemas/eval_criteria.schema.json
+#   bundle-size         — advisory bundle size check (configure threshold as needed)
+#
+# FRAMEWORK: Steps marked [React] or [Angular] apply to one framework only.
+#            Steps with no marker apply to both.
+#
+# REQUIRED SECRETS: none by default
+# SEE ALSO: ci/github/ui-eval-gate.yml for Playwright E2E and accessibility scan gates
+
+name: UI Quality Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  type-check:
+    name: TypeScript type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # [React] Uses eslint-plugin-jsx-a11y — configure in .eslintrc
+      # [Angular] Uses @angular-eslint — configure in .eslintrc or angular.json
+      - name: Run ESLint
+        run: npx eslint . --max-warnings=0
+
+  component-tests:
+    name: Component tests (Jest + jest-axe)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # [React] Configure your test script in package.json:
+      #   "test:ci": "vitest run --coverage" or "jest --ci --coverage"
+      # [Angular] Configure your test script in package.json:
+      #   "test:ci": "jest --ci --coverage"
+      #
+      # jest-axe is run inside each component test — zero critical violations
+      # will cause the test suite to fail automatically.
+      - name: Run component tests
+        run: npm run test:ci
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+
+  schema-validation:
+    name: Validate UI eval_criteria.yaml files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install check-jsonschema
+        run: pip install check-jsonschema
+
+      - name: Validate all UI eval_criteria.yaml instances
+        run: |
+          find features -name "eval_criteria.yaml" | while read file; do
+            echo "Validating $file"
+            check-jsonschema --schemafile governance/ui/schemas/eval_criteria.schema.json "$file"
+          done
+
+  bundle-size:
+    name: Bundle size check (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # [React] Configure your build script — Vite produces dist/assets/
+      # [Angular] Configure your build script — Angular CLI produces dist/<project>/
+      # Configure your size budget threshold below.
+      - name: Build
+        run: npm run build
+
+      # Advisory only — does not block merge by default.
+      # To make this blocking, remove the "continue-on-error: true" line
+      # and configure a size threshold appropriate for your project.
+      - name: Check bundle size
+        continue-on-error: true
+        run: |
+          # Configure your bundle size tool here.
+          # Options: bundlesize, size-limit, or custom du check.
+          # Example using size-limit:
+          #   npx size-limit
+          echo "Configure bundle size check for your project."

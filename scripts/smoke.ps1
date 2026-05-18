@@ -166,7 +166,7 @@ foreach ($agent in $Agents) {
 
         # ---- apply ----
         Write-Host "  govkit apply --agent $agent --level $level" -ForegroundColor Cyan
-        & $venvGovkit apply --agent $agent --level $level --type api --ui none --ci github --target $projectPath
+        & $venvGovkit apply --agent $agent --level $level --type api --ci github --target $projectPath
         $applyExit = $LASTEXITCODE
         $applyStatus = if ($applyExit -eq 0) { "PASS" } else { "FAIL($applyExit)" }
 

@@ -513,10 +513,13 @@ class TestMergeMode:
         assert srcs == ["l4.md"], "Explicit mode=replace must override merge default"
 
     def test_cross_dimension_dest_collision_preserved(self):
-        # Regression guard: copilot legitimately installs `instructions/backend/`
-        # AND `instructions/ui-react/` to the same `.github/instructions/` dest
-        # across the type and ui dimensions. The cross-dimension `(src, dest)`
-        # dedup must keep both.
+        # Synthetic guard for the cross-dimension `(src, dest)` dedup mechanism
+        # in `_collect_entries`. Two distinct dimensions contributing different
+        # sources to the same dest must both survive — within-dimension dedup
+        # is `_dimension_entries`'s job and runs upstream. This test uses two
+        # synthetic dimensions (the production v0.8 manifests no longer have
+        # a real cross-dimension collision case, but the mechanism is defensive
+        # against future additions and must not regress).
         manifest = {
             "variants": {
                 "type": {
@@ -524,16 +527,16 @@ class TestMergeMode:
                         "files": [{"src": "instructions/backend/", "dest": ".github/instructions/"}],
                     }
                 },
-                "ui": {
-                    "react": {
-                        "files": [{"src": "instructions/ui-react/", "dest": ".github/instructions/"}],
+                "ci": {
+                    "github": {
+                        "files": [{"src": "ci-instructions/github/", "dest": ".github/instructions/"}],
                     }
                 },
             }
         }
-        files, _, _ = resolve_variant_files(manifest, {"type": "api", "ui": "react"})
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "ci": "github"})
         srcs = sorted(f["src"] for f in files)
-        assert srcs == ["instructions/backend/", "instructions/ui-react/"], (
+        assert srcs == ["ci-instructions/github/", "instructions/backend/"], (
             "Cross-dimension entries with the same dest must both survive "
             "(legitimate directory accumulation pattern)."
         )
@@ -686,7 +689,6 @@ def _make_fake_agent(tmp_path: Path, shared: list[str] | None = None) -> Path:
             "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
             "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
             "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
-            "ui": {"prompt": "UI?", "choices": ["none"], "default": "none"},
         },
         "variants": {
             "type": {
@@ -703,7 +705,7 @@ def _make_fake_agent(tmp_path: Path, shared: list[str] | None = None) -> Path:
 
 
 def _apply_args(target: Path, **overrides) -> argparse.Namespace:
-    defaults = dict(agent="claude-code", target=str(target), level="4", type="api", ci="github", ui="none")
+    defaults = dict(agent="claude-code", target=str(target), level="4", type="api", ci="github")
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
 
@@ -898,7 +900,6 @@ def _make_upgrade_repo(tmp_path: Path, agent: str = "test-agent") -> Path:
             "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
             "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
             "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
-            "ui": {"prompt": "UI?", "choices": ["none"], "default": "none"},
         },
         "variants": {
             "type": {
@@ -931,7 +932,7 @@ class TestCmdUpgrade:
             "version": version,
             "level": "4",
             "agent": "test-agent",
-            "options": {"type": "api", "ci": "github", "ui": "none"},
+            "options": {"type": "api", "ci": "github"},
             "applied_at": "2025-01-01T00:00:00+00:00",
         }
         (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
@@ -1054,7 +1055,7 @@ def _make_legacy_target(tmp_path: Path, level: str, version: str = "0.6.0",
         "version": version,
         "level": level,
         "agent": "test-agent",
-        "options": {"type": "api", "ci": "github", "ui": "none"},
+        "options": {"type": "api", "ci": "github"},
         "applied_at": "2026-04-01T00:00:00+00:00",
     }
     (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
@@ -1129,6 +1130,111 @@ class TestMigrationWarning:
         err = capsys.readouterr().err
         # Non-numeric versions compare equal — no warning
         assert "maturity model" not in err
+
+
+class TestNoUiDimensionInManifests:
+    """Production manifests must not carry the dropped v0.8 `ui` dimension."""
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    def test_no_ui_options_or_variants(self, agent):
+        from cli.govkit import AGENTS_DIR
+        manifest_path = AGENTS_DIR / agent / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        assert "ui" not in manifest.get("options", {}), (
+            f"{agent}: options.ui must be absent after v0.8 shape refactor"
+        )
+        assert "ui" not in manifest.get("variants", {}), (
+            f"{agent}: variants.ui must be absent after v0.8 shape refactor"
+        )
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    def test_type_choices_include_ui_shapes(self, agent):
+        from cli.govkit import AGENTS_DIR
+        manifest_path = AGENTS_DIR / agent / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        type_choices = manifest["options"]["type"]["choices"]
+        for expected in ("api", "cli", "ui-react", "ui-angular"):
+            assert expected in type_choices, (
+                f"{agent}: options.type.choices must include '{expected}'"
+            )
+
+
+class TestShapeMigrationWarning:
+    """read_govkit_marker emits a one-time warning when marker carries legacy `ui` option."""
+
+    def _make_target_with_ui(self, tmp_path: Path, ui_value: str = "react") -> Path:
+        target = tmp_path / "legacy-ui-marker"
+        target.mkdir()
+        marker = {
+            "version": "0.7.0",
+            "level": "4",
+            "agent": "claude-code",
+            "options": {"type": "api", "ci": "github", "ui": ui_value},
+            "applied_at": "2026-04-01T00:00:00+00:00",
+        }
+        (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
+        return target
+
+    def test_marker_with_ui_is_read_tolerantly(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+        mod._reset_shape_migration_warning()
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")  # suppress warning, just check no crash
+        target = self._make_target_with_ui(tmp_path, ui_value="react")
+        data = mod.read_govkit_marker(target)
+        assert data is not None
+        assert data["options"]["ui"] == "react", "marker data must be returned untouched"
+
+    def test_warning_fires_for_marker_with_ui(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+        mod._reset_shape_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", raising=False)
+        target = self._make_target_with_ui(tmp_path)
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert "project-shape model changed in 0.8.0" in err
+        assert "govkit apply --type ui-react" in err
+
+    def test_warning_only_fires_once_per_invocation(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+        mod._reset_shape_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", raising=False)
+        target = self._make_target_with_ui(tmp_path)
+
+        mod.read_govkit_marker(target)
+        mod.read_govkit_marker(target)
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert err.count("project-shape model changed in 0.8.0") == 1
+
+    def test_warning_suppressed_by_env_var(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+        mod._reset_shape_migration_warning()
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+        target = self._make_target_with_ui(tmp_path)
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert err == ""
+
+    def test_warning_does_not_fire_when_no_ui_in_marker(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+        mod._reset_shape_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", raising=False)
+        target = tmp_path / "fresh"
+        target.mkdir()
+        marker = {
+            "version": "0.8.0",
+            "level": "4",
+            "agent": "claude-code",
+            "options": {"type": "ui-react", "ci": "github"},
+            "applied_at": "2026-05-18T00:00:00+00:00",
+        }
+        (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert "project-shape model" not in err
 
 
 class TestUpgradeMigrateLevels:

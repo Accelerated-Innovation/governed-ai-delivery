@@ -17,7 +17,7 @@ govkit — governed AI delivery kit installer
 
 Usage:
     govkit apply --agent claude-code --target /path/to/project
-    govkit apply --agent claude-code --level 3 --type api --ui none --ci github --target /path/to/project
+    govkit apply --agent claude-code --level 3 --type api --ci github --target /path/to/project
     govkit list
     govkit init my_feature --target /path/to/project
     govkit init my_feature --starter backend --target /path/to/project
@@ -96,6 +96,42 @@ def _reset_migration_warning() -> None:
     global _MIGRATION_WARNING_PRINTED
     _MIGRATION_WARNING_PRINTED = False
 
+
+_SHAPE_MIGRATION_WARNING_PRINTED = False
+
+
+def _maybe_warn_shape_migration(options: dict | None) -> None:
+    """Print one-time warning when the marker carries the dropped `ui` option.
+
+    The 0.7→0.8 project-shape refactor removed the `ui` dimension; the marker
+    is read tolerantly so existing installs keep working, but the user is
+    informed once per process. Suppressible via
+    GOVKIT_NO_SHAPE_MIGRATION_WARNING=1.
+    """
+    global _SHAPE_MIGRATION_WARNING_PRINTED
+    if _SHAPE_MIGRATION_WARNING_PRINTED:
+        return
+    if not options or "ui" not in options:
+        return
+    if os.environ.get("GOVKIT_NO_SHAPE_MIGRATION_WARNING") == "1":
+        return
+    print(
+        "warning: .govkit marker carries the legacy 'ui' option. "
+        "The project-shape model changed in 0.8.0. The `ui` option is no "
+        "longer supported. Re-run 'govkit apply --type ui-react' (or "
+        "'ui-angular') to switch to a UI shape, or 'govkit apply --type api' "
+        "to keep the current backend shape. "
+        "(Set GOVKIT_NO_SHAPE_MIGRATION_WARNING=1 to suppress.)",
+        file=sys.stderr,
+    )
+    _SHAPE_MIGRATION_WARNING_PRINTED = True
+
+
+def _reset_shape_migration_warning() -> None:
+    """Test helper: reset the one-time shape-migration warning flag."""
+    global _SHAPE_MIGRATION_WARNING_PRINTED
+    _SHAPE_MIGRATION_WARNING_PRINTED = False
+
 _HERE = Path(__file__).parent
 # When installed via pip, agents/ is bundled inside the cli package.
 # When running from the repo directly, fall back to the repo root.
@@ -167,6 +203,7 @@ def read_govkit_marker(target: Path) -> dict | None:
     except (json.JSONDecodeError, OSError):
         return None
     _maybe_warn_migration(data.get("version"))
+    _maybe_warn_shape_migration(data.get("options"))
     return data
 
 
@@ -803,8 +840,6 @@ def main() -> None:
                               help="Maturity level (default: prompted)")
     apply_parser.add_argument("--type", choices=["api", "cli", "ui-react", "ui-angular"], default=None,
                               help="Project type (default: prompted)")
-    apply_parser.add_argument("--ui", choices=["none", "react", "angular"], default=None,
-                              help="UI framework (default: prompted)")
     apply_parser.add_argument("--ci", choices=["github", "azure"], default=None,
                               help="CI platform (default: prompted)")
 

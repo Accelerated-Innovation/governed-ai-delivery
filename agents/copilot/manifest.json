@@ -12,11 +12,6 @@
       "choices": ["api", "cli", "ui-react", "ui-angular"],
       "default": "api"
     },
-    "ui": {
-      "prompt": "UI framework?",
-      "choices": ["none", "react", "angular"],
-      "default": "none"
-    },
     "ci": {
       "prompt": "CI platform?",
       "choices": ["github", "azure"],
@@ -270,126 +265,6 @@
             { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
             { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
             { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
-          ],
-          "shared": [
-            "features/starter_ui/",
-            "features/ui_task_dashboard/"
-          ],
-          "governed": [
-            "docs/ui/architecture/MVVM_CONTRACT.md",
-            "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
-            "docs/ui/architecture/ADR/",
-            "docs/ui/architecture/angular/",
-            "docs/ui/evaluation/",
-            "governance/ui/"
-          ]
-        }
-      }
-    },
-    "ui": {
-      "none": {
-        "files": [],
-        "shared": []
-      },
-      "react": {
-        "files": [
-          { "src": "copilot-instructions/ui-react.md", "dest": ".github/copilot-instructions-ui.md" },
-          { "src": "instructions/ui-react/components.instructions.md", "dest": ".github/instructions/components.instructions.md" },
-          { "src": "instructions/ui-react/viewmodel.instructions.md", "dest": ".github/instructions/viewmodel.instructions.md" },
-          { "src": "instructions/ui-react/api.instructions.md", "dest": ".github/instructions/ui-api.instructions.md" },
-          { "src": "instructions/ui-react/accessibility.instructions.md", "dest": ".github/instructions/accessibility.instructions.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" }
-        ],
-        "shared": [],
-        "governed": [
-          "docs/ui/architecture/MVVM_CONTRACT.md",
-          "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
-          "docs/ui/architecture/ADR/",
-          "docs/ui/architecture/react/"
-        ],
-        "level_4": {
-          "mode": "merge",
-          "files": [
-            { "src": "copilot-instructions/l4-ui-react.md", "dest": ".github/copilot-instructions-ui.md" },
-            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
-          ],
-          "shared": [
-            "features/starter_ui/",
-            "features/ui_task_dashboard/"
-          ],
-          "governed": [
-            "docs/ui/evaluation/",
-            "governance/ui/"
-          ]
-        },
-        "level_5": {
-          "mode": "replace",
-          "files": [
-            { "src": "copilot-instructions/l4-ui-react.md", "dest": ".github/copilot-instructions-ui.md" },
-            { "src": "instructions/ui-react/", "dest": ".github/instructions/" },
-            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" },
-            { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" }
-          ],
-          "shared": [
-            "features/starter_ui/",
-            "features/ui_task_dashboard/"
-          ],
-          "governed": [
-            "docs/ui/architecture/MVVM_CONTRACT.md",
-            "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
-            "docs/ui/architecture/ADR/",
-            "docs/ui/architecture/react/",
-            "docs/ui/evaluation/",
-            "governance/ui/"
-          ]
-        }
-      },
-      "angular": {
-        "files": [
-          { "src": "copilot-instructions/ui-angular.md", "dest": ".github/copilot-instructions-ui.md" },
-          { "src": "instructions/ui-angular/components.instructions.md", "dest": ".github/instructions/components.instructions.md" },
-          { "src": "instructions/ui-angular/viewmodel.instructions.md", "dest": ".github/instructions/viewmodel.instructions.md" },
-          { "src": "instructions/ui-angular/api.instructions.md", "dest": ".github/instructions/ui-api.instructions.md" },
-          { "src": "instructions/ui-angular/accessibility.instructions.md", "dest": ".github/instructions/accessibility.instructions.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" }
-        ],
-        "shared": [],
-        "governed": [
-          "docs/ui/architecture/MVVM_CONTRACT.md",
-          "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
-          "docs/ui/architecture/ADR/",
-          "docs/ui/architecture/angular/"
-        ],
-        "level_4": {
-          "mode": "merge",
-          "files": [
-            { "src": "copilot-instructions/l4-ui-angular.md", "dest": ".github/copilot-instructions-ui.md" },
-            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
-          ],
-          "shared": [
-            "features/starter_ui/",
-            "features/ui_task_dashboard/"
-          ],
-          "governed": [
-            "docs/ui/evaluation/",
-            "governance/ui/"
-          ]
-        },
-        "level_5": {
-          "mode": "replace",
-          "files": [
-            { "src": "copilot-instructions/l4-ui-angular.md", "dest": ".github/copilot-instructions-ui.md" },
-            { "src": "instructions/ui-angular/", "dest": ".github/instructions/" },
-            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" },
-            { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" }
           ],
           "shared": [
             "features/starter_ui/",

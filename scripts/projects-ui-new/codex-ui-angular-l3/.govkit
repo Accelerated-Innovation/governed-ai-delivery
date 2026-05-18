@@ -1,0 +1,11 @@
+{
+  "version": "0.7.0",
+  "level": "3",
+  "agent": "codex",
+  "options": {
+    "type": "ui-angular",
+    "ui": "none",
+    "ci": "github"
+  },
+  "applied_at": "2026-05-18T09:31:51.969082+00:00"
+}

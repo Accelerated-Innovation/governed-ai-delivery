@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "UI Eval Criteria",
+  "description": "Schema for feature-level UI evaluation criteria YAML files",
+  "type": "object",
+  "required": ["version", "feature", "mode"],
+  "properties": {
+    "version": { "type": "integer", "enum": [1] },
+    "feature": { "type": "string", "minLength": 1 },
+    "mode": { "type": "string", "enum": ["ui", "none"] },
+    "owner": { "type": "string" },
+    "rationale": { "type": "string" },
+    "component_tests": {
+      "type": "object",
+      "required": ["enforce_FIRST", "minimum_FIRST_average"],
+      "properties": {
+        "enforce_FIRST": { "type": "boolean" },
+        "minimum_FIRST_average": { "type": "number", "minimum": 0, "maximum": 5 }
+      }
+    },
+    "accessibility": {
+      "type": "object",
+      "required": ["standard", "max_critical_violations", "max_serious_violations"],
+      "properties": {
+        "standard": { "type": "string", "enum": ["WCAG_2_1_AA", "WCAG_2_1_AAA"] },
+        "max_critical_violations": { "type": "integer", "minimum": 0 },
+        "max_serious_violations": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "e2e": {
+      "type": "object",
+      "required": ["enforce_gherkin_coverage", "run_axe_on_each_flow"],
+      "properties": {
+        "enforce_gherkin_coverage": { "type": "boolean" },
+        "run_axe_on_each_flow": { "type": "boolean" }
+      }
+    }
+  },
+  "if": { "properties": { "mode": { "const": "none" } } },
+  "then": { "required": ["rationale"] },
+  "else": { "required": ["component_tests", "accessibility", "e2e"] }
+}

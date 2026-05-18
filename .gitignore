@@ -106,7 +106,6 @@ docker-compose.override.yml
 # ----------------------------
 scripts/projects/
 scripts/projects-ui/
-scripts/projects-ui-new/
 scripts/projects-dotnet/
 scripts/.venv/
 

@@ -1,0 +1,11 @@
+{
+  "version": "0.7.0",
+  "level": "4",
+  "agent": "claude-code",
+  "options": {
+    "type": "ui-react",
+    "ui": "none",
+    "ci": "github"
+  },
+  "applied_at": "2026-05-18T09:31:42.064913+00:00"
+}

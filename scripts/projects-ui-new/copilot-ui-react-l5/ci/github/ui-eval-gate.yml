@@ -1,0 +1,170 @@
+# ui-eval-gate-example.yml
+#
+# PURPOSE: Enforces evaluation thresholds and E2E accessibility compliance on every UI PR.
+# Copy this file to .github/workflows/ui-eval-gate.yml and configure the
+# steps marked "Configure your..." before enabling in CI.
+#
+# JOBS:
+#   eval-prediction-check   — verifies plan.md contains a completed Evaluation Compliance
+#                             Summary with predicted FIRST average >= 4.0 and
+#                             thresholds_met: true
+#   e2e-playwright          — runs Playwright E2E tests covering all @e2e-tagged Gherkin
+#                             scenarios, with axe accessibility scan on each flow
+#   accessibility-report    — uploads axe scan results as a CI artifact for review
+#
+# REQUIRED SECRETS: none by default
+# SEE ALSO: ci/github/ui-quality-gate.yml for type check, lint, and component test gates
+
+name: UI Evaluation Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  eval-prediction-check:
+    name: Evaluation compliance summary check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      # Checks every features/*/plan.md for a completed evaluation_prediction block.
+      # Fails if:
+      #   - predicted_average is below 4.0
+      #   - thresholds_met is false or missing
+      #   - any FIRST score field is 0 or missing a rationale
+      - name: Check evaluation compliance summary
+        run: |
+          python3 - <<'EOF'
+          import os, yaml, sys, re
+
+          errors = []
+          features_dir = "features"
+
+          for feature in os.listdir(features_dir):
+              plan_path = os.path.join(features_dir, feature, "plan.md")
+              if not os.path.exists(plan_path):
+                  continue
+
+              content = open(plan_path).read()
+
+              # Extract yaml block from evaluation_prediction section
+              match = re.search(r'```yaml\s*(evaluation_prediction:.*?)```', content, re.DOTALL)
+              if not match:
+                  errors.append(f"{plan_path}: missing evaluation_prediction block")
+                  continue
+
+              try:
+                  data = yaml.safe_load(match.group(1))
+                  pred = data.get("evaluation_prediction", {})
+              except yaml.YAMLError as e:
+                  errors.append(f"{plan_path}: invalid YAML in evaluation_prediction — {e}")
+                  continue
+
+              # Check thresholds_met
+              if not pred.get("thresholds_met"):
+                  errors.append(f"{plan_path}: thresholds_met is false or missing")
+
+              # Check FIRST average (supports both legacy and standardized format)
+              first = pred.get("first", pred.get("component_tests", {}))
+              first_avg = first.get("average", first.get("predicted_average", 0))
+              if first_avg < 4.0:
+                  errors.append(f"{plan_path}: predicted FIRST average {first_avg} is below 4.0")
+
+              # Check Virtue average
+              virtues = pred.get("virtues", {})
+              virtue_avg = virtues.get("average", 0)
+              if virtues and virtue_avg < 4.0:
+                  errors.append(f"{plan_path}: predicted Virtue average {virtue_avg} is below 4.0")
+
+              # Check accessibility
+              a11y = pred.get("accessibility", {})
+              if a11y.get("predicted_axe_violations", 1) > 0:
+                  errors.append(f"{plan_path}: predicted_axe_violations must be 0")
+
+          if errors:
+              print("Evaluation compliance failures:")
+              for e in errors:
+                  print(f"  ✗ {e}")
+              sys.exit(1)
+          else:
+              print("All evaluation compliance summaries passed.")
+          EOF
+
+  e2e-playwright:
+    name: Playwright E2E with axe accessibility scans
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # [React] Configure your build and preview script in package.json:
+      #   "build": "vite build"
+      #   "preview": "vite preview --port 4173"
+      # [Angular] Configure your build and serve script:
+      #   "build": "ng build"
+      #   "start:ci": "ng serve --port 4200"
+      #
+      # Each Playwright test must:
+      #   - Cover an @e2e-tagged Gherkin scenario end-to-end
+      #   - Run an axe scan on the page and assert zero critical violations
+      - name: Build application
+        run: npm run build
+
+      - name: Run Playwright E2E tests
+        run: npx playwright test
+        env:
+          # Configure your base URL to match your preview/serve command above
+          PLAYWRIGHT_BASE_URL: http://localhost:4173
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  accessibility-report:
+    name: Upload axe accessibility results
+    runs-on: ubuntu-latest
+    needs: e2e-playwright
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      # Axe scan results are written by Playwright tests to axe-results/.
+      # Configure your Playwright tests to write results there using
+      # @axe-core/playwright and a custom reporter, or parse results
+      # from the Playwright report uploaded above.
+      #
+      # Zero critical or serious violations are permitted.
+      # If violations are found, this job fails and blocks merge.
+      - name: Download Playwright report
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+      - name: Check for axe violations
+        run: |
+          # Configure your axe result parsing here.
+          # Example: parse results written by @axe-core/playwright reporter.
+          # The check should exit 1 if any critical or serious violations exist.
+          echo "Configure axe violation check for your project."
+          echo "Zero critical or serious violations are permitted per docs/ui/evaluation/eval_criteria.md"
