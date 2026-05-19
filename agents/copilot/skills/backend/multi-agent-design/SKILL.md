@@ -1,20 +1,19 @@
 ---
-description: "Design the agent topology for a multi-agent feature and produce agent_topology.md"
-argument-hint: "<feature_name>"
-user-invocable: true
+name: multi-agent-design
+description: Design the agent topology for a multi-agent feature and produce agent_topology.md. Use when eval_criteria.yaml declares multi_agent:true or when invoking /multi-agent-design.
 ---
 
 # Multi-Agent Design
 
-You are designing the agent topology for the feature: **$ARGUMENTS**
+You are designing the agent topology for a feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
 Run this skill before `/architecture-preflight` whenever `eval_criteria.yaml` declares `multi_agent: true`.
 
 ## Inputs to read
 
-- `features/$ARGUMENTS/nfrs.md` — understand scope and constraints
-- `features/$ARGUMENTS/acceptance.feature` — understand required outcomes
-- `features/$ARGUMENTS/eval_criteria.yaml` — confirm `multi_agent: true`
+- `features/<feature_name>/nfrs.md` — understand scope and constraints
+- `features/<feature_name>/acceptance.feature` — understand required outcomes
+- `features/<feature_name>/eval_criteria.yaml` — confirm `multi_agent: true`
 - `docs/backend/architecture/AGENT_ARCHITECTURE.md` Section 17 — architecture rules
 - `docs/backend/architecture/TECH_STACK.md` — approved model aliases
 
@@ -73,7 +72,7 @@ Name the `TypedDict` and list all fields with types:
 
 ## Output
 
-Write `features/$ARGUMENTS/agent_topology.md` following the template in `features/starter_backend_l5/agent_topology.md`.
+Write `features/<feature_name>/agent_topology.md` following the template in `features/starter_backend_l5/agent_topology.md`.
 
 After writing, confirm:
 - [ ] All system prompt paths are declared
@@ -82,4 +81,4 @@ After writing, confirm:
 - [ ] No direct agent-to-agent calls are implied
 - [ ] `agent_topology.md` has all four required sections: Orchestrator, Specialist Agents, Routing Logic, Failure Modes
 
-Then proceed to `/architecture-preflight $ARGUMENTS`.
+Then proceed to `/architecture-preflight <feature_name>`.

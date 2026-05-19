@@ -1,11 +1,11 @@
 ---
-description: "Author an Architecture Decision Record for a new pattern, exception, or boundary change"
-argument-hint: "<adr-title>"
+name: adr-author
+description: Author an Architecture Decision Record for a new pattern, exception, or boundary change. Use when the user asks to write an ADR or invokes /adr-author.
 ---
 
 # ADR Author
 
-You are writing an Architecture Decision Record (ADR) for: **$ARGUMENTS**
+You are writing an Architecture Decision Record (ADR). Determine the ADR title from the user's request; if it is not provided, ask before proceeding.
 
 Follow the template at `docs/backend/architecture/ADR/TEMPLATE.md`. Produce a complete ADR using these sections:
 

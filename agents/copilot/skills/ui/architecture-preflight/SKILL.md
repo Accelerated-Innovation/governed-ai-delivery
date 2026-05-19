@@ -1,48 +1,48 @@
 ---
 name: ui-architecture-preflight
-description: Run before planning any UI feature to validate MVVM boundaries, backend contract availability, accessibility impact, and ADR need
-argument-hint: "<feature_name>"
-user-invocable: true
+description: Validate UI architecture boundaries, backend contracts, and ADR need before spec planning. Use when starting a new UI feature or invoking /ui-architecture-preflight.
 ---
 
-# Architecture Preflight — React UI
+# Architecture Preflight — UI
 
-You are preparing to plan a new React UI feature.
+You are performing an Architecture Preflight for a UI feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
-Before generating any code or plan, read:
+Read the following before proceeding:
+
+Feature specs:
+- `features/<feature_name>/nfrs.md`
+- `features/<feature_name>/acceptance.feature`
+- `features/<feature_name>/eval_criteria.yaml`
+
+Architecture standards:
 - `docs/ui/architecture/MVVM_CONTRACT.md`
-- `docs/ui/architecture/react/COMPONENT_CONVENTIONS.md`
-- `docs/ui/architecture/react/STATE_MANAGEMENT.md`
+- `docs/ui/architecture/*/COMPONENT_CONVENTIONS.md`
+- `docs/ui/architecture/*/STATE_MANAGEMENT.md`
 - `docs/ui/evaluation/eval_criteria.md`
 - All accepted ADRs in `docs/ui/architecture/ADR/`
 
-Produce an Architecture Preflight Report covering:
+---
 
-## 1. Feature Summary
+Produce `features/<feature_name>/architecture_preflight.md` for this feature covering:
 
-- What is the feature from the user's perspective?
-- Which feature artifacts are being used (acceptance.feature, nfrs.md, eval_criteria.yaml)?
+## 1. MVVM Layer Impact
 
-## 2. MVVM Layer Impact
+Which layers does this feature touch? For each:
+- View (components): what new components are required?
+- ViewModel (hooks/store): what server state and client state is needed?
+- Model (API): what backend endpoints are consumed?
 
-For each layer, describe what is needed:
-- **View (components):** new components required?
-- **ViewModel (hooks):** server state needed, query keys, data transforms?
-- **ViewModel (store):** client UI state needed?
-- **Model (API):** which backend endpoints are consumed?
+## 2. Backend Contract Analysis
 
-## 3. Backend Contract Analysis
+- Which backend API endpoints does this feature consume?
+- Are those endpoints already available or do they need to be built first?
+- If a new contract is required from the backend team, flag it — this blocks UI implementation until the contract is accepted
 
-| Endpoint | Method | Exists? | Blocker? |
-|---|---|---|---|
-
-If any endpoint does not exist, flag it as a blocker. UI implementation cannot begin until the contract is negotiated and documented via ADR.
-
-## 3.5 Repository Scope Analysis
+## 2.5 Repository Scope Analysis
 
 Before proceeding to component and state management decisions, validate repository scope. See: `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md`
 
-Verify the "Repository Scope" section in `features/$ARGUMENTS/nfrs.md` is complete:
+Verify the "Repository Scope" section in `features/<feature>/nfrs.md` is complete:
 
 - [ ] One box is checked: "This repository only" OR "Multiple repositories" (with table)
 - [ ] If multi-repo: all repos, owners, modules, and contracts are documented
@@ -59,34 +59,35 @@ Once complete:
 
 ---
 
-## 4. Shared Component Impact
+## 3. Shared Component Impact
 
-Does this feature require new shared components? If yes — are they truly generic or feature-specific? Shared component promotion requires an ADR.
+- Does this feature require new shared components?
+- If yes: are they truly generic or feature-specific? Shared components require an ADR if they change an existing contract.
 
-## 5. State Management Decision
+## 4. State Management Decision
 
-- Server state: confirm React Query is sufficient
-- Client state: confirm Zustand is sufficient, or "none required"
-- Cross-feature state: Yes (ADR required) / No
+- What server state is needed? Confirm the framework's query library is sufficient (React Query for React, TanStack Angular Query for Angular).
+- What client state is needed? Confirm the default store pattern is sufficient (Zustand for React, Signals for Angular).
+- Is there any cross-feature state dependency? If yes, an ADR is required.
 
-## 6. Accessibility Impact
+## 5. Accessibility Impact
 
-List WCAG 2.1 AA requirements for this feature. Note any complex interaction patterns (modals, dynamic updates, custom controls).
+- What WCAG 2.1 AA requirements apply to this feature?
+- Are there any interaction patterns (modals, dynamic updates, custom controls) that need specific accessibility handling?
 
-## 7. ADR Determination
+## 6. ADR Determination
 
-Is an ADR required? Choose one and explain:
-- ✅ ADR required → state the reason
-- ✅ No ADR needed → confirm why not
+Is an ADR required? An ADR is required if:
+- A new shared component library or UI dependency is introduced
+- Cross-feature state is needed
+- A backend contract does not exist yet and must be negotiated
+- Any MVVM boundary rule is intentionally violated
 
-If ADR required: implementation must not proceed until the ADR status is Accepted.
+If yes: do not proceed to Spec Planning until the ADR is Accepted.
 
-## 8. Preliminary Evaluation Assessment
+## 7. Evaluation Prediction (preliminary)
 
-- Component test achievability: High / Medium / Low
-- Accessibility compliance risk: Low / Medium / High
-- E2E complexity: Low / Medium / High
-
-Write this report to `features/$ARGUMENTS/architecture_preflight.md`.
-
-If any required inputs are missing, stop and ask before proceeding.
+Preliminary assessment of:
+- Component test coverage achievability
+- Accessibility compliance risk
+- E2E scenario complexity

@@ -1,11 +1,11 @@
 ---
 name: genai-preflight
-description: Validate Level 5 GenAI architecture decisions before planning
+description: Validate Level 5 GenAI architecture decisions (LLM gateway, observability, guardrails, evaluation) before planning. Use after /architecture-preflight for features with mode:llm or when invoking /genai-preflight.
 ---
 
 # GenAI Preflight
 
-Run after `$architecture-preflight` to validate GenAI-specific architecture decisions for a feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
+Run after `/architecture-preflight` to validate GenAI-specific architecture decisions for a feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
 ## Inputs to read
 
@@ -58,12 +58,12 @@ For each item, validate and document the finding:
 
 ### 6. Multi-Agent Validation (Section 16 — only when `multi_agent: true`)
 
-Check if `features/$ARGUMENTS/eval_criteria.yaml` declares `multi_agent: true`.
+Check if `features/<feature_name>/eval_criteria.yaml` declares `multi_agent: true`.
 
 If **not declared**: write "Section 16: Not applicable" and skip.
 
 If **declared**:
-- Confirm `features/$ARGUMENTS/agent_topology.md` exists and all four sections are complete
+- Confirm `features/<feature_name>/agent_topology.md` exists and all four sections are complete
 - Confirm each agent's system prompt file exists at the declared path in the repository
 - Confirm graph state schema `TypedDict` is declared (path in agent_topology.md)
 - Confirm `eval_criteria.yaml` includes `multi_agent_evaluation` block with `topology_validated` and `system_prompt_governed` fields

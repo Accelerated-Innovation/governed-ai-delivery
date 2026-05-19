@@ -17,14 +17,20 @@
     },
     "options": {
       "type": "object",
-      "description": "Variant options presented to the user during govkit apply",
+      "description": "Variant options presented to the user during govkit apply. In v0.8 the allowed dimensions are level, type, and ci; the legacy `ui` dimension was removed by the project-shape refactor.",
+      "propertyNames": {
+        "enum": ["level", "type", "ci"]
+      },
       "additionalProperties": {
         "$ref": "#/$defs/option"
       }
     },
     "variants": {
       "type": "object",
-      "description": "Variant dimensions (type, ui, ci) mapping option values to file lists",
+      "description": "Variant dimensions (type, ci) mapping option values to file lists. The `level` option drives level_4/level_5 overrides inside each variant rather than its own top-level dimension.",
+      "propertyNames": {
+        "enum": ["type", "ci"]
+      },
       "additionalProperties": {
         "type": "object",
         "additionalProperties": {
@@ -82,15 +88,25 @@
         "shared": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Shared governance paths to copy from repo root to target"
+          "description": "Shared governance paths to copy from repo root to target (skip-existing on apply)"
         },
-        "level_3": {
+        "governed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Govkit-owned governed contracts to copy from repo root to target (refreshed on upgrade)"
+        },
+        "by_type": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/by_type_entry" },
+          "description": "v0.8 type-dispatched entries. Keys are values of the `type` option (e.g. 'api', 'ui-react'); each maps to a partial block whose files/shared/governed are folded into the parent block at resolve time. Currently used by the ci dimension to ship type-specific gates."
+        },
+        "level_4": {
           "$ref": "#/$defs/level_override",
-          "description": "Override files and shared paths when maturity level is 3"
+          "description": "Spec-Driven Add-On overlay applied at maturity level 4 (default mode: merge)"
         },
         "level_5": {
           "$ref": "#/$defs/level_override",
-          "description": "Override files and shared paths when maturity level is 5"
+          "description": "GenAI Operations overlay applied at maturity level 5 (default mode: replace)"
         }
       }
     },
@@ -98,15 +114,48 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["merge", "replace"],
+          "description": "Override application mode. 'merge' (default for level_4) appends entries to the base, with dest-collision resolution preferring the override. 'replace' (default for level_5) discards the base and uses only this block's entries."
+        },
         "files": {
           "type": "array",
           "items": { "$ref": "#/$defs/file_entry" },
-          "description": "Level-specific agent files (replaces parent files at this level)"
+          "description": "Level-specific agent files. Behavior depends on 'mode'."
         },
         "shared": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Level-specific shared governance paths (replaces parent shared at this level)"
+          "description": "Level-specific shared governance paths. Behavior depends on 'mode'."
+        },
+        "governed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Level-specific govkit-owned governed contracts. Behavior depends on 'mode'."
+        },
+        "by_type": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/by_type_entry" },
+          "description": "v0.8 type-dispatched entries at this level. Same shape as the base by_type."
+        }
+      }
+    },
+    "by_type_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/file_entry" }
+        },
+        "shared": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "governed": {
+          "type": "array",
+          "items": { "type": "string" }
         }
       }
     }

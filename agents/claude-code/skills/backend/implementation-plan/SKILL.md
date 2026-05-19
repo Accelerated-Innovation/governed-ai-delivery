@@ -1,20 +1,20 @@
 ---
-description: "Generate an ordered implementation checklist with evaluation compliance summary from a validated preflight"
-argument-hint: "<feature_name>"
+name: implementation-plan
+description: Generate an ordered implementation checklist with evaluation compliance summary from a validated preflight. Use when the user asks to draft implementation steps or invokes /implementation-plan.
 ---
 
 # Implementation Plan
 
-You are writing an evaluation-driven implementation plan for: **$ARGUMENTS**
+You are writing an evaluation-driven implementation plan for a feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
 ## Inputs
 
 Read these artifacts before planning:
 
-- `features/$ARGUMENTS/nfrs.md`
-- `features/$ARGUMENTS/acceptance.feature`
-- `features/$ARGUMENTS/eval_criteria.yaml`
-- `features/$ARGUMENTS/architecture_preflight.md`
+- `features/<feature_name>/nfrs.md`
+- `features/<feature_name>/acceptance.feature`
+- `features/<feature_name>/eval_criteria.yaml`
+- `features/<feature_name>/architecture_preflight.md`
 - `docs/backend/evaluation/eval_criteria.md`
 - `docs/backend/architecture/` (all files)
 

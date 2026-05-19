@@ -1,23 +1,29 @@
 ---
-description: Run before planning any UI feature to validate MVVM boundaries, backend contract availability, accessibility impact, and ADR need
-argument-hint: "<feature_name>"
+name: ui-architecture-preflight
+description: Validate UI architecture boundaries, backend contracts, and ADR need before spec planning. Use when starting a new UI feature or invoking /ui-architecture-preflight.
 ---
 
-# Architecture Preflight — React UI
+# Architecture Preflight — UI
 
-You are performing an Architecture Preflight for a React UI feature. Read the following before proceeding:
+You are performing an Architecture Preflight for a UI feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
+Read the following before proceeding:
+
+Feature specs:
+- `features/<feature_name>/nfrs.md`
+- `features/<feature_name>/acceptance.feature`
+- `features/<feature_name>/eval_criteria.yaml`
+
+Architecture standards:
 - `docs/ui/architecture/MVVM_CONTRACT.md`
-- `docs/ui/architecture/react/COMPONENT_CONVENTIONS.md`
-- `docs/ui/architecture/react/STATE_MANAGEMENT.md`
+- `docs/ui/architecture/*/COMPONENT_CONVENTIONS.md`
+- `docs/ui/architecture/*/STATE_MANAGEMENT.md`
 - `docs/ui/evaluation/eval_criteria.md`
 - All accepted ADRs in `docs/ui/architecture/ADR/`
 
-Feature: $ARGUMENTS
-
 ---
 
-Produce `architecture_preflight.md` for this feature covering:
+Produce `features/<feature_name>/architecture_preflight.md` for this feature covering:
 
 ## 1. MVVM Layer Impact
 
@@ -32,16 +38,11 @@ Which layers does this feature touch? For each:
 - Are those endpoints already available or do they need to be built first?
 - If a new contract is required from the backend team, flag it — this blocks UI implementation until the contract is accepted
 
-## 3. Shared Component Impact
+## 2.5 Repository Scope Analysis
 
-- Does this feature require new shared components?
-- If yes: are they truly generic or feature-specific? Shared components require an ADR if they change an existing contract.
+Before proceeding to component and state management decisions, validate repository scope. See: `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md`
 
-## 3.5 Repository Scope Analysis
-
-Before proceeding to state management and backend contract decisions, validate repository scope. See: `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md`
-
-Verify the "Repository Scope" section in `features/$ARGUMENTS/nfrs.md` is complete:
+Verify the "Repository Scope" section in `features/<feature>/nfrs.md` is complete:
 
 - [ ] One box is checked: "This repository only" OR "Multiple repositories" (with table)
 - [ ] If multi-repo: all repos, owners, modules, and contracts are documented
@@ -58,10 +59,15 @@ Once complete:
 
 ---
 
+## 3. Shared Component Impact
+
+- Does this feature require new shared components?
+- If yes: are they truly generic or feature-specific? Shared components require an ADR if they change an existing contract.
+
 ## 4. State Management Decision
 
-- What server state is needed? Confirm React Query is sufficient.
-- What client state is needed? Confirm Zustand is sufficient.
+- What server state is needed? Confirm the framework's query library is sufficient (React Query for React, TanStack Angular Query for Angular).
+- What client state is needed? Confirm the default store pattern is sufficient (Zustand for React, Signals for Angular).
 - Is there any cross-feature state dependency? If yes, an ADR is required.
 
 ## 5. Accessibility Impact

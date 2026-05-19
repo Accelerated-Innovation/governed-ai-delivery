@@ -1,6 +1,6 @@
 ---
 name: spec-planning
-description: Generate a feature plan (plan.md) and eval_criteria.yaml from NFRs and acceptance scenarios
+description: Generate a feature plan (plan.md) and eval_criteria.yaml from NFRs and acceptance scenarios. Use when the user asks to plan a feature or invokes /spec-planning.
 ---
 
 # Spec Planning

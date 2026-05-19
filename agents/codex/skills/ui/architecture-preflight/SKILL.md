@@ -1,6 +1,6 @@
 ---
 name: ui-architecture-preflight
-description: Validate UI architecture boundaries, backend contracts, and ADR need before spec planning
+description: Validate UI architecture boundaries, backend contracts, and ADR need before spec planning. Use when starting a new UI feature or invoking /ui-architecture-preflight.
 ---
 
 # Architecture Preflight — UI
@@ -9,6 +9,12 @@ You are performing an Architecture Preflight for a UI feature. Determine the fea
 
 Read the following before proceeding:
 
+Feature specs:
+- `features/<feature_name>/nfrs.md`
+- `features/<feature_name>/acceptance.feature`
+- `features/<feature_name>/eval_criteria.yaml`
+
+Architecture standards:
 - `docs/ui/architecture/MVVM_CONTRACT.md`
 - `docs/ui/architecture/*/COMPONENT_CONVENTIONS.md`
 - `docs/ui/architecture/*/STATE_MANAGEMENT.md`

@@ -1,62 +1,55 @@
 ---
 name: adr-author
-description: Author an Architecture Decision Record for a new pattern, exception, or boundary change
-user-invocable: true
+description: Author an Architecture Decision Record for a new pattern, exception, or boundary change. Use when the user asks to write an ADR or invokes /adr-author.
 ---
 
 # ADR Author
 
-You are writing an Architecture Decision Record (ADR) to document a change or exception to the architecture.
+You are writing an Architecture Decision Record (ADR). Determine the ADR title from the user's request; if it is not provided, ask before proceeding.
 
-Follow this structure and reasoning model:
-
----
+Follow the template at `docs/backend/architecture/ADR/TEMPLATE.md`. Produce a complete ADR using these sections:
 
 ## Title
-Short, action-oriented statement. Example: "Introduce Redis-based session store for authentication"
+
+Short, action-oriented statement describing the decision.
 
 ## Context
+
 - What triggered this decision?
 - What is the current architecture?
 - What constraints or standards are being revisited?
 - Which specs or plans does this relate to?
 
 ## Decision
+
 - What are we changing, introducing, or formalizing?
-- What is the new design pattern, tool, service, or contract?
 - What boundaries or dependencies are affected?
 
 ## Status
-- Proposed / Approved / Rejected / Deprecated
+
+Proposed / Approved / Rejected / Deprecated
 
 ## Consequences
-- Positive: list expected benefits (e.g., simpler auth flow, more scalable caching)
-- Negative: list tradeoffs (e.g., added latency, new failure points, increased cost)
+
+- Positive: expected benefits
+- Negative: tradeoffs (latency, failure points, cost, complexity)
 
 ## Alternatives Considered
-- What were the top 2 alternatives?
-- Why were they rejected?
+
+Top 2 alternatives and why they were rejected.
 
 ## Impacted Modules
-- List the layers or services that must change
-- Flag any migration, deprecation, or compatibility work
+
+Layers or services that must change. Flag any migration, deprecation, or compatibility work.
 
 ## Compliance Notes
-- Does this violate any part of:
-  - `ARCH_CONTRACT.md`
-  - `BOUNDARIES.md`
-  - `SECURITY_AUTH_PATTERNS.md`
-  - `API_CONVENTIONS.md`?
-- If yes, state why and who approved the exception
+
+Does this violate any part of `ARCH_CONTRACT.md`, `BOUNDARIES.md`, `SECURITY_AUTH_PATTERNS.md`, or `API_CONVENTIONS.md`? If yes, state why and who approved the exception.
 
 ## Review
-- Required reviewers: team lead, architect, or security lead (based on scope)
-- Link to PR or issue that implements the decision
+
+Required reviewers (team lead, architect, or security lead based on scope) and link to PR or issue.
 
 ---
 
-Follow the template at `docs/backend/architecture/ADR/TEMPLATE.md`.
-
-Write the ADR to `docs/backend/architecture/ADR/<slug>.md` where `<slug>` is a kebab-case version of the title (e.g., `introduce-redis-session-store.md`).
-
-If required information is missing, stop and request clarification before writing the draft.
+Write the ADR to `docs/backend/architecture/ADR/<slug>.md`. If required information is missing, stop and ask before drafting.

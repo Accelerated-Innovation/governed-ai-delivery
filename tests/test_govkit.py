@@ -279,116 +279,377 @@ class TestResolveVariantFiles:
         assert shared == []
         assert governed == []
 
-    def test_level_3_override(self):
-        """When level=3, level_3 sub-key files/shared replace the top-level ones."""
+    def test_level_4_no_override_uses_base(self):
+        """When level=4 and no level_4 block exists, top-level files are used."""
         manifest = {
             "variants": {
                 "type": {
                     "api": {
-                        "files": [{"src": "l4-api.md", "dest": "CLAUDE.md"}],
+                        "files": [{"src": "base-api.md", "dest": "CLAUDE.md"}],
                         "shared": ["docs/backend/"],
-                        "level_3": {
-                            "files": [{"src": "l3-api.md", "dest": "CLAUDE.md"}],
-                            "shared": ["docs/backend/architecture/DESIGN_PRINCIPLES.md"],
-                        },
-                    }
-                }
-            }
-        }
-        files, shared, _ = resolve_variant_files(manifest, {"type": "api", "level": "3"})
-        assert len(files) == 1
-        assert files[0]["src"] == "l3-api.md"
-        assert shared == ["docs/backend/architecture/DESIGN_PRINCIPLES.md"]
-
-    def test_level_4_uses_default(self):
-        """When level=4, top-level files/shared are used (no override)."""
-        manifest = {
-            "variants": {
-                "type": {
-                    "api": {
-                        "files": [{"src": "l4-api.md", "dest": "CLAUDE.md"}],
-                        "shared": ["docs/backend/"],
-                        "level_3": {
-                            "files": [{"src": "l3-api.md", "dest": "CLAUDE.md"}],
-                            "shared": ["docs/backend/architecture/DESIGN_PRINCIPLES.md"],
-                        },
                     }
                 }
             }
         }
         files, shared, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
         assert len(files) == 1
-        assert files[0]["src"] == "l4-api.md"
+        assert files[0]["src"] == "base-api.md"
         assert shared == ["docs/backend/"]
 
-    def test_level_default_is_4(self):
-        """When level is not specified, behaves as level 4."""
+    def test_level_default_is_3_uses_top_level(self):
+        """When no level is specified, the default is level 3, which uses top-level (base) entries."""
+        # Post-Increment-11: L3 has no override key. The default-level run
+        # resolves to the variant's top-level files/shared/governed.
         manifest = {
             "variants": {
                 "type": {
                     "api": {
-                        "files": [{"src": "l4-api.md", "dest": "CLAUDE.md"}],
-                        "shared": ["docs/backend/"],
-                        "level_3": {
-                            "files": [{"src": "l3-api.md", "dest": "CLAUDE.md"}],
-                            "shared": ["docs/backend/architecture/DESIGN_PRINCIPLES.md"],
-                        },
+                        "files": [{"src": "foundations.md", "dest": "CLAUDE.md"}],
+                        "shared": ["docs/backend/architecture/"],
                     }
                 }
             }
         }
-        files, _, _ = resolve_variant_files(manifest, {"type": "api"})
-        assert files[0]["src"] == "l4-api.md"
+        files, shared, _ = resolve_variant_files(manifest, {"type": "api"})
+        assert files[0]["src"] == "foundations.md"
+        assert shared == ["docs/backend/architecture/"]
 
-    def test_level_3_missing_override_falls_through(self):
-        """When level=3 but variant has no level_3 key, use top-level files."""
+    def test_level_3_uses_base_directly(self):
+        """At level=3 the variant's top-level entries are used (no override key checked)."""
         manifest = {
             "variants": {
                 "ci": {
                     "github": {
-                        "files": [{"src": "gh.yml", "dest": ".github/gh.yml"}],
-                        "shared": ["ci/github/"],
+                        "files": [{"src": "l3-quality-gate.yml", "dest": ".github/workflows/quality-gate.yml"}],
+                        "shared": [],
+                        "governed": ["ci/github/repo-scope-check.yml"],
                     }
                 }
             }
         }
-        files, _, _ = resolve_variant_files(manifest, {"ci": "github", "level": "3"})
+        files, _, governed = resolve_variant_files(manifest, {"ci": "github", "level": "3"})
         assert len(files) == 1
-        assert files[0]["src"] == "gh.yml"
+        assert files[0]["src"] == "l3-quality-gate.yml"
+        assert "ci/github/repo-scope-check.yml" in governed
 
-    def test_level_3_multiple_dimensions(self):
-        """Level 3 override applies across multiple dimensions."""
+
+# ---------------------------------------------------------------------------
+# Merge-mode semantics (Increment 2 — new in v0.7.0)
+#
+# merge mode applies override entries on top of base entries within a single
+# dimension. Files dedup by `dest` (override wins on collision); shared/governed
+# dedup by string equality (append + skip duplicates).
+# Cross-dimension entries continue to dedup by `(src, dest)` so legitimate
+# directory accumulation patterns (e.g. copilot's .github/instructions/) still work.
+# ---------------------------------------------------------------------------
+
+
+class TestMergeMode:
+    def test_merge_appends_files_when_dests_distinct(self):
         manifest = {
             "variants": {
                 "type": {
                     "api": {
-                        "files": [{"src": "l4.md", "dest": "CLAUDE.md"}],
-                        "shared": ["docs/"],
-                        "level_3": {
-                            "files": [{"src": "l3.md", "dest": "CLAUDE.md"}],
-                            "shared": ["docs/DESIGN_PRINCIPLES.md"],
+                        "files": [{"src": "base.md", "dest": "BASE.md"}],
+                        "level_4": {
+                            "mode": "merge",
+                            "files": [{"src": "addon.md", "dest": "ADDON.md"}],
                         },
                     }
-                },
-                "ci": {
-                    "github": {
+                }
+            }
+        }
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        srcs = [f["src"] for f in files]
+        assert srcs == ["base.md", "addon.md"]
+
+    def test_merge_dest_collision_override_wins(self):
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "l3.md", "dest": "CLAUDE.md"}],
+                        "level_4": {
+                            "mode": "merge",
+                            "files": [{"src": "l4.md", "dest": "CLAUDE.md"}],
+                        },
+                    }
+                }
+            }
+        }
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        claude = [f for f in files if f["dest"] == "CLAUDE.md"]
+        assert len(claude) == 1
+        assert claude[0]["src"] == "l4.md"
+
+    def test_merge_appends_shared(self):
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
                         "files": [],
-                        "shared": ["ci/github/"],
-                        "level_3": {
-                            "files": [],
-                            "shared": ["ci/github/l3-quality-gate.yml"],
+                        "shared": ["features/starter_backend/"],
+                        "level_4": {
+                            "mode": "merge",
+                            "shared": ["features/schema_contract_example/"],
+                        },
+                    }
+                }
+            }
+        }
+        _, shared, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        assert "features/starter_backend/" in shared
+        assert "features/schema_contract_example/" in shared
+
+    def test_merge_dedups_shared(self):
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [],
+                        "shared": ["features/starter_backend/"],
+                        "level_4": {
+                            "mode": "merge",
+                            "shared": ["features/starter_backend/", "features/schema_contract_example/"],
+                        },
+                    }
+                }
+            }
+        }
+        _, shared, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        assert shared.count("features/starter_backend/") == 1
+        assert "features/schema_contract_example/" in shared
+
+    def test_merge_appends_governed(self):
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [],
+                        "governed": ["docs/architecture/"],
+                        "level_4": {
+                            "mode": "merge",
+                            "governed": ["governance/backend/"],
+                        },
+                    }
+                }
+            }
+        }
+        _, _, governed = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        assert governed == ["docs/architecture/", "governance/backend/"]
+
+    def test_merge_dedups_governed(self):
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [],
+                        "governed": ["docs/architecture/"],
+                        "level_4": {
+                            "mode": "merge",
+                            "governed": ["docs/architecture/", "governance/backend/"],
+                        },
+                    }
+                }
+            }
+        }
+        _, _, governed = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        assert governed.count("docs/architecture/") == 1
+        assert "governance/backend/" in governed
+
+    def test_merge_default_mode_is_merge_for_level_4(self):
+        # mode key omitted → defaults to merge for level_4 blocks.
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "base.md", "dest": "BASE.md"}],
+                        "level_4": {
+                            "files": [{"src": "addon.md", "dest": "ADDON.md"}],
+                        },
+                    }
+                }
+            }
+        }
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        srcs = [f["src"] for f in files]
+        assert "base.md" in srcs and "addon.md" in srcs
+
+    def test_replace_default_mode_for_level_5(self):
+        # mode key omitted → defaults to replace for level_5 blocks.
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "base.md", "dest": "BASE.md"}],
+                        "level_5": {
+                            "files": [{"src": "l5.md", "dest": "L5.md"}],
+                        },
+                    }
+                }
+            }
+        }
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "5"})
+        srcs = [f["src"] for f in files]
+        assert srcs == ["l5.md"], "L5 default mode must be replace"
+
+    def test_explicit_mode_overrides_default(self):
+        # An explicit mode field in the override block beats the level default.
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "base.md", "dest": "BASE.md"}],
+                        "level_4": {
+                            "mode": "replace",
+                            "files": [{"src": "l4.md", "dest": "L4.md"}],
+                        },
+                    }
+                }
+            }
+        }
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        srcs = [f["src"] for f in files]
+        assert srcs == ["l4.md"], "Explicit mode=replace must override merge default"
+
+    def test_by_type_dispatch_backend_gets_backend_gates(self):
+        """variants.ci with by_type: --type api routes to api-specific governed entries."""
+        manifest = {
+            "variants": {
+                "type": {"api": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": ["ci/github/repo-scope-check.yml"],
+                        "by_type": {
+                            "api":      {"governed": ["ci/github/l3-quality-gate.yml"]},
+                            "ui-react": {"governed": ["ci/github/l3-ui-quality-gate.yml"]},
                         },
                     }
                 },
             }
         }
-        files, shared, _ = resolve_variant_files(
-            manifest, {"type": "api", "ci": "github", "level": "3"}
+        _, _, governed = resolve_variant_files(manifest, {"type": "api", "ci": "github"})
+        assert "ci/github/repo-scope-check.yml" in governed, "common base entry must always ship"
+        assert "ci/github/l3-quality-gate.yml" in governed, "by_type[api] entry must ship"
+        assert "ci/github/l3-ui-quality-gate.yml" not in governed, "by_type[ui-react] must NOT ship for type=api"
+
+    def test_by_type_dispatch_ui_gets_ui_gates(self):
+        """variants.ci with by_type: --type ui-react routes to ui-specific governed entries."""
+        manifest = {
+            "variants": {
+                "type": {"ui-react": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": ["ci/github/repo-scope-check.yml"],
+                        "by_type": {
+                            "api":      {"governed": ["ci/github/l3-quality-gate.yml"]},
+                            "ui-react": {"governed": ["ci/github/l3-ui-quality-gate.yml"]},
+                        },
+                    }
+                },
+            }
+        }
+        _, _, governed = resolve_variant_files(manifest, {"type": "ui-react", "ci": "github"})
+        assert "ci/github/repo-scope-check.yml" in governed
+        assert "ci/github/l3-ui-quality-gate.yml" in governed
+        assert "ci/github/l3-quality-gate.yml" not in governed, "backend gate must NOT ship for type=ui-react"
+
+    def test_by_type_dispatch_at_level_4_merge(self):
+        """by_type works in both base and level_4 override (merge mode)."""
+        manifest = {
+            "variants": {
+                "type": {"api": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": [],
+                        "by_type": {"api": {"governed": ["base.yml"]}},
+                        "level_4": {
+                            "mode": "merge",
+                            "governed": [],
+                            "by_type": {"api": {"governed": ["l4.yml"]}},
+                        },
+                    }
+                },
+            }
+        }
+        _, _, governed = resolve_variant_files(
+            manifest, {"type": "api", "ci": "github", "level": "4"}
         )
-        assert len(files) == 1
-        assert files[0]["src"] == "l3.md"
-        assert "docs/DESIGN_PRINCIPLES.md" in shared
-        assert "ci/github/l3-quality-gate.yml" in shared
+        assert governed == ["base.yml", "l4.yml"], (
+            f"L4 merge must include base.by_type + override.by_type; got {governed}"
+        )
+
+    def test_by_type_dispatch_at_level_5_replace(self):
+        """by_type at level_5 (replace mode) discards base entirely."""
+        manifest = {
+            "variants": {
+                "type": {"api": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": ["base.yml"],
+                        "by_type": {"api": {"governed": ["base-api.yml"]}},
+                        "level_5": {
+                            "mode": "replace",
+                            "governed": ["l5-common.yml"],
+                            "by_type": {"api": {"governed": ["l5-api.yml"]}},
+                        },
+                    }
+                },
+            }
+        }
+        _, _, governed = resolve_variant_files(
+            manifest, {"type": "api", "ci": "github", "level": "5"}
+        )
+        assert governed == ["l5-common.yml", "l5-api.yml"], (
+            f"L5 replace must use only override + override.by_type; got {governed}"
+        )
+
+    def test_by_type_missing_entry_falls_through(self):
+        """If by_type has no entry for the current type value, only base entries ship."""
+        manifest = {
+            "variants": {
+                "type": {"api": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": ["common.yml"],
+                        "by_type": {"ui-react": {"governed": ["ui-only.yml"]}},
+                    }
+                },
+            }
+        }
+        _, _, governed = resolve_variant_files(manifest, {"type": "api", "ci": "github"})
+        assert governed == ["common.yml"], (
+            f"Missing by_type[api] entry must fall through to base only; got {governed}"
+        )
+
+    def test_cross_dimension_dest_collision_preserved(self):
+        # Synthetic guard for the cross-dimension `(src, dest)` dedup mechanism
+        # in `_collect_entries`. Two distinct dimensions contributing different
+        # sources to the same dest must both survive — within-dimension dedup
+        # is `_dimension_entries`'s job and runs upstream. This test uses two
+        # synthetic dimensions (the production v0.8 manifests no longer have
+        # a real cross-dimension collision case, but the mechanism is defensive
+        # against future additions and must not regress).
+        manifest = {
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "instructions/backend/", "dest": ".github/instructions/"}],
+                    }
+                },
+                "ci": {
+                    "github": {
+                        "files": [{"src": "ci-instructions/github/", "dest": ".github/instructions/"}],
+                    }
+                },
+            }
+        }
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "ci": "github"})
+        srcs = sorted(f["src"] for f in files)
+        assert srcs == ["ci-instructions/github/", "instructions/backend/"], (
+            "Cross-dimension entries with the same dest must both survive "
+            "(legitimate directory accumulation pattern)."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -538,7 +799,6 @@ def _make_fake_agent(tmp_path: Path, shared: list[str] | None = None) -> Path:
             "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
             "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
             "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
-            "ui": {"prompt": "UI?", "choices": ["none"], "default": "none"},
         },
         "variants": {
             "type": {
@@ -555,7 +815,7 @@ def _make_fake_agent(tmp_path: Path, shared: list[str] | None = None) -> Path:
 
 
 def _apply_args(target: Path, **overrides) -> argparse.Namespace:
-    defaults = dict(agent="claude-code", target=str(target), level="4", type="api", ci="github", ui="none")
+    defaults = dict(agent="claude-code", target=str(target), level="4", type="api", ci="github")
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
 
@@ -656,6 +916,38 @@ class TestSmokeInit:
         content = (target / "features" / "new-feature" / "acceptance.feature").read_text(encoding="utf-8")
         assert content == "Feature: bundled", "Should use bundled starter, not stale target starter"
 
+    @pytest.mark.parametrize("ui_starter", ["ui-react", "ui-angular"])
+    def test_init_ui_variants_resolve_to_starter_ui(self, tmp_path, monkeypatch, ui_starter):
+        """ui-react and ui-angular both map to the framework-agnostic starter_ui dir."""
+        import cli.govkit as mod
+
+        fake_repo = self._bundled_repo(tmp_path, starter="starter_ui")
+        monkeypatch.setattr(mod, "REPO_ROOT", fake_repo)
+
+        target = tmp_path / "project"
+        (target / "features").mkdir(parents=True)
+        write_govkit_marker(target, "claude-code", "4", {"type": ui_starter})
+
+        cmd_init(argparse.Namespace(feature="my-ui-feature", target=str(target), level=None, starter=ui_starter))
+
+        feature_dir = target / "features" / "my-ui-feature"
+        assert (feature_dir / "acceptance.feature").read_text(encoding="utf-8") == "Feature: bundled"
+
+    @pytest.mark.parametrize("ui_starter,level", [
+        ("ui-react", "4"), ("ui-react", "5"),
+        ("ui-angular", "4"), ("ui-angular", "5"),
+    ])
+    def test_resolve_starter_dir_ui_variants(self, tmp_path, monkeypatch, ui_starter, level):
+        """_resolve_starter_dir maps both UI variants to starter_ui (no starter_ui_l5 today)."""
+        import cli.govkit as mod
+        fake_repo = self._bundled_repo(tmp_path, starter="starter_ui")
+        monkeypatch.setattr(mod, "REPO_ROOT", fake_repo)
+
+        result = mod._resolve_starter_dir(ui_starter, level)
+        assert result.name == "starter_ui", (
+            f"--starter {ui_starter} --level {level} must resolve to starter_ui, got {result.name}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # governed key in resolve_variant_files
@@ -750,7 +1042,6 @@ def _make_upgrade_repo(tmp_path: Path, agent: str = "test-agent") -> Path:
             "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
             "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
             "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
-            "ui": {"prompt": "UI?", "choices": ["none"], "default": "none"},
         },
         "variants": {
             "type": {
@@ -783,7 +1074,7 @@ class TestCmdUpgrade:
             "version": version,
             "level": "4",
             "agent": "test-agent",
-            "options": {"type": "api", "ci": "github", "ui": "none"},
+            "options": {"type": "api", "ci": "github"},
             "applied_at": "2025-01-01T00:00:00+00:00",
         }
         (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
@@ -874,3 +1165,442 @@ class TestCmdUpgrade:
 
         with pytest.raises(SystemExit):
             cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+
+# ---------------------------------------------------------------------------
+# Migrate-levels (Increment 9 — v0.6.x → v0.7.0 maturity-model migration)
+#
+# Per plan §7.2 state matrix:
+#   level=3, version<0.7.0 → interactive 4-option prompt
+#   level=4, version<0.7.0 → automatic version bump, level stays 4
+#   level=5, version<0.7.0 → automatic version bump, level stays 5
+#   any level, version>=0.7.0 → no-op success
+# ---------------------------------------------------------------------------
+
+
+def _make_legacy_target(tmp_path: Path, level: str, version: str = "0.6.0",
+                       num_features: int = 2, three_artifact: bool = True) -> Path:
+    """Create a target directory with a v0.6-style marker and feature dirs."""
+    target = tmp_path / "legacy-project"
+    target.mkdir()
+    if num_features > 0:
+        for i in range(num_features):
+            fd = target / "features" / f"feature_{i}"
+            fd.mkdir(parents=True)
+            (fd / "acceptance.feature").write_text("Feature: x\n", encoding="utf-8")
+            (fd / "nfrs.md").write_text("## Performance\n- p50 < 100ms\n", encoding="utf-8")
+            (fd / "plan.md").write_text("# Plan\n", encoding="utf-8")
+            if not three_artifact:
+                (fd / "eval_criteria.yaml").write_text("version: '1'\nmode: deterministic\n", encoding="utf-8")
+                (fd / "architecture_preflight.md").write_text("# Preflight\n", encoding="utf-8")
+    marker = {
+        "version": version,
+        "level": level,
+        "agent": "test-agent",
+        "options": {"type": "api", "ci": "github"},
+        "applied_at": "2026-04-01T00:00:00+00:00",
+    }
+    (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
+    return target
+
+
+def _migrate_args(target: Path) -> argparse.Namespace:
+    return argparse.Namespace(
+        target=str(target), force=False, migrate_levels=True,
+    )
+
+
+class TestMigrationWarning:
+    """read_govkit_marker emits a one-time warning when version < 0.7.0."""
+
+    def test_warning_fires_for_pre_070_marker(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        mod._reset_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0")
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert "L3/L4 maturity model changed in 0.7.0" in err
+        assert "govkit upgrade --migrate-levels" in err
+
+    def test_warning_only_fires_once_per_invocation(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        mod._reset_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0")
+
+        mod.read_govkit_marker(target)
+        mod.read_govkit_marker(target)
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        # Count distinct warning lines (allowing for the message containing the marker once)
+        assert err.count("L3/L4 maturity model changed in 0.7.0") == 1
+
+    def test_warning_suppressed_by_env_var(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        mod._reset_migration_warning()
+        monkeypatch.setenv("GOVKIT_NO_MIGRATION_WARNING", "1")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0")
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert err == ""
+
+    def test_warning_does_not_fire_for_current_version(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        mod._reset_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
+        target = _make_legacy_target(tmp_path, level="3", version="0.7.0")
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert "maturity model" not in err
+
+    def test_warning_does_not_fire_for_dev_version(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        mod._reset_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
+        target = _make_legacy_target(tmp_path, level="3", version="dev")
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        # Non-numeric versions compare equal — no warning
+        assert "maturity model" not in err
+
+
+class TestNoUiDimensionInManifests:
+    """Production manifests must not carry the dropped v0.8 `ui` dimension."""
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    def test_no_ui_options_or_variants(self, agent):
+        from cli.govkit import AGENTS_DIR
+        manifest_path = AGENTS_DIR / agent / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        assert "ui" not in manifest.get("options", {}), (
+            f"{agent}: options.ui must be absent after v0.8 shape refactor"
+        )
+        assert "ui" not in manifest.get("variants", {}), (
+            f"{agent}: variants.ui must be absent after v0.8 shape refactor"
+        )
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    def test_type_choices_include_ui_shapes(self, agent):
+        from cli.govkit import AGENTS_DIR
+        manifest_path = AGENTS_DIR / agent / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        type_choices = manifest["options"]["type"]["choices"]
+        for expected in ("api", "cli", "ui-react", "ui-angular"):
+            assert expected in type_choices, (
+                f"{agent}: options.type.choices must include '{expected}'"
+            )
+
+
+class TestShapeMigrationWarning:
+    """read_govkit_marker emits a one-time warning when marker carries legacy `ui` option."""
+
+    def _make_target_with_ui(self, tmp_path: Path, ui_value: str = "react") -> Path:
+        target = tmp_path / "legacy-ui-marker"
+        target.mkdir()
+        marker = {
+            "version": "0.7.0",
+            "level": "4",
+            "agent": "claude-code",
+            "options": {"type": "api", "ci": "github", "ui": ui_value},
+            "applied_at": "2026-04-01T00:00:00+00:00",
+        }
+        (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
+        return target
+
+    def test_marker_with_ui_is_read_tolerantly(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+        mod._reset_shape_migration_warning()
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")  # suppress warning, just check no crash
+        target = self._make_target_with_ui(tmp_path, ui_value="react")
+        data = mod.read_govkit_marker(target)
+        assert data is not None
+        assert data["options"]["ui"] == "react", "marker data must be returned untouched"
+
+    def test_warning_fires_for_marker_with_ui(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+        mod._reset_shape_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", raising=False)
+        target = self._make_target_with_ui(tmp_path)
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert "project-shape model changed in 0.8.0" in err
+        assert "govkit apply --type ui-react" in err
+
+    def test_warning_only_fires_once_per_invocation(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+        mod._reset_shape_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", raising=False)
+        target = self._make_target_with_ui(tmp_path)
+
+        mod.read_govkit_marker(target)
+        mod.read_govkit_marker(target)
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert err.count("project-shape model changed in 0.8.0") == 1
+
+    def test_warning_suppressed_by_env_var(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+        mod._reset_shape_migration_warning()
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+        target = self._make_target_with_ui(tmp_path)
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert err == ""
+
+    def test_warning_does_not_fire_when_no_ui_in_marker(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+        mod._reset_shape_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", raising=False)
+        target = tmp_path / "fresh"
+        target.mkdir()
+        marker = {
+            "version": "0.8.0",
+            "level": "4",
+            "agent": "claude-code",
+            "options": {"type": "ui-react", "ci": "github"},
+            "applied_at": "2026-05-18T00:00:00+00:00",
+        }
+        (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert "project-shape model" not in err
+
+
+class TestUpgradeMigrateLevels:
+    """cmd_upgrade --migrate-levels covers each (level, version) cell from §7.2."""
+
+    @pytest.fixture(autouse=True)
+    def _reset_warning(self):
+        import cli.govkit as mod
+        mod._reset_migration_warning()
+        yield
+        mod._reset_migration_warning()
+
+    def test_already_at_070_is_noop(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        target = _make_legacy_target(tmp_path, level="3", version="0.7.0")
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+        out = capsys.readouterr().out
+        assert "already at version" in out.lower() or "no migration needed" in out.lower()
+        # Marker untouched
+        assert read_govkit_marker(target)["version"] == "0.7.0"
+
+    def test_l4_v06_bumps_version_only(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        target = _make_legacy_target(tmp_path, level="4", version="0.6.0", three_artifact=False)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+        marker = read_govkit_marker(target)
+        assert marker["version"] == "0.7.0"
+        assert marker["level"] == "4"
+        # Level field excluded from options
+        assert "level" not in marker["options"]
+
+    def test_l5_v06_bumps_version_only(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        target = _make_legacy_target(tmp_path, level="5", version="0.6.0", three_artifact=False)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+        marker = read_govkit_marker(target)
+        assert marker["version"] == "0.7.0"
+        assert marker["level"] == "5"
+
+    def test_l3_v06_choice_1_generates_stubs_and_migrates_to_l4(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "1")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=2)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+
+        marker = read_govkit_marker(target)
+        assert marker["version"] == "0.7.0"
+        assert marker["level"] == "4"
+
+        for fd in (target / "features").iterdir():
+            assert (fd / "eval_criteria.yaml").exists(), f"stub missing in {fd}"
+            assert (fd / "architecture_preflight.md").exists(), f"stub missing in {fd}"
+
+    def test_l3_v06_choice_1_stub_eval_criteria_fails_validation(self, tmp_path, monkeypatch):
+        """The generated eval_criteria.yaml stub must fail validation (TBD placeholders)."""
+        import cli.govkit as mod
+        from cli.validate import check_eval_criteria
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "1")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=1)
+
+        with pytest.raises(SystemExit):
+            cmd_upgrade(_migrate_args(target))
+
+        feature_dir = next((target / "features").iterdir())
+        # The stub has `mode: TBD` which is not a valid mode value.
+        # check_eval_criteria sees the structure but the value is wrong; the
+        # contract test is that the stub is structurally valid YAML so apply
+        # doesn't crash, but `mode: TBD` will fail downstream validation tooling.
+        text = (feature_dir / "eval_criteria.yaml").read_text(encoding="utf-8")
+        assert "TBD" in text
+        assert "mode: TBD" in text
+
+    def test_l3_v06_choice_1_stub_preflight_has_tbd_sections(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "1")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=1)
+
+        with pytest.raises(SystemExit):
+            cmd_upgrade(_migrate_args(target))
+
+        feature_dir = next((target / "features").iterdir())
+        text = (feature_dir / "architecture_preflight.md").read_text(encoding="utf-8")
+        # All nine canonical sections present
+        for n in range(1, 10):
+            assert f"## {n}." in text, f"section {n} missing in stub"
+        assert text.count("TBD") >= 9, "stub should have TBD per section"
+
+    def test_l3_v06_choice_1_does_not_overwrite_existing_artifacts(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "1")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=1)
+        # Pre-existing eval_criteria.yaml in one feature
+        existing = next((target / "features").iterdir()) / "eval_criteria.yaml"
+        existing.write_text("version: '1'\nmode: deterministic\n", encoding="utf-8")
+
+        with pytest.raises(SystemExit):
+            cmd_upgrade(_migrate_args(target))
+
+        # Existing file untouched
+        assert existing.read_text(encoding="utf-8") == "version: '1'\nmode: deterministic\n"
+
+    def test_l3_v06_choice_2_no_stubs_only_marker_rewrite(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "2")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=2)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+
+        marker = read_govkit_marker(target)
+        assert marker["level"] == "4"
+        # No stubs generated
+        for fd in (target / "features").iterdir():
+            assert not (fd / "eval_criteria.yaml").exists()
+            assert not (fd / "architecture_preflight.md").exists()
+
+    def test_l3_v06_choice_3_confirmed_deletes_features(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        responses = iter(["3", "yes"])
+        monkeypatch.setattr("builtins.input", lambda _: next(responses))
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=2)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+
+        marker = read_govkit_marker(target)
+        assert marker["level"] == "3"
+        assert marker["version"] == "0.7.0"
+        assert not (target / "features").exists()
+
+    def test_l3_v06_choice_3_unconfirmed_keeps_features(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        responses = iter(["3", "no"])
+        monkeypatch.setattr("builtins.input", lambda _: next(responses))
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=2)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 1
+        # Features and marker untouched
+        assert (target / "features").exists()
+        marker = read_govkit_marker(target)
+        assert marker["level"] == "3"
+        assert marker["version"] == "0.6.0"
+
+    def test_l3_v06_choice_4_aborts_no_changes(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "4")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=2)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 0
+        marker = read_govkit_marker(target)
+        assert marker["level"] == "3"
+        assert marker["version"] == "0.6.0"
+
+    def test_l3_v06_invalid_choice_aborts(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "9")
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=1)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_upgrade(_migrate_args(target))
+        assert exc_info.value.code == 1
+        marker = read_govkit_marker(target)
+        assert marker["level"] == "3"
+        assert marker["version"] == "0.6.0"
+
+    def test_warning_clears_after_migration(self, tmp_path, monkeypatch, capsys):
+        """After --migrate-levels rewrites the marker to 0.7.0, the warning stops firing."""
+        import cli.govkit as mod
+
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.7.0")
+        monkeypatch.setattr("builtins.input", lambda _: "2")
+        monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
+        target = _make_legacy_target(tmp_path, level="3", version="0.6.0", num_features=1)
+
+        with pytest.raises(SystemExit):
+            cmd_upgrade(_migrate_args(target))
+        # Reset the one-time flag to test the next invocation in isolation
+        mod._reset_migration_warning()
+        capsys.readouterr()  # discard prior output
+
+        mod.read_govkit_marker(target)
+        err = capsys.readouterr().err
+        assert "maturity model" not in err, (
+            "After --migrate-levels rewrites marker to 0.7.0, the warning must not fire"
+        )

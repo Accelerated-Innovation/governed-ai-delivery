@@ -1,17 +1,17 @@
 ---
-description: "Generate a feature plan (plan.md) and eval_criteria.yaml from NFRs and acceptance scenarios"
-argument-hint: "<feature_name>"
+name: spec-planning
+description: Generate a feature plan (plan.md) and eval_criteria.yaml from NFRs and acceptance scenarios. Use when the user asks to plan a feature or invokes /spec-planning.
 ---
 
 # Spec Planning
 
-Plan the implementation of the feature: **$ARGUMENTS**
+Plan the implementation of the named feature. When invoked, determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
 ## Inputs to read
 
 Feature specs:
-- NFRs: `features/$ARGUMENTS/nfrs.md`
-- Acceptance: `features/$ARGUMENTS/acceptance.feature`
+- NFRs: `features/<feature_name>/nfrs.md`
+- Acceptance: `features/<feature_name>/acceptance.feature`
 
 Architecture standards:
 - `docs/backend/architecture/` (all files)
@@ -20,7 +20,7 @@ Evaluation standards:
 - `docs/backend/evaluation/eval_criteria.md`
 
 Existing artifacts (read if present, update if needed):
-- `features/$ARGUMENTS/eval_criteria.yaml`
+- `features/<feature_name>/eval_criteria.yaml`
 
 ## Instructions
 
@@ -41,7 +41,7 @@ Existing artifacts (read if present, update if needed):
 
 ## Output A: Plan
 
-Write `features/$ARGUMENTS/plan.md` with:
+Write `features/<feature_name>/plan.md` with:
 - Task checklist (files/modules to create or edit)
 - Test plan (unit, integration, contract)
 - LLM eval hooks and where they run
@@ -50,7 +50,7 @@ Write `features/$ARGUMENTS/plan.md` with:
 
 ## Output B: Feature Eval Criteria
 
-Write or update `features/$ARGUMENTS/eval_criteria.yaml` conforming to `docs/backend/evaluation/eval_criteria.md`. Include at minimum:
+Write or update `features/<feature_name>/eval_criteria.yaml` conforming to `docs/backend/evaluation/eval_criteria.md`. Include at minimum:
 - FIRST enforcement settings
 - 7 Virtues enforcement settings
 - Any LLM-specific dimensions required by this feature

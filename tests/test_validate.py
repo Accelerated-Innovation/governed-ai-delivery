@@ -1,5 +1,6 @@
 """Tests for cli/validate.py — all 6 check functions and run_validation."""
 
+import json
 import textwrap
 from pathlib import Path
 
@@ -421,7 +422,7 @@ class TestRunValidation:
         feature_dir.mkdir(parents=True)
         # Only create one artifact — most checks will fail
         write(feature_dir / "acceptance.feature", VALID_FEATURE)
-        result = run_validation(tmp_path)
+        result = run_validation(tmp_path, level="4")
         assert result == 1
 
     def test_skips_starters(self, tmp_path):
@@ -453,8 +454,10 @@ class TestRunValidation:
         result = run_validation(tmp_path / "nonexistent")
         assert result == 1
 
-    def test_missing_features_dir_returns_one(self, tmp_path):
-        result = run_validation(tmp_path)
+    def test_missing_features_dir_returns_one_at_l4(self, tmp_path):
+        # At L4 (Spec-Driven Add-On) a missing features/ dir is an error.
+        # At L3 (Foundations) it is fine — see test_maturity_model.TestValidateNoOpAtL3.
+        result = run_validation(tmp_path, level="4")
         assert result == 1
 
     def test_no_features_returns_zero(self, tmp_path):
@@ -462,176 +465,24 @@ class TestRunValidation:
         result = run_validation(tmp_path)
         assert result == 0
 
-    def test_skips_l3_starters(self, tmp_path):
+    def test_explicit_level_overrides_marker(self, tmp_path):
+        """Explicit level parameter takes precedence over .govkit marker.
+
+        Regression guard: a project with marker `level: "3"` but only 3 artifacts per
+        feature must still fail explicit `level="4"` validation. This is critical for
+        the v0.6→v0.7 marker migration story (see plan §7.2): legacy L3 projects need
+        to migrate to L4 and add the two missing artifacts.
+        """
         features = tmp_path / "features"
-        make_full_feature(features / "starter_backend_l3")
-        make_full_feature(features / "starter_cli_l3")
-        make_full_feature(features / "starter_ui_l3")
-        result = run_validation(tmp_path)
-        assert result == 0  # no real features, so passes
-
-
-# ---------------------------------------------------------------------------
-# Level 3 validation
-# ---------------------------------------------------------------------------
-
-
-def make_l3_feature(feature_dir: Path, **overrides) -> None:
-    """Create a valid Level 3 feature directory (3 artifacts)."""
-    defaults = {
-        "acceptance.feature": VALID_FEATURE,
-        "nfrs.md": VALID_NFRS,
-        "plan.md": "# Plan\n\n## Increments\n\n### Increment 1\nGoal: implement feature\n",
-    }
-    defaults.update(overrides)
-    feature_dir.mkdir(parents=True, exist_ok=True)
-    for name, content in defaults.items():
-        write(feature_dir / name, content)
-
-
-class TestL3Validation:
-    def test_l3_three_artifacts_pass(self, tmp_path):
-        """L3 validation passes with only 3 artifacts."""
-        from cli.validate import L3_REQUIRED_ARTIFACTS
-
-        features = tmp_path / "features"
-        make_l3_feature(features / "my_feature", **{
-            "acceptance.feature": """\
-                Feature: My feature
-
-                  @nfr-performance
-                  Scenario: Fast response
-                    Given a request
-                    When processed
-                    Then response is fast
-
-                  @nfr-security
-                  Scenario: Auth required
-                    Given no credentials
-                    When request made
-                    Then rejected
-            """,
-        })
-        result = run_validation(tmp_path, level="3")
-        assert result == 0
-
-    def test_l3_missing_artifact_fails(self, tmp_path):
-        """L3 validation fails when one of the 3 required artifacts is missing."""
-        features = tmp_path / "features"
-        feature_dir = features / "incomplete_feature"
+        feature_dir = features / "my_feature"
         feature_dir.mkdir(parents=True)
+        # 3-artifact feature (legacy v0.6 L3 shape)
         write(feature_dir / "acceptance.feature", VALID_FEATURE)
         write(feature_dir / "nfrs.md", VALID_NFRS)
-        # Missing plan.md
-        result = run_validation(tmp_path, level="3")
-        assert result == 1
-
-    def test_l3_completeness_checks_three(self, tmp_path):
-        """L3 check_completeness only expects 3 artifacts."""
-        from cli.validate import L3_REQUIRED_ARTIFACTS
-
-        make_l3_feature(tmp_path)
-        ok, msg = check_completeness(tmp_path, artifacts=L3_REQUIRED_ARTIFACTS)
-        assert ok is True
-        assert "3/3" in msg
-
-    def test_l3_skips_eval_checks(self, tmp_path):
-        """L3 validation passes without eval_criteria.yaml or evaluation_prediction."""
-        features = tmp_path / "features"
-        make_l3_feature(features / "simple_feature", **{
-            "acceptance.feature": """\
-                Feature: Simple
-
-                  @nfr-performance
-                  Scenario: Fast
-                    Given a request
-                    When processed
-                    Then fast
-
-                  @nfr-security
-                  Scenario: Secure
-                    Given auth
-                    When request
-                    Then ok
-            """,
-        })
-        result = run_validation(tmp_path, level="3")
-        assert result == 0
-
-    def test_l3_still_checks_gherkin(self, tmp_path):
-        """L3 validation still checks Gherkin syntax."""
-        features = tmp_path / "features"
-        make_l3_feature(features / "bad_gherkin", **{
-            "acceptance.feature": "No gherkin here\n",
-        })
-        result = run_validation(tmp_path, level="3")
-        assert result == 1
-
-    def test_l3_still_checks_nfr_tbd(self, tmp_path):
-        """L3 validation still checks for TBD in nfrs.md."""
-        features = tmp_path / "features"
-        make_l3_feature(features / "tbd_feature", **{
-            "nfrs.md": "## Performance\n- TBD\n",
-        })
-        result = run_validation(tmp_path, level="3")
-        assert result == 1
-
-    def test_level_from_govkit_marker(self, tmp_path):
-        """Validation auto-detects level from .govkit marker."""
-        import json
-
-        features = tmp_path / "features"
-        make_l3_feature(features / "my_feature", **{
-            "acceptance.feature": """\
-                Feature: My feature
-
-                  @nfr-performance
-                  Scenario: Fast
-                    Given a request
-                    When processed
-                    Then fast
-
-                  @nfr-security
-                  Scenario: Secure
-                    Given auth
-                    When request
-                    Then ok
-            """,
-        })
-        # Write .govkit marker for level 3
+        write(feature_dir / "plan.md", "# Plan\n\n## Increments\n\n### Increment 1\nGoal: implement\n")
         marker = tmp_path / ".govkit"
         marker.write_text(json.dumps({"level": "3"}), encoding="utf-8")
-        # Don't pass level explicitly — should auto-detect from marker
-        result = run_validation(tmp_path)
-        assert result == 0
-
-    def test_explicit_level_overrides_marker(self, tmp_path):
-        """Explicit level parameter takes precedence over .govkit marker."""
-        import json
-
-        features = tmp_path / "features"
-        # Create L3 feature (no eval_criteria, no architecture_preflight)
-        make_l3_feature(features / "my_feature", **{
-            "acceptance.feature": """\
-                Feature: My feature
-
-                  @nfr-performance
-                  Scenario: Fast
-                    Given a request
-                    When processed
-                    Then fast
-
-                  @nfr-security
-                  Scenario: Secure
-                    Given auth
-                    When request
-                    Then ok
-            """,
-        })
-        # Marker says level 3
-        marker = tmp_path / ".govkit"
-        marker.write_text(json.dumps({"level": "3"}), encoding="utf-8")
-        # But we explicitly validate as level 4 — should fail (missing artifacts)
+        # Explicit L4 must override the marker and fail (eval_criteria + arch_preflight missing)
         result = run_validation(tmp_path, level="4")
         assert result == 1
 
@@ -1064,3 +915,118 @@ class TestMultiAgentValidation:
         make_l5_feature(features / "single_agent_feature")
         result = run_validation(tmp_path, level="5")
         assert result == 0
+
+
+# ---------------------------------------------------------------------------
+# UI-shape validation (v0.8)
+# ---------------------------------------------------------------------------
+
+
+def _write_ui_marker(target: Path, level: str, ui_type: str = "ui-react") -> None:
+    """Write a v0.8 .govkit marker for a UI-shape install."""
+    marker = {
+        "version": "0.8.0",
+        "level": level,
+        "agent": "claude-code",
+        "options": {"type": ui_type, "ci": "github"},
+        "applied_at": "2026-05-18T00:00:00+00:00",
+    }
+    (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
+
+
+class TestValidateUiShapes:
+    """v0.8 UI shapes (--type ui-react / ui-angular) must validate identically to backend.
+
+    Validate logic is stack-agnostic — the 5-artifact contract, FIRST/Virtue
+    prediction, and Gherkin coverage rules apply regardless of `type`. These
+    tests lock that in for UI markers per plan §8.2.
+    """
+
+    def test_ui_react_l3_no_op(self, tmp_path, monkeypatch):
+        """L3 UI install validates clean — L3 short-circuits regardless of type."""
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+        _write_ui_marker(tmp_path, level="3", ui_type="ui-react")
+        result = run_validation(tmp_path)
+        assert result == 0, "L3 UI install must short-circuit and return 0"
+
+    def test_ui_react_l4_5_artifact_passes(self, tmp_path, monkeypatch):
+        """L4 UI install with a complete 5-artifact feature validates clean."""
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+        _write_ui_marker(tmp_path, level="4", ui_type="ui-react")
+        features = tmp_path / "features"
+        make_full_feature(features / "hello_world_ui", **{
+            "nfrs.md": "## Performance\n- LCP under 2500ms on 4G\n",
+            "acceptance.feature": """\
+                Feature: Hello World UI Card
+
+                  @e2e
+                  Scenario: Render the default greeting
+                    Given the hello card page is loaded
+                    When the page finishes rendering
+                    Then the card displays "hello, world"
+
+                  @e2e @nfr-performance
+                  Scenario: Page meets LCP target
+                    Given the hello card page is loaded
+                    When Core Web Vitals are measured
+                    Then LCP is below 2500ms
+            """,
+        })
+        result = run_validation(tmp_path)
+        assert result == 0, "L4 UI install with 5-artifact feature must validate clean"
+
+    def test_ui_angular_l4_5_artifact_passes(self, tmp_path, monkeypatch):
+        """Same as the react case but with ui-angular marker — type is opaque to validate."""
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+        _write_ui_marker(tmp_path, level="4", ui_type="ui-angular")
+        features = tmp_path / "features"
+        make_full_feature(features / "hello_world_ui", **{
+            "nfrs.md": "## Performance\n- LCP under 2500ms on 4G\n",
+            "acceptance.feature": """\
+                Feature: Hello World UI Card
+
+                  @e2e
+                  Scenario: Render
+                    Given the page is loaded
+                    When rendered
+                    Then the card displays "hello, world"
+
+                  @e2e @nfr-performance
+                  Scenario: LCP target
+                    Given the page is loaded
+                    When measured
+                    Then LCP is below 2500ms
+            """,
+        })
+        result = run_validation(tmp_path)
+        assert result == 0, "L4 UI install (angular) with 5-artifact feature must validate clean"
+
+    def test_ui_marker_read_does_not_crash(self, tmp_path, monkeypatch):
+        """`.govkit` carrying `type: ui-react` is read tolerantly by validate's marker path.
+
+        Regression guard for the v0.8 marker shape — validate must not assume
+        type ∈ {api, cli} when reading the marker.
+        """
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+        _write_ui_marker(tmp_path, level="3", ui_type="ui-react")
+        # No features/ dir — L3 still short-circuits cleanly via the marker level read.
+        result = run_validation(tmp_path)
+        assert result == 0
+
+    def test_legacy_ui_option_in_marker_tolerated(self, tmp_path, monkeypatch):
+        """Pre-v0.8 markers with `options.ui` must still be readable from validate's path.
+
+        Locks in plan §7: legacy markers warn but never crash. The shape-migration
+        warning is suppressed here so the test focuses on tolerance, not noise.
+        """
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+        marker = {
+            "version": "0.7.0",
+            "level": "3",
+            "agent": "claude-code",
+            "options": {"type": "api", "ci": "github", "ui": "react"},  # legacy ui key
+            "applied_at": "2026-04-01T00:00:00+00:00",
+        }
+        (tmp_path / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
+        result = run_validation(tmp_path)
+        assert result == 0, "Legacy marker with options.ui must still validate (L3 short-circuit)"

@@ -1,329 +1,179 @@
-# Parity Test Guide — Language-Agnostic Agent Refactoring
+# Parity Test Guide
 
-## Objective
+govkit has two parity invariants that this guide documents and verifies:
 
-Verify that the refactored agent rules (which reference `docs/` instead of embedding language specifics) produce **identical guidance and code output** for Python/FastAPI projects as the original embedded-content version.
+1. **Project shape parity (v0.8)** — every supported `(agent, shape, level)` combination produces a clean, leak-free install with byte-identical skill content across agents
+2. **Language-agnostic parity (v0.7)** — agent rules reference `docs/backend/architecture/` files; swapping out the docs stack produces equivalent guidance without rule changes
 
-**Key constraint:** All `docs/backend/architecture/` files remain unchanged and continue to contain FastAPI/Python content. The refactored agents read these docs and produce the same behavior as before.
+The v0.8 matrix is the primary current concern. The v0.7 invariant remains in force and is still tested manually when stack docs change.
 
 ---
 
-## Refactoring Summary
+## v0.8 Project Shape Parity Matrix
 
-**Changed:** 36 files across 3 agents (Claude Code, GitHub Copilot, OpenAI Codex)
-- 12 rules files (`agents/*/rules/backend/*.md`, `agents/*/rules/cli/*.md`)
-- 12 main entry files (`agents/*/claude-md/`, `copilot-instructions/`, `agents-md/`)
-- 12 L3 entry files (spec-driven, no eval)
-- 12 L5 entry files (GenAI operations, with eval)
+The flat `--type` enumeration (`api`, `cli`, `ui-react`, `ui-angular`) crosses with three maturity levels and three agents:
 
-**Pattern:** Every rule now starts with:
-```markdown
-**Your project's <layer> conventions:** `docs/backend/architecture/<DOC>.md`
+| Dimension | Values | Count |
+|---|---|---|
+| Agent | `claude-code`, `codex`, `copilot` | 3 |
+| Shape (`--type`) | `api`, `cli`, `ui-react`, `ui-angular` | 4 |
+| Level | `3`, `4`, `5` | 3 |
+| **Total combinations** |  | **36** |
 
-Read this document before implementing. It defines your project's <details>.
+The smoke matrix produces a subset of these (it omits `--type cli` at each level — backend coverage is provided by `--type api` since the resolver path is identical):
 
-**Universal constraints (apply to any language):**
-- [architecture principle 1]
-- [architecture principle 2]
+| Smoke script | Configurations | Total |
+|---|---|---|
+| `scripts/smoke.ps1` | 3 agents × `--type api` × 3 levels | 9 |
+| `scripts/smoke-ui.ps1` | 3 agents × {`ui-react`, `ui-angular`} × 3 levels | 18 |
+| `scripts/smoke-dotnet.ps1` | 3 agents × `--type api` × 3 levels (.NET-flavored feature content) | 9 |
+| **Smoke matrix total** |  | **36** |
+
+A clean run of all three smoke scripts is the automated parity check. Plan §15 of [plans/PROJECT_SHAPE_REFACTOR_PLAN.md](plans/PROJECT_SHAPE_REFACTOR_PLAN.md) defines the done-criteria.
+
+---
+
+## What v0.8 parity asserts
+
+### 1. Apply succeeds for every combination
+
+`govkit apply` must complete with exit 0 for every `(agent, shape, level, ci)` combination. The smoke scripts exit 0 if all applies succeed; L4/L5 validate failures are tolerated by design (smoke features intentionally ship only the 3 spec inputs so the planning skills have something to do).
+
+### 2. Zero cross-shape leakage
+
+Backend installs must not ship UI artifacts; UI installs must not ship backend artifacts. The Inc 16 leakage check in [plans/PROJECT_SHAPE_REFACTOR_PLAN.md §15](plans/PROJECT_SHAPE_REFACTOR_PLAN.md#section-15) enforces this on 18 backend + 18 UI sandboxes against ~26 leak patterns.
+
+What "leakage" specifically means:
+
+| Backend sandbox MUST NOT contain | UI sandbox MUST NOT contain |
+|---|---|
+| `src/CLAUDE.md` (Claude UI nested) | `docs/backend/architecture/` |
+| `src/AGENTS.md` (Codex UI subtree) | `governance/backend/` |
+| `docs/ui/`, `governance/ui/` | `.claude/rules/services.md`, `ports.md`, `adapters.md`, `api.md` (backend layer rules) |
+| `.claude/rules/components.md`, `viewmodel.md`, `ui-api.md`, `accessibility.md` | `.claude/skills/spec-planning/` (vs `ui-spec-planning/` for UI) |
+| `.claude/skills/ui-*` | `services/AGENTS.md` at repo root (Codex backend hex layer) |
+| `ci/<provider>/ui-quality-gate.yml`, `l3-ui-quality-gate.yml` | `ci/<provider>/l3-quality-gate.yml`, `quality-gate.yml`, `eval-gate.yml` |
+
+### 3. Skill content byte-identical across agents
+
+Every `SKILL.md` across `agents/{claude-code,codex,copilot}/skills/**/` ships **frontmatter that is byte-identical** for the same skill across agents. The Open Skills format is the lowest common denominator — `name:` + `description:` only, no `argument-hint:` or `user-invocable:` extensions.
+
+The 11 skills (7 backend + 4 UI) × 3 agents = 33 SKILL.md files. `tests/test_govkit.py::TestNoUiDimensionInManifests` and the skill-resolution tests lock this in.
+
+### 4. Agent-specific loader behavior
+
+Each agent's native progressive-loading mechanism is exercised:
+
+| Agent | Mechanism | Verified by |
+|---|---|---|
+| Claude Code | Nested `CLAUDE.md` (root + `src/CLAUDE.md` for UI shapes) | Inc 8 IDE test + tree spot-check |
+| Codex | Hierarchical `AGENTS.md` walk (root + per-layer nested) | Inc 10 dest verification + tree spot-check |
+| Copilot | `.instructions.md` with `applyTo:` globs (`src/**/...` scoped) | Inc 9 applyTo audit + tree spot-check |
+
+The `tmp/post-refactor-tree.txt` snapshot from Inc 16 is the canonical record of post-refactor sandbox layouts.
+
+---
+
+## Running the v0.8 parity check
+
+### Automated
+
+```powershell
+.\scripts\smoke.ps1 -Force
+.\scripts\smoke-ui.ps1 -Force
+.\scripts\smoke-dotnet.ps1 -Force
 ```
 
-**Unchanged:** All documentation files (`docs/backend/architecture/`, `docs/backend/evaluation/`, `governance/`, features/, etc.)
+Expected: 36/36 apply PASS, all L3 validate PASS, L4/L5 validate FAIL by design.
 
----
+For a textual snapshot of every sandbox:
 
-## Parity Test Scope
+```powershell
+.\scripts\smoke-inspect.ps1 -All -Editor tree > tmp\post-refactor-tree.txt
+```
 
-Parity testing focuses on **guidance parity** — verifying that agents read docs and produce consistent output patterns. Full code generation validation is out of scope (requires interactive IDE testing).
+Spot-check that backend sandboxes contain no UI artifacts and vice versa.
 
-### What is Tested
-
-1. **Doc reference correctness** — rules correctly point to relevant docs
-2. **Constraint consistency** — universal constraints match original rules intent
-3. **Feature lifecycle** — preflight → planning → implementation flow unchanged
-4. **Evaluation framework** — FIRST and 7 Virtue thresholds unchanged
-5. **Architecture enforcement** — boundary checks, ADR triggers, port/adapter patterns unchanged
-
-### What is NOT Tested (out of scope)
-
-- Full code generation for a complete feature (requires Claude Code IDE)
-- Integration with GitHub Copilot chat
-- Integration with OpenAI Codex API
-- Runtime behavior of generated code
-
----
-
-## Checklist: Verify Refactoring Completeness
-
-Run these checks to confirm all files were updated:
+### Unit tests
 
 ```bash
-cd /path/to/governed-ai-delivery
-
-# Claude Code rules: should find 6 files
-grep -l "Your project" agents/claude-code/rules/backend/*.md agents/claude-code/rules/cli/*.md | wc -l
-# Expected: 6
-
-# Claude Code main entries: should find 6 files with Project Documentation
-grep -l "Project Documentation" agents/claude-code/claude-md/backend-api.md agents/claude-code/claude-md/backend-cli.md \
-  agents/claude-code/claude-md/l3-backend-api.md agents/claude-code/claude-md/l3-backend-cli.md \
-  agents/claude-code/claude-md/l5-backend-api.md agents/claude-code/claude-md/l5-backend-cli.md | wc -l
-# Expected: 6
-
-# GitHub Copilot rules: should find 6 files
-grep -l "Your project" agents/copilot/instructions/backend/*.md agents/copilot/instructions/cli/*.md | wc -l
-# Expected: 6
-
-# GitHub Copilot main entries: should find 6 files
-grep -l "Project Documentation" agents/copilot/copilot-instructions/backend-api.md \
-  agents/copilot/copilot-instructions/backend-cli.md \
-  agents/copilot/copilot-instructions/l3-backend-api.md \
-  agents/copilot/copilot-instructions/l3-backend-cli.md \
-  agents/copilot/copilot-instructions/l5-backend-api.md \
-  agents/copilot/copilot-instructions/l5-backend-cli.md | wc -l
-# Expected: 6
-
-# OpenAI Codex rules: should find 6 files
-grep -l "Your project" agents/codex/rules/backend/*.md agents/codex/rules/cli/*.md | wc -l
-# Expected: 6
-
-# OpenAI Codex main entries: should find 6 files
-grep -l "Project Documentation" agents/codex/agents-md/backend-api.md \
-  agents/codex/agents-md/backend-cli.md \
-  agents/codex/agents-md/l3-backend-api.md \
-  agents/codex/agents-md/l3-backend-cli.md \
-  agents/codex/agents-md/l5-backend-api.md \
-  agents/codex/agents-md/l5-backend-cli.md | wc -l
-# Expected: 6
-
-# Total: 36 files should be refactored
+pytest tests/
 ```
 
-**✓ All checks pass:** Refactoring is complete.
+Should report 366 passed (post-Inc-15). Key parity-related test classes:
+
+- `tests/test_govkit.py::TestNoUiDimensionInManifests` — production manifests don't carry the dropped `ui` dimension
+- `tests/test_govkit.py::TestResolveVariantFiles` (by-type dispatch tests) — CI gates dispatch correctly per shape
+- `tests/test_govkit.py::TestShapeMigrationWarning` — legacy `options.ui` markers are read tolerantly
+- `tests/test_validate.py::TestValidateUiShapes` — UI markers and 5-artifact validation are type-opaque
+- `tests/test_schemas.py::TestSchemaRejects` and `TestSchemaAcceptsNewShapes` — schema rejects legacy `ui` and accepts new UI shapes
+
+### Manual IDE checks
+
+For high-confidence verification of the loader behavior, open a UI sandbox in each agent's native tool and probe for the expected layer-specific rule citations. See [docs/MONOREPO_PATTERN.md](docs/MONOREPO_PATTERN.md) for per-agent loader specifics.
 
 ---
 
-## Parity Test Steps (Manual IDE Testing)
+## v0.7 Language-Agnostic Parity (still in force)
 
-### Setup: Create a minimal Python/FastAPI feature
+The earlier v0.7 refactor moved language-specific content out of agent rules and into `docs/backend/architecture/`. Rules reference docs; rules don't embed FastAPI / .NET / Java / Go specifics. The default docs ship FastAPI-by-default; switch stacks by copying from `docs/stacks/<stack>/` into `docs/backend/architecture/` (see README "Switching Tech Stacks").
 
-Use `features/schema_contract_example/` as a reference (complete feature with acceptance criteria, NFRs, plan, eval criteria, preflight).
+This parity invariant is:
 
-Or create a new minimal feature:
+> All architecture rules in `agents/{claude-code,codex,copilot}/rules/backend/*.md` and `rules/cli/*.md` open with a pointer to the relevant `docs/backend/architecture/*.md` file. Universal architectural constraints (boundaries, FIRST, 7 Virtues, ADR triggers) are restated in the rule body; stack-specific patterns are not.
+
+### When to re-verify v0.7 parity
+
+- A new stack is added under `docs/stacks/` and you want to confirm agents pick it up correctly
+- A rule file is modified — verify it still leads with the `docs/backend/architecture/<DOC>.md` pointer
+- An architecture doc is moved or renamed — every rule that references it must be updated in lockstep
+
+### How to verify v0.7 parity (manual)
+
+The most reliable check is to apply a sandbox, swap in a non-default stack, and ask each agent to plan a small feature:
 
 ```bash
-mkdir -p features/parity_test_api
-touch features/parity_test_api/{acceptance.feature,nfrs.md,eval_criteria.yaml,plan.md,architecture_preflight.md}
+# Apply Python/FastAPI default
+govkit apply --agent claude-code --type api --target /tmp/parity-fastapi
+
+# Apply same, then swap to .NET/ASP.NET Core
+govkit apply --agent claude-code --type api --target /tmp/parity-dotnet
+cp docs/stacks/dotnet-aspnet/* /tmp/parity-dotnet/docs/backend/architecture/
 ```
 
-Fill these with basic content:
-- `acceptance.feature`: One Gherkin scenario (e.g., "User can login")
-- `nfrs.md`: Basic NFRs (performance, security)
-- `plan.md`: One increment with tests and deliverables
-- `eval_criteria.yaml`: FIRST and 7 Virtue criteria
-- `architecture_preflight.md`: Basic preflight (ports, adapters, no ADR required)
+Open both in Claude Code and ask each: *"Plan a new feature that adds a `GET /v1/widgets/{id}` endpoint."* Expected behavior:
 
-### Step 1: Verify Agent Initialization
+- The FastAPI sandbox plan uses Pydantic models, `Depends(get_current_user)`, FastAPI decorators, `TestClient`
+- The .NET sandbox plan uses minimal API endpoints, `[FromRoute]` / `[FromBody]`, dependency injection via `IServiceCollection`, xUnit + `WebApplicationFactory`
 
-**Claude Code (IDE):**
-1. Open Claude Code in your IDE
-2. Open a file in `features/parity_test_api/`
-3. Verify Claude reads:
-   - The feature artifacts (acceptance.feature, nfrs.md, plan.md)
-   - The agent rules from `.claude/rules/backend/api.md` or `cli.md`
-   - **Expected:** Claude references `docs/backend/architecture/API_CONVENTIONS.md` (or relevant doc) in guidance
+The **same rules** drove both responses — the difference came entirely from the swapped docs.
 
-**GitHub Copilot (IDE):**
-1. Open GitHub Copilot chat
-2. Ask: `@github-copilot-instructions How should I structure the API routes for parity_test_api?`
-3. **Expected:** Copilot references `docs/backend/architecture/API_CONVENTIONS.md` and provides FastAPI-style guidance
+### v0.7 parity by file count
 
-**OpenAI Codex (API):**
-1. Send a prompt to Codex with the feature artifacts
-2. Include the instructions from `agents/codex/agents-md/backend-api.md`
-3. **Expected:** Codex responses reference `docs/backend/architecture/` and use FastAPI patterns
-
-### Step 2: Run Architecture Preflight (Claude Code only)
-
-In Claude Code:
-```
-/architecture-preflight parity_test_api
-```
-
-**Expected output (same as original version):**
-- Layer analysis: API → Services → Ports → Adapters
-- Boundary violations: none
-- ADR triggers: none (for simple feature)
-- Port/adapter contracts: defined
-
-### Step 3: Run Spec Planning (Claude Code only)
-
-```
-/spec-planning parity_test_api
-```
-
-**Expected output:**
-- Feature increments defined
-- Test approach: pytest + FastAPI TestClient
-- Evaluation compliance summary with FIRST and 7 Virtue predictions
-- References to `docs/backend/architecture/API_CONVENTIONS.md`, `TESTING.md`, `TECH_STACK.md`
-
-### Step 4: Compare Guidance Patterns
-
-**Test:** Agent guidance should include these FastAPI patterns (sourced from `docs/`):
-
-- ✓ Routes use versioned paths: `/v1/<resource>`
-- ✓ Request models inherit from `BaseModel`
-- ✓ Responses wrapped in `ApiResponse` envelope
-- ✓ Auth uses `Depends(get_current_user)`
-- ✓ Port delegation in route handlers
-- ✓ Exception mapping to HTTP status codes
-- ✓ Tests use `TestClient` from `fastapi.testclient`
-
-**Why this works:** The docs haven't changed — they still contain FastAPI specifics. Refactored agents read these docs and produce identical patterns.
-
-### Step 5: Implement One Increment (Claude Code)
-
-Generate code for the first increment of `parity_test_api`:
-
-1. Click in `parity_test_api/api/routes.py` (or create it)
-2. Ask Claude Code: `Implement the first increment of parity_test_api`
-3. Verify generated code:
-   - Routes are FastAPI endpoints
-   - Routes call ports (delegate to domain)
-   - Request models are Pydantic `BaseModel`
-   - Responses use standard envelope
-
-**Compare to original version:** Code structure should match the patterns from the original FastAPI-embedded rules (now sourced from docs).
-
-### Step 6: Run Tests
+The v0.7 refactor touched 36 files (12 rules + 12 L3 entries + 12 L4/L5 entries). Every file must lead with a doc pointer. Quick verification:
 
 ```bash
-cd features/parity_test_api
-pytest tests/ -v
+# All rules reference docs/
+grep -L "Your project" agents/{claude-code,copilot,codex}/rules/backend/*.md \
+                      agents/{claude-code,copilot,codex}/rules/cli/*.md
+
+# Should output nothing — if any file is listed, it's missing the doc pointer
 ```
 
-**Expected:** Tests pass (same test framework, patterns, and assertions as original version).
-
----
-
-## Validation Success Criteria
-
-✓ **Refactoring completeness:** All 36 files updated (verified by grep checks above)
-
-✓ **Doc reference correctness:** Every rules file references the appropriate `docs/backend/architecture/` file
-
-✓ **Guidance consistency:** Agents produce guidance that mentions `docs/` files, not embedded language specifics
-
-✓ **FastAPI pattern recognition:** For Python projects, agents still guide toward:
-  - Pydantic models
-  - FastAPI decorators
-  - Dependency injection (`Depends`)
-  - TestClient
-  - Status code mapping
-
-✓ **Evaluation thresholds:** FIRST and 7 Virtue thresholds unchanged (verified in `$spec-planning` output)
-
-✓ **Test approach:** Same testing framework (pytest, TestClient, mock approaches)
-
-✓ **Architecture enforcement:** Same boundary checks, port/adapter patterns, ADR triggers
-
----
-
-## Failure Modes & Troubleshooting
-
-### Issue: Agent does not reference `docs/backend/architecture/` files
-
-**Cause:** Rules file not updated with doc reference
-**Fix:** Check that the rules file in `.claude/rules/` or `copilot/instructions/` contains the line:
-```markdown
-**Your project's <layer> conventions:** `docs/backend/architecture/<DOC>.md`
-```
-
-### Issue: Agent provides language-specific guidance (e.g., "Use Click for CLI") that contradicts FastAPI docs
-
-**Cause:** Doc reference syntax is incorrect or agent skipped the rules
-**Fix:** 
-1. Verify the rules file exists and is correctly scoped (paths: or applyTo:)
-2. Verify the agent initialization reads from the correct rules directory
-
-### Issue: Generated code uses old patterns (embedded in rules) instead of doc-referenced patterns
-
-**Cause:** Agent is reading cached rules; regeneration needed
-**Fix:** Clear agent cache and restart IDE
-
-### Issue: Python project guidance includes non-FastAPI patterns (e.g., Django, Go)
-
-**Cause:** `docs/backend/architecture/` files were modified to a different stack
-**Fix:** Verify docs still contain FastAPI content; revert if necessary
 ```bash
-git diff docs/backend/architecture/API_CONVENTIONS.md
-git diff docs/backend/architecture/TECH_STACK.md
+# All entry files have a Project Documentation section
+grep -L "Project Documentation" agents/{claude-code,copilot,codex}/claude-md/backend-*.md \
+                                 agents/{claude-code,copilot,codex}/agents-md/backend-*.md \
+                                 agents/{claude-code,copilot,codex}/copilot-instructions/backend-*.md
+# Should output nothing
 ```
-
----
-
-## Parity Test Results Template
-
-After running the tests, document results:
-
-```markdown
-## Parity Test Results
-
-**Date:** [date]
-**Tested Agent:** Claude Code | GitHub Copilot | OpenAI Codex
-**Python Project:** features/parity_test_api (or other)
-**Docs Stack:** FastAPI (unchanged from original)
-
-### Refactoring Completeness
-- [ ] All 6 rules files updated
-- [ ] All 6 main entry files updated
-- [ ] Project Documentation section present and correct
-
-### Guidance Parity
-- [ ] Agent references `docs/backend/architecture/` files
-- [ ] FastAPI patterns are still recommended
-- [ ] FIRST and 7 Virtue evaluation approach unchanged
-- [ ] Architecture preflight output matches original version
-
-### Code Output Parity
-- [ ] Generated routes use FastAPI decorators
-- [ ] Request models use Pydantic BaseModel
-- [ ] Authentication uses Depends(get_current_user)
-- [ ] Port delegation present in route handlers
-- [ ] Test approach uses pytest + TestClient
-
-### Architecture Enforcement
-- [ ] Boundary checks enforced (no circular deps)
-- [ ] Port/adapter patterns recognized
-- [ ] ADR triggers correctly identified
-- [ ] Shared artifact contracts respected
-
-### Tests
-- [ ] Unit tests pass (FIRST compliant)
-- [ ] Integration tests pass (Gherkin-mapped)
-- [ ] Evaluation gates pass (FIRST and 7 Virtue thresholds)
-
-### Conclusion
-**PASS** | **FAIL** — [summary]
-```
-
----
-
-## Next Steps
-
-After parity testing confirms the refactoring:
-
-1. **Document language customization process** — how teams using C#, Go, Java can customize `docs/` for their stack
-2. **Create C# example docs** — template `docs/backend/architecture/API_CONVENTIONS.md` for ASP.NET Core projects
-3. **Add language selection to govkit CLI** — `govkit apply --language csharp --framework aspnetcore`
-4. **Create per-language parity test suites** — validate agents work for Python, C#, Go, Java
 
 ---
 
 ## References
 
-- **Refactored rules:** `agents/claude-code/rules/`, `agents/copilot/instructions/`, `agents/codex/rules/`
-- **Main entry points:** `agents/claude-code/claude-md/`, `agents/copilot/copilot-instructions/`, `agents/codex/agents-md/`
-- **Docs (unchanged):** `docs/backend/architecture/API_CONVENTIONS.md`, `CLI_CONVENTIONS.md`, `ARCH_CONTRACT.md`, etc.
-- **Evaluation:** `docs/backend/evaluation/eval_criteria.md`
-- **Plan:** See `IMPROVEMENT_PLAN.md` for context and timeline
+- [plans/PROJECT_SHAPE_REFACTOR_PLAN.md](plans/PROJECT_SHAPE_REFACTOR_PLAN.md) — v0.8 refactor (project-shape parity)
+- [scripts/README.md](scripts/README.md) — smoke script reference
+- [docs/MONOREPO_PATTERN.md](docs/MONOREPO_PATTERN.md) — per-agent loader specifics under subpath installs
+- [docs/stacks/README.md](docs/stacks/README.md) — stack swap guide (v0.7 parity surface)
+- [CHANGELOG.md](CHANGELOG.md) — release history

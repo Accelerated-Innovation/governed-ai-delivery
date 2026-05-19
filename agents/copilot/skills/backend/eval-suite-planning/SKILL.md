@@ -1,20 +1,21 @@
 ---
 name: eval-suite-planning
-description: Plan DeepEval, Promptfoo, and RAGAS evaluation suites for an LLM feature
-argument-hint: "<feature_name>"
-user-invocable: true
+description: Plan DeepEval, Promptfoo, and RAGAS evaluation suites for an LLM feature. Use when the user asks to plan LLM evaluations or invokes /eval-suite-planning.
 ---
 
 # Evaluation Suite Planning
 
-Plan the LLM evaluation test suite for: **$ARGUMENTS**
+Plan the LLM evaluation test suite for a feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
 ## Inputs to read
 
-- `features/$ARGUMENTS/nfrs.md`
-- `features/$ARGUMENTS/acceptance.feature`
-- `features/$ARGUMENTS/eval_criteria.yaml`
-- `features/$ARGUMENTS/architecture_preflight.md`
+Feature specs:
+- `features/<feature_name>/nfrs.md`
+- `features/<feature_name>/acceptance.feature`
+- `features/<feature_name>/eval_criteria.yaml`
+- `features/<feature_name>/architecture_preflight.md` (sections 10-14)
+
+Contracts and guides:
 - `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
 - `docs/backend/guides/deepeval-usage.md`
 - `docs/backend/guides/promptfoo-usage.md`
@@ -22,14 +23,52 @@ Plan the LLM evaluation test suite for: **$ARGUMENTS**
 
 ## Instructions
 
-1. Determine which tools are required: DeepEval (always for mode:llm), Promptfoo (if user-facing), RAGAS (if RAG)
-2. Select DeepEval metrics: FaithfulnessMetric, AnswerRelevancyMetric, HallucinationMetric, GEval
-3. Plan Promptfoo adversarial scenarios: jailbreak, injection, topic boundaries, regression
-4. Select RAGAS metrics if applicable: context_recall, context_precision, faithfulness, answer_relevancy
-5. Plan evaluation dataset (min 20 DeepEval cases, 10 Promptfoo scenarios, 15 RAGAS triples)
+1. Read all inputs listed above.
+2. Determine which evaluation tools are required based on the architecture preflight:
+   - DeepEval: always required for `mode: llm`
+   - Promptfoo: required if feature is user-facing or processes untrusted input
+   - RAGAS: required if feature uses retrieval (RAG pipeline)
+
+3. For **DeepEval**, select metrics based on feature type:
+   - All LLM features: `FaithfulnessMetric`, `AnswerRelevancyMetric`
+   - Features with context: add `HallucinationMetric`, `ContextualRelevancyMetric`
+   - Features needing custom criteria: add `GEval` with specific rubric
+   - Set thresholds (recommend 0.8 minimum, 0.85+ for production features)
+
+4. For **Promptfoo**, plan adversarial scenarios:
+   - Jailbreak attempts (bypass system instructions)
+   - Prompt injection (embed malicious instructions in user input)
+   - Topic boundary testing (off-topic requests)
+   - Regression baselines (expected output stability)
+
+5. For **RAGAS** (if applicable), select retrieval metrics:
+   - `context_recall` — does the retriever find all relevant docs?
+   - `context_precision` — are retrieved docs relevant (low noise)?
+   - `faithfulness` — is the answer faithful to retrieved context?
+   - `answer_relevancy` — does the answer address the question?
+
+6. Plan the evaluation dataset:
+   - Minimum 20 test cases for DeepEval
+   - Minimum 10 adversarial scenarios for Promptfoo
+   - Minimum 15 query-context-answer triples for RAGAS
 
 ## Output
 
-Update `features/$ARGUMENTS/eval_criteria.yaml` with criteria using `deepeval_*`, `promptfoo_*`, and `ragas_*` eval_class values. Set thresholds and dataset paths.
+Update `features/<feature_name>/eval_criteria.yaml` with:
+- DeepEval criteria using `deepeval_*` eval_class values
+- Promptfoo criteria using `promptfoo_*` eval_class values (if required)
+- RAGAS criteria using `ragas_*` eval_class values (if required)
+- Dataset path reference
+- Appropriate thresholds per metric
+
+Provide recommended test file structure:
+```
+tests/eval/<feature_name>/
+├── test_quality.py           # DeepEval test cases
+├── promptfoo.yaml            # Promptfoo config (if required)
+└── eval_sets/
+    ├── dataset.json          # DeepEval dataset
+    └── rag_dataset.json      # RAGAS dataset (if required)
+```
 
 No implementation code in this step.

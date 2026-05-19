@@ -1,6 +1,6 @@
 ---
 name: ui-adr-author
-description: Author an Architecture Decision Record for a UI architectural decision
+description: Author an Architecture Decision Record for a UI architectural decision. Use when the user asks to write a UI ADR or invokes /ui-adr-author.
 ---
 
 # ADR Author — UI

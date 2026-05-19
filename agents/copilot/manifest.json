@@ -3,19 +3,14 @@
   "description": "GitHub Copilot - path-scoped instructions and open agent skills",
   "options": {
     "level": {
-      "prompt": "Maturity level? (3=Spec-Driven, 4=Governed AI Delivery, 5=GenAI Operations)",
+      "prompt": "Maturity level? (3=Governed AI Delivery (Foundations), 4=Spec-Driven Add-On, 5=GenAI Operations)",
       "choices": ["3", "4", "5"],
-      "default": "4"
+      "default": "3"
     },
     "type": {
       "prompt": "Project type?",
-      "choices": ["api", "cli"],
+      "choices": ["api", "cli", "ui-react", "ui-angular"],
       "default": "api"
-    },
-    "ui": {
-      "prompt": "UI framework?",
-      "choices": ["none", "react", "angular"],
-      "default": "none"
     },
     "ci": {
       "prompt": "CI platform?",
@@ -28,35 +23,41 @@
       "api": {
         "files": [
           { "src": "copilot-instructions/backend-api.md", "dest": ".github/copilot-instructions.md" },
-          { "src": "instructions/backend/", "dest": ".github/instructions/" },
-          { "src": "skills/backend/", "dest": ".github/skills/" }
+          { "src": "instructions/backend/api.instructions.md", "dest": ".github/instructions/api.instructions.md" },
+          { "src": "instructions/backend/services.instructions.md", "dest": ".github/instructions/services.instructions.md" },
+          { "src": "instructions/backend/ports.instructions.md", "dest": ".github/instructions/ports.instructions.md" },
+          { "src": "instructions/backend/adapters.instructions.md", "dest": ".github/instructions/adapters.instructions.md" },
+          { "src": "instructions/backend/security.instructions.md", "dest": ".github/instructions/security.instructions.md" },
+          { "src": "instructions/generic/repo-scope-backend.instructions.md", "dest": ".github/instructions/repo-scope.instructions.md" },
+          { "src": "skills/backend/adr-author/", "dest": ".github/skills/adr-author/" }
         ],
-        "shared": [
-          "features/starter_backend/",
-          "features/schema_contract_example/"
-        ],
+        "shared": [],
         "governed": [
-          "docs/backend/",
-          "governance/backend/"
+          "docs/backend/architecture/"
         ],
-        "level_3": {
+        "level_4": {
+          "mode": "merge",
           "files": [
-            { "src": "copilot-instructions/l3-backend-api.md", "dest": ".github/copilot-instructions.md" },
-            { "src": "skills/backend/l3-spec-planning/", "dest": ".github/skills/spec-planning/" },
-            { "src": "skills/backend/l3-implementation-plan/", "dest": ".github/skills/implementation-plan/" }
+            { "src": "copilot-instructions/l4-backend-api.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
+            { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
+            { "src": "skills/backend/spec-planning/", "dest": ".github/skills/spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".github/skills/architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".github/skills/implementation-plan/" }
           ],
           "shared": [
-            "features/starter_backend_l3/"
+            "features/starter_backend/",
+            "features/schema_contract_example/"
           ],
           "governed": [
-            "docs/backend/architecture/DESIGN_PRINCIPLES.md",
-            "docs/backend/architecture/TESTING.md",
-            "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
-            "docs/backend/architecture/GHERKIN_TAGS.md",
-            "governance/backend/templates/l3-plan.md"
+            "docs/backend/evaluation/",
+            "docs/backend/guides/",
+            "governance/backend/",
+            "governance/schemas/evaluation_prediction.schema.json"
           ]
         },
         "level_5": {
+          "mode": "replace",
           "files": [
             { "src": "copilot-instructions/l5-backend-api.md", "dest": ".github/copilot-instructions.md" },
             { "src": "instructions/backend/", "dest": ".github/instructions/" },
@@ -65,6 +66,9 @@
             { "src": "instructions/backend/llm-evaluation.instructions.md", "dest": ".github/instructions/llm-evaluation.instructions.md" },
             { "src": "instructions/backend/llm-observability.instructions.md", "dest": ".github/instructions/llm-observability.instructions.md" },
             { "src": "instructions/backend/multi-agent.instructions.md", "dest": ".github/instructions/multi-agent.instructions.md" },
+            { "src": "instructions/generic/repo-scope-backend.instructions.md", "dest": ".github/instructions/repo-scope.instructions.md" },
+            { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
+            { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
             { "src": "skills/backend/", "dest": ".github/skills/" },
             { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/genai-preflight/" },
             { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" },
@@ -84,34 +88,40 @@
       "cli": {
         "files": [
           { "src": "copilot-instructions/backend-cli.md", "dest": ".github/copilot-instructions.md" },
-          { "src": "instructions/cli/", "dest": ".github/instructions/" },
-          { "src": "skills/backend/", "dest": ".github/skills/" }
+          { "src": "instructions/cli/cli.instructions.md", "dest": ".github/instructions/cli.instructions.md" },
+          { "src": "instructions/backend/services.instructions.md", "dest": ".github/instructions/services.instructions.md" },
+          { "src": "instructions/backend/ports.instructions.md", "dest": ".github/instructions/ports.instructions.md" },
+          { "src": "instructions/backend/adapters.instructions.md", "dest": ".github/instructions/adapters.instructions.md" },
+          { "src": "instructions/backend/security.instructions.md", "dest": ".github/instructions/security.instructions.md" },
+          { "src": "instructions/generic/repo-scope-backend.instructions.md", "dest": ".github/instructions/repo-scope.instructions.md" },
+          { "src": "skills/backend/adr-author/", "dest": ".github/skills/adr-author/" }
         ],
-        "shared": [
-          "features/starter_cli/"
-        ],
+        "shared": [],
         "governed": [
-          "docs/backend/",
-          "governance/backend/"
+          "docs/backend/architecture/"
         ],
-        "level_3": {
+        "level_4": {
+          "mode": "merge",
           "files": [
-            { "src": "copilot-instructions/l3-backend-cli.md", "dest": ".github/copilot-instructions.md" },
-            { "src": "skills/backend/l3-spec-planning/", "dest": ".github/skills/spec-planning/" },
-            { "src": "skills/backend/l3-implementation-plan/", "dest": ".github/skills/implementation-plan/" }
+            { "src": "copilot-instructions/l4-backend-cli.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
+            { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
+            { "src": "skills/backend/spec-planning/", "dest": ".github/skills/spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".github/skills/architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".github/skills/implementation-plan/" }
           ],
           "shared": [
-            "features/starter_cli_l3/"
+            "features/starter_cli/"
           ],
           "governed": [
-            "docs/backend/architecture/DESIGN_PRINCIPLES.md",
-            "docs/backend/architecture/TESTING.md",
-            "docs/backend/architecture/GHERKIN_CONVENTIONS.md",
-            "docs/backend/architecture/GHERKIN_TAGS.md",
-            "governance/backend/templates/l3-plan.md"
+            "docs/backend/evaluation/",
+            "docs/backend/guides/",
+            "governance/backend/",
+            "governance/schemas/evaluation_prediction.schema.json"
           ]
         },
         "level_5": {
+          "mode": "replace",
           "files": [
             { "src": "copilot-instructions/l5-backend-cli.md", "dest": ".github/copilot-instructions.md" },
             { "src": "instructions/cli/", "dest": ".github/instructions/" },
@@ -120,6 +130,9 @@
             { "src": "instructions/backend/llm-evaluation.instructions.md", "dest": ".github/instructions/llm-evaluation.instructions.md" },
             { "src": "instructions/backend/llm-observability.instructions.md", "dest": ".github/instructions/llm-observability.instructions.md" },
             { "src": "instructions/backend/multi-agent.instructions.md", "dest": ".github/instructions/multi-agent.instructions.md" },
+            { "src": "instructions/generic/repo-scope-backend.instructions.md", "dest": ".github/instructions/repo-scope.instructions.md" },
+            { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
+            { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
             { "src": "skills/backend/", "dest": ".github/skills/" },
             { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/genai-preflight/" },
             { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" },
@@ -134,80 +147,136 @@
             "governance/schemas/evaluation_prediction.schema.json"
           ]
         }
-      }
-    },
-    "ui": {
-      "none": {
-        "files": [],
-        "shared": []
       },
-      "react": {
+      "ui-react": {
         "files": [
-          { "src": "copilot-instructions/ui-react.md", "dest": ".github/copilot-instructions-ui.md" },
-          { "src": "instructions/ui-react/", "dest": ".github/instructions/" },
-          { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
-          { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
-          { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" },
+          { "src": "copilot-instructions/ui-react.md", "dest": ".github/copilot-instructions.md" },
+          { "src": "instructions/ui-react/components.instructions.md", "dest": ".github/instructions/components.instructions.md" },
+          { "src": "instructions/ui-react/viewmodel.instructions.md", "dest": ".github/instructions/viewmodel.instructions.md" },
+          { "src": "instructions/ui-react/api.instructions.md", "dest": ".github/instructions/ui-api.instructions.md" },
+          { "src": "instructions/ui-react/accessibility.instructions.md", "dest": ".github/instructions/accessibility.instructions.md" },
+          { "src": "instructions/generic/repo-scope-ui.instructions.md", "dest": ".github/instructions/repo-scope.instructions.md" },
           { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" }
         ],
-        "shared": [
-          "features/starter_ui/",
-          "features/ui_task_dashboard/"
-        ],
+        "shared": [],
         "governed": [
           "docs/ui/architecture/MVVM_CONTRACT.md",
           "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
           "docs/ui/architecture/ADR/",
-          "docs/ui/architecture/react/",
-          "docs/ui/evaluation/",
-          "governance/ui/"
+          "docs/ui/architecture/react/"
         ],
-        "level_3": {
+        "level_4": {
+          "mode": "merge",
           "files": [
-            { "src": "copilot-instructions/l3-ui-react.md", "dest": ".github/copilot-instructions-ui.md" },
-            { "src": "skills/ui/l3-spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
-            { "src": "skills/ui/l3-implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
+            { "src": "copilot-instructions/l4-ui-react.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
+            { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
+            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
           ],
           "shared": [
-            "features/starter_ui_l3/"
+            "features/starter_ui/",
+            "features/ui_task_dashboard/"
           ],
           "governed": [
-            "governance/ui/templates/l3-plan.md"
+            "docs/ui/evaluation/",
+            "governance/ui/"
+          ]
+        },
+        "level_5": {
+          "mode": "replace",
+          "files": [
+            { "src": "copilot-instructions/l5-ui-react.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "instructions/ui-react/components.instructions.md", "dest": ".github/instructions/components.instructions.md" },
+            { "src": "instructions/ui-react/viewmodel.instructions.md", "dest": ".github/instructions/viewmodel.instructions.md" },
+            { "src": "instructions/ui-react/api.instructions.md", "dest": ".github/instructions/ui-api.instructions.md" },
+            { "src": "instructions/ui-react/accessibility.instructions.md", "dest": ".github/instructions/accessibility.instructions.md" },
+            { "src": "instructions/generic/repo-scope-ui.instructions.md", "dest": ".github/instructions/repo-scope.instructions.md" },
+            { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
+            { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
+            { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" },
+            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
+          ],
+          "shared": [
+            "features/starter_ui/",
+            "features/ui_task_dashboard/"
+          ],
+          "governed": [
+            "docs/ui/architecture/MVVM_CONTRACT.md",
+            "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
+            "docs/ui/architecture/ADR/",
+            "docs/ui/architecture/react/",
+            "docs/ui/evaluation/",
+            "governance/ui/"
           ]
         }
       },
-      "angular": {
+      "ui-angular": {
         "files": [
-          { "src": "copilot-instructions/ui-angular.md", "dest": ".github/copilot-instructions-ui.md" },
-          { "src": "instructions/ui-angular/", "dest": ".github/instructions/" },
-          { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
-          { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
-          { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" },
+          { "src": "copilot-instructions/ui-angular.md", "dest": ".github/copilot-instructions.md" },
+          { "src": "instructions/ui-angular/components.instructions.md", "dest": ".github/instructions/components.instructions.md" },
+          { "src": "instructions/ui-angular/viewmodel.instructions.md", "dest": ".github/instructions/viewmodel.instructions.md" },
+          { "src": "instructions/ui-angular/api.instructions.md", "dest": ".github/instructions/ui-api.instructions.md" },
+          { "src": "instructions/ui-angular/accessibility.instructions.md", "dest": ".github/instructions/accessibility.instructions.md" },
+          { "src": "instructions/generic/repo-scope-ui.instructions.md", "dest": ".github/instructions/repo-scope.instructions.md" },
           { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" }
         ],
-        "shared": [
-          "features/starter_ui/",
-          "features/ui_task_dashboard/"
-        ],
+        "shared": [],
         "governed": [
           "docs/ui/architecture/MVVM_CONTRACT.md",
           "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
           "docs/ui/architecture/ADR/",
-          "docs/ui/architecture/angular/",
-          "docs/ui/evaluation/",
-          "governance/ui/"
+          "docs/ui/architecture/angular/"
         ],
-        "level_3": {
+        "level_4": {
+          "mode": "merge",
           "files": [
-            { "src": "copilot-instructions/l3-ui-angular.md", "dest": ".github/copilot-instructions-ui.md" },
-            { "src": "skills/ui/l3-spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
-            { "src": "skills/ui/l3-implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
+            { "src": "copilot-instructions/l4-ui-angular.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
+            { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
+            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
           ],
           "shared": [
-            "features/starter_ui_l3/"
+            "features/starter_ui/",
+            "features/ui_task_dashboard/"
           ],
           "governed": [
-            "governance/ui/templates/l3-plan.md"
+            "docs/ui/evaluation/",
+            "governance/ui/"
+          ]
+        },
+        "level_5": {
+          "mode": "replace",
+          "files": [
+            { "src": "copilot-instructions/l5-ui-angular.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "instructions/ui-angular/components.instructions.md", "dest": ".github/instructions/components.instructions.md" },
+            { "src": "instructions/ui-angular/viewmodel.instructions.md", "dest": ".github/instructions/viewmodel.instructions.md" },
+            { "src": "instructions/ui-angular/api.instructions.md", "dest": ".github/instructions/ui-api.instructions.md" },
+            { "src": "instructions/ui-angular/accessibility.instructions.md", "dest": ".github/instructions/accessibility.instructions.md" },
+            { "src": "instructions/generic/repo-scope-ui.instructions.md", "dest": ".github/instructions/repo-scope.instructions.md" },
+            { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
+            { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
+            { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" },
+            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
+          ],
+          "shared": [
+            "features/starter_ui/",
+            "features/ui_task_dashboard/"
+          ],
+          "governed": [
+            "docs/ui/architecture/MVVM_CONTRACT.md",
+            "docs/ui/architecture/ACCESSIBILITY_STANDARDS.md",
+            "docs/ui/architecture/ADR/",
+            "docs/ui/architecture/angular/",
+            "docs/ui/evaluation/",
+            "governance/ui/"
           ]
         }
       }
@@ -216,43 +285,135 @@
       "github": {
         "files": [],
         "shared": [],
-        "governed": ["ci/github/"],
-        "level_3": {
+        "governed": ["ci/github/repo-scope-check.yml"],
+        "by_type": {
+          "api":        { "governed": ["ci/github/l3-quality-gate.yml"] },
+          "cli":        { "governed": ["ci/github/l3-quality-gate.yml"] },
+          "ui-react":   { "governed": ["ci/github/l3-ui-quality-gate.yml"] },
+          "ui-angular": { "governed": ["ci/github/l3-ui-quality-gate.yml"] }
+        },
+        "level_4": {
+          "mode": "merge",
           "files": [],
           "shared": [],
-          "governed": ["ci/github/l3-quality-gate.yml"]
+          "governed": [],
+          "by_type": {
+            "api":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml"] },
+            "cli":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml"] },
+            "ui-react":   { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml"] },
+            "ui-angular": { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml"] }
+          }
         },
         "level_5": {
+          "mode": "replace",
           "files": [],
           "shared": [],
-          "governed": [
-            "ci/github/",
-            "ci/github/deepeval-gate.yml",
-            "ci/github/promptfoo-gate.yml",
-            "ci/github/guardrails-check.yml",
-            "ci/github/multi-agent-gate.yml"
-          ]
+          "governed": ["ci/github/repo-scope-check.yml"],
+          "by_type": {
+            "api": { "governed": [
+              "ci/github/l3-quality-gate.yml",
+              "ci/github/quality-gate.yml",
+              "ci/github/eval-gate.yml",
+              "ci/github/deepeval-gate.yml",
+              "ci/github/guardrails-check.yml",
+              "ci/github/multi-agent-gate.yml",
+              "ci/github/promptfoo-gate.yml"
+            ] },
+            "cli": { "governed": [
+              "ci/github/l3-quality-gate.yml",
+              "ci/github/quality-gate.yml",
+              "ci/github/eval-gate.yml",
+              "ci/github/deepeval-gate.yml",
+              "ci/github/guardrails-check.yml",
+              "ci/github/multi-agent-gate.yml",
+              "ci/github/promptfoo-gate.yml"
+            ] },
+            "ui-react": { "governed": [
+              "ci/github/l3-ui-quality-gate.yml",
+              "ci/github/ui-quality-gate.yml",
+              "ci/github/ui-eval-gate.yml",
+              "ci/github/deepeval-gate.yml",
+              "ci/github/guardrails-check.yml",
+              "ci/github/multi-agent-gate.yml",
+              "ci/github/promptfoo-gate.yml"
+            ] },
+            "ui-angular": { "governed": [
+              "ci/github/l3-ui-quality-gate.yml",
+              "ci/github/ui-quality-gate.yml",
+              "ci/github/ui-eval-gate.yml",
+              "ci/github/deepeval-gate.yml",
+              "ci/github/guardrails-check.yml",
+              "ci/github/multi-agent-gate.yml",
+              "ci/github/promptfoo-gate.yml"
+            ] }
+          }
         }
       },
       "azure": {
         "files": [],
         "shared": [],
-        "governed": ["ci/azure/"],
-        "level_3": {
+        "governed": ["ci/azure/repo-scope-check.yml"],
+        "by_type": {
+          "api":        { "governed": ["ci/azure/l3-quality-gate.yml"] },
+          "cli":        { "governed": ["ci/azure/l3-quality-gate.yml"] },
+          "ui-react":   { "governed": ["ci/azure/l3-ui-quality-gate.yml"] },
+          "ui-angular": { "governed": ["ci/azure/l3-ui-quality-gate.yml"] }
+        },
+        "level_4": {
+          "mode": "merge",
           "files": [],
           "shared": [],
-          "governed": ["ci/azure/l3-quality-gate.yml"]
+          "governed": [],
+          "by_type": {
+            "api":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml"] },
+            "cli":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml"] },
+            "ui-react":   { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml"] },
+            "ui-angular": { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml"] }
+          }
         },
         "level_5": {
+          "mode": "replace",
           "files": [],
           "shared": [],
-          "governed": [
-            "ci/azure/",
-            "ci/azure/deepeval-gate.yml",
-            "ci/azure/promptfoo-gate.yml",
-            "ci/azure/guardrails-check.yml",
-            "ci/azure/multi-agent-gate.yml"
-          ]
+          "governed": ["ci/azure/repo-scope-check.yml"],
+          "by_type": {
+            "api": { "governed": [
+              "ci/azure/l3-quality-gate.yml",
+              "ci/azure/quality-gate.yml",
+              "ci/azure/eval-gate.yml",
+              "ci/azure/deepeval-gate.yml",
+              "ci/azure/guardrails-check.yml",
+              "ci/azure/multi-agent-gate.yml",
+              "ci/azure/promptfoo-gate.yml"
+            ] },
+            "cli": { "governed": [
+              "ci/azure/l3-quality-gate.yml",
+              "ci/azure/quality-gate.yml",
+              "ci/azure/eval-gate.yml",
+              "ci/azure/deepeval-gate.yml",
+              "ci/azure/guardrails-check.yml",
+              "ci/azure/multi-agent-gate.yml",
+              "ci/azure/promptfoo-gate.yml"
+            ] },
+            "ui-react": { "governed": [
+              "ci/azure/l3-ui-quality-gate.yml",
+              "ci/azure/ui-quality-gate.yml",
+              "ci/azure/ui-eval-gate.yml",
+              "ci/azure/deepeval-gate.yml",
+              "ci/azure/guardrails-check.yml",
+              "ci/azure/multi-agent-gate.yml",
+              "ci/azure/promptfoo-gate.yml"
+            ] },
+            "ui-angular": { "governed": [
+              "ci/azure/l3-ui-quality-gate.yml",
+              "ci/azure/ui-quality-gate.yml",
+              "ci/azure/ui-eval-gate.yml",
+              "ci/azure/deepeval-gate.yml",
+              "ci/azure/guardrails-check.yml",
+              "ci/azure/multi-agent-gate.yml",
+              "ci/azure/promptfoo-gate.yml"
+            ] }
+          }
         }
       }
     }

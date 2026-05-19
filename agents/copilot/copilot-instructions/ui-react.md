@@ -1,12 +1,16 @@
-# GitHub Copilot Instructions — React UI
+# GitHub Copilot Instructions — Foundations (Level 3) — React UI
 
-These instructions govern how GitHub Copilot plans, reasons, and generates code in this React UI repository.
+These instructions govern how GitHub Copilot plans, reasons, and generates
+code in this React UI repository. They are mandatory.
 
-They are mandatory.
+Copilot must treat this repository as a governed delivery system, not an open
+coding environment. Repository artifacts are the source of truth. Chat memory
+is not.
 
-Copilot must treat this repository as a governed delivery system, not an open coding environment.
-
-Repository artifacts are the source of truth. Chat memory is not.
+> **Feature artifacts are not part of L3.** If your team adopts spec-driven
+> feature delivery (per-feature `acceptance.feature`, `nfrs.md`, `plan.md`,
+> `eval_criteria.yaml`, and `architecture_preflight.md`), upgrade with
+> `govkit apply --level 4`.
 
 ---
 
@@ -14,196 +18,171 @@ Repository artifacts are the source of truth. Chat memory is not.
 
 Copilot operates aligned to:
 
-* Product specifications under `features/`
 * Architecture contracts under `docs/ui/architecture/`
-* Evaluation standards under `docs/ui/evaluation/`
-* Governance rules under `governance/ui/`
+* Path-scoped instructions under `.github/instructions/`
 
-Before planning or generating code:
+Before generating or modifying code:
 
-* Read all files under `docs/ui/architecture/`
-* Read `docs/ui/evaluation/eval_criteria.md`
-* Apply MVVM contract, component conventions, state management rules, and evaluation standards as binding constraints
-* Confirm required feature artifacts exist
+* Read the MVVM contract, component conventions, and state management rules
+* Apply layer-boundary rules and accessibility standards as binding constraints
 
-If required inputs are missing, stop and ask.
+If required inputs are missing or unclear, stop and ask.
 
 ---
 
 ## 2. MVVM Architecture
 
-This project follows MVVM with a vertical slice feature structure:
+This project follows MVVM with a vertical slice source-code structure under
+`src/`. Note: `src/features/` is the React source tree (not the govkit
+`features/` directory, which only exists at Level 4+).
 
 ```
 src/
-├── features/<feature>/
+├── features/<slice>/
 │   ├── components/   # View — pure React components
 │   ├── hooks/        # ViewModel — React Query hooks
 │   ├── store/        # ViewModel — Zustand client state
 │   ├── api/          # Model — API client functions
-│   └── types/        # Feature-local TypeScript types
+│   └── types/        # Slice-local TypeScript types
 ├── shared/
 │   ├── components/   # Shared UI primitives only
 │   └── api/          # Base API config, auth headers
 └── app/              # Entry point, routing, providers
 ```
 
-See `docs/ui/architecture/MVVM_CONTRACT.md` for full rules.
+Read before generating any code:
+
+* `docs/ui/architecture/MVVM_CONTRACT.md`
+* `docs/ui/architecture/react/COMPONENT_CONVENTIONS.md`
+* `docs/ui/architecture/react/STATE_MANAGEMENT.md`
+* `docs/ui/architecture/react/TECH_STACK.md`
+* `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`
 
 ---
 
-## 3. Mandatory Feature Structure
+## 3. Layer Rules
 
-Every feature must live under `features/<feature_name>/` with these artifacts:
+### View — Components (`src/features/<slice>/components/`)
 
-* `acceptance.feature`
-* `nfrs.md`
-* `eval_criteria.yaml`
-* `plan.md`
-* `architecture_preflight.md`
-
-Implementation must not begin unless all artifacts exist and are complete.
-
----
-
-## 4. Feature Lifecycle (Mandatory Order)
-
-All work follows this sequence:
-
-1. Architecture Preflight
-2. ADR creation (if required)
-3. Spec Planning
-4. Implementation Planning
-5. Incremental implementation (API → ViewModel → View)
-6. Component and E2E tests
-7. CI gates
-
-Steps may not be skipped. Implementation order within a feature must follow the MVVM layer sequence: API layer first, ViewModel second, View last.
-
----
-
-## 5. Layer Rules
-
-### View — Components (`src/features/*/components/`)
-* No direct API calls — no `fetch`, `axios`, or `useQuery` in component files
-* No data transformation — fix the hook, not the component
-* No imports from another feature's internals
+* No direct API calls. No fetch. No axios.
+* No business logic or data transformation
+* Receive data and callbacks via props or hooks only
 * All data via React Query hooks or Zustand selectors
+* See `.github/instructions/components.instructions.md`
 
-### ViewModel — Hooks (`src/features/*/hooks/`)
-* All server state via React Query
-* Transform API responses in the `select` option — never in components
-* Query keys defined as constants in `queryKeys.ts`
-* Mutations must invalidate relevant query keys on success
+### ViewModel — Hooks (`src/features/<slice>/hooks/`)
 
-### ViewModel — Store (`src/features/*/store/`)
-* Zustand for UI-only state — never store server data
-* Feature-scoped stores — no global catch-all store
-* Export named actions, not raw setters
-* Never call API functions from a store
+* All server state via React Query (`useQuery`, `useMutation`)
+* One hook file per logical data concern
+* Transform API responses here — never in components
+* See `.github/instructions/viewmodel.instructions.md`
 
-### Model — API (`src/features/*/api/`)
+### ViewModel — Store (`src/features/<slice>/store/`)
+
+* Zustand for client-only UI state (modals, selections, pagination)
+* Never store server data in Zustand — that belongs in React Query cache
+* Slice-scoped stores only — no global catch-all store
+
+### Model — API (`src/features/<slice>/api/`)
+
 * Plain async functions — no React, no hooks
+* One file per backend resource
 * Use shared base client from `src/shared/api/`
-* All requests and responses explicitly typed — no `any`
+* See `.github/instructions/api.instructions.md`
+
+### Accessibility
+
+* Every interactive component must meet WCAG 2.1 AA
+* See `.github/instructions/accessibility.instructions.md` and
+  `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`
 
 ---
 
-## 6. Boundary Rules
+## 4. Boundary Rules
 
-Hard constraints. Never violate without an accepted ADR.
+These are hard constraints. Never violate without an accepted ADR.
 
 * Components must not import from `api/` directly
-* Components must not import from another feature's internals
-* Zustand stores must not call API functions directly
+* Components must not import from another slice's internals
+* Zustand stores must not call API functions directly — use React Query
+  mutations
 * `shared/` must not import from `features/`
 * No business logic outside `hooks/` and `api/`
 
 ---
 
-## 7. ADR Rules
+## 5. Implementation Rules
 
-An ADR is required when:
-
-* A new state management library is introduced
-* A new shared component library is introduced
-* Cross-feature state dependency is needed
-* A backend contract does not exist and must be negotiated
-* Any MVVM boundary rule is intentionally violated
-* A new UI dependency is added
-
-All ADRs live under `docs/ui/architecture/ADR/` and follow `governance/ui/templates/architecture_preflight.md`.
-
-Implementation must not proceed until the ADR status is **Accepted**.
+* Respect all boundary rules above
+* Follow MVVM separation strictly
+* Test-first is recommended for new components; the binding test-first rule
+  is part of the Level 4 Spec-Driven Add-On
+* Accessibility checks are part of every change, not a separate phase
 
 ---
 
-## 8. Evaluation Discipline
+## 6. ADR Required For
 
-Every feature must include `eval_criteria.yaml` validated against `governance/ui/schemas/eval_criteria.schema.json`.
+* Adding a new state management library
+* Introducing a new shared component library
+* Changing the API client strategy
+* Cross-slice state dependencies
+* Any deviation from the MVVM layer boundaries
+* Changes to authentication or authorization patterns
 
-Before implementation:
-
-* Read `docs/ui/evaluation/eval_criteria.md`
-* Confirm `plan.md` contains a completed Evaluation Compliance Summary
-* Predicted FIRST average must be ≥ 4.0
-* Zero predicted critical axe-core violations
-* All `@e2e` Gherkin scenarios must have planned Playwright tests
-
-If thresholds are not met, revise the plan before generating code.
+ADRs live under `docs/ui/architecture/ADR/`. Use the `/adr-author` skill to
+scaffold a new ADR.
 
 ---
 
-## 9. Testing Requirements
+## 7. Testing Requirements
 
-Each increment must include:
+Each change must include:
 
-* Component tests — Vitest + React Testing Library (FIRST compliant)
-* Accessibility check — `jest-axe` in every component test
-* Hook tests — `renderHook` + MSW for API mocking
-* E2E tests — Playwright for every `@e2e`-tagged Gherkin scenario with axe scan
-
----
-
-## 10. Quality Gates
-
-All generated code must pass:
-
-* TypeScript strict mode (`tsc --noEmit`)
-* ESLint including `eslint-plugin-jsx-a11y`
-* Zero critical axe-core violations
-* All component and E2E tests
-
-Violations must be fixed before proceeding.
+* Component tests with Vitest + React Testing Library (FIRST compliant)
+* Accessibility checks via axe-core (zero critical violations)
+* Integration tests when crossing layer boundaries
 
 ---
 
-## 11. Automatic Refactor Conditions
+## 8. Output Expectations
 
-Copilot must trigger refactor before proceeding if:
+Every implementation output must include:
 
-* Component contains business logic or data transformation
-* Hook exposes raw API response to components
-* FIRST average predicted below 4.0
-* Any critical accessibility violation detected
-* Cross-layer import introduced
+* Referenced architecture contracts
+* ADR status (Accepted / pending / not required — with justification)
+* Layer-boundary compliance confirmation
+* Test coverage summary including accessibility
 
----
-
-## 12. Authority
-
-Architecture decisions belong to the Architect.
-
-Exceptions require an ADR and explicit approval.
-
-Copilot follows standards. It does not invent them.
+If alignment is unclear, stop and ask.
 
 ---
 
-## 13. Commit Discipline
+## 9. Commit Discipline
 
-- Complete one increment, then commit before starting the next
-- Each commit must be independently buildable and testable
-- Commit message references the increment: `feat(<feature>): increment N — <name>`
-- Do not combine multiple increments into a single commit
-- If an increment exceeds ~300 lines of production code, split it before committing
+* Each commit must be independently buildable and testable
+* Commit message follows your project's convention; reference an ADR when one
+  applies
+* Keep commits focused — split large changes before committing
+
+---
+
+## 10. Upgrading to Spec-Driven Add-On (Level 4)
+
+When your team is ready to adopt per-feature spec contracts, upgrade with:
+
+```
+govkit apply --type ui-react --level 4 --target <path>
+```
+
+Level 4 layers the following on top of Level 3:
+
+* `features/<name>/` directory model with the 5-artifact governed contract
+  (separate from `src/features/`)
+* `/ui-spec-planning`, `/ui-architecture-preflight`, `/ui-implementation-plan`
+  skills
+* Test-first and spec-compliance instructions (binding, not just recommended)
+* Evaluation prediction discipline including accessibility, FIRST, and 7
+  Virtues
+* Governance CI jobs: artifact existence, eval-criteria schema, prediction
+  thresholds

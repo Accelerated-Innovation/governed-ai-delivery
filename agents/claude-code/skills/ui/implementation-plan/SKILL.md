@@ -1,16 +1,18 @@
 ---
-description: Produce an ordered implementation checklist for a React UI feature following MVVM layer sequence
-argument-hint: "<feature_name>"
+name: ui-implementation-plan
+description: Generate an ordered UI implementation checklist from a validated plan and preflight. Use when the user asks to draft UI implementation steps or invokes /ui-implementation-plan.
 ---
 
-# Implementation Plan — React UI
+# Implementation Plan — UI
 
-You are producing an Implementation Plan for a React UI feature. Read the following before proceeding:
+You are producing an Implementation Plan for a UI feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
-- `features/$ARGUMENTS/plan.md`
-- `features/$ARGUMENTS/architecture_preflight.md`
+Read the following before proceeding:
+
+- `features/<feature_name>/plan.md`
+- `features/<feature_name>/architecture_preflight.md`
 - `docs/ui/architecture/MVVM_CONTRACT.md`
-- `docs/ui/architecture/react/STATE_MANAGEMENT.md`
+- `docs/ui/architecture/*/STATE_MANAGEMENT.md`
 
 ---
 
@@ -19,28 +21,28 @@ Produce an ordered implementation checklist. Sequence must follow MVVM layer ord
 ## Implementation Order
 
 ### 1. Types and Interfaces
-- [ ] Define request/response types in `src/features/$ARGUMENTS/types/`
+- [ ] Define request/response types in `src/features/<feature>/types/`
 - [ ] Define ViewModel types (shaped for component consumption)
 
 ### 2. API Layer
-- [ ] Create API functions in `src/features/$ARGUMENTS/api/`
-- [ ] Wire to shared base client
-- [ ] Write unit tests for API functions (mock fetch/axios at boundary)
+- [ ] Create API functions in `src/features/<feature>/api/`
+- [ ] Wire to shared base client / ApiService
+- [ ] Write unit tests for API functions (mock HTTP at boundary)
 
-### 3. ViewModel — React Query Hooks
-- [ ] Define query keys in `queryKeys.ts`
-- [ ] Create `useQuery` hooks with `select` transforms
-- [ ] Create `useMutation` hooks with cache invalidation
-- [ ] Write unit tests for hooks using `renderHook` + MSW
+### 3. ViewModel — Query Hooks / Inject Functions
+- [ ] Define query keys in `queryKeys.ts` / `query-keys.ts`
+- [ ] Create query hooks with `select` transforms
+- [ ] Create mutation hooks with cache invalidation
+- [ ] Write unit tests using the framework's test harness + MSW
 
-### 4. ViewModel — Zustand Store (if applicable)
-- [ ] Define store with typed actions
+### 4. ViewModel — Client Store (if applicable)
+- [ ] Define store with typed actions (Zustand for React / Signal store for Angular)
 - [ ] Write unit tests for store actions without rendering
 
 ### 5. View — Components
 - [ ] Build components bottom-up (leaf components first)
 - [ ] Wire to hooks — no direct API calls
-- [ ] Write component tests with React Testing Library
+- [ ] Write component tests (React Testing Library / Angular Testing Library)
 - [ ] Run axe accessibility check in each test
 
 ### 6. E2E — Playwright

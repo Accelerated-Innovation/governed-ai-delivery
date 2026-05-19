@@ -1,13 +1,11 @@
 ---
-description: Author an Architecture Decision Record for a React UI architectural decision
-argument-hint: "<decision_title>"
+name: ui-adr-author
+description: Author an Architecture Decision Record for a UI architectural decision. Use when the user asks to write a UI ADR or invokes /ui-adr-author.
 ---
 
-# ADR Author — React UI
+# ADR Author — UI
 
-You are authoring an Architecture Decision Record for a React UI architectural decision.
-
-Decision to document: $ARGUMENTS
+You are authoring an Architecture Decision Record for a UI architectural decision. Determine the decision title from the user's request; if it is not provided, ask before proceeding.
 
 Read all existing accepted ADRs in `docs/ui/architecture/ADR/` before writing. Do not contradict an accepted ADR without explicitly superseding it.
 

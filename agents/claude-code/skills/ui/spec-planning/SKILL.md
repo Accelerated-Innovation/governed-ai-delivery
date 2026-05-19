@@ -1,15 +1,17 @@
 ---
-description: Generate or update plan.md and eval_criteria.yaml for a React UI feature
-argument-hint: "<feature_name>"
+name: ui-spec-planning
+description: Generate a UI feature plan (plan.md) and eval_criteria.yaml from NFRs, acceptance scenarios, and architecture preflight. Use when the user asks to plan a UI feature or invokes /ui-spec-planning.
 ---
 
-# Spec Planning — React UI
+# Spec Planning — UI
 
-You are performing Spec Planning for a React UI feature. Read the following before proceeding:
+You are performing Spec Planning for a UI feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
-- `features/$ARGUMENTS/acceptance.feature`
-- `features/$ARGUMENTS/nfrs.md`
-- `features/$ARGUMENTS/architecture_preflight.md`
+Read the following before proceeding:
+
+- `features/<feature_name>/acceptance.feature`
+- `features/<feature_name>/nfrs.md`
+- `features/<feature_name>/architecture_preflight.md`
 - `docs/ui/architecture/MVVM_CONTRACT.md`
 - `docs/ui/evaluation/eval_criteria.md`
 - `governance/ui/templates/plan.md`
@@ -17,7 +19,7 @@ You are performing Spec Planning for a React UI feature. Read the following befo
 
 ---
 
-Produce or update `features/$ARGUMENTS/plan.md` and `features/$ARGUMENTS/eval_criteria.yaml`.
+Produce or update `features/<feature_name>/plan.md` and `features/<feature_name>/eval_criteria.yaml`.
 
 ## plan.md must include:
 
@@ -27,8 +29,8 @@ One paragraph describing the feature from the user's perspective.
 ### 2. MVVM Breakdown
 For each layer:
 - Components to create (with props interface summary)
-- Hooks to create (query keys, data shape, transform)
-- Zustand store additions (if any)
+- Hooks / query inject functions to create (query keys, data shape, transform)
+- Client state additions (Zustand store / Signal store)
 - API functions to create (endpoint, method, request/response types)
 
 ### 3. Increment Breakdown

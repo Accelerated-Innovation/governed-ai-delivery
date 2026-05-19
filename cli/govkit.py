@@ -17,7 +17,7 @@ govkit — governed AI delivery kit installer
 
 Usage:
     govkit apply --agent claude-code --target /path/to/project
-    govkit apply --agent claude-code --level 3 --type api --ui none --ci github --target /path/to/project
+    govkit apply --agent claude-code --level 3 --type api --ci github --target /path/to/project
     govkit list
     govkit init my_feature --target /path/to/project
     govkit init my_feature --starter backend --target /path/to/project
@@ -26,6 +26,7 @@ Usage:
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from datetime import datetime, timezone
@@ -36,6 +37,100 @@ try:
     _GOVKIT_VERSION = _pkg_version("govkit")
 except Exception:
     _GOVKIT_VERSION = "dev"
+
+
+# ---------------------------------------------------------------------------
+# Version comparison + one-time migration warning (Increment 9 — v0.7.0 swap)
+# ---------------------------------------------------------------------------
+
+# Set once per process. Reset by tests via _reset_migration_warning().
+_MIGRATION_WARNING_PRINTED = False
+
+
+def _compare_version(v1: str, v2: str) -> int:
+    """Compare dotted version strings. Returns -1, 0, or 1.
+
+    Non-parseable versions (e.g. 'dev', 'unknown') compare equal to anything,
+    so development builds and corrupt markers don't trigger the migration
+    warning.
+    """
+    try:
+        t1 = tuple(int(p) for p in v1.split("."))
+        t2 = tuple(int(p) for p in v2.split("."))
+    except (ValueError, AttributeError):
+        return 0
+    if t1 < t2:
+        return -1
+    if t1 > t2:
+        return 1
+    return 0
+
+
+def _maybe_warn_migration(stored_version: str | None) -> None:
+    """Print one-time migration warning if marker version is pre-0.7.0.
+
+    Suppressed by env var GOVKIT_NO_MIGRATION_WARNING=1 (for CI / scripts).
+    Auto-suppressed once the marker is rewritten with version >= 0.7.0
+    (because the version comparison stops triggering).
+    """
+    global _MIGRATION_WARNING_PRINTED
+    if _MIGRATION_WARNING_PRINTED:
+        return
+    if not stored_version:
+        return
+    if os.environ.get("GOVKIT_NO_MIGRATION_WARNING") == "1":
+        return
+    if _compare_version(stored_version, "0.7.0") < 0:
+        print(
+            f"warning: .govkit marker version {stored_version} detected. "
+            "The L3/L4 maturity model changed in 0.7.0. "
+            "Run 'govkit upgrade --migrate-levels' to migrate. "
+            "(Set GOVKIT_NO_MIGRATION_WARNING=1 to suppress.)",
+            file=sys.stderr,
+        )
+        _MIGRATION_WARNING_PRINTED = True
+
+
+def _reset_migration_warning() -> None:
+    """Test helper: reset the one-time warning flag between test cases."""
+    global _MIGRATION_WARNING_PRINTED
+    _MIGRATION_WARNING_PRINTED = False
+
+
+_SHAPE_MIGRATION_WARNING_PRINTED = False
+
+
+def _maybe_warn_shape_migration(options: dict | None) -> None:
+    """Print one-time warning when the marker carries the dropped `ui` option.
+
+    The 0.7→0.8 project-shape refactor removed the `ui` dimension; the marker
+    is read tolerantly so existing installs keep working, but the user is
+    informed once per process. Suppressible via
+    GOVKIT_NO_SHAPE_MIGRATION_WARNING=1.
+    """
+    global _SHAPE_MIGRATION_WARNING_PRINTED
+    if _SHAPE_MIGRATION_WARNING_PRINTED:
+        return
+    if not options or "ui" not in options:
+        return
+    if os.environ.get("GOVKIT_NO_SHAPE_MIGRATION_WARNING") == "1":
+        return
+    print(
+        "warning: .govkit marker carries the legacy 'ui' option. "
+        "The project-shape model changed in 0.8.0. The `ui` option is no "
+        "longer supported. Re-run 'govkit apply --type ui-react' (or "
+        "'ui-angular') to switch to a UI shape, or 'govkit apply --type api' "
+        "to keep the current backend shape. "
+        "(Set GOVKIT_NO_SHAPE_MIGRATION_WARNING=1 to suppress.)",
+        file=sys.stderr,
+    )
+    _SHAPE_MIGRATION_WARNING_PRINTED = True
+
+
+def _reset_shape_migration_warning() -> None:
+    """Test helper: reset the one-time shape-migration warning flag."""
+    global _SHAPE_MIGRATION_WARNING_PRINTED
+    _SHAPE_MIGRATION_WARNING_PRINTED = False
 
 _HERE = Path(__file__).parent
 # When installed via pip, agents/ is bundled inside the cli package.
@@ -84,26 +179,32 @@ def copy_entry(src: Path, dest: Path, skip_existing: bool = False) -> None:
 # ---------------------------------------------------------------------------
 
 def read_govkit_level(target: Path) -> str | None:
-    """Read the maturity level from the .govkit marker file, or None if not found."""
+    """Read the maturity level from the .govkit marker file, or None if not found.
+
+    Delegates to read_govkit_marker so the one-time migration warning fires
+    from any command that reads the level (cmd_init, cmd_validate, etc.).
+    """
+    data = read_govkit_marker(target)
+    return data.get("level") if data else None
+
+
+def read_govkit_marker(target: Path) -> dict | None:
+    """Read the full .govkit marker dict, or None if missing or unreadable.
+
+    Side effect: emits a one-time stderr warning when the stored version is
+    pre-0.7.0 (the L3/L4 maturity-model swap). Suppressible via
+    GOVKIT_NO_MIGRATION_WARNING=1.
+    """
     marker = target / ".govkit"
     if not marker.exists():
         return None
     try:
         data = json.loads(marker.read_text(encoding="utf-8"))
-        return data.get("level")
     except (json.JSONDecodeError, OSError):
         return None
-
-
-def read_govkit_marker(target: Path) -> dict | None:
-    """Read the full .govkit marker dict, or None if missing or unreadable."""
-    marker = target / ".govkit"
-    if not marker.exists():
-        return None
-    try:
-        return json.loads(marker.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return None
+    _maybe_warn_migration(data.get("version"))
+    _maybe_warn_shape_migration(data.get("options"))
+    return data
 
 
 def write_govkit_marker(target: Path, agent: str, level: str, options: dict) -> None:
@@ -148,32 +249,137 @@ def resolve_options(manifest: dict, args: argparse.Namespace) -> dict:
     return resolved
 
 
-def _select_variant(variants: dict, dimension: str, value: str, level_key: str | None) -> dict:
-    """Select the variant config for a dimension/value, applying level override if present."""
+def _select_variant(
+    variants: dict, dimension: str, value: str, level: str,
+) -> tuple[dict, dict | None, str]:
+    """Select (base, override, mode) for a (dimension, value) at a given level.
+
+    Level handling:
+      L3 (default): no override key — returns the dimension's base entries.
+      L4: if `level_4` exists, default mode = "merge" (Spec-Driven Add-On).
+      L5: if `level_5` exists, default mode = "replace" (current behavior).
+      Any level with no matching override key falls back to base only.
+
+    The override's optional `mode` field (per the v0.7 schema) takes precedence over
+    the level-specific default.
+    """
     variant_group = variants.get(dimension, {})
-    selected = variant_group.get(value, {})
-    if level_key and level_key in selected:
-        return selected[level_key]
-    return selected
+    base = variant_group.get(value, {})
+    level_defaults = {"4": ("level_4", "merge"), "5": ("level_5", "replace")}
+    if level in level_defaults:
+        key, default_mode = level_defaults[level]
+        if key in base:
+            override = base[key]
+            return base, override, override.get("mode", default_mode)
+    return base, None, "merge"
+
+
+def _apply_by_type(block: dict, type_value: str | None) -> dict:
+    """Merge block + block.by_type[type_value] into a single effective block.
+
+    The `by_type` sub-block was added in v0.8 to let one dimension (currently `ci`)
+    dispatch its entries based on another dimension's value (currently `type`).
+    Example: ci.github.by_type["ui-react"] yields UI-specific CI gates; the
+    backend types fall through to ci.github's own files/shared/governed.
+
+    If the block has no `by_type` key, or no entry for type_value, the block
+    is returned unchanged. Non-list keys (like `mode`) are preserved.
+    """
+    if not block:
+        return {}
+    by_type = block.get("by_type") or {}
+    type_block = by_type.get(type_value, {}) if type_value else {}
+    if not type_block:
+        return block
+    merged: dict = {k: v for k, v in block.items() if k not in ("files", "shared", "governed", "by_type")}
+    merged["files"]    = list(block.get("files", []))    + list(type_block.get("files", []))
+    merged["shared"]   = list(block.get("shared", []))   + list(type_block.get("shared", []))
+    merged["governed"] = list(block.get("governed", [])) + list(type_block.get("governed", []))
+    return merged
+
+
+def _dimension_entries(
+    base: dict, override: dict | None, mode: str, type_value: str | None = None,
+) -> tuple[list, list, list]:
+    """Compute one dimension's effective (files, shared, governed) after applying override.
+
+    merge mode (L4 default):
+      - files: base entries whose `dest` collides with an override entry are dropped;
+        override entries are appended after the surviving base entries (later wins on dest).
+      - shared, governed: append override entries to base, dedup by string equality.
+
+    replace mode (L5 default):
+      - files, shared, governed: take only the override block's entries; ignore base.
+
+    The optional `type_value` enables `by_type` dispatch (v0.8): each block's
+    `by_type[type_value]` entries are folded into the block before the merge/
+    replace logic runs. Used by the `ci` dimension to ship type-specific gates.
+
+    Cross-dimension accumulation (e.g. type.api + ci.github both contributing to
+    .github/instructions/) is handled by `_collect_entries`, not here.
+    """
+    eff_base = _apply_by_type(base, type_value)
+    eff_override = _apply_by_type(override, type_value) if override else None
+
+    if eff_override is None:
+        return (
+            list(eff_base.get("files", [])),
+            list(eff_base.get("shared", [])),
+            list(eff_base.get("governed", [])),
+        )
+    if mode == "replace":
+        return (
+            list(eff_override.get("files", [])),
+            list(eff_override.get("shared", [])),
+            list(eff_override.get("governed", [])),
+        )
+    # merge mode
+    override_dests = {f["dest"] for f in eff_override.get("files", [])}
+    files = [f for f in eff_base.get("files", []) if f["dest"] not in override_dests]
+    files.extend(eff_override.get("files", []))
+
+    shared = list(eff_base.get("shared", []))
+    for s in eff_override.get("shared", []):
+        if s not in shared:
+            shared.append(s)
+
+    governed = list(eff_base.get("governed", []))
+    for g in eff_override.get("governed", []):
+        if g not in governed:
+            governed.append(g)
+    return files, shared, governed
 
 
 def _collect_entries(
-    selected: dict,
+    files_to_add: list,
+    shared_to_add: list,
+    governed_to_add: list,
     all_files: list, seen_files: set,
     all_shared: list, seen_shared: set,
     all_governed: list, seen_governed: set,
 ) -> None:
-    """Append deduplicated files, shared, and governed paths from a selected variant config."""
-    for f in selected.get("files", []):
+    """Append a dimension's effective entries to running collections, deduplicated.
+
+    Cross-dimension dedup:
+      files: by `(src, dest)` tuple — preserves the legitimate case where multiple
+             source directories install at the same destination (e.g. copilot's
+             `instructions/backend/` and `instructions/ui-react/` both targeting
+             `.github/instructions/`).
+      shared, governed: by string equality.
+
+    Within-dimension override-vs-base collisions on `dest` are resolved upstream
+    by `_dimension_entries` before this function is called.
+    """
+    for f in files_to_add:
         key = (f["src"], f["dest"])
         if key not in seen_files:
             all_files.append(f)
             seen_files.add(key)
-    for s in selected.get("shared", []):
+    for s in shared_to_add:
         if s not in seen_shared:
             all_shared.append(s)
             seen_shared.add(s)
-    for g in selected.get("governed", []):
+    for g in governed_to_add:
         if g not in seen_governed:
             all_governed.append(g)
             seen_governed.add(g)
@@ -194,13 +400,19 @@ def resolve_variant_files(manifest: dict, options: dict) -> tuple[list, list, li
     seen_shared: set[str] = set()
     seen_governed: set[str] = set()
     variants = manifest.get("variants", {})
-    level = options.get("level", "4")
-    level_key = f"level_{level}" if level != "4" else None
+    level = options.get("level", "3")
+    type_value = options.get("type")
     for dimension, value in options.items():
         if dimension == "level":
             continue
-        selected = _select_variant(variants, dimension, value, level_key)
-        _collect_entries(selected, all_files, seen_files, all_shared, seen_shared, all_governed, seen_governed)
+        base, override, mode = _select_variant(variants, dimension, value, level)
+        files, shared, governed = _dimension_entries(base, override, mode, type_value=type_value)
+        _collect_entries(
+            files, shared, governed,
+            all_files, seen_files,
+            all_shared, seen_shared,
+            all_governed, seen_governed,
+        )
     return all_files, all_shared, all_governed
 
 
@@ -221,7 +433,7 @@ def cmd_apply(args: argparse.Namespace) -> None:
     if "variants" in manifest:
         print(f"\nApplying govkit agent '{args.agent}' to {target}\n")
         options = resolve_options(manifest, args)
-        level = options.get("level", "4")
+        level = options.get("level", "3")
         print(f"\n  Configuration: {options}\n")
         files, shared, governed = resolve_variant_files(manifest, options)
 
@@ -247,10 +459,13 @@ def cmd_apply(args: argparse.Namespace) -> None:
             dest = target / shared_path
             copy_entry(src, dest, skip_existing=True)
 
-        features_dir = target / "features"
-        if not features_dir.exists():
-            features_dir.mkdir(parents=True)
-            print(f"  Created {features_dir} (empty)")
+        # L3 (Foundations) ships agent rules + architecture contracts only.
+        # The features/ directory model is part of the L4 Spec-Driven Add-On.
+        if level != "3":
+            features_dir = target / "features"
+            if not features_dir.exists():
+                features_dir.mkdir(parents=True)
+                print(f"  Created {features_dir} (empty)")
 
         write_govkit_marker(target, args.agent, level, options)
     else:
@@ -309,7 +524,7 @@ def cmd_list(_args: argparse.Namespace) -> None:
 
 def _prompt_starter_type() -> str:
     """Interactively prompt for the starter template type."""
-    choices = ["backend", "cli", "ui"]
+    choices = ["backend", "cli", "ui-react", "ui-angular"]
     prompt_text = f"  Feature type? [{' / '.join(choices)}] (default: backend): "
     answer = input(prompt_text).strip().lower()
     if answer == "":
@@ -320,19 +535,56 @@ def _prompt_starter_type() -> str:
     return answer
 
 
+def _starter_dir_slug(starter_type: str) -> str:
+    """Map a starter_type to its bundled directory slug.
+
+    Most types map 1:1 (backend → starter_backend). UI variants currently
+    share a single framework-agnostic starter — both ui-react and ui-angular
+    resolve to starter_ui. If they diverge later, separate starter_ui_react
+    and starter_ui_angular dirs can be added without resolver changes (the
+    1:1 path is the default).
+    """
+    if starter_type in ("ui-react", "ui-angular"):
+        return "ui"
+    return starter_type
+
+
 def _resolve_starter_dir(starter_type: str, level: str) -> Path:
-    """Select the level-appropriate starter directory from the bundled govkit templates."""
+    """Select the level-appropriate starter directory from the bundled govkit templates.
+
+    L3 (Foundations) has no feature starter — `govkit init` is gated to L4+.
+    """
+    if level == "3":
+        raise ValueError(
+            "L3 (Governed AI Delivery — Foundations) has no feature starter. "
+            "Run 'govkit apply --level 4' first to enable the spec-driven feature workflow."
+        )
     bundled = REPO_ROOT / "features"
-    if level in ("3", "5"):
-        level_dir = bundled / f"starter_{starter_type}_l{level}"
+    slug = _starter_dir_slug(starter_type)
+    if level == "5":
+        level_dir = bundled / f"starter_{slug}_l5"
         if level_dir.exists():
             return level_dir
-    return bundled / f"starter_{starter_type}"
+    return bundled / f"starter_{slug}"
 
 
 def cmd_init(args: argparse.Namespace) -> None:
     """Create a new feature folder from the appropriate starter template."""
     target = Path(args.target).resolve()
+
+    # Determine level early so we can gate L3 before any other checks.
+    level = args.level or read_govkit_level(target) or "3"
+
+    if level == "3":
+        print(
+            "Error: 'govkit init' requires Level 4 (Spec-Driven Add-On) or higher.\n"
+            "  Level 3 (Foundations) ships agent rules and architecture contracts only;\n"
+            "  it has no features/ directory model.\n"
+            "  Run 'govkit apply --level 4 --target <path>' to enable the spec-driven\n"
+            "  feature workflow, then re-run 'govkit init'."
+        )
+        sys.exit(1)
+
     features_dir = target / "features"
     if not features_dir.exists():
         print(f"Error: no features/ directory found in {target}. Run 'govkit apply' first.")
@@ -344,7 +596,6 @@ def cmd_init(args: argparse.Namespace) -> None:
         print(f"Error: feature '{feature_name}' already exists at {feature_dir}")
         sys.exit(1)
 
-    level = args.level or read_govkit_level(target) or "4"
     starter_type = args.starter or _prompt_starter_type()
     starter_dir = _resolve_starter_dir(starter_type, level)
 
@@ -361,10 +612,9 @@ def cmd_init(args: argparse.Namespace) -> None:
     if level == "5":
         print(f"  3. Run /architecture-preflight {feature_name}")
         print(f"  4. Run /genai-preflight {feature_name}")
-    elif level == "4":
+    else:  # L4
         print(f"  3. Run /architecture-preflight {feature_name}")
-    else:
-        print(f"  3. Run /spec-planning {feature_name}")
+        print(f"  4. Run /spec-planning {feature_name}")
 
 
 def cmd_validate(args: argparse.Namespace) -> None:
@@ -375,7 +625,11 @@ def cmd_validate(args: argparse.Namespace) -> None:
 
 
 def cmd_upgrade(args: argparse.Namespace) -> None:
-    """Refresh agent config and governed contracts to the current govkit version."""
+    """Refresh agent config and governed contracts to the current govkit version.
+
+    With --migrate-levels, run the v0.6→v0.7 maturity-model migration flow
+    instead of the standard refresh.
+    """
     target = Path(args.target).resolve()
     if not target.exists():
         print(f"Error: target directory '{target}' does not exist.")
@@ -388,12 +642,15 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
 
     stored_version = stored.get("version", "unknown")
     agent = stored.get("agent")
-    stored_level = stored.get("level", "4")
+    stored_level = stored.get("level", "3")
     stored_options = stored.get("options", {})
 
     if not agent:
         print("Error: .govkit marker missing 'agent' field. Run 'govkit apply' to reinitialise.")
         sys.exit(1)
+
+    if getattr(args, "migrate_levels", False):
+        sys.exit(_cmd_upgrade_migrate_levels(target, stored_version, stored_level, agent, stored_options))
 
     if stored_version == _GOVKIT_VERSION and not args.force:
         print(f"\nAlready at govkit {_GOVKIT_VERSION}. Nothing to upgrade.")
@@ -435,6 +692,186 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     print("\nReview changes with: git diff")
 
 
+# ---------------------------------------------------------------------------
+# Migrate-levels command (v0.6.x → v0.7.0 maturity-model swap)
+# ---------------------------------------------------------------------------
+
+_EVAL_CRITERIA_STUB = """\
+# Auto-generated stub by `govkit upgrade --migrate-levels`.
+# Complete this file before running `govkit validate`.
+# Replace TBD placeholders with values appropriate for your feature.
+version: "1"
+mode: TBD  # one of: deterministic | llm | none
+criteria: []
+"""
+
+_ARCH_PREFLIGHT_STUB = """\
+# Architecture Preflight (auto-generated stub)
+
+> Generated by `govkit upgrade --migrate-levels`.
+> Replace TBD placeholders with the architecture preflight findings for this
+> feature. See `governance/backend/templates/architecture_preflight.md` for the
+> canonical template and section guidance.
+
+## 1. Artifact Review
+
+TBD
+
+## 2. Standards Referenced
+
+TBD
+
+## 3. Boundary Analysis
+
+TBD
+
+## 4. API Impact
+
+TBD
+
+## 5. Security Impact
+
+TBD
+
+## 6. Evaluation Impact
+
+TBD
+
+## 7. ADR Determination
+
+TBD
+
+## 8. Shared Contract Analysis
+
+TBD
+
+## 9. Preflight Conclusion
+
+TBD
+"""
+
+
+def _list_user_features(features_dir: Path) -> list[Path]:
+    """Return sorted feature directories, excluding starters and dotfiles."""
+    if not features_dir.exists():
+        return []
+    return sorted(
+        d for d in features_dir.iterdir()
+        if d.is_dir()
+        and not d.name.startswith("starter_")
+        and not d.name.startswith(".")
+    )
+
+
+def _cmd_upgrade_migrate_levels(
+    target: Path, stored_version: str, stored_level: str,
+    agent: str, stored_options: dict,
+) -> int:
+    """Execute the v0.6→v0.7 maturity-model migration flow.
+
+    Returns an exit code (0 = success / no-op, 1 = aborted or invalid input).
+    See plans/MATURITY_MODEL_L3_L4_SWAP_PLAN.md §7.2 for the state matrix.
+    """
+    if _compare_version(stored_version, "0.7.0") >= 0:
+        print(f"\nMarker is already at version {stored_version} (>= 0.7.0). No migration needed.")
+        return 0
+
+    options = {k: v for k, v in stored_options.items() if k != "level"}
+
+    if stored_level == "5":
+        print(f"\nDetected .govkit marker: version={stored_version}  level=5")
+        print("L5 (GenAI Operations) content is unchanged in v0.7.0; updating version only.")
+        write_govkit_marker(target, agent, "5", options)
+        return 0
+
+    if stored_level == "4":
+        print(f"\nDetected .govkit marker: version={stored_version}  level=4")
+        print("Your project shape is correct under v0.7.0; the level label flips")
+        print('from "Governed AI Delivery" to "Spec-Driven Add-On" but no data migration is needed.')
+        write_govkit_marker(target, agent, "4", options)
+        return 0
+
+    if stored_level == "3":
+        return _migrate_l3_interactive(target, stored_version, agent, options)
+
+    print(f"\nUnknown stored level {stored_level!r}. Aborting without changes.")
+    return 1
+
+
+def _migrate_l3_interactive(
+    target: Path, stored_version: str, agent: str, options: dict,
+) -> int:
+    """Interactive 4-option prompt for v0.6 L3 (3-artifact) projects."""
+    features_dir = target / "features"
+    feature_dirs = _list_user_features(features_dir)
+
+    print(f"\nDetected .govkit marker: version={stored_version}  level=3")
+    print(
+        f"Project has {len(feature_dirs)} feature director(ies) under features/, "
+        "each with 3 artifacts.\n"
+    )
+    print(
+        "Under govkit v0.7.0, your project's shape (features/ + 3-artifact dirs) maps\n"
+        "to Level 4 (Spec-Driven Add-On). L4 requires 5 artifacts per feature.\n"
+    )
+    print("How would you like to migrate?")
+    print("  [1] Migrate to L4 — generate stub eval_criteria.yaml and")
+    print("      architecture_preflight.md in each feature dir (you fill them in later).")
+    print(f"      Marker becomes level=4, version={_GOVKIT_VERSION}.")
+    print("  [2] Migrate to L4 — do NOT generate stubs. You will author the two new")
+    print("      artifacts per feature manually. Validation will fail until you do.")
+    print(f"      Marker becomes level=4, version={_GOVKIT_VERSION}.")
+    print("  [3] Adopt new-L3 (Foundations) — you confirm we should DELETE features/")
+    print("      and switch to architecture-only governance.")
+    print(f"      Marker becomes level=3, version={_GOVKIT_VERSION}.")
+    print("  [4] Abort — make no changes. Pin govkit==0.6.* in your project.\n")
+
+    choice = input("  Choice [1-4]: ").strip()
+
+    if choice == "1":
+        for fd in feature_dirs:
+            eval_path = fd / "eval_criteria.yaml"
+            if not eval_path.exists():
+                eval_path.write_text(_EVAL_CRITERIA_STUB, encoding="utf-8")
+            preflight_path = fd / "architecture_preflight.md"
+            if not preflight_path.exists():
+                preflight_path.write_text(_ARCH_PREFLIGHT_STUB, encoding="utf-8")
+        write_govkit_marker(target, agent, "4", options)
+        print(f"\n  Generated stubs in {len(feature_dirs)} feature director(ies).")
+        print("\n  Next: edit each feature's eval_criteria.yaml and architecture_preflight.md")
+        print("  to replace TBD placeholders. Then run `govkit validate`.")
+        return 0
+
+    if choice == "2":
+        write_govkit_marker(target, agent, "4", options)
+        print("\n  Marker rewritten without stub generation.")
+        print("  Next: author eval_criteria.yaml and architecture_preflight.md per")
+        print("  feature manually. `govkit validate` will fail until you do.")
+        return 0
+
+    if choice == "3":
+        confirm = input(
+            f"\n  This will DELETE {features_dir} and all its contents. "
+            "Type 'yes' to confirm: "
+        ).strip().lower()
+        if confirm != "yes":
+            print("  Cancelled.")
+            return 1
+        if features_dir.exists():
+            shutil.rmtree(features_dir)
+        write_govkit_marker(target, agent, "3", options)
+        print(f"\n  Removed {features_dir}.")
+        return 0
+
+    if choice == "4":
+        print("\n  No changes made.")
+        print("  Pin `govkit==0.6.*` in your project until you're ready to migrate.")
+        return 0
+
+    print(f"\n  Invalid choice: {choice!r}. Aborting without changes.")
+    return 1
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="govkit",
@@ -448,10 +885,8 @@ def main() -> None:
     apply_parser.add_argument("--target", required=True, help="Path to the target project root")
     apply_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                               help="Maturity level (default: prompted)")
-    apply_parser.add_argument("--type", choices=["api", "cli"], default=None,
+    apply_parser.add_argument("--type", choices=["api", "cli", "ui-react", "ui-angular"], default=None,
                               help="Project type (default: prompted)")
-    apply_parser.add_argument("--ui", choices=["none", "react", "angular"], default=None,
-                              help="UI framework (default: prompted)")
     apply_parser.add_argument("--ci", choices=["github", "azure"], default=None,
                               help="CI platform (default: prompted)")
 
@@ -462,7 +897,7 @@ def main() -> None:
     init_parser = subparsers.add_parser("init", help="Create a new feature folder from a starter template")
     init_parser.add_argument("feature", help="Feature name (e.g. user-auth, schema-publish)")
     init_parser.add_argument("--target", default=".", help="Path to the target project root (default: current directory)")
-    init_parser.add_argument("--starter", choices=["backend", "cli", "ui"], default=None,
+    init_parser.add_argument("--starter", choices=["backend", "cli", "ui-react", "ui-angular"], default=None,
                              help="Starter template type (default: prompted)")
     init_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                              help="Maturity level (default: read from .govkit or 4)")
@@ -482,6 +917,11 @@ def main() -> None:
     upgrade_parser.add_argument(
         "--force", action="store_true",
         help="Re-apply even when the project is already at the current govkit version",
+    )
+    upgrade_parser.add_argument(
+        "--migrate-levels", action="store_true", dest="migrate_levels",
+        help="Run the v0.6.x → v0.7.0 maturity-model migration "
+             "(L3/L4 swap; interactive for legacy L3 projects)",
     )
 
     args = parser.parse_args()

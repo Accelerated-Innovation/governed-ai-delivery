@@ -1,5 +1,5 @@
 ---
-applyTo: "**/*.tsx"
+applyTo: "src/**/*.tsx"
 ---
 
 # Accessibility Rules — React

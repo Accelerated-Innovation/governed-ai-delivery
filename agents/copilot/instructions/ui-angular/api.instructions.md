@@ -1,5 +1,5 @@
 ---
-applyTo: "**/api/**"
+applyTo: "src/**/api/**"
 ---
 
 Follow the API layer rules defined in `docs/ui/architecture/MVVM_CONTRACT.md`.

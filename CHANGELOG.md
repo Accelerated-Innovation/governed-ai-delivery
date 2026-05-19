@@ -6,6 +6,180 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.8.0] — 2026-05-18
+
+### Breaking changes — one install = one project shape
+
+The orthogonal `--type {api,cli}` × `--ui {none,react,angular}` cross-product is gone. The `--type` flag now takes one of **four flat choices**: `api`, `cli`, `ui-react`, `ui-angular`. The `--ui` flag has been **removed entirely**.
+
+| 0.7.0 | 0.8.0 |
+|---|---|
+| `govkit apply --type api --ui none` | `govkit apply --type api` |
+| `govkit apply --type api --ui react` (broken on Claude/Copilot — dead sidecar) | `govkit apply --type ui-react` |
+| `govkit apply --type api --ui angular` (broken on Claude/Copilot — dead sidecar) | `govkit apply --type ui-angular` |
+
+### Why the change
+
+The 0.7 cross-product made three project shapes look like four configurations and broke the case it claimed to support. UI guidance landed in `CLAUDE-UI.md` / `.github/copilot-instructions-ui.md` sidecars that neither Claude Code nor Copilot's loaders pick up — UI rules were functionally dead for two of the three agents in fullstack mode. There was also no UI-only install path (`--ui react` always shipped backend rules alongside).
+
+The flat model fixes both: every install is one shape with clean rule isolation, and fullstack monorepos are supported via per-subdir installs (see [docs/MONOREPO_PATTERN.md](docs/MONOREPO_PATTERN.md)).
+
+### What this means for adopters
+
+After upgrading, govkit prints a one-time stderr warning per command invocation when a legacy `.govkit` marker carries the dropped `ui` option. Suppress with `GOVKIT_NO_SHAPE_MIGRATION_WARNING=1` if needed.
+
+**No automated marker migration.** Re-apply with the new flag:
+
+```bash
+pip install --upgrade govkit
+
+# UI-only project — replaces a 0.7 `--type api --ui react` install
+govkit apply --agent claude-code --type ui-react --target .
+
+# Backend-only project — replaces a 0.7 `--type api --ui none` install
+govkit apply --agent claude-code --type api --target .
+
+# Fullstack monorepo — replaces a 0.7 `--type api --ui react` install
+govkit apply --agent claude-code --type api      --target apps/api
+govkit apply --agent claude-code --type ui-react --target apps/web
+```
+
+The 0.7 sidecar files (`CLAUDE-UI.md`, `.github/copilot-instructions-ui.md`, `src/AGENTS.md` from the old cross-product) are no longer written. If they exist in your project from a 0.7 install, delete them after re-applying.
+
+### Changed
+- **`--type` choices** — `api`, `cli`, `ui-react`, `ui-angular`. Default is still `api`.
+- **`--ui` flag removed** from `govkit apply` argparse. Re-introducing it via custom scripts will error.
+- **`--starter` choices** — `backend`, `cli`, `ui-react`, `ui-angular`. The legacy `ui` value is rejected. Both `ui-react` and `ui-angular` map to the framework-agnostic `starter_ui/` directory; if they diverge later, dedicated starter dirs can be added without resolver changes.
+- **Skills converged on Open Skills format** — `SKILL.md` frontmatter is now byte-identical across the three agents per skill. `name:` + `description:` only; no `argument-hint:` (Claude Code) or `user-invocable:` (Copilot) extensions; no `$ARGUMENTS` substitution in bodies. The 33 SKILL.md files across `agents/{claude-code,codex,copilot}/skills/**/` are now in lockstep parity.
+- **Skill descriptions** include a "Use when…" cue per Open Skills standard — the harness uses this to decide whether to invoke.
+- **Progressive loading hardened for UI shapes**:
+  - **Claude Code** — UI shapes now plant a consolidated `src/CLAUDE.md` containing component / viewmodel / API / accessibility layer rules. The 0.7 pattern of flat `.claude/rules/{components,viewmodel,ui-api,accessibility}.md` is replaced; Claude's recursive `CLAUDE.md` loader picks up the nested file when working under `src/`.
+  - **Codex** — UI shapes add `src/AGENTS.md` as an intermediate subtree map between the root `AGENTS.md` and the per-layer leaf `AGENTS.md` files. Codex's hierarchical loader picks up the right file at each level.
+  - **Copilot** — UI instruction `applyTo:` globs are tightened from `**/<layer>/**` to `src/**/<layer>/**` to prevent accidental matching against `node_modules/`, `dist/`, and other non-source paths.
+- **CI dispatch is type-aware (`by_type`)** — `variants.ci.{github,azure}` blocks now route per-`--type` value. Backend installs get `l3-quality-gate.yml`; UI installs get the new `l3-ui-quality-gate.yml`. At L5, backend installs get the LLM-specific gates without the UI gates and vice versa (UI installs still get the LLM eval gates because UI features can consume LLM-backed endpoints through the backend).
+- **`repo-scope.md` split into backend and UI variants** — `rules/generic/repo-scope-backend.md` references `services/`, `adapters/`, `ports/`; `rules/generic/repo-scope-ui.md` references `src/features/`, `src/shared/` and forbids importing LLM provider SDKs directly. Backend shapes ship the backend variant; UI shapes ship the UI variant. The original `repo-scope.md` is removed.
+- **`/architecture-preflight` skill** declares `eval_criteria.yaml` as a third spec input (alongside `nfrs.md` and `acceptance.feature`). The UI variant also gained an explicit Feature specs section.
+- **Smoke scripts rewritten** — `smoke.ps1`, `smoke-ui.ps1`, `smoke-dotnet.ps1` drop `--ui none`. `smoke-ui.ps1` uses `--type ui-react`/`--type ui-angular` via a new `-Types` parameter (previously `-Frameworks`). Sandbox features now ship only the 3 spec inputs (`acceptance.feature`, `nfrs.md`, `eval_criteria.yaml`); `plan.md` and `architecture_preflight.md` are intentionally absent so the planning skills can be exercised against the sandbox. L4/L5 validate failures are tolerated by the exit-code logic; only L3 validate must pass.
+- **Manifest schema** — `propertyNames` enums on `options` (`["level", "type", "ci"]`) and `variants` (`["type", "ci"]`) actively reject the dropped `ui` dimension. New `by_type` sub-block accepted on `variant_config` and `level_override`.
+
+### Added
+- **`docs/MONOREPO_PATTERN.md`** — per-subdir install pattern with per-agent loader specifics (Claude recursive `CLAUDE.md`, Codex hierarchical `AGENTS.md` walk, Copilot `applyTo:` globs with the monorepo-prefix tweak), CI options (path-filtered vs composite), per-app feature governance, upgrade flow, gotchas.
+- **6 new L5 UI root files** — `agents/{claude-code,codex,copilot}/{claude-md,agents-md,copilot-instructions}/l5-ui-{react,angular}.md`. Pre-0.8 the L5 UI manifest blocks silently fell back to the L4 UI root file; this is now fixed.
+- **2 new L3 UI CI gates** — `ci/{github,azure}/l3-ui-quality-gate.yml`. Mirrors the structure of `l3-quality-gate.yml` but targets the UI toolchain (ESLint with a11y plugin, Vitest/Jest, npm run build, Snyk npm scan).
+- **`scripts/smoke-inspect.ps1`** — visual inspection helper for the sandbox matrix. Supports `-Config <name>`, `-Pattern <wildcard>`, `-All` selection; `-Editor explorer|code|tree` output. Tree mode is redirect-safe for baseline capture.
+- **`_apply_by_type()` resolver helper** in `cli/govkit.py` — folds `block.by_type[type_value]` into the parent block before merge/replace logic runs. Currently used only by the `ci` dimension; extensible to other dimensions without code changes.
+- **`_maybe_warn_shape_migration()`** — one-time stderr warning when a `.govkit` marker carries the legacy `ui` option. Suppressible via `GOVKIT_NO_SHAPE_MIGRATION_WARNING=1`. Mirrors the existing v0.6→v0.7 migration warning pattern.
+- **`TestShapeMigrationWarning`, `TestNoUiDimensionInManifests`, `TestValidateUiShapes`** test classes plus 5 by_type dispatch tests in `TestResolveVariantFiles`. Test count grew from 315 to 366 across this release.
+- **Schema tests for the new shape** — `test_rejects_options_ui`, `test_rejects_variants_ui`, `test_accepts_new_ui_type_in_choices_and_variants`, `test_accepts_by_type_at_base_and_levels`, `test_rejects_unknown_key_in_by_type_entry`.
+
+### Removed
+- **`--ui` flag** from `govkit apply` argparse.
+- **`options.ui` and `variants.ui`** from all 3 agent manifests.
+- **`rules/generic/repo-scope.md`** and **`instructions/generic/repo-scope.instructions.md`** (Copilot) — superseded by the backend/ui split.
+- **Legacy `--starter ui`** option — replaced by `--starter ui-react` / `--starter ui-angular`.
+- **`scripts/smoke-ui-new.ps1`** — tactical helper from mid-refactor; its content moved into the rewritten `smoke-ui.ps1`.
+
+### Verification
+
+- 366 pytest tests pass (was 315 pre-refactor).
+- Smoke matrix: 36/36 configs apply, all L3 validate PASS, L4/L5 validate FAIL by design.
+- Zero cross-shape leakage in either direction (18 backend × 12 UI patterns, 18 UI × 14 backend patterns — all clean).
+- Every Claude UI sandbox ships `src/CLAUDE.md`; every Codex UI sandbox has the full nested `AGENTS.md` tree (6 dests); every Copilot UI sandbox carries `applyTo:` globs on every instruction file.
+
+### Support and pinning
+
+- v0.7.x will receive bug-fix-only backports for one minor cycle. Pin with `pip install govkit==0.7.*` if you want to defer the re-apply.
+- The full refactor plan and per-increment commit trail are in [plans/PROJECT_SHAPE_REFACTOR_PLAN.md](plans/PROJECT_SHAPE_REFACTOR_PLAN.md).
+
+### Migration commands
+
+```bash
+pip install --upgrade govkit
+
+# Backend-only project (was --type api --ui none)
+govkit apply --agent <agent> --type api --target /path/to/project
+
+# UI-only project (was --type api --ui react/angular)
+govkit apply --agent <agent> --type ui-react --target /path/to/project       # or --type ui-angular
+
+# Fullstack monorepo (was --type api --ui react/angular at repo root)
+govkit apply --agent <agent> --type api      --target /path/to/repo/apps/api
+govkit apply --agent <agent> --type ui-react --target /path/to/repo/apps/web
+```
+
+---
+
+## [0.7.0] — 2026-05-08
+
+### Breaking changes — maturity model reframed
+
+The meaning of Level 3 and Level 4 has changed. **If your project's `.govkit` marker says `level: "3"` or `level: "4"`, please read this section before upgrading.**
+
+| Level | v0.6.x | v0.7.0 |
+|---|---|---|
+| **L3** | Spec-Driven Development (3 artifacts per feature) | **Governed AI Delivery (Foundations)** — agent rules + architecture docs only; no `features/` directory |
+| **L4** | Governed AI Delivery (5 artifacts per feature) | **Spec-Driven Add-On** — adds `features/` and the 5-artifact contract on top of L3 |
+| **L5** | GenAI Operations | GenAI Operations *(unchanged)* |
+
+The new model is additive (L4 ⊃ L3) and splits at a clearer boundary: whether your project adopts a `features/` directory model.
+
+### What this means for adopters
+
+After upgrading, govkit prints a one-time stderr migration warning per command invocation until you run `govkit upgrade --migrate-levels`. Suppress with `GOVKIT_NO_MIGRATION_WARNING=1` if needed.
+
+**If your marker says `level: "3"`** (3-artifact features under v0.6.x):
+
+Your project's shape (a `features/` directory with 3-artifact dirs) maps most closely to the new **L4**, but L4 requires 5 artifacts per feature. Run `govkit upgrade --migrate-levels` for an interactive prompt with four options:
+
+1. Migrate to L4 with stub generation — govkit creates `eval_criteria.yaml` and `architecture_preflight.md` stubs in each feature dir; you fill them in over time. Stubs use TBD placeholders that will fail validation until completed.
+2. Migrate to L4 without stubs — you author the two new artifacts manually. Validation will fail until you do.
+3. Adopt new-L3 (Foundations) — you confirm we should DELETE your `features/` directory and switch to architecture-only governance (no per-feature artifacts).
+4. Abort — pin `govkit==0.6.*` in your project until you're ready.
+
+**If your marker says `level: "4"`** (5-artifact features under v0.6.x):
+
+No data migration needed. Your project shape is correct under v0.7.0; only the level label flips from "Governed AI Delivery" to "Spec-Driven Add-On". Run `govkit upgrade --migrate-levels` to clear the migration warning.
+
+**If your marker says `level: "5"`:**
+
+Nothing changes for you. Run `govkit upgrade --migrate-levels` to clear the migration warning.
+
+### Changed
+- **CLI default level** — `govkit apply` now defaults to `--level 3` (was `4`). Three agent manifests' `options.level.default` flipped to `"3"`.
+- **`govkit init` at L3 errors** — points to `govkit apply --level 4` (Foundations has no `features/` directory model).
+- **`govkit validate` at L3 is a no-op** — returns 0 with informational message (Foundations has no per-feature artifacts; CI quality-gate is the L3 compliance surface).
+- **`govkit apply --level 3`** — no longer creates an empty `features/` directory in the target.
+- **Manifest schema** — `level_3` key removed; `level_4` key added with optional `mode: "merge" | "replace"`. Default mode for `level_4` is `"merge"`; for `level_5` is `"replace"`. The `governed` array property is now formally allowed (previously the schema rejected it despite all live manifests using it — a long-standing schema bug, fixed here).
+- **L3 CI gate** (`l3-quality-gate.yml`) rewritten as a lean codebase-wide gate: commit-format, import-linter (architecture boundaries), SonarQube, Snyk. No per-feature artifact checks.
+- **Test-first and spec-compliance rules** (`test-first.md`, `spec-compliance.md`) move from L3 to L4. They are still part of the kit; they are now part of the spec-driven add-on (binding rather than recommended).
+
+### Added
+- **`govkit upgrade --migrate-levels`** — interactive marker migration for v0.6.x → v0.7.0 maturity model swap.
+- **One-time migration warning** — `read_govkit_marker` emits a stderr warning when `version < "0.7.0"`. Suppressible via `GOVKIT_NO_MIGRATION_WARNING=1`. Auto-suppressed once the marker is rewritten to `0.7.0+`.
+- **L4 add-on manifest blocks** with `mode: "merge"` semantics — `level_4` entries layer additively over the L3 base, with `dest`-collision resolution preferring the override (used to swap `CLAUDE.md` / `AGENTS.md` / `.github/copilot-instructions.md` between L3 and L4 modes).
+- **Twelve new L3 entry-point instruction files** (4 per agent × 3 agents) — Foundations content focused on architecture-aware development without per-feature artifacts. Existing v0.6 governed instructions preserved at `l4-*.md` paths.
+- **`tests/test_maturity_model.py`, `tests/test_schemas.py`, `tests/test_l3_instructions.py`** — 200+ new tests locking in the model.
+
+### Removed
+- `features/starter_{backend,cli,ui}_l3/` — 3-artifact starters (the new L3 has no `features/` model).
+- `governance/{backend,ui}/templates/l3-plan.md` — L3 has no plan.md artifact.
+- `agents/<a>/skills/<area>/l3-{spec-planning,implementation-plan}/` — replaced by the L4 add-on skills (which now ship at L4 instead of being level-specific).
+- `agents/<a>/<inst>/l3-{backend-api,backend-cli,ui-react,ui-angular}.md` — superseded by the new L3 entry-point files (current top-level paths) and the renamed `l4-*.md` files (preserved L4 content).
+
+### Support and pinning
+
+- v0.6.x will receive bug-fix-only backports through the v0.8.0 release.
+- Pin with `pip install govkit==0.6.*` if you want to defer the migration.
+
+### Migration commands
+
+```bash
+pip install --upgrade govkit
+govkit upgrade --migrate-levels --target /path/to/your/project
+```
+
+---
+
 ## [0.4.0] — 2026-04-09
 
 ### Added

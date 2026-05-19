@@ -19,7 +19,9 @@
       "Read(//c/Users/marty/source/repos/governed-ai-delivery/agents/$agent/**)",
       "Bash(grep -r docs/architecture /c/Users/marty/source/repos/governed-ai-delivery --include=*.md --include=*.json --include=*.yaml --include=*.yml)",
       "Bash(grep -r governance/schemas /c/Users/marty/source/repos/governed-ai-delivery --include=*.md)",
-      "Bash(grep -rn docs/architecture/ /c/Users/marty/source/repos/governed-ai-delivery --include=*.md)"
+      "Bash(grep -rn docs/architecture/ /c/Users/marty/source/repos/governed-ai-delivery --include=*.md)",
+      "PowerShell(try { & .\\\\scripts\\\\smoke-inspect.ps1 -All -Editor tree 2>&1 } catch { \"EXC: $_\" } ; \"---exit: $LASTEXITCODE\")",
+      "PowerShell(.\\\\scripts\\\\.venv\\\\Scripts\\\\python.exe -m pytest tests\\\\ -q --tb=short 2>&1)"
     ]
   }
 }
