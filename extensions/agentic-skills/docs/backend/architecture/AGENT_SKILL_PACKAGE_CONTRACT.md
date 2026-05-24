@@ -151,6 +151,22 @@ Agent runs must record:
 - Model or routing profile
 - Tool versions when material
 
+## Schema
+
+The machine-validatable schema for `skill.json` is:
+
+```text
+extensions/agentic-skills/schemas/skill-package.schema.json
+```
+
+The platform's Skill Registry **must** validate every loaded `skill.json` against this schema before the skill is made available for `lookup_by_id_version`. Validation failures halt registration and emit a structured audit event per `AGENT_OBSERVABILITY_CONTRACT.md`.
+
+## Relationship to Skill Family Manifest
+
+A skill package is *referenced by* a family manifest's `phases[].skill_ref` (see `SKILL_FAMILY_MANIFEST_CONTRACT.md`). The reference is a `<skill_id>@<version>` string; the Skill Registry resolves it to the loaded package at runtime.
+
+A skill package has no awareness of which families reference it. The optional `family_ref` field in `skill.json` is a soft back-pointer for tooling and discoverability; it must not be relied on for routing or authorization.
+
 ## Prohibited Patterns
 
 Skill packages must not:

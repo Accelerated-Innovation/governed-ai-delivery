@@ -259,8 +259,8 @@ Write-Section "7. Undeclared overlap warns (relates_to removed)"
 
 $manifestPath = Join-Path $targetExtDir "manifest.yaml"
 $originalManifest = Get-Content -Raw -Path $manifestPath
-# Strip the relates_to block (4 indented lines: "    relates_to:" + extends/supersedes lines through the end of that block).
-$strippedManifest = $originalManifest -replace "(?ms)^    relates_to:.*?(?=^templates:)", ""
+# Strip the relates_to block (indented under contract_sets[0]) up to the next top-level key (agent_guidance:).
+$strippedManifest = $originalManifest -replace "(?ms)^    relates_to:.*?(?=^agent_guidance:)", ""
 Set-Content -Path $manifestPath -Value $strippedManifest -Encoding utf8
 
 $validate7 = Invoke-Govkit @("validate", "--target", $projectPath, "--level", "5")

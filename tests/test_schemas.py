@@ -547,3 +547,199 @@ class TestAgenticSkillsLiveRelatesTo:
         assert not templates_dir.exists(), (
             f"{templates_dir} should not exist; templates moved to skill-author scope"
         )
+
+
+class TestInc5InboundContracts:
+    """Increment 5 — inbound contracts for the skill family / phase / handoff
+    layer and their JSON Schemas. Tests written before implementation."""
+
+    ARCH_DIR = EXT_DIR / "docs" / "backend" / "architecture"
+
+    @staticmethod
+    def _live_manifest() -> dict:
+        yaml = pytest.importorskip("yaml")
+        return yaml.safe_load(EXT_MANIFEST_PATH.read_text(encoding="utf-8"))
+
+    # --- file existence ---
+
+    def test_skill_family_manifest_contract_file_exists(self):
+        assert (self.ARCH_DIR / "SKILL_FAMILY_MANIFEST_CONTRACT.md").exists()
+
+    def test_handoff_contract_file_exists(self):
+        assert (self.ARCH_DIR / "HANDOFF_CONTRACT.md").exists()
+
+    # --- manifest declares them ---
+
+    def test_manifest_declares_skill_family_manifest_contract(self):
+        m = self._live_manifest()
+        paths = m["contract_sets"][0]["paths"]
+        assert "docs/backend/architecture/SKILL_FAMILY_MANIFEST_CONTRACT.md" in paths
+
+    def test_manifest_declares_handoff_contract(self):
+        m = self._live_manifest()
+        paths = m["contract_sets"][0]["paths"]
+        assert "docs/backend/architecture/HANDOFF_CONTRACT.md" in paths
+
+
+class TestInc5JsonSchemas:
+    """Increment 5 — machine-validatable schemas for the 3 inbound payload
+    shapes. Each schema is tested three ways: it's a valid schema, it accepts
+    a minimal valid payload, and it rejects a specific bad case."""
+
+    SCHEMAS_DIR = EXT_DIR / "schemas"
+
+    @staticmethod
+    def _load(path: Path) -> dict:
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    @staticmethod
+    def _errors(schema: dict, payload: dict) -> list:
+        return list(Draft202012Validator(schema).iter_errors(payload))
+
+    # --- csp-family-manifest.schema.json ---
+
+    def test_csp_family_manifest_schema_is_valid_json_schema(self):
+        schema = self._load(self.SCHEMAS_DIR / "csp-family-manifest.schema.json")
+        Draft202012Validator.check_schema(schema)
+
+    def test_csp_family_manifest_schema_accepts_minimal_valid_payload(self):
+        schema = self._load(self.SCHEMAS_DIR / "csp-family-manifest.schema.json")
+        payload = {
+            "family_id": "lean-coe",
+            "version": "0.1.0",
+            "name": "Lean CoE CSP",
+            "description": "A test family",
+            "owner": "team-csp@example.com",
+            "phases": [
+                {
+                    "id": "phase00-configuration",
+                    "order": 0,
+                    "skill_ref": "phase00-configuration@0.1.0",
+                    "depends_on": [],
+                },
+            ],
+        }
+        assert self._errors(schema, payload) == []
+
+    def test_csp_family_manifest_schema_rejects_missing_phases(self):
+        schema = self._load(self.SCHEMAS_DIR / "csp-family-manifest.schema.json")
+        payload = {
+            "family_id": "lean-coe",
+            "version": "0.1.0",
+            "name": "Lean CoE CSP",
+            "description": "missing phases",
+            "owner": "team-csp@example.com",
+        }
+        assert self._errors(schema, payload) != []
+
+    # --- skill-package.schema.json ---
+
+    def test_skill_package_schema_is_valid_json_schema(self):
+        schema = self._load(self.SCHEMAS_DIR / "skill-package.schema.json")
+        Draft202012Validator.check_schema(schema)
+
+    def test_skill_package_schema_accepts_minimal_valid_payload(self):
+        schema = self._load(self.SCHEMAS_DIR / "skill-package.schema.json")
+        payload = {
+            "skill_id": "phase00-configuration",
+            "name": "Phase 00 Configuration",
+            "version": "0.1.0",
+            "supported_modes": ["interactive"],
+            "allowed_actions": ["read_config"],
+            "disallowed_actions": ["write_external_system"],
+        }
+        assert self._errors(schema, payload) == []
+
+    def test_skill_package_schema_rejects_invalid_skill_id_format(self):
+        schema = self._load(self.SCHEMAS_DIR / "skill-package.schema.json")
+        payload = {
+            "skill_id": "Phase_00_Configuration",   # uppercase + underscores: invalid
+            "name": "Phase 00",
+            "version": "0.1.0",
+            "supported_modes": ["interactive"],
+            "allowed_actions": [],
+            "disallowed_actions": [],
+        }
+        assert self._errors(schema, payload) != []
+
+    # --- handoff-payload.schema.json ---
+
+    def test_handoff_payload_schema_is_valid_json_schema(self):
+        schema = self._load(self.SCHEMAS_DIR / "handoff-payload.schema.json")
+        Draft202012Validator.check_schema(schema)
+
+    def test_handoff_payload_schema_accepts_minimal_valid_payload(self):
+        schema = self._load(self.SCHEMAS_DIR / "handoff-payload.schema.json")
+        payload = {
+            "from_phase": "phase00-configuration",
+            "to_phase": "phase01-discovery-readiness",
+            "family_id": "lean-coe",
+            "run_id": "run-2026-05-24-001",
+            "artifacts": [
+                {
+                    "type": "evidence_bundle",
+                    "schema_ref": "evidence-bundle@1.0.0",
+                    "content_ref": "sha256:abc123",
+                },
+            ],
+            "state": {
+                "phase_outputs": {"phase00-configuration": {"status": "ok"}},
+                "accumulated_context": {"tenant": "acme"},
+            },
+            "trace": {
+                "events": [
+                    {
+                        "timestamp": "2026-05-24T12:00:00Z",
+                        "event_type": "PHASE_COMPLETED",
+                        "detail": "phase00 finished",
+                    },
+                ],
+                "decisions": [],
+                "approvals_taken": [],
+            },
+        }
+        assert self._errors(schema, payload) == []
+
+    def test_handoff_payload_schema_rejects_artifact_missing_content_ref(self):
+        schema = self._load(self.SCHEMAS_DIR / "handoff-payload.schema.json")
+        payload = {
+            "from_phase": "p1",
+            "to_phase": "p2",
+            "family_id": "lean-coe",
+            "run_id": "r1",
+            "artifacts": [
+                {"type": "x", "schema_ref": "s@1.0.0"},  # missing content_ref
+            ],
+            "state": {"phase_outputs": {}, "accumulated_context": {}},
+            "trace": {"events": [], "decisions": [], "approvals_taken": []},
+        }
+        assert self._errors(schema, payload) != []
+
+
+class TestInc6RuntimeContracts:
+    """Increment 6 — runtime-behavior contracts for the phase state machine
+    and the three registries. Markdown-only (no schemas; these describe
+    platform behavior, not payload shapes)."""
+
+    ARCH_DIR = EXT_DIR / "docs" / "backend" / "architecture"
+
+    @staticmethod
+    def _live_manifest() -> dict:
+        yaml = pytest.importorskip("yaml")
+        return yaml.safe_load(EXT_MANIFEST_PATH.read_text(encoding="utf-8"))
+
+    def test_phase_state_machine_contract_file_exists(self):
+        assert (self.ARCH_DIR / "PHASE_STATE_MACHINE_CONTRACT.md").exists()
+
+    def test_registry_contract_file_exists(self):
+        assert (self.ARCH_DIR / "REGISTRY_CONTRACT.md").exists()
+
+    def test_manifest_declares_phase_state_machine_contract(self):
+        m = self._live_manifest()
+        paths = m["contract_sets"][0]["paths"]
+        assert "docs/backend/architecture/PHASE_STATE_MACHINE_CONTRACT.md" in paths
+
+    def test_manifest_declares_registry_contract(self):
+        m = self._live_manifest()
+        paths = m["contract_sets"][0]["paths"]
+        assert "docs/backend/architecture/REGISTRY_CONTRACT.md" in paths
