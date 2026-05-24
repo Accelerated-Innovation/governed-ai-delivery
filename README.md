@@ -27,6 +27,7 @@ One command installs govkit. One more applies it to your project. The governance
 - [Maturity Levels](#maturity-levels)
 - [Supported Agents](#supported-agents)
 - [Key Concepts](#key-concepts)
+- [Extensions](#extensions)
 - [Working With the Agent](#working-with-the-agent)
 - [Project Type Details](#project-type-details)
 - [Monorepo (Fullstack) Pattern](#monorepo-fullstack-pattern)
@@ -329,6 +330,50 @@ The `--type` choices are flat — one install configures one project shape. The 
 **Gherkin Acceptance Criteria** — Features are specified using Given/When/Then scenarios. Scenarios are tagged with NFR categories (`@nfr-performance`, `@nfr-security`) to ensure non-functional requirements have test coverage.
 
 **Governed Development** — The agent reads architecture contracts, evaluation criteria, and feature specs before generating code. CI gates enforce compliance. The agent proposes; your governance artifacts decide.
+
+---
+
+## Extensions
+
+Govkit supports **optional, self-describing extension packs** that layer additional architecture contracts and governance templates on top of the core kit. Extensions are discovered at the root-level `extensions/` folder of your project — a sibling of `docs/`, `governance/`, and `features/`:
+
+```text
+<project>/
+├── docs/
+├── governance/
+├── features/
+├── extensions/
+│   └── <extension-id>/
+│       ├── manifest.yaml
+│       ├── README.md
+│       ├── docs/
+│       └── governance/
+└── .govkit
+```
+
+**Discovery contract:**
+- **Scan** — `govkit apply` and `govkit validate` scan `extensions/*/manifest.yaml`.
+- **Self-describing** — each extension declares its own `id`, `version`, `contract_sets`, `capabilities`, and agent guidance in its manifest. Govkit needs no per-extension code.
+- **In-place** — extensions are not installed by the CLI. The folder under `extensions/<id>/` *is* the install. All paths in the manifest are relative to that folder.
+- **No-extension behavior** — when `extensions/` is absent, govkit behaves exactly as it does today. Extensions are entirely optional.
+
+**Minimal manifest (`extensions/<id>/manifest.yaml`):**
+
+```yaml
+id: my-extension
+name: My Extension
+version: 0.1.0
+extension_type: architecture
+contract_sets:
+  - id: my_contracts
+    description: ...
+    paths:
+      - docs/backend/architecture/MY_CONTRACT.md
+    capabilities:
+      - my-capability
+```
+
+See `extensions/agentic-skills/` in this repository for a complete reference example.
 
 ---
 

@@ -490,6 +490,9 @@ def cmd_apply(args: argparse.Namespace) -> None:
             features_dir.mkdir(parents=True)
             print(f"  Created {features_dir} (empty)")
 
+    from .extensions import report_extensions
+    report_extensions(target)
+
     print(f"\nDone. '{args.agent}' spec kit applied to {target}")
     print("\nNext step: add your first feature package.")
     print("  govkit init <feature-name> --target <target>   # scaffold from a starter template")

@@ -869,6 +869,51 @@ class TestSmokeApply:
         assert (target / "governance" / "policy.md").exists()
         assert not (target / "features" / "starter_backend").exists()
 
+    def test_apply_silent_when_no_extensions(self, tmp_path, monkeypatch, capsys):
+        """Apply must not mention extensions when extensions/ is absent — regression guard."""
+        import cli.govkit as mod
+
+        fake_repo = _make_fake_agent(tmp_path)
+        target = tmp_path / "target"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", fake_repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", fake_repo)
+
+        cmd_apply(_apply_args(target))
+
+        assert "Extensions detected" not in capsys.readouterr().out
+
+    def test_apply_with_extensions_prints_summary(self, tmp_path, monkeypatch, capsys):
+        """Apply should discover and report extensions present in the target."""
+        import cli.govkit as mod
+
+        fake_repo = _make_fake_agent(tmp_path)
+        target = tmp_path / "target"
+        target.mkdir()
+        ext_dir = target / "extensions" / "agentic-skills"
+        ext_dir.mkdir(parents=True)
+        (ext_dir / "manifest.yaml").write_text(
+            textwrap.dedent("""\
+                id: agentic-skills
+                name: Agentic Skills Architecture Extension
+                version: 0.1.0
+                extension_type: architecture
+                contract_sets:
+                  - id: agentic_skills
+                    description: contracts
+                    paths: []
+                """),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(mod, "AGENTS_DIR", fake_repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", fake_repo)
+
+        cmd_apply(_apply_args(target))
+
+        out = capsys.readouterr().out
+        assert "Extensions detected" in out
+        assert "agentic-skills v0.1.0" in out
+
 
 class TestSmokeInit:
     def _bundled_repo(self, tmp_path: Path, starter: str = "starter_backend") -> Path:
