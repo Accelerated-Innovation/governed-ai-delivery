@@ -45,6 +45,23 @@
             "type": "array",
             "items": { "type": "string" },
             "description": "Capability tokens the agent can match against feature intent."
+          },
+          "relates_to": {
+            "type": "object",
+            "description": "Declares this contract set's relationship to core govkit contracts. Paths in extends and supersedes are project-root-relative (not extension-folder-relative).",
+            "properties": {
+              "extends": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Project-root-relative paths to core contracts this set layers additional constraints on top of."
+              },
+              "supersedes": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Project-root-relative paths to core contracts this set replaces. Requires an ADR in the consuming project."
+              }
+            },
+            "additionalProperties": false
           }
         }
       }

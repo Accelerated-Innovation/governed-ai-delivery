@@ -421,3 +421,112 @@ def test_agentic_skills_manifest_matches_schema():
     validator = Draft202012Validator(schema)
     errors = list(validator.iter_errors(manifest))
     assert not errors, f"agentic-skills manifest must validate; got: {errors}"
+
+
+# ---------------------------------------------------------------------------
+# Extension manifest schema — relates_to (Increment 3)
+# ---------------------------------------------------------------------------
+
+
+def _minimal_ext_manifest(**overrides) -> dict:
+    base = {
+        "id": "sample-ext",
+        "name": "Sample",
+        "version": "0.1.0",
+        "extension_type": "architecture",
+        "contract_sets": [
+            {"id": "sample", "description": "x", "paths": ["docs/X.md"]}
+        ],
+    }
+    base.update(overrides)
+    return base
+
+
+class TestSchemaRelatesTo:
+    def _validate(self, manifest: dict) -> list:
+        schema = json.loads(EXT_SCHEMA_PATH.read_text(encoding="utf-8"))
+        return list(Draft202012Validator(schema).iter_errors(manifest))
+
+    def test_schema_accepts_relates_to_with_extends(self):
+        m = _minimal_ext_manifest()
+        m["contract_sets"][0]["relates_to"] = {
+            "extends": ["docs/backend/architecture/CORE.md"],
+        }
+        assert self._validate(m) == []
+
+    def test_schema_accepts_relates_to_with_supersedes(self):
+        m = _minimal_ext_manifest()
+        m["contract_sets"][0]["relates_to"] = {
+            "supersedes": ["docs/backend/architecture/CORE.md"],
+        }
+        assert self._validate(m) == []
+
+    def test_schema_accepts_relates_to_with_both(self):
+        m = _minimal_ext_manifest()
+        m["contract_sets"][0]["relates_to"] = {
+            "extends": ["docs/backend/architecture/A.md"],
+            "supersedes": ["docs/backend/architecture/B.md"],
+        }
+        assert self._validate(m) == []
+
+    def test_schema_accepts_omitted_relates_to(self):
+        # relates_to is optional — existing manifests without it must still validate
+        assert self._validate(_minimal_ext_manifest()) == []
+
+    def test_schema_rejects_relates_to_as_string(self):
+        m = _minimal_ext_manifest()
+        m["contract_sets"][0]["relates_to"] = "not an object"
+        assert self._validate(m) != []
+
+    def test_schema_rejects_relates_to_extends_as_string(self):
+        m = _minimal_ext_manifest()
+        m["contract_sets"][0]["relates_to"] = {"extends": "should be array"}
+        assert self._validate(m) != []
+
+
+class TestAgenticSkillsLiveRelatesTo:
+    """Pin the live agentic-skills manifest's relates_to claims so they don't
+    silently drift away from the real core L5 contracts they overlap with."""
+
+    @staticmethod
+    def _live_manifest() -> dict:
+        yaml = pytest.importorskip("yaml")
+        return yaml.safe_load(EXT_MANIFEST_PATH.read_text(encoding="utf-8"))
+
+    def test_agentic_skills_declares_relates_to_extends(self):
+        m = self._live_manifest()
+        cs = m["contract_sets"][0]
+        assert "relates_to" in cs, "agentic-skills should declare relates_to"
+        assert "extends" in cs["relates_to"]
+        assert isinstance(cs["relates_to"]["extends"], list)
+        assert len(cs["relates_to"]["extends"]) > 0
+
+    def test_agentic_skills_extends_known_core_l5_contracts(self):
+        m = self._live_manifest()
+        extends = set(m["contract_sets"][0].get("relates_to", {}).get("extends", []))
+        expected = {
+            "docs/backend/architecture/EVALUATION_LLM_CONTRACT.md",
+            "docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md",
+            "docs/backend/architecture/GUARDRAILS_CONTRACT.md",
+        }
+        missing = expected - extends
+        assert not missing, f"agentic-skills must extend {missing}"
+
+    def test_agentic_skills_extends_paths_exist_in_repo(self):
+        m = self._live_manifest()
+        extends = m["contract_sets"][0].get("relates_to", {}).get("extends", [])
+        for path in extends:
+            full = REPO_ROOT / path
+            assert full.exists(), f"declared extends path {path!r} not found in repo"
+
+    def test_agentic_skills_extension_validates_cleanly_against_repo(self):
+        """The reference extension must be WARN-free when validated against the
+        canonical repo. Any new core contract that overlaps an extension contract
+        topic must be declared in relates_to before merging."""
+        from cli.extensions import discover_extensions, validate_extension
+
+        extensions = discover_extensions(REPO_ROOT)
+        agentic = next((e for e in extensions if e.id == "agentic-skills"), None)
+        assert agentic is not None, "agentic-skills extension not discovered in repo"
+        issues = validate_extension(agentic, REPO_ROOT)
+        assert issues == [], f"reference extension must validate cleanly; got: {issues}"

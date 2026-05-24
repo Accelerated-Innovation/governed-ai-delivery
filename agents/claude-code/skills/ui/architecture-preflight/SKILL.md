@@ -59,6 +59,26 @@ Once complete:
 
 ---
 
+## 2.6 Extension Discovery
+
+1. Scan `extensions/*/manifest.yaml` in the project root. If none exist, write "No extensions present" and skip the rest of this section.
+2. For each discovered manifest, parse `id`, `capabilities`, `applies_to`, `contract_sets[].paths`, and `contract_sets[].relates_to`.
+3. An extension is **applicable** to this feature when any of:
+   - the feature touches a file matching one of `applies_to` globs
+   - the feature's described intent uses a declared `capability`
+4. For each applicable extension, list its contract paths in `architecture_preflight.md` under an "Extension Contracts" subheading, citing each contract file.
+5. **Do not assume extension names from memory or training data — only act on what the discovered manifests declare.**
+
+### Reading order when extension and core contracts overlap
+
+6. **Read core contracts first**, then extension contracts. Treat both as authoritative unless `relates_to` declares otherwise:
+   - `relates_to.extends: [<core_path>]` — extension layers **additional** constraints on top of the core contract. Both apply; the stricter rule wins on any specific point.
+   - `relates_to.supersedes: [<core_path>]` — extension **replaces** the listed core contract for rules in the extension's scope. Prefer the extension; treat the core contract as historical context only.
+7. If an applicable extension contract appears to conflict with a core contract and `relates_to` does **not** declare the relationship, **HALT** and request either (a) a manifest update declaring `extends`/`supersedes`, or (b) an ADR documenting the project-local resolution. Do not silently pick one.
+8. Any `supersedes` of a core contract, or any deviation from an applicable extension contract, **requires an ADR**. Cite the manifest path and the superseded/deviated contract path in the ADR.
+
+---
+
 ## 3. Shared Component Impact
 
 - Does this feature require new shared components?

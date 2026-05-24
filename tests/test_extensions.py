@@ -285,6 +285,236 @@ contract_sets:
         assert any("contract_sets[0] must be a mapping" in i for i in issues)
 
 
+class TestValidateExtensionRelatesTo:
+    """Increment 3 — relates_to.extends/supersedes path checks."""
+
+    def _write_ext_with_relates_to(self, tmp_path, relates_to_block: str) -> None:
+        body = VALID_MANIFEST + textwrap.indent(relates_to_block, "    ")
+        _write_extension(tmp_path, "sample-ext", body)
+        ext_dir = tmp_path / EXTENSIONS_DIR / "sample-ext"
+        (ext_dir / "docs").mkdir(exist_ok=True)
+        (ext_dir / "docs" / "SAMPLE.md").write_text("x", encoding="utf-8")
+
+    def test_relates_to_extends_existing_path_no_issue(self, tmp_path):
+        (tmp_path / "docs" / "backend" / "architecture").mkdir(parents=True)
+        (tmp_path / "docs" / "backend" / "architecture" / "CORE.md").write_text("c", encoding="utf-8")
+        self._write_ext_with_relates_to(tmp_path, textwrap.dedent("""\
+            relates_to:
+              extends:
+                - docs/backend/architecture/CORE.md
+            """))
+        ext = discover_extensions(tmp_path)[0]
+        assert validate_extension(ext, tmp_path) == []
+
+    def test_relates_to_extends_missing_path_reported(self, tmp_path):
+        self._write_ext_with_relates_to(tmp_path, textwrap.dedent("""\
+            relates_to:
+              extends:
+                - docs/backend/architecture/NOT_THERE.md
+            """))
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("relates_to.extends" in i and "NOT_THERE.md" in i for i in issues)
+
+    def test_relates_to_supersedes_missing_path_reported(self, tmp_path):
+        self._write_ext_with_relates_to(tmp_path, textwrap.dedent("""\
+            relates_to:
+              supersedes:
+                - docs/backend/architecture/GONE.md
+            """))
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("relates_to.supersedes" in i and "GONE.md" in i for i in issues)
+
+    def test_relates_to_paths_resolve_from_project_root_not_extension(self, tmp_path):
+        # File exists under the extension folder but NOT at project root → still missing
+        ext_dir = tmp_path / EXTENSIONS_DIR / "sample-ext"
+        ext_dir.mkdir(parents=True)
+        (ext_dir / "docs").mkdir()
+        (ext_dir / "docs" / "CORE.md").write_text("x", encoding="utf-8")
+        (ext_dir / "docs" / "SAMPLE.md").write_text("x", encoding="utf-8")
+        body = VALID_MANIFEST + textwrap.dedent("""\
+            relates_to:
+              extends:
+                - docs/CORE.md
+        """)
+        # Indent the relates_to block to keep it under contract_sets[0]
+        body = VALID_MANIFEST + "    relates_to:\n      extends:\n        - docs/CORE.md\n"
+        (ext_dir / MANIFEST_FILE).write_text(body, encoding="utf-8")
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("relates_to.extends" in i and "CORE.md" in i for i in issues)
+
+    def test_relates_to_non_dict_silently_skipped(self, tmp_path):
+        # Schema would reject this at parse time, but validate_extension shouldn't crash
+        body = VALID_MANIFEST + "    relates_to: not-a-mapping\n"
+        _write_extension(tmp_path, "sample-ext", body)
+        ext_dir = tmp_path / EXTENSIONS_DIR / "sample-ext"
+        (ext_dir / "docs").mkdir(exist_ok=True)
+        (ext_dir / "docs" / "SAMPLE.md").write_text("x", encoding="utf-8")
+        ext = discover_extensions(tmp_path)[0]
+        # Should not raise; relates_to issues are confined to well-formed dicts
+        issues = validate_extension(ext, tmp_path)
+        assert all("relates_to" not in i for i in issues)
+
+
+class TestUndeclaredOverlap:
+    """Increment 3 — heuristic that flags extension contracts whose filename
+    topic overlaps a core contract under <target>/docs/backend/architecture/
+    when relates_to does not declare the relationship."""
+
+    @staticmethod
+    def _make_core_contract(target: Path, filename: str) -> None:
+        d = target / "docs" / "backend" / "architecture"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / filename).write_text("core", encoding="utf-8")
+
+    @staticmethod
+    def _make_ext_with_contract(
+        target: Path, ext_id: str, contract_path: str, relates_to: str = ""
+    ) -> None:
+        body = textwrap.dedent(f"""\
+            id: {ext_id}
+            name: {ext_id}
+            version: 0.1.0
+            extension_type: architecture
+            contract_sets:
+              - id: cs
+                description: x
+                paths:
+                  - {contract_path}
+            """)
+        if relates_to:
+            body += textwrap.indent(relates_to, "    ")
+        ext_dir = target / EXTENSIONS_DIR / ext_id
+        ext_dir.mkdir(parents=True, exist_ok=True)
+        (ext_dir / MANIFEST_FILE).write_text(body, encoding="utf-8")
+        contract_file = ext_dir / contract_path
+        contract_file.parent.mkdir(parents=True, exist_ok=True)
+        contract_file.write_text("ext", encoding="utf-8")
+
+    def test_no_target_docs_dir_no_warning(self, tmp_path):
+        self._make_ext_with_contract(
+            tmp_path, "ext1", "docs/backend/architecture/AGENT_EVALUATION_CONTRACT.md"
+        )
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert all("overlaps core" not in i for i in issues)
+
+    def test_no_core_overlap_no_warning(self, tmp_path):
+        self._make_core_contract(tmp_path, "UNRELATED_CORE_CONTRACT.md")
+        self._make_ext_with_contract(
+            tmp_path, "ext1", "docs/backend/architecture/AGENT_EVALUATION_CONTRACT.md"
+        )
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert all("overlaps core" not in i for i in issues)
+
+    def test_undeclared_overlap_warns(self, tmp_path):
+        self._make_core_contract(tmp_path, "EVALUATION_LLM_CONTRACT.md")
+        self._make_ext_with_contract(
+            tmp_path, "ext1", "docs/backend/architecture/AGENT_EVALUATION_CONTRACT.md"
+        )
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any(
+            "AGENT_EVALUATION_CONTRACT.md" in i
+            and "EVALUATION_LLM_CONTRACT.md" in i
+            and "overlaps core" in i
+            for i in issues
+        )
+
+    def test_overlap_warning_mentions_relates_to_remedy(self, tmp_path):
+        self._make_core_contract(tmp_path, "EVALUATION_LLM_CONTRACT.md")
+        self._make_ext_with_contract(
+            tmp_path, "ext1", "docs/backend/architecture/AGENT_EVALUATION_CONTRACT.md"
+        )
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        overlap = [i for i in issues if "overlaps core" in i]
+        assert overlap, f"no overlap warning emitted; issues={issues}"
+        assert "relates_to" in overlap[0]
+
+    def test_declared_extends_suppresses_warning(self, tmp_path):
+        self._make_core_contract(tmp_path, "EVALUATION_LLM_CONTRACT.md")
+        relates_to = textwrap.dedent("""\
+            relates_to:
+              extends:
+                - docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
+            """)
+        self._make_ext_with_contract(
+            tmp_path,
+            "ext1",
+            "docs/backend/architecture/AGENT_EVALUATION_CONTRACT.md",
+            relates_to=relates_to,
+        )
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert all("overlaps core" not in i for i in issues), issues
+
+    def test_declared_supersedes_suppresses_warning(self, tmp_path):
+        self._make_core_contract(tmp_path, "EVALUATION_LLM_CONTRACT.md")
+        relates_to = textwrap.dedent("""\
+            relates_to:
+              supersedes:
+                - docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
+            """)
+        self._make_ext_with_contract(
+            tmp_path,
+            "ext1",
+            "docs/backend/architecture/AGENT_EVALUATION_CONTRACT.md",
+            relates_to=relates_to,
+        )
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert all("overlaps core" not in i for i in issues), issues
+
+    def test_multiple_core_matches_each_warned(self, tmp_path):
+        # AGENT_OBSERVABILITY overlaps both OBSERVABILITY_LLM and OBSERVABILITY_PORT
+        self._make_core_contract(tmp_path, "OBSERVABILITY_LLM_CONTRACT.md")
+        self._make_core_contract(tmp_path, "OBSERVABILITY_PORT_CONTRACT.md")
+        self._make_ext_with_contract(
+            tmp_path, "ext1", "docs/backend/architecture/AGENT_OBSERVABILITY_CONTRACT.md"
+        )
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        warnings = [i for i in issues if "overlaps core" in i]
+        assert len(warnings) == 2
+        assert any("OBSERVABILITY_LLM_CONTRACT.md" in w for w in warnings)
+        assert any("OBSERVABILITY_PORT_CONTRACT.md" in w for w in warnings)
+
+    def test_partial_declared_warns_only_for_undeclared(self, tmp_path):
+        # Declare OBSERVABILITY_LLM; leave OBSERVABILITY_PORT undeclared
+        self._make_core_contract(tmp_path, "OBSERVABILITY_LLM_CONTRACT.md")
+        self._make_core_contract(tmp_path, "OBSERVABILITY_PORT_CONTRACT.md")
+        relates_to = textwrap.dedent("""\
+            relates_to:
+              extends:
+                - docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md
+            """)
+        self._make_ext_with_contract(
+            tmp_path,
+            "ext1",
+            "docs/backend/architecture/AGENT_OBSERVABILITY_CONTRACT.md",
+            relates_to=relates_to,
+        )
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        warnings = [i for i in issues if "overlaps core" in i]
+        assert len(warnings) == 1
+        assert "OBSERVABILITY_PORT_CONTRACT.md" in warnings[0]
+
+    def test_non_contract_filenames_skipped(self, tmp_path):
+        # Filenames not ending with _CONTRACT.md should not trip the heuristic
+        self._make_core_contract(tmp_path, "EVALUATION_LLM_CONTRACT.md")
+        self._make_ext_with_contract(
+            tmp_path, "ext1", "docs/backend/architecture/AGENT_EVALUATION_GUIDE.md"
+        )
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert all("overlaps core" not in i for i in issues), issues
+
+
 # ---------------------------------------------------------------------------
 # run_validation — extension-aware paths
 # ---------------------------------------------------------------------------

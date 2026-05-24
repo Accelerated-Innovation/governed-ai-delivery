@@ -43,6 +43,13 @@ contract_sets:
       - agent-observability
       - agent-evaluation
       - agent-security
+    relates_to:
+      extends:
+        - docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
+        - docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md
+        - docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md
+        - docs/backend/architecture/GUARDRAILS_CONTRACT.md
+      supersedes: []
 
 templates:
   - id: agent_topology

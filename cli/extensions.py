@@ -173,6 +173,120 @@ def _check_templates(manifest: dict, ext: Extension) -> list[str]:
     return issues
 
 
+def _check_relates_to_field(
+    label: str, paths: object, target: Path
+) -> list[str]:
+    if not isinstance(paths, list):
+        return []
+    issues: list[str] = []
+    for path in paths:
+        if not isinstance(path, str):
+            continue
+        if not (target / path).exists():
+            issues.append(f"{label}: {path!r} does not exist under project root")
+    return issues
+
+
+def _check_relates_to(manifest: dict, target: Path) -> list[str]:
+    contract_sets = manifest.get("contract_sets")
+    if not isinstance(contract_sets, list):
+        return []
+    issues: list[str] = []
+    for i, cs in enumerate(contract_sets):
+        if not isinstance(cs, dict):
+            continue
+        relates_to = cs.get("relates_to")
+        if not isinstance(relates_to, dict):
+            continue
+        issues.extend(_check_relates_to_field(
+            f"contract_sets[{i}].relates_to.extends",
+            relates_to.get("extends"),
+            target,
+        ))
+        issues.extend(_check_relates_to_field(
+            f"contract_sets[{i}].relates_to.supersedes",
+            relates_to.get("supersedes"),
+            target,
+        ))
+    return issues
+
+
+_CORE_ARCHITECTURE_DIR = Path("docs/backend/architecture")
+_CONTRACT_SUFFIX = "_CONTRACT.md"
+
+
+def _topic_token(contract_filename: str) -> str | None:
+    """Extract the topic token from a contract filename.
+
+    AGENT_EVALUATION_CONTRACT.md -> 'EVALUATION'
+    EVALUATION_LLM_CONTRACT.md   -> 'LLM'
+    Files not ending in _CONTRACT.md return None.
+    """
+    if not contract_filename.endswith(_CONTRACT_SUFFIX):
+        return None
+    stem = contract_filename[: -len(_CONTRACT_SUFFIX)]
+    parts = stem.split("_")
+    return parts[-1] if parts and parts[-1] else None
+
+
+def _declared_core_paths(contract_set: dict) -> set[str]:
+    relates_to = contract_set.get("relates_to")
+    if not isinstance(relates_to, dict):
+        return set()
+    declared: set[str] = set()
+    for key in ("extends", "supersedes"):
+        for path in relates_to.get(key) or []:
+            if isinstance(path, str):
+                declared.add(path)
+    return declared
+
+
+def _overlaps_for_contract(
+    contract_path: str, declared: set[str], core_dir: Path
+) -> list[tuple[str, str]]:
+    """Return (extension_path, core_relative_path) pairs for undeclared overlaps."""
+    filename = Path(contract_path).name
+    ext_token = _topic_token(filename)
+    if not ext_token:
+        return []
+    pairs: list[tuple[str, str]] = []
+    for core_file in sorted(core_dir.glob(f"*{ext_token}*{_CONTRACT_SUFFIX}")):
+        if core_file.name == filename:
+            continue
+        core_rel = (_CORE_ARCHITECTURE_DIR / core_file.name).as_posix()
+        if core_rel in declared:
+            continue
+        pairs.append((contract_path, core_rel))
+    return pairs
+
+
+def _check_undeclared_overlap(manifest: dict, target: Path) -> list[str]:
+    """Warn when an extension contract's topic token matches a core contract
+    under <target>/docs/backend/architecture/ and the core path is not declared
+    in relates_to.extends/supersedes. Pure filename heuristic — no content
+    inspection."""
+    core_dir = target / _CORE_ARCHITECTURE_DIR
+    if not core_dir.is_dir():
+        return []
+    contract_sets = manifest.get("contract_sets")
+    if not isinstance(contract_sets, list):
+        return []
+    issues: list[str] = []
+    for cs in contract_sets:
+        if not isinstance(cs, dict):
+            continue
+        declared = _declared_core_paths(cs)
+        for path in cs.get("paths") or []:
+            if not isinstance(path, str):
+                continue
+            for ext_path, core_rel in _overlaps_for_contract(path, declared, core_dir):
+                issues.append(
+                    f"{ext_path} overlaps core {core_rel} "
+                    "— declare relates_to.extends or .supersedes"
+                )
+    return issues
+
+
 def validate_extension(ext: Extension, target: Path) -> list[str]:
     """Return a list of human-readable validation issues for one extension.
 
@@ -183,10 +297,9 @@ def validate_extension(ext: Extension, target: Path) -> list[str]:
       - contract_sets[].paths exist under ext.root
       - templates[].path exist under ext.root
 
-    Returns [] when fully valid. The `target` parameter is reserved for
-    project-root-relative checks added in Increment 3 (relates_to.extends,
-    relates_to.supersedes, undeclared overlap detection)."""
-    del target  # reserved for Increment 3
+    Returns [] when fully valid. The `target` parameter is used for
+    project-root-relative checks (relates_to.extends/supersedes paths,
+    undeclared overlap with core contracts)."""
     if ext.errors:
         return list(ext.errors)
     m = ext.manifest
@@ -195,6 +308,8 @@ def validate_extension(ext: Extension, target: Path) -> list[str]:
         *_check_id(m, ext),
         *_check_contract_sets(m, ext),
         *_check_templates(m, ext),
+        *_check_relates_to(m, target),
+        *_check_undeclared_overlap(m, target),
     ]
 
 
