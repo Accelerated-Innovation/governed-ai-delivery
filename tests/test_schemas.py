@@ -397,3 +397,27 @@ class TestSchemaAcceptsNewShapes:
         validator = Draft202012Validator(schema)
         errors = list(validator.iter_errors(manifest))
         assert not errors, f"Schema must accept --type {ui_type}; got: {errors}"
+
+
+# ---------------------------------------------------------------------------
+# Extension manifest schema (Increment 2)
+# ---------------------------------------------------------------------------
+
+
+EXT_DIR = REPO_ROOT / "extensions" / "agentic-skills"
+EXT_SCHEMA_PATH = EXT_DIR / "schemas" / "extension-manifest.schema.json"
+EXT_MANIFEST_PATH = EXT_DIR / "manifest.yaml"
+
+
+def test_extension_manifest_schema_is_valid_json_schema():
+    schema = json.loads(EXT_SCHEMA_PATH.read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(schema)
+
+
+def test_agentic_skills_manifest_matches_schema():
+    yaml = pytest.importorskip("yaml")
+    schema = json.loads(EXT_SCHEMA_PATH.read_text(encoding="utf-8"))
+    manifest = yaml.safe_load(EXT_MANIFEST_PATH.read_text(encoding="utf-8"))
+    validator = Draft202012Validator(schema)
+    errors = list(validator.iter_errors(manifest))
+    assert not errors, f"agentic-skills manifest must validate; got: {errors}"

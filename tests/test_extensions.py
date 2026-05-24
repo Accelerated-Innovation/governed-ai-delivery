@@ -15,7 +15,9 @@ from cli.extensions import (
     discover_extensions,
     load_manifest,
     report_extensions,
+    validate_extension,
 )
+from cli.validate import run_validation
 
 
 # ---------------------------------------------------------------------------
@@ -47,6 +49,15 @@ contract_sets:
     paths:
       - docs/SAMPLE.md
 """
+
+
+def _write_valid_extension(target: Path, ext_id: str = "sample-ext") -> Path:
+    """Write a fully-valid extension (manifest + the contract path it declares)."""
+    body = VALID_MANIFEST.replace("sample-ext", ext_id)
+    ext_dir = _write_extension(target, ext_id, body)
+    (ext_dir / "docs").mkdir(exist_ok=True)
+    (ext_dir / "docs" / "SAMPLE.md").write_text("# sample", encoding="utf-8")
+    return ext_dir
 
 
 # ---------------------------------------------------------------------------
@@ -194,3 +205,143 @@ class TestReportExtensions:
         assert count == 2
         assert "alpha" in captured.out
         assert "beta" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# validate_extension
+# ---------------------------------------------------------------------------
+
+
+class TestValidateExtension:
+    def test_valid_manifest_no_issues(self, tmp_path):
+        _write_valid_extension(tmp_path)
+        ext = discover_extensions(tmp_path)[0]
+        assert validate_extension(ext, tmp_path) == []
+
+    def test_discovery_errors_passed_through(self, tmp_path):
+        _write_extension(tmp_path, "no-manifest", None)
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert issues == [f"missing {MANIFEST_FILE}"]
+
+    def test_missing_required_field_reported(self, tmp_path):
+        body = "id: sample-ext\nname: Sample\nversion: 0.1.0\nextension_type: architecture\n"
+        _write_extension(tmp_path, "sample-ext", body)
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("contract_sets" in i for i in issues)
+
+    def test_invalid_id_format_reported(self, tmp_path):
+        body = VALID_MANIFEST.replace("id: sample-ext", "id: Sample_Ext")
+        ext_dir = tmp_path / EXTENSIONS_DIR / "Sample_Ext"
+        ext_dir.mkdir(parents=True)
+        (ext_dir / MANIFEST_FILE).write_text(body, encoding="utf-8")
+        (ext_dir / "docs").mkdir()
+        (ext_dir / "docs" / "SAMPLE.md").write_text("x", encoding="utf-8")
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("invalid id format" in i for i in issues)
+
+    def test_id_folder_mismatch_reported(self, tmp_path):
+        body = VALID_MANIFEST  # declares id: sample-ext
+        _write_extension(tmp_path, "different-folder", body)
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("does not match folder name" in i for i in issues)
+
+    def test_missing_contract_path_reported(self, tmp_path):
+        _write_extension(tmp_path, "sample-ext", VALID_MANIFEST)
+        # NOTE: do NOT create docs/SAMPLE.md
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("docs/SAMPLE.md" in i and "does not exist" in i for i in issues)
+
+    def test_missing_template_path_reported(self, tmp_path):
+        body = VALID_MANIFEST + textwrap.dedent("""\
+            templates:
+              - id: tpl
+                path: governance/missing.md
+            """)
+        _write_extension(tmp_path, "sample-ext", body)
+        ext_dir = tmp_path / EXTENSIONS_DIR / "sample-ext"
+        (ext_dir / "docs").mkdir()
+        (ext_dir / "docs" / "SAMPLE.md").write_text("x", encoding="utf-8")
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("governance/missing.md" in i for i in issues)
+
+    def test_malformed_contract_sets_entry_reported(self, tmp_path):
+        body = """\
+id: sample-ext
+name: Sample
+version: 0.1.0
+extension_type: architecture
+contract_sets:
+  - not a mapping
+"""
+        _write_extension(tmp_path, "sample-ext", body)
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("contract_sets[0] must be a mapping" in i for i in issues)
+
+
+# ---------------------------------------------------------------------------
+# run_validation — extension-aware paths
+# ---------------------------------------------------------------------------
+
+
+class TestRunValidationExtensions:
+    def test_no_extensions_l3_unchanged(self, tmp_path, capsys):
+        # L3 with no extensions: existing behavior — exit 0, no extensions section
+        exit_code = run_validation(tmp_path, level="3")
+        out = capsys.readouterr().out
+        assert exit_code == 0
+        assert "Level 3" in out
+        assert "govkit validate — extensions" not in out
+
+    def test_no_extensions_l4_unchanged(self, tmp_path, capsys):
+        # L4 with no features dir + no extensions: exit 1 (no features/) — existing behavior
+        exit_code = run_validation(tmp_path, level="4")
+        out = capsys.readouterr().out
+        assert exit_code == 1
+        assert "no features/ directory" in out
+        assert "govkit validate — extensions" not in out
+
+    def test_valid_extension_passes_default_mode(self, tmp_path, capsys):
+        _write_valid_extension(tmp_path)
+        exit_code = run_validation(tmp_path, level="3")
+        out = capsys.readouterr().out
+        assert exit_code == 0
+        assert "govkit validate — extensions" in out
+        assert "sample-ext v1.2.3" in out
+
+    def test_valid_extension_passes_strict_mode(self, tmp_path, capsys):
+        _write_valid_extension(tmp_path)
+        exit_code = run_validation(tmp_path, level="3", strict=True)
+        out = capsys.readouterr().out
+        assert exit_code == 0
+        assert "sample-ext v1.2.3" in out
+
+    def test_invalid_manifest_warns_default_exit_zero(self, tmp_path, capsys):
+        # Missing contract path → issue surfaced, but exit stays 0 in default mode
+        _write_extension(tmp_path, "sample-ext", VALID_MANIFEST)
+        exit_code = run_validation(tmp_path, level="3")
+        out = capsys.readouterr().out
+        assert exit_code == 0
+        assert "WARN" in out
+        assert "sample-ext" in out
+
+    def test_invalid_manifest_fails_strict_exit_one(self, tmp_path, capsys):
+        _write_extension(tmp_path, "sample-ext", VALID_MANIFEST)
+        exit_code = run_validation(tmp_path, level="3", strict=True)
+        out = capsys.readouterr().out
+        assert exit_code == 1
+        assert "FAIL" in out
+        assert "sample-ext" in out
+
+    def test_extension_failure_does_not_mask_feature_pass(self, tmp_path, capsys, monkeypatch):
+        # Extension warning at L3 still exits 0 even when no feature checks run
+        _write_extension(tmp_path, "sample-ext", VALID_MANIFEST)
+        exit_code = run_validation(tmp_path, level="3")
+        assert exit_code == 0
+        capsys.readouterr()  # drain

@@ -25,6 +25,7 @@ Validation (validate_extension) and overlap detection arrive in later
 increments.
 """
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -33,6 +34,9 @@ import yaml
 
 EXTENSIONS_DIR = "extensions"
 MANIFEST_FILE = "manifest.yaml"
+
+_REQUIRED_FIELDS = ("id", "name", "version", "extension_type", "contract_sets")
+_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
 @dataclass
@@ -109,6 +113,89 @@ def discover_extensions(target: Path) -> list[Extension]:
         ext_id = data.get("id") if isinstance(data.get("id"), str) else entry.name
         results.append(Extension(id=ext_id, root=entry, manifest=data))
     return results
+
+
+def _check_required_fields(manifest: dict) -> list[str]:
+    return [f"missing required field: {fld}" for fld in _REQUIRED_FIELDS if fld not in manifest]
+
+
+def _check_id(manifest: dict, ext: Extension) -> list[str]:
+    ext_id = manifest.get("id")
+    if not isinstance(ext_id, str):
+        return []
+    issues: list[str] = []
+    if not _ID_PATTERN.match(ext_id):
+        issues.append(f"invalid id format: {ext_id!r} (must match ^[a-z0-9][a-z0-9-]*$)")
+    if ext_id != ext.root.name:
+        issues.append(f"id {ext_id!r} does not match folder name {ext.root.name!r}")
+    return issues
+
+
+def _check_path_entry(label: str, path: object, ext: Extension) -> list[str]:
+    if not isinstance(path, str):
+        return [f"{label} must be a string"]
+    if not (ext.root / path).exists():
+        return [f"{label}: {path!r} does not exist under {EXTENSIONS_DIR}/{ext.id}/"]
+    return []
+
+
+def _check_contract_sets(manifest: dict, ext: Extension) -> list[str]:
+    contract_sets = manifest.get("contract_sets")
+    if not isinstance(contract_sets, list):
+        return []
+    issues: list[str] = []
+    for i, cs in enumerate(contract_sets):
+        if not isinstance(cs, dict):
+            issues.append(f"contract_sets[{i}] must be a mapping")
+            continue
+        paths = cs.get("paths") or []
+        if not isinstance(paths, list):
+            issues.append(f"contract_sets[{i}].paths must be a list")
+            continue
+        for path in paths:
+            issues.extend(_check_path_entry(f"contract_sets[{i}].paths", path, ext))
+    return issues
+
+
+def _check_templates(manifest: dict, ext: Extension) -> list[str]:
+    templates = manifest.get("templates")
+    if not isinstance(templates, list):
+        return []
+    issues: list[str] = []
+    for i, tpl in enumerate(templates):
+        if not isinstance(tpl, dict):
+            issues.append(f"templates[{i}] must be a mapping")
+            continue
+        path = tpl.get("path")
+        if path is None:
+            continue
+        issues.extend(_check_path_entry(f"templates[{i}].path", path, ext))
+    return issues
+
+
+def validate_extension(ext: Extension, target: Path) -> list[str]:
+    """Return a list of human-readable validation issues for one extension.
+
+    Increment 2 checks:
+      - discovery errors (missing/invalid manifest) — passed through
+      - required top-level fields present
+      - id format and folder-name match
+      - contract_sets[].paths exist under ext.root
+      - templates[].path exist under ext.root
+
+    Returns [] when fully valid. The `target` parameter is reserved for
+    project-root-relative checks added in Increment 3 (relates_to.extends,
+    relates_to.supersedes, undeclared overlap detection)."""
+    del target  # reserved for Increment 3
+    if ext.errors:
+        return list(ext.errors)
+    m = ext.manifest
+    return [
+        *_check_required_fields(m),
+        *_check_id(m, ext),
+        *_check_contract_sets(m, ext),
+        *_check_templates(m, ext),
+    ]
 
 
 def report_extensions(target: Path) -> int:
