@@ -27,7 +27,6 @@ Extensions are **not installed by the govkit CLI**. They live in-place under the
 │       ├── manifest.yaml
 │       ├── README.md
 │       ├── docs/
-│       ├── governance/
 │       └── schemas/
 └── .govkit
 ```
@@ -60,16 +59,9 @@ Architecture contracts live under `extensions/agentic-skills/docs/backend/archit
 - `AGENT_EVALUATION_CONTRACT.md`
 - `AGENT_SECURITY_BOUNDARY_CONTRACT.md`
 
-## Governance Templates
+## Skill-Package Artifacts (Out of Scope)
 
-Reusable templates live under `extensions/agentic-skills/governance/backend/templates/`:
-
-- `agent_topology.md`
-- `skill_contract.md`
-- `tool_contract.md`
-- `human_approval_matrix.md`
-- `recommendation_policy.md`
-- `background_trigger_policy.md`
+Per-skill artifact shapes — agent topology, skill contract, tool contract, human approval matrix, recommendation policy, background trigger policy — are **defined by the architecture contracts above** and **authored alongside each skill package**, outside this repo. They are not platform artifacts and are not shipped from this extension.
 
 ## Schemas
 

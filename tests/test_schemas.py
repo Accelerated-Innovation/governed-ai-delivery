@@ -530,3 +530,20 @@ class TestAgenticSkillsLiveRelatesTo:
         assert agentic is not None, "agentic-skills extension not discovered in repo"
         issues = validate_extension(agentic, REPO_ROOT)
         assert issues == [], f"reference extension must validate cleanly; got: {issues}"
+
+    def test_no_templates_block_in_manifest(self):
+        """Increment 4 — the `templates:` block was removed because those
+        artifacts ship with skill packages, not the platform repo."""
+        m = self._live_manifest()
+        assert "templates" not in m, (
+            "manifest should not declare a templates block; skill-package artifact "
+            "shapes are defined by the architecture contracts instead"
+        )
+
+    def test_templates_dir_absent(self):
+        """Increment 4 — the templates/ folder is gone; nothing in the platform
+        repo should still scaffold per-skill artifacts."""
+        templates_dir = REPO_ROOT / "extensions" / "agentic-skills" / "governance" / "backend" / "templates"
+        assert not templates_dir.exists(), (
+            f"{templates_dir} should not exist; templates moved to skill-author scope"
+        )

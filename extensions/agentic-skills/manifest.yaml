@@ -51,20 +51,6 @@ contract_sets:
         - docs/backend/architecture/GUARDRAILS_CONTRACT.md
       supersedes: []
 
-templates:
-  - id: agent_topology
-    path: governance/backend/templates/agent_topology.md
-  - id: skill_contract
-    path: governance/backend/templates/skill_contract.md
-  - id: tool_contract
-    path: governance/backend/templates/tool_contract.md
-  - id: human_approval_matrix
-    path: governance/backend/templates/human_approval_matrix.md
-  - id: recommendation_policy
-    path: governance/backend/templates/recommendation_policy.md
-  - id: background_trigger_policy
-    path: governance/backend/templates/background_trigger_policy.md
-
 agent_guidance:
   architecture_preflight:
     - Read this extension manifest when present under extensions/*/manifest.yaml.
