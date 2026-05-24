@@ -22,7 +22,11 @@
   every scenario passes.
 
 .PARAMETER SandboxRoot
-  Where the throwaway target is created. Default: this script's directory.
+  Where the venv lives. Default: this script's directory (scripts/).
+
+.PARAMETER ProjectPath
+  The throwaway target project govkit applies to. Default: $SandboxRoot\extensions-smoke.
+  Override to redirect the sandbox elsewhere (e.g. an external scratch dir).
 
 .PARAMETER RepoPath
   Path to the governed-ai-delivery repo (editable install source).
@@ -34,11 +38,13 @@
 .EXAMPLE
   .\smoke-extensions.ps1
   .\smoke-extensions.ps1 -Force
+  .\smoke-extensions.ps1 -ProjectPath c:\users\marty\source\sandbox\govtest_0524 -Force
 #>
 
 [CmdletBinding()]
 param(
     [string]$SandboxRoot = $PSScriptRoot,
+    [string]$ProjectPath = (Join-Path $PSScriptRoot "extensions-smoke"),
     [string]$RepoPath    = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
     [switch]$Force
 )
@@ -81,7 +87,7 @@ $env:GOVKIT_NO_SHAPE_MIGRATION_WARNING = "1"
 # Sandbox setup
 # ----------------------------------------------------------------------------
 
-$projectPath  = Join-Path $SandboxRoot "extensions-smoke"
+$projectPath  = $ProjectPath
 $sourceExt    = Join-Path $RepoPath    "extensions\agentic-skills"
 $targetExtDir = Join-Path $projectPath "extensions\agentic-skills"
 

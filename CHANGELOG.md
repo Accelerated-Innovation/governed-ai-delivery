@@ -6,6 +6,71 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.9.0] — 2026-05-24
+
+### Added — extension pack discovery
+
+Govkit now discovers and validates **self-describing extension packs** placed under `<project>/extensions/<id>/`. Extensions are optional, additive, and live in-place — there is no install command for them. The folder itself *is* the install. Govkit needs no per-extension code changes; new extension types are recognized as soon as their `manifest.yaml` appears in a consuming project.
+
+```text
+<project>/
+├── docs/
+├── governance/
+├── features/
+├── extensions/
+│   └── <extension-id>/
+│       ├── manifest.yaml      # self-describing — id, contract_sets, capabilities, agent_guidance
+│       ├── docs/
+│       └── governance/
+└── .govkit
+```
+
+### Conflict-resolution model
+
+When an extension contract covers the same topic as a core govkit contract (e.g. an `AGENT_EVALUATION_CONTRACT.md` extension alongside core `EVALUATION_LLM_CONTRACT.md`), the manifest declares the relationship via `relates_to`:
+
+```yaml
+contract_sets:
+  - id: my_contracts
+    paths: [docs/backend/architecture/AGENT_EVALUATION_CONTRACT.md]
+    relates_to:
+      extends:    [docs/backend/architecture/EVALUATION_LLM_CONTRACT.md]   # both apply; stricter wins
+      supersedes: []                                                        # extension replaces core (requires ADR)
+```
+
+Undeclared overlap is detected by a filename-topic heuristic and surfaced as a WARN (or FAIL with `--strict`). The architecture-preflight skill reads core contracts first, then extensions, and HALTs for an ADR when an applicable contract conflict isn't declared.
+
+### Added
+- **Extension discovery** — `cli/extensions.py` with `discover_extensions`, `load_manifest`, `report_extensions`, `validate_extension`. Discovery returns `[]` when `extensions/` is absent (zero behavior change for non-extension projects).
+- **Extension validation in `govkit validate`** — checks required manifest fields, id format, id↔folder name match, `contract_sets[].paths` existence under the extension folder, `templates[].path` existence, `relates_to.{extends,supersedes}` paths existence under project root, and undeclared overlap with core contracts under `docs/backend/architecture/`.
+- **`--strict` flag on `govkit validate`** — promotes extension manifest warnings to failures (exit 1). Default mode warns and exits 0 so existing CI pipelines aren't broken by a new extension.
+- **Extension discovery in `govkit apply`** — prints an "Extensions detected" summary after the marker write when extensions are present. Silent otherwise.
+- **Section 2.6 "Extension Discovery"** added to all 6 `architecture-preflight/SKILL.md` files (claude-code, codex, copilot × backend, ui). Identical content per the agent-parity invariant. Instructs the agent to discover extensions dynamically without hardcoded names, list applicable contracts in the preflight report, and apply the core-first + `relates_to` reading order on conflict.
+- **Reference extension `extensions/agentic-skills/`** — reshaped to mirror the core govkit layout (`docs/`, `governance/`). Manifest declares `relates_to.extends` for the 4 core L5 contracts whose topic it overlaps: `EVALUATION_LLM_CONTRACT.md`, `OBSERVABILITY_LLM_CONTRACT.md`, `OBSERVABILITY_PORT_CONTRACT.md`, `GUARDRAILS_CONTRACT.md`.
+- **JSON Schema `extensions/agentic-skills/schemas/extension-manifest.schema.json`** — describes the manifest shape (id, name, version, extension_type, contract_sets, templates, agent_guidance, relates_to). Tested in `tests/test_schemas.py`.
+- **`scripts/smoke-extensions.ps1`** — end-to-end smoke script covering 8 scenarios: baseline (no extensions/), discovery via apply, valid validate, valid `--strict`, broken contract path (warn vs strict), undeclared overlap, no-extensions regression. Configurable target via `-ProjectPath`.
+- **Tests** — 37 new tests across `tests/test_extensions.py`, `tests/test_agent_skills.py`, and extension-related additions to `tests/test_schemas.py` and `tests/test_govkit.py`. Total test count grew from 366 → 440.
+- **Documentation** — root README gains an "Extensions" section covering the discovery contract, manifest schema, conflict-resolution model, and a pointer to the reference example.
+
+### Changed
+- **PyYAML as runtime dependency** — first runtime dep added to govkit (`pyyaml>=6.0`). Required to parse `manifest.yaml`. `pip install --upgrade govkit` picks it up automatically.
+- **`extensions/agentic-skills/` reshape** — templates moved from `templates/backend/agentic/` to `governance/backend/templates/`; manifest paths updated; install model documented as in-place rather than CLI-installed.
+
+### Verification
+- 440 pytest tests pass (was 366).
+- Smoke script reports 9/9 scenarios PASS against a fresh sandbox.
+- Reference `agentic-skills` extension validates cleanly against the live repo (zero issues), pinned by `test_agentic_skills_extension_validates_cleanly_against_repo`.
+
+### Upgrade
+
+```bash
+pip install --upgrade govkit
+```
+
+Projects that don't use extensions need no other changes. Projects that want to adopt an extension drop the extension folder under `<project>/extensions/<id>/` and re-run `govkit validate` — no `govkit apply` needed for the extension itself.
+
+---
+
 ## [0.8.0] — 2026-05-18
 
 ### Breaking changes — one install = one project shape
