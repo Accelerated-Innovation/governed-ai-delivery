@@ -874,12 +874,18 @@ def cmd_apply(args: argparse.Namespace) -> None:
 
     # PR 1 / Chunk E: write the setup review file and print the checklist.
     # PR 6a: also refresh .govkit/skill_context.yaml so skills see fresh facts.
+    # PR 6b: expand `paths_template:` in installed rules using the skill_context
+    # layers so glob frontmatter matches the team's actual folder layout.
     new_marker = read_govkit_marker(target)
     if new_marker is not None:
         from .setup_review import write_setup_review, print_review_checklist
-        from .skill_context import write_skill_context
+        from .skill_context import write_skill_context, load_skill_context
+        from .rule_templating import template_installed_rules
         write_setup_review(target, new_marker)
         write_skill_context(target, new_marker)
+        sc = load_skill_context(target)
+        if sc is not None:
+            template_installed_rules(target, args.agent, sc.layers)
         print_review_checklist(target, new_marker)
 
     print(f"\nDone. '{args.agent}' spec kit applied to {target}")
@@ -1209,12 +1215,18 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
 
     # PR 1 / Chunk E: refresh the setup review file and print the checklist.
     # PR 6a: also refresh .govkit/skill_context.yaml so skills see fresh facts.
+    # PR 6b: re-template installed rules — upgrade re-copies agent files so
+    # paths_template comes back; expansion retunes globs to current layers.
     new_marker = read_govkit_marker(target)
     if new_marker is not None:
         from .setup_review import write_setup_review, print_review_checklist
-        from .skill_context import write_skill_context
+        from .skill_context import write_skill_context, load_skill_context
+        from .rule_templating import template_installed_rules
         write_setup_review(target, new_marker)
         write_skill_context(target, new_marker)
+        sc = load_skill_context(target)
+        if sc is not None:
+            template_installed_rules(target, agent, sc.layers)
         print_review_checklist(target, new_marker)
 
     print(f"\nDone. '{agent}' upgraded to govkit {_GOVKIT_VERSION} at {target}")

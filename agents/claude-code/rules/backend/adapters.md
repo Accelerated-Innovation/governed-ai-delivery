@@ -1,4 +1,5 @@
 ---
+paths_template: layers.outbound
 paths:
   - "**/adapters/**"
 ---

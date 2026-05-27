@@ -26,12 +26,14 @@ Existing artifacts (read if present, update if needed):
 
 1. Read all inputs listed above.
 2. Summarize the business goal and scope of the feature.
-3. Identify required design elements aligned to Hexagonal Architecture:
-   - Inbound ports (`ports/inbound/`)
-   - Domain logic modules (`services/`)
-   - Outbound ports (`ports/outbound/`)
-   - Adapters (`adapters/`)
-   - API route entrypoints (`api/`)
+3. Identify required design elements per **this project's architecture**:
+   - Read `.govkit/skill_context.yaml` for the architecture style and the
+     folder hints under `architecture.layers` (inbound / outbound / domain).
+   - Read `docs/backend/architecture/BOUNDARIES.md` for the canonical layer
+     contract and `LAYER_IMPLEMENTATION.md` for the layer-by-layer guidance.
+   - List the inbound entry points, domain logic modules, outbound
+     dependencies, and any infrastructure adapters the feature needs —
+     using the project's own folder names, not generic ones.
 4. Flag any deviation from architecture contracts:
    - `ARCH_CONTRACT.md`, `BOUNDARIES.md`, `API_CONVENTIONS.md`, `SECURITY_AUTH_PATTERNS.md`
 5. Determine ADR need. Mark **ADR required** if any of these occur:
