@@ -27,7 +27,7 @@ increments.
 
 import re
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import yaml
 
@@ -63,7 +63,7 @@ def load_manifest(manifest_path: Path) -> tuple[dict | None, str | None]:
     (None, error_message) on failure. Never raises."""
     try:
         text = manifest_path.read_text(encoding="utf-8")
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         return None, f"could not read manifest: {exc}"
     try:
         data = yaml.safe_load(text)
@@ -131,12 +131,30 @@ def _check_id(manifest: dict, ext: Extension) -> list[str]:
     return issues
 
 
-def _check_path_entry(label: str, path: object, ext: Extension) -> list[str]:
+def _check_safe_file_path(
+    label: str, path: object, base: Path, base_label: str
+) -> list[str]:
+    """Resolve `path` against `base` and verify it is a relative, contained,
+    existing file. Guards against absolute paths and `..` / symlink escape so
+    a malicious or sloppy manifest cannot reach outside the declared root."""
     if not isinstance(path, str):
         return [f"{label} must be a string"]
-    if not (ext.root / path).exists():
-        return [f"{label}: {path!r} does not exist under {EXTENSIONS_DIR}/{ext.id}/"]
+    # Cross-platform: Path.is_absolute() is host-OS-specific (e.g. "/foo" is
+    # not absolute on Windows because it has no drive). Check both flavors so
+    # a POSIX-style abs path is rejected on Windows too, and vice versa.
+    if PurePosixPath(path).is_absolute() or PureWindowsPath(path).is_absolute():
+        return [f"{label}: {path!r} must be relative, not absolute"]
+    base_resolved = base.resolve()
+    candidate = (base / path).resolve(strict=False)
+    if not candidate.is_relative_to(base_resolved):
+        return [f"{label}: {path!r} resolves outside {base_label}"]
+    if not candidate.is_file():
+        return [f"{label}: {path!r} does not exist under {base_label} (or is not a file)"]
     return []
+
+
+def _check_path_entry(label: str, path: object, ext: Extension) -> list[str]:
+    return _check_safe_file_path(label, path, ext.root, f"{EXTENSIONS_DIR}/{ext.id}/")
 
 
 def _check_contract_sets(manifest: dict, ext: Extension) -> list[str]:
@@ -182,8 +200,7 @@ def _check_relates_to_field(
     for path in paths:
         if not isinstance(path, str):
             continue
-        if not (target / path).exists():
-            issues.append(f"{label}: {path!r} does not exist under project root")
+        issues.extend(_check_safe_file_path(label, path, target, "project root"))
     return issues
 
 

@@ -167,6 +167,30 @@ class TestLoadManifest:
         assert data is None
         assert "could not read" in err
 
+    def test_invalid_utf8_returns_error_does_not_raise(self, tmp_path):
+        """Per the function contract (`Never raises`), a manifest with invalid
+        UTF-8 bytes must surface as an error tuple, not propagate
+        UnicodeDecodeError into callers like report_extensions / validate."""
+        p = tmp_path / "m.yaml"
+        # 0xff is not a valid UTF-8 start byte
+        p.write_bytes(b"id: bad\nname: \xff\xfe oops\n")
+        data, err = load_manifest(p)
+        assert data is None
+        assert err is not None
+        assert "could not read" in err
+
+    def test_discover_with_invalid_utf8_manifest_does_not_raise(self, tmp_path):
+        """End-to-end: discovery must surface invalid-UTF-8 as a per-extension
+        error entry instead of raising and breaking apply/validate."""
+        ext_dir = tmp_path / EXTENSIONS_DIR / "bad-utf8"
+        ext_dir.mkdir(parents=True)
+        (ext_dir / MANIFEST_FILE).write_bytes(b"id: bad\nname: \xff\xfe\n")
+        results = discover_extensions(tmp_path)
+        assert len(results) == 1
+        assert results[0].id == "bad-utf8"
+        assert len(results[0].errors) == 1
+        assert "could not read" in results[0].errors[0]
+
 
 # ---------------------------------------------------------------------------
 # report_extensions
@@ -270,6 +294,58 @@ class TestValidateExtension:
         issues = validate_extension(ext, tmp_path)
         assert any("governance/missing.md" in i for i in issues)
 
+    def test_absolute_contract_path_reported(self, tmp_path):
+        body = VALID_MANIFEST.replace(
+            "      - docs/SAMPLE.md",
+            "      - /etc/passwd",
+        )
+        _write_extension(tmp_path, "sample-ext", body)
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("must be relative" in i for i in issues), issues
+
+    def test_contract_path_escapes_extension_dir_reported(self, tmp_path):
+        # Create a file outside the extension folder and try to point to it via ..
+        outside = tmp_path / "outside.md"
+        outside.write_text("x", encoding="utf-8")
+        body = VALID_MANIFEST.replace(
+            "      - docs/SAMPLE.md",
+            "      - ../../outside.md",
+        )
+        _write_extension(tmp_path, "sample-ext", body)
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("resolves outside" in i for i in issues), issues
+
+    def test_directory_contract_path_reported(self, tmp_path):
+        # Point at a directory instead of a file — should fail
+        _write_extension(tmp_path, "sample-ext", VALID_MANIFEST)
+        ext_dir = tmp_path / EXTENSIONS_DIR / "sample-ext"
+        (ext_dir / "docs").mkdir(exist_ok=True)
+        # Replace docs/SAMPLE.md with a path that points to docs/ (a directory)
+        new_body = VALID_MANIFEST.replace(
+            "      - docs/SAMPLE.md",
+            "      - docs",
+        )
+        (ext_dir / MANIFEST_FILE).write_text(new_body, encoding="utf-8")
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("not a file" in i or "does not exist" in i for i in issues), issues
+
+    def test_absolute_template_path_reported(self, tmp_path):
+        body = VALID_MANIFEST + textwrap.dedent("""\
+            templates:
+              - id: tpl
+                path: /etc/passwd
+            """)
+        _write_extension(tmp_path, "sample-ext", body)
+        ext_dir = tmp_path / EXTENSIONS_DIR / "sample-ext"
+        (ext_dir / "docs").mkdir()
+        (ext_dir / "docs" / "SAMPLE.md").write_text("x", encoding="utf-8")
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("templates[0].path" in i and "must be relative" in i for i in issues), issues
+
     def test_malformed_contract_sets_entry_reported(self, tmp_path):
         body = """\
 id: sample-ext
@@ -344,6 +420,34 @@ class TestValidateExtensionRelatesTo:
         ext = discover_extensions(tmp_path)[0]
         issues = validate_extension(ext, tmp_path)
         assert any("relates_to.extends" in i and "CORE.md" in i for i in issues)
+
+    def test_absolute_relates_to_extends_path_reported(self, tmp_path):
+        self._write_ext_with_relates_to(tmp_path, textwrap.dedent("""\
+            relates_to:
+              extends:
+                - /etc/passwd
+            """))
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("relates_to.extends" in i and "must be relative" in i for i in issues), issues
+
+    def test_relates_to_extends_escapes_project_root_reported(self, tmp_path):
+        # Create a file ABOVE the project root, then try to extend it via ..
+        outside = tmp_path.parent / f"outside-{tmp_path.name}.md"
+        outside.write_text("x", encoding="utf-8")
+        try:
+            self._write_ext_with_relates_to(tmp_path, textwrap.dedent(f"""\
+                relates_to:
+                  extends:
+                    - ../{outside.name}
+                """))
+            ext = discover_extensions(tmp_path)[0]
+            issues = validate_extension(ext, tmp_path)
+            assert any(
+                "relates_to.extends" in i and "resolves outside" in i for i in issues
+            ), issues
+        finally:
+            outside.unlink(missing_ok=True)
 
     def test_relates_to_non_dict_silently_skipped(self, tmp_path):
         # Schema would reject this at parse time, but validate_extension shouldn't crash
