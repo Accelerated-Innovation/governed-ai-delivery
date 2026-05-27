@@ -107,6 +107,7 @@ docker-compose.override.yml
 scripts/projects/
 scripts/projects-ui/
 scripts/projects-dotnet/
+scripts/extensions-smoke/
 scripts/.venv/
 
 # ----------------------------

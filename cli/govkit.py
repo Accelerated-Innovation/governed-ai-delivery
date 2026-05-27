@@ -490,6 +490,9 @@ def cmd_apply(args: argparse.Namespace) -> None:
             features_dir.mkdir(parents=True)
             print(f"  Created {features_dir} (empty)")
 
+    from .extensions import report_extensions
+    report_extensions(target)
+
     print(f"\nDone. '{args.agent}' spec kit applied to {target}")
     print("\nNext step: add your first feature package.")
     print("  govkit init <feature-name> --target <target>   # scaffold from a starter template")
@@ -621,7 +624,8 @@ def cmd_validate(args: argparse.Namespace) -> None:
     from .validate import run_validation
     target = Path(args.target).resolve()
     level = args.level
-    sys.exit(run_validation(target, level=level))
+    strict = getattr(args, "strict", False)
+    sys.exit(run_validation(target, level=level, strict=strict))
 
 
 def cmd_upgrade(args: argparse.Namespace) -> None:
@@ -907,6 +911,8 @@ def main() -> None:
     validate_parser.add_argument("--target", required=True, help="Path to the target project root")
     validate_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                                  help="Maturity level (default: read from .govkit or 4)")
+    validate_parser.add_argument("--strict", action="store_true",
+                                 help="Promote extension manifest warnings to failures")
 
     # --- upgrade ---
     upgrade_parser = subparsers.add_parser(

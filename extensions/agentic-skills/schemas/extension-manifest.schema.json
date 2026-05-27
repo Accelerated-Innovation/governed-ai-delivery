@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Govkit Extension Manifest",
+  "description": "Self-describing manifest for a govkit extension pack. The extension lives in-place under <project>/extensions/<id>/ and is discovered by govkit at apply/validate time. All file paths inside this manifest are relative to the extension folder (<project>/extensions/<id>/) unless explicitly stated otherwise.",
+  "type": "object",
+  "required": ["id", "name", "version", "extension_type", "contract_sets"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "description": "Lowercase kebab-case identifier. Must match the extension folder name."
+    },
+    "name": { "type": "string" },
+    "version": { "type": "string" },
+    "description": { "type": "string" },
+    "govkit_min_version": { "type": "string" },
+    "extension_type": { "type": "string", "enum": ["architecture"] },
+    "supported_levels": {
+      "type": "array",
+      "items": { "type": "integer" }
+    },
+    "supported_project_types": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "contract_sets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "paths"],
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" },
+          "paths": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Extension-folder-relative paths to contract documents shipped by this extension."
+          },
+          "applies_to": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Glob patterns matched against feature-touched files to determine applicability."
+          },
+          "capabilities": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Capability tokens the agent can match against feature intent."
+          },
+          "relates_to": {
+            "type": "object",
+            "description": "Declares this contract set's relationship to core govkit contracts. Paths in extends and supersedes are project-root-relative (not extension-folder-relative).",
+            "properties": {
+              "extends": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Project-root-relative paths to core contracts this set layers additional constraints on top of."
+              },
+              "supersedes": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Project-root-relative paths to core contracts this set replaces. Requires an ADR in the consuming project."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "templates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "path"],
+        "properties": {
+          "id": { "type": "string" },
+          "path": {
+            "type": "string",
+            "description": "Extension-folder-relative path to a reusable governance template."
+          }
+        }
+      }
+    },
+    "agent_guidance": {
+      "type": "object",
+      "description": "Named guidance blocks read by agent skills. Keys are phase names (e.g. architecture_preflight, implementation_plan, validation); values are arrays of instruction strings.",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    }
+  }
+}

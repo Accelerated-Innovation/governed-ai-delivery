@@ -1,0 +1,83 @@
+id: agentic-skills
+name: Agentic Skills Architecture Extension
+version: 0.1.0
+description: Adds governed architecture contracts and templates for Agent Skill based agentic systems.
+govkit_min_version: 0.0.0
+extension_type: architecture
+supported_levels:
+  - 5
+supported_project_types:
+  - api
+
+contract_sets:
+  - id: agentic_skills
+    description: Agentic architecture contracts for systems built with Agent Skill packages, interactive agents, background agents, tool/action boundaries, human approval, and agent evaluation.
+    paths:
+      - docs/backend/architecture/AGENT_RUNTIME_CONTRACT.md
+      - docs/backend/architecture/AGENT_SKILL_PACKAGE_CONTRACT.md
+      - docs/backend/architecture/SKILL_FAMILY_MANIFEST_CONTRACT.md
+      - docs/backend/architecture/HANDOFF_CONTRACT.md
+      - docs/backend/architecture/PHASE_STATE_MACHINE_CONTRACT.md
+      - docs/backend/architecture/REGISTRY_CONTRACT.md
+      - docs/backend/architecture/TOOL_ACTION_BOUNDARY_CONTRACT.md
+      - docs/backend/architecture/HUMAN_APPROVAL_CONTRACT.md
+      - docs/backend/architecture/RECOMMENDATION_ACTION_CONTRACT.md
+      - docs/backend/architecture/BACKGROUND_AGENT_TRIGGER_CONTRACT.md
+      - docs/backend/architecture/AGENT_OBSERVABILITY_CONTRACT.md
+      - docs/backend/architecture/AGENT_EVALUATION_CONTRACT.md
+      - docs/backend/architecture/AGENT_SECURITY_BOUNDARY_CONTRACT.md
+    applies_to:
+      - "**/*agent*"
+      - "**/*skill*"
+      - "**/*tool*"
+      - "**/*recommendation*"
+      - "**/*action*"
+      - "**/*approval*"
+      - "**/*trigger*"
+      - "**/*scheduler*"
+      - "**/*background*"
+      - "**/*integration*"
+      - "**/*family*"
+      - "**/*manifest*"
+      - "**/*handoff*"
+      - "**/*phase*"
+      - "**/*registry*"
+      - "**/*state-machine*"
+    capabilities:
+      - agent-runtime
+      - agent-skills
+      - background-agents
+      - recommendation-pipeline
+      - human-approval
+      - external-tool-boundary
+      - agent-observability
+      - agent-evaluation
+      - agent-security
+      - skill-family-manifest
+      - phase-handoff
+      - phase-state-machine
+      - skill-registry
+      - schema-registry
+      - prompt-registry
+    relates_to:
+      extends:
+        - docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
+        - docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md
+        - docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md
+        - docs/backend/architecture/GUARDRAILS_CONTRACT.md
+      supersedes: []
+
+agent_guidance:
+  architecture_preflight:
+    - Read this extension manifest when present under extensions/*/manifest.yaml.
+    - Load the declared agentic_skills contract set when a feature touches agents, skills, tools, approvals, recommendations, triggers, integrations, or agent evaluation.
+    - List applicable extension contracts in architecture_preflight.md.
+    - Require an ADR for any extension, override, or violation of these contracts.
+  implementation_plan:
+    - Map implementation steps to applicable extension contracts.
+    - Include tests or evals for each policy-sensitive boundary touched by the feature.
+    - Do not plan external mutations unless tool/action and approval contracts are satisfied.
+  validation:
+    - Validate that declared contract files exist after apply.
+    - Validate that architecture_preflight.md cites applicable extension contracts.
+    - Validate that ADRs exist for approved contract exceptions.

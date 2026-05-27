@@ -444,7 +444,33 @@ def _run_feature_checks(feature_dir: Path, checks: list) -> bool:
     return feature_ok
 
 
-def run_validation(target: Path, level: str | None = None) -> int:
+def _run_extension_checks(target: Path, strict: bool) -> int:
+    """Validate all discovered extensions. Silent when no extensions are
+    present — preserves today's behavior for projects that don't use them.
+    Returns 1 only when strict and at least one extension has issues."""
+    from .extensions import discover_extensions, validate_extension
+
+    extensions = discover_extensions(target)
+    if not extensions:
+        return 0
+
+    print("\ngovkit validate — extensions\n")
+    any_fail = False
+    for ext in extensions:
+        issues = validate_extension(ext, target)
+        if not issues:
+            print(f"  {PASS}  {ext.id} v{ext.version}")
+            continue
+        tag = FAIL if strict else WARN
+        for msg in issues:
+            print(f"  {tag}  {ext.id}: {msg}")
+        if strict:
+            any_fail = True
+    print()
+    return 1 if any_fail else 0
+
+
+def run_validation(target: Path, level: str | None = None, strict: bool = False) -> int:
     """Run all governance checks on the target project. Returns exit code."""
     if not target.exists():
         print(f"Error: target directory '{target}' does not exist.")
@@ -452,6 +478,8 @@ def run_validation(target: Path, level: str | None = None) -> int:
 
     if level is None:
         level = _read_govkit_level(target) or "3"
+
+    ext_exit = _run_extension_checks(target, strict)
 
     # L3 (Foundations) ships agent rules + architecture contracts only — there
     # are no per-feature artifacts to validate. The CI quality-gate is the L3
@@ -463,7 +491,7 @@ def run_validation(target: Path, level: str | None = None) -> int:
             "there are no per-feature artifacts to check at this level.\n"
             "CI quality-gate is the compliance surface for L3.\n"
         )
-        return 0
+        return ext_exit
 
     features_dir = target / "features"
     if not features_dir.exists():
@@ -479,7 +507,7 @@ def run_validation(target: Path, level: str | None = None) -> int:
 
     if not feature_dirs:
         print("No feature directories found to validate.")
-        return 0
+        return ext_exit
 
     level_labels = {
         "3": "L3 Governed AI Delivery (Foundations)",
@@ -492,4 +520,5 @@ def run_validation(target: Path, level: str | None = None) -> int:
     passed = sum(1 for fd in feature_dirs if _run_feature_checks(fd, checks))
     failed = len(feature_dirs) - passed
     print(f"{len(feature_dirs)} feature(s) checked, {passed} passed, {failed} failed")
-    return 0 if failed == 0 else 1
+    feature_exit = 0 if failed == 0 else 1
+    return max(feature_exit, ext_exit)
