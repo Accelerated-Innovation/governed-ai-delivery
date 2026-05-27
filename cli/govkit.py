@@ -1457,6 +1457,18 @@ def main() -> None:
     init_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                              help="Maturity level (default: read from .govkit or 4)")
 
+    # --- doctor ---
+    doctor_parser = subparsers.add_parser(
+        "doctor",
+        help="Read-only governance fit validator (PR 4). Run in CI to surface "
+             "mismatches between installed governance and the actual repo.",
+    )
+    doctor_parser.add_argument(
+        "--target", default=None,
+        help="Path to the install root (defaults to scanning cwd for .govkit/ "
+             "markers; finds nested installs in monorepos)",
+    )
+
     # --- validate ---
     validate_parser = subparsers.add_parser("validate", help="Check governance compliance in a project")
     validate_parser.add_argument("--target", required=True, help="Path to the target project root")
@@ -1494,6 +1506,9 @@ def main() -> None:
             cmd_stack_apply(args)
     elif args.command == "init":
         cmd_init(args)
+    elif args.command == "doctor":
+        from .doctor import cmd_doctor
+        cmd_doctor(args)
     elif args.command == "validate":
         cmd_validate(args)
     elif args.command == "upgrade":

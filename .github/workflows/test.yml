@@ -27,3 +27,35 @@ jobs:
 
       - name: Run pytest
         run: pytest
+
+      - name: Self-doctor smoke test (apply + doctor on a fresh tmp dir)
+        # PR 4: confirms the apply → doctor flow works end-to-end against a
+        # real bundled install (not just unit fixtures). Catches regressions
+        # where unit tests pass but the CLI surface broke.
+        #
+        # Note: doctor is allowed to report warnings against the bundled
+        # baseline (e.g. D007 flags known LLM-content leakage in TECH_STACK
+        # that PR 6c will resolve). The smoke test asserts only that doctor
+        # runs without crashing — exit code 0 or 1 is acceptable; any other
+        # code is a real failure.
+        run: |
+          set -uxo pipefail
+          tmp="$(mktemp -d)"
+          govkit apply --agent claude-code --target "$tmp" \
+                       --level 4 --type api --ci github --stack python-fastapi
+          # Stub the hexagonal folders so D001 (rule-glob check) has matching
+          # paths to resolve against — these rules assume an existing src/ layout.
+          mkdir -p "$tmp"/src/{api,ports,adapters,services,security,auth}
+          touch "$tmp"/src/api/.gitkeep "$tmp"/src/ports/.gitkeep \
+                "$tmp"/src/adapters/.gitkeep "$tmp"/src/services/.gitkeep \
+                "$tmp"/src/security/.gitkeep "$tmp"/src/auth/.gitkeep
+          # Run doctor — accept exit 0 (clean) or 1 (warnings/baseline issues).
+          # Exit codes >1 (e.g. 2 for argparse failure, 130 for SIGINT) fail.
+          govkit doctor --target "$tmp" || rc=$?
+          rc="${rc:-0}"
+          if [ "$rc" -gt 1 ]; then exit "$rc"; fi
+          # Stack swap exercises the overlay loader path.
+          govkit stack apply dotnet-aspnet --target "$tmp"
+          govkit doctor --target "$tmp" || rc=$?
+          rc="${rc:-0}"
+          if [ "$rc" -gt 1 ]; then exit "$rc"; fi
