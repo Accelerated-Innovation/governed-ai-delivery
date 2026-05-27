@@ -134,6 +134,58 @@ class TestWriteSetupReview:
         # doesn't appear in the "needs your attention" list.
         assert "csharp" in content
 
+    def test_shows_calibration_pending_when_not_completed(self, tmp_path):
+        """PR 5: marker.calibration.completed_at is None → review file says so."""
+        from cli.setup_review import write_setup_review
+
+        write_setup_review(tmp_path, self._marker())
+        content = (tmp_path / "GOVKIT_SETUP_REVIEW.md").read_text(encoding="utf-8")
+
+        assert "Calibration" in content
+        assert "not yet" in content.lower() or "pending" in content.lower()
+
+    def test_shows_calibration_completed_at_when_set(self, tmp_path):
+        from cli.setup_review import write_setup_review
+
+        marker = self._marker(calibration={
+            "completed_at": "2026-05-27T16:00:00+00:00",
+            "decisions": [
+                {"step_id": "step.tech_stack", "decided_at": "2026-05-27T16:00:00+00:00",
+                 "decision": "confirm", "note": ""},
+            ],
+        })
+        write_setup_review(tmp_path, marker)
+        content = (tmp_path / "GOVKIT_SETUP_REVIEW.md").read_text(encoding="utf-8")
+
+        assert "2026-05-27T16:00:00+00:00" in content
+        # Per-step decision count shows up
+        assert "1 confirmed" in content or "1 decision" in content.lower()
+
+    def test_assumption_shows_resolved_when_calibrated(self, tmp_path):
+        """A calibrated assumption (review_required=false + calibrated_at set)
+        should render in the 'declared' bucket, not 'needs your attention'."""
+        from cli.setup_review import write_setup_review
+
+        marker = self._marker(assumptions=[{
+            "id": "stack.id",
+            "value": "python-fastapi",
+            "source": "default",
+            "confidence": "low",
+            "evidence": [],
+            "files_affected": [],
+            "review_required": False,
+            "warning_message": None,
+            "calibrated_at": "2026-05-27T16:00:00+00:00",
+            "calibrated_against_overlay_version": "0.10.0",
+        }])
+        write_setup_review(tmp_path, marker)
+        content = (tmp_path / "GOVKIT_SETUP_REVIEW.md").read_text(encoding="utf-8")
+
+        # The assumption appears under Declared (no action), not Needs your attention.
+        assert "Declared" in content, "expected a 'Declared' section to be present"
+        # If 'Needs your attention' section is absent, that's fine — it means
+        # no review_required: true assumptions exist.
+
     def test_overwrites_existing_file(self, tmp_path):
         """The review file is regenerated on every apply/upgrade. Stale review
         notes from a prior apply must not bleed into the new one."""

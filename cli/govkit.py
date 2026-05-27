@@ -360,6 +360,7 @@ def write_govkit_marker(
     stack: dict | None = None,
     assumptions: list | None = None,
     calibration: dict | None = None,
+    applied_at: str | None = None,
 ) -> None:
     """Write the .govkit/marker.json file to track the applied configuration.
 
@@ -367,6 +368,10 @@ def write_govkit_marker(
     selected `stack`, declared `assumptions`, and `calibration` state.
     PR 1 exposes the slots; PR 2 (stack), PR 3 (assumptions), and PR 5
     (calibration) populate them.
+
+    `applied_at` defaults to now — that's what `apply`, `upgrade`, and
+    `stack apply` want. Calibrate (PR 5) passes the original applied_at so
+    edit-protection isn't silently weakened by every calibration pass.
 
     If a legacy single-file .govkit marker exists at the target, it is
     removed first so the directory can take its place.
@@ -382,7 +387,7 @@ def write_govkit_marker(
         "level": level,
         "agent": agent,
         "options": {k: v for k, v in options.items() if k != "level"},
-        "applied_at": datetime.now(timezone.utc).isoformat(),
+        "applied_at": applied_at or datetime.now(timezone.utc).isoformat(),
         "stack": stack,
         "assumptions": assumptions if assumptions is not None else [],
         "calibration": calibration if calibration is not None else {
@@ -1469,6 +1474,29 @@ def main() -> None:
              "markers; finds nested installs in monorepos)",
     )
 
+    # --- calibrate ---
+    calibrate_parser = subparsers.add_parser(
+        "calibrate",
+        help="Guided review of installed governance (PR 5). Walks the team "
+             "through the 9-step checklist from plan Section 7.",
+    )
+    calibrate_parser.add_argument(
+        "--target", default=None,
+        help="Path to the install root (defaults to scanning cwd for .govkit/ "
+             "markers; finds nested installs in monorepos)",
+    )
+    calibrate_parser.add_argument(
+        "--non-interactive", action="store_true", dest="non_interactive",
+        help="Skip prompts and write GOVKIT_CALIBRATION_CHECKLIST.md as a "
+             "todo file. Useful in CI bootstraps and for new repos the team "
+             "will calibrate later.",
+    )
+    calibrate_parser.add_argument(
+        "--only", default=None,
+        help="Run only the named step (e.g. 'tech_stack', 'rules'). Useful "
+             "for revisiting a single decision without walking the whole list.",
+    )
+
     # --- validate ---
     validate_parser = subparsers.add_parser("validate", help="Check governance compliance in a project")
     validate_parser.add_argument("--target", required=True, help="Path to the target project root")
@@ -1509,6 +1537,9 @@ def main() -> None:
     elif args.command == "doctor":
         from .doctor import cmd_doctor
         cmd_doctor(args)
+    elif args.command == "calibrate":
+        from .calibrate import cmd_calibrate
+        cmd_calibrate(args)
     elif args.command == "validate":
         cmd_validate(args)
     elif args.command == "upgrade":
