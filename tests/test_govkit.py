@@ -1901,6 +1901,317 @@ class TestCmdApplyAddsEditableHeaders:
         assert "Contract" in content  # body preserved
 
 
+class TestCmdApplyStackOverlay:
+    """PR 2: cmd_apply respects --stack, applies the overlay, records
+    assumption and stack metadata in the marker."""
+
+    def _agent_with_stack(self, tmp_path, agent="test-agent"):
+        """Build a minimal agent + governed dir like _make_upgrade_repo but
+        with the `stack` option declared in manifest."""
+        agents = tmp_path / "agents" / agent
+        agents.mkdir(parents=True)
+        contract = tmp_path / "docs" / "contract.md"
+        contract.parent.mkdir(parents=True)
+        contract.write_text("# Contract v1", encoding="utf-8")
+
+        manifest = {
+            "agent": agent,
+            "description": "stack-overlay test agent",
+            "options": {
+                "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
+                "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
+                "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
+                "stack": {
+                    "choices": ["python-fastapi", "dotnet-aspnet", "java-spring-boot",
+                                "nodejs-fastify", "go-gin"],
+                    "default": "python-fastapi",
+                },
+            },
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "CLAUDE.md", "dest": "CLAUDE.md"}],
+                        "shared": [],
+                        "governed": ["docs/"],
+                    }
+                }
+            },
+            "base_files": [],
+        }
+        (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        (agents / "CLAUDE.md").write_text("# Agent instructions", encoding="utf-8")
+        return tmp_path
+
+    def test_apply_with_default_stack_installs_python_fastapi(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+        ))
+
+        tech_stack = target / "docs" / "backend" / "architecture" / "TECH_STACK.md"
+        assert tech_stack.is_file(), "python-fastapi overlay must install TECH_STACK.md"
+        content = tech_stack.read_text(encoding="utf-8")
+        assert "baseline: python-fastapi@" in content
+
+    def test_apply_with_explicit_stack_installs_overlay(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack="dotnet-aspnet", force=False,
+        ))
+
+        tech_stack = target / "docs" / "backend" / "architecture" / "TECH_STACK.md"
+        content = tech_stack.read_text(encoding="utf-8")
+        assert "baseline: dotnet-aspnet@" in content
+        # .NET stack TECH_STACK.md should mention C# / .NET
+        assert "C#" in content or ".NET" in content
+
+    def test_marker_records_stack_metadata(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack="dotnet-aspnet", force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"] is not None
+        assert marker["stack"]["id"] == "dotnet-aspnet"
+        assert marker["stack"]["version"] == "0.10.0"
+        assert marker["stack"]["display_name"].startswith("C# 12")
+        assert marker["options"]["stack"] == "dotnet-aspnet"
+
+    def test_marker_records_stack_assumption_source_flag_when_cli_provided(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack="dotnet-aspnet", force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        stack_assumption = next((a for a in marker["assumptions"] if a["id"] == "stack.id"), None)
+        assert stack_assumption is not None
+        assert stack_assumption["value"] == "dotnet-aspnet"
+        assert stack_assumption["source"] == "flag"
+
+    def test_marker_records_stack_assumption_source_default_when_no_flag(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        stack_assumption = next((a for a in marker["assumptions"] if a["id"] == "stack.id"), None)
+        assert stack_assumption is not None
+        assert stack_assumption["value"] == "python-fastapi"
+        assert stack_assumption["source"] == "default"
+
+    def test_ui_type_does_not_apply_stack_overlay(self, tmp_path, monkeypatch):
+        """UI installs target docs/ui/architecture/, not docs/backend/. Stack
+        overlays only ship backend docs, so they must be a no-op for UI types."""
+        import cli.govkit as mod
+
+        agent = "ui-test-agent"
+        agents = tmp_path / "agents" / agent
+        agents.mkdir(parents=True)
+        manifest = {
+            "agent": agent,
+            "description": "ui agent",
+            "options": {
+                "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
+                "type": {"prompt": "Type?", "choices": ["ui-react"], "default": "ui-react"},
+                "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
+                "stack": {
+                    "prompt": "Stack?",
+                    "choices": ["python-fastapi", "dotnet-aspnet"],
+                    "default": "python-fastapi",
+                },
+            },
+            "variants": {
+                "type": {
+                    "ui-react": {
+                        "files": [{"src": "CLAUDE.md", "dest": "CLAUDE.md"}],
+                        "shared": [],
+                        "governed": [],
+                    }
+                }
+            },
+            "base_files": [],
+        }
+        (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        (agents / "CLAUDE.md").write_text("# UI", encoding="utf-8")
+
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", tmp_path / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", tmp_path)
+
+        cmd_apply(argparse.Namespace(
+            agent=agent, target=str(target),
+            level="4", type="ui-react", ci="github", stack="dotnet-aspnet", force=False,
+        ))
+
+        # No backend architecture docs should have been written for ui-react.
+        assert not (target / "docs" / "backend" / "architecture" / "TECH_STACK.md").exists()
+
+
+class TestCmdStackList:
+    """PR 2 / Chunk F: govkit stack list enumerates bundled stack overlays."""
+
+    def test_lists_all_bundled_stacks(self, capsys):
+        from cli.govkit import cmd_stack_list
+
+        cmd_stack_list(argparse.Namespace())
+        out = capsys.readouterr().out
+
+        for stack_id in ("python-fastapi", "dotnet-aspnet", "java-spring-boot",
+                         "nodejs-fastify", "go-gin"):
+            assert stack_id in out
+
+    def test_includes_display_name_and_summary(self, capsys):
+        from cli.govkit import cmd_stack_list
+
+        cmd_stack_list(argparse.Namespace())
+        out = capsys.readouterr().out
+
+        # display names appear (sample one — dotnet-aspnet is unambiguous)
+        assert "ASP.NET Core" in out
+        # summaries appear (sample — xUnit is in dotnet-aspnet.summary)
+        assert "xUnit" in out
+
+
+class TestCmdStackApply:
+    """PR 2 / Chunk G: govkit stack apply <id> re-applies an overlay over
+    an existing install and records the new stack in the marker."""
+
+    def _existing_install(self, tmp_path, monkeypatch, stack_id="python-fastapi"):
+        """Build a target with an existing .govkit/marker.json (as written by
+        cmd_apply) so cmd_stack_apply has something to read."""
+        import cli.govkit as mod
+
+        repo = _make_upgrade_repo(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=stack_id, force=False,
+        ))
+        return target
+
+    def test_stack_apply_switches_overlay(self, tmp_path, monkeypatch):
+        from cli.govkit import cmd_stack_apply
+
+        target = self._existing_install(tmp_path, monkeypatch, stack_id="python-fastapi")
+        # Sanity: python-fastapi baseline is in place.
+        tech_stack = target / "docs" / "backend" / "architecture" / "TECH_STACK.md"
+        assert "baseline: python-fastapi@" in tech_stack.read_text(encoding="utf-8")
+
+        cmd_stack_apply(argparse.Namespace(
+            stack_id="dotnet-aspnet", target=str(target), force=False,
+        ))
+
+        # After stack apply, the dotnet baseline header is in place.
+        new_content = tech_stack.read_text(encoding="utf-8")
+        assert "baseline: dotnet-aspnet@" in new_content
+
+    def test_stack_apply_updates_marker_stack_field(self, tmp_path, monkeypatch):
+        from cli.govkit import cmd_stack_apply, read_govkit_marker
+
+        target = self._existing_install(tmp_path, monkeypatch, stack_id="python-fastapi")
+
+        cmd_stack_apply(argparse.Namespace(
+            stack_id="java-spring-boot", target=str(target), force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "java-spring-boot"
+        assert marker["options"]["stack"] == "java-spring-boot"
+
+    def test_stack_apply_refuses_without_marker(self, tmp_path):
+        from cli.govkit import cmd_stack_apply
+
+        empty = tmp_path / "empty"
+        empty.mkdir()
+        with pytest.raises(SystemExit):
+            cmd_stack_apply(argparse.Namespace(
+                stack_id="dotnet-aspnet", target=str(empty), force=False,
+            ))
+
+    def test_stack_apply_unknown_stack_exits(self, tmp_path, monkeypatch):
+        from cli.govkit import cmd_stack_apply
+
+        target = self._existing_install(tmp_path, monkeypatch)
+        with pytest.raises(SystemExit):
+            cmd_stack_apply(argparse.Namespace(
+                stack_id="no-such-stack", target=str(target), force=False,
+            ))
+
+    def test_stack_apply_respects_edit_protection(self, tmp_path, monkeypatch, capsys):
+        """User edits to a stack doc since the last applied_at must survive
+        stack apply without --force."""
+        import os
+        from datetime import datetime, timezone
+        from cli.govkit import cmd_stack_apply
+
+        target = self._existing_install(tmp_path, monkeypatch, stack_id="python-fastapi")
+
+        tech_stack = target / "docs" / "backend" / "architecture" / "TECH_STACK.md"
+        # Replace body with user edits and bump mtime past applied_at.
+        current = tech_stack.read_text(encoding="utf-8")
+        # Keep the existing header; overwrite body.
+        header_end = current.index("-->") + len("-->\n")
+        tech_stack.write_text(current[:header_end] + "\n# my own edits\n", encoding="utf-8")
+        future = datetime.now(timezone.utc).timestamp() + 3600  # 1h ahead
+        os.utime(tech_stack, (future, future))
+
+        cmd_stack_apply(argparse.Namespace(
+            stack_id="dotnet-aspnet", target=str(target), force=False,
+        ))
+
+        # User edits preserved.
+        assert "my own edits" in tech_stack.read_text(encoding="utf-8")
+        err = capsys.readouterr().err
+        assert "refused" in err
+
+
 class TestCmdApplyWritesSetupReview:
     """PR 1 / Chunk E: every cmd_apply writes GOVKIT_SETUP_REVIEW.md and
     prints the Review Checklist banner."""

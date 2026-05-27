@@ -1,0 +1,45 @@
+id: dotnet-aspnet
+version: "0.10.0"
+display_name: "C# 12 / .NET 8 / ASP.NET Core Minimal APIs"
+summary: "ASP.NET Core Minimal APIs, xUnit, Moq, optional SpecFlow/Reqnroll for L4 BDD"
+default_assumptions:
+  - id: stack.language
+    value: csharp
+  - id: stack.framework
+    value: aspnet-core
+  - id: testing.unit
+    value: xunit
+  - id: testing.bdd
+    value: specflow
+    review_required: true
+docs:
+  - src: TECH_STACK.md
+    dest: docs/backend/architecture/TECH_STACK.md
+    editable: true
+  - src: API_CONVENTIONS.md
+    dest: docs/backend/architecture/API_CONVENTIONS.md
+    editable: true
+  - src: TESTING.md
+    dest: docs/backend/architecture/TESTING.md
+    editable: true
+  - src: LAYER_IMPLEMENTATION.md
+    dest: docs/backend/architecture/LAYER_IMPLEMENTATION.md
+    editable: true
+  - src: SECURITY_AUTH_PATTERNS.md
+    dest: docs/backend/architecture/SECURITY_AUTH_PATTERNS.md
+    editable: true
+  - src: OBSERVABILITY_PORT_CONTRACT.md
+    dest: docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md
+    editable: true
+skill_context:
+  language: csharp
+  api_framework: aspnet-core
+  unit_test: xunit
+  bdd_test: specflow
+  package_files: ["*.csproj", "Directory.Packages.props", "global.json"]
+  source_folder_hint: ["src/", "Source/"]
+review_checklist:
+  - "Confirm target framework (net8.0 / net9.0) in TECH_STACK.md §1"
+  - "Confirm SpecFlow vs Reqnroll (its successor) in TESTING.md; set BDD to 'none' if your team does not practise BDD"
+  - "Confirm Minimal APIs vs controller-based — TESTING.md and API_CONVENTIONS.md assume minimal APIs"
+  - "If your repo uses Clean Architecture (Application/, Domain/, Infrastructure/) or layered (Controllers/, Services/), update BOUNDARIES.md and folder mappings"

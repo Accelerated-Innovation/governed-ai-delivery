@@ -22,7 +22,7 @@
     },
     "options": {
       "type": "object",
-      "description": "Variant options resolved during apply. `type` and `ci` are required for variant-based manifests; `stack` arrives in PR 2.",
+      "description": "Variant options resolved during apply. `type` and `ci` are required for variant-based manifests; `stack` (PR 2) is enumerated by `govkit stack list`.",
       "required": ["type", "ci"],
       "additionalProperties": false,
       "properties": {
@@ -36,7 +36,8 @@
         },
         "stack": {
           "type": "string",
-          "description": "Stack overlay id (PR 2). Allowed values are enumerated by `govkit stack list`."
+          "minLength": 1,
+          "description": "Stack overlay id (PR 2). Allowed values are enumerated by `govkit stack list`; schema deliberately keeps this open so user-authored stacks under cli/stacks/ aren't blocked."
         }
       }
     },

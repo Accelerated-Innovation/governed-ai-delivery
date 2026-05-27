@@ -581,11 +581,36 @@ If your backend and UI live in **separate repositories** instead of subdirectori
 
 ## Switching Tech Stacks
 
-The default installed stack is **Python / FastAPI**. To switch to a different backend language, copy the 6 stack-specific architecture doc files from `docs/stacks/<stack>/` into `docs/backend/architecture/`. The AI agents read those files as the authoritative source of truth — no agent rules, manifests, or CLI configuration changes needed.
+GovKit ships **stack overlays** — small bundles of 6 stack-specific architecture docs (`TECH_STACK.md`, `API_CONVENTIONS.md`, `TESTING.md`, `LAYER_IMPLEMENTATION.md`, `SECURITY_AUTH_PATTERNS.md`, `OBSERVABILITY_PORT_CONTRACT.md`) plus metadata. Pick one at install time with `--stack`, or swap later with `govkit stack apply`. Stack overlays only apply to backend types (`api`, `cli`); UI installs ignore `--stack`.
+
+### See what's available
+
+```bash
+govkit stack list
+```
+
+Lists every bundled overlay (id, display name, summary) along with the apply commands.
+
+### Pick a stack at install time
+
+```bash
+govkit apply --agent claude-code --target . --level 4 --type api --ci github \
+             --stack dotnet-aspnet
+```
+
+If you omit `--stack`, the default `python-fastapi` overlay is applied and recorded as a "default-source" assumption in `.govkit/marker.json` so `govkit doctor` (future release) can warn if the default doesn't fit your repo.
+
+### Swap stacks on an existing install
+
+```bash
+govkit stack apply java-spring-boot --target .
+```
+
+Re-applies the new overlay on top of the existing install. Edit-protection respects user changes: any of the 6 stack docs you've modified since the last apply are preserved unless you pass `--force` (your edits are detected via the `govkit:editable` header + file mtime vs. the marker's `applied_at`).
 
 ### Why only 6 files?
 
-The agent rules and most architecture docs are language-agnostic. Only these 6 files define stack-specific conventions:
+The agent rules and most architecture docs (DESIGN_PRINCIPLES, ARCH_CONTRACT, BOUNDARIES, GHERKIN_CONVENTIONS, ERROR_MAPPING, etc.) are language-agnostic and ship from the baseline. Only these 6 vary per stack:
 
 | File | What it defines |
 |---|---|
@@ -596,36 +621,19 @@ The agent rules and most architecture docs are language-agnostic. Only these 6 f
 | `SECURITY_AUTH_PATTERNS.md` | Auth libraries, token handling, hashing |
 | `OBSERVABILITY_PORT_CONTRACT.md` | Structured logging library, OTel SDK |
 
-All other docs (DESIGN_PRINCIPLES, ARCH_CONTRACT, BOUNDARIES, GHERKIN_CONVENTIONS, ERROR_MAPPING, etc.) are universal and require no changes.
+### Bundled stacks
 
-### Available stacks
-
-| Directory | Stack |
+| Id | Stack |
 |---|---|
-| `docs/stacks/dotnet-aspnet/` | C# 12 / .NET 8 / ASP.NET Core Minimal APIs |
-| `docs/stacks/java-spring-boot/` | Java 21 / Spring Boot 3 / Spring Web MVC |
-| `docs/stacks/nodejs-fastify/` | Node.js 20 LTS / TypeScript 5 / Fastify 4 |
-| `docs/stacks/go-gin/` | Go 1.22+ / Gin |
+| `python-fastapi` | Python 3.11+ / FastAPI / pytest (default) |
+| `dotnet-aspnet` | C# 12 / .NET 8 / ASP.NET Core Minimal APIs / xUnit |
+| `java-spring-boot` | Java 21 / Spring Boot 3 / Spring Web MVC / JUnit 5 |
+| `nodejs-fastify` | Node.js 20 LTS / TypeScript 5 / Fastify 4 / Vitest |
+| `go-gin` | Go 1.22+ / Gin / standard library testing + testify |
 
-### How to switch
+After applying a stack, review the installed files and adapt anything specific to your repo (approved library versions, internal service names, etc.). `GOVKIT_SETUP_REVIEW.md` at the target root lists each stack doc with a one-line review prompt. Consider raising an ADR to document the stack decision.
 
-```bash
-# Switch to C# / ASP.NET Core
-cp docs/stacks/dotnet-aspnet/* docs/backend/architecture/
-
-# Switch to Java / Spring Boot
-cp docs/stacks/java-spring-boot/* docs/backend/architecture/
-
-# Switch to Node.js / Fastify
-cp docs/stacks/nodejs-fastify/* docs/backend/architecture/
-
-# Switch to Go / Gin
-cp docs/stacks/go-gin/* docs/backend/architecture/
-```
-
-After copying, review the files and update any project-specific details (approved library versions, internal service names, etc.). Consider raising an ADR to document the stack decision.
-
-See [`docs/stacks/README.md`](docs/stacks/README.md) for the complete guide, including how to add new stacks.
+See [`cli/stacks/README.md`](cli/stacks/README.md) for the complete guide, including how to add new stacks.
 
 ---
 

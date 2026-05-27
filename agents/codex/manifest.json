@@ -16,6 +16,10 @@
       "prompt": "CI platform?",
       "choices": ["github", "azure"],
       "default": "github"
+    },
+    "stack": {
+      "choices": ["python-fastapi", "dotnet-aspnet", "java-spring-boot", "nodejs-fastify", "go-gin"],
+      "default": "python-fastapi"
     }
   },
   "variants": {

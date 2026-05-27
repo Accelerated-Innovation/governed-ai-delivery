@@ -401,7 +401,13 @@ def write_govkit_marker(
 # ---------------------------------------------------------------------------
 
 def resolve_options(manifest: dict, args: argparse.Namespace) -> dict:
-    """Resolve variant options from CLI flags or interactive prompts."""
+    """Resolve variant options from CLI flags or interactive prompts.
+
+    Options without a `prompt` key are silently filled from `default` when no
+    CLI flag is supplied. This is how the `stack` option (PR 2) avoids
+    interrupting users who want the default — it has flag + default but no
+    interactive prompt.
+    """
     options_spec = manifest.get("options", {})
     resolved = {}
     for key, spec in options_spec.items():
@@ -409,6 +415,11 @@ def resolve_options(manifest: dict, args: argparse.Namespace) -> dict:
         cli_value = getattr(args, key, None)
         if cli_value is not None:
             resolved[key] = cli_value
+            continue
+        # No CLI value — if the option declares no prompt, silently default.
+        if "prompt" not in spec:
+            choices = spec.get("choices") or []
+            resolved[key] = spec.get("default", choices[0] if choices else None)
             continue
         # Interactive prompt
         choices = spec["choices"]
@@ -661,7 +672,64 @@ def cmd_apply(args: argparse.Namespace) -> None:
                 features_dir.mkdir(parents=True)
                 print(f"  Created {features_dir} (empty)")
 
-        write_govkit_marker(target, args.agent, level, options)
+        # PR 2: apply stack overlay for backend types. UI types have no stack
+        # overlay (the stack model is backend-only for now).
+        stack_meta = None
+        stack_assumption = None
+        type_value = options.get("type", "")
+        is_backend = type_value in ("api", "cli")
+        if is_backend:
+            from .overlay import load_overlay, apply_overlay
+            from datetime import datetime, timezone
+
+            # Resolve stack: manifest-declared option wins, then raw CLI flag,
+            # then fall back to python-fastapi. Same precedence as type/ci/level.
+            requested_stack = (
+                options.get("stack")
+                or getattr(args, "stack", None)
+                or "python-fastapi"
+            )
+            stack_source = "flag" if getattr(args, "stack", None) else "default"
+            overlay = load_overlay(requested_stack)
+            if overlay is None:
+                print(
+                    f"Error: stack '{requested_stack}' not found. "
+                    f"Run `govkit stack list` to see available stacks.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            print(f"\nStack overlay: {overlay.id} ({overlay.display_name})")
+            apply_overlay(overlay, target, applied_at=prior_applied_at, force=force)
+            stack_meta = {
+                "id": overlay.id,
+                "version": overlay.version,
+                "display_name": overlay.display_name,
+                "applied_at": datetime.now(timezone.utc).isoformat(),
+            }
+            stack_assumption = {
+                "id": "stack.id",
+                "value": overlay.id,
+                "source": stack_source,
+                "confidence": "high" if stack_source == "flag" else "low",
+                "evidence": [],
+                "files_affected": [d["dest"] for d in overlay.docs],
+                "review_required": stack_source == "default",
+                "warning_message": (
+                    f"Defaulted to {overlay.id}. If your repo uses a different stack, "
+                    f"re-run `govkit stack apply <id>` or pass `--stack <id>` to apply."
+                ) if stack_source == "default" else None,
+                "calibrated_at": None,
+                "calibrated_against_overlay_version": None,
+            }
+            # Persist the chosen stack in marker.options so future commands
+            # (upgrade, stack apply, doctor) know what was selected.
+            options = {**options, "stack": overlay.id}
+
+        write_govkit_marker(
+            target, args.agent, level, options,
+            stack=stack_meta,
+            assumptions=[stack_assumption] if stack_assumption else [],
+        )
     else:
         # Legacy flat manifest — backward compatibility
         print(f"\nApplying govkit agent '{args.agent}' to {target}\n")
@@ -704,6 +772,111 @@ def cmd_apply(args: argparse.Namespace) -> None:
     print("\nNext step: add your first feature package.")
     print("  govkit init <feature-name> --target <target>   # scaffold from a starter template")
     print("  or drop a feature folder manually into features/")
+
+
+def cmd_stack_list(_args: argparse.Namespace) -> None:
+    """Print every bundled stack overlay (id, display name, summary).
+
+    Source of truth for "which stacks can I pass to --stack" — read by users
+    before running `govkit apply --stack <id>` or `govkit stack apply <id>`.
+    """
+    from .overlay import list_overlays
+    overlays = list_overlays()
+    if not overlays:
+        print("No stack overlays found.")
+        return
+    print("\nAvailable stack overlays:\n")
+    for ov in overlays:
+        print(f"  {ov.id:24s} {ov.display_name}")
+        if ov.summary:
+            print(f"  {'':24s}   {ov.summary}")
+    print(
+        "\nApply at install time:\n"
+        "  govkit apply --agent <agent> --target <path> --stack <id>\n"
+        "Or swap an existing install:\n"
+        "  govkit stack apply <id> --target <path>\n"
+    )
+
+
+def cmd_stack_apply(args: argparse.Namespace) -> None:
+    """Re-apply a stack overlay over an existing install.
+
+    Requires a .govkit/marker.json to exist (errors otherwise). Honors
+    edit-protection — user-edited stack docs are not clobbered without
+    --force. Updates the marker's `stack` and `options.stack` fields and
+    rewrites GOVKIT_SETUP_REVIEW.md.
+    """
+    from datetime import datetime, timezone
+    from .overlay import load_overlay, apply_overlay
+
+    target = Path(args.target).resolve()
+    if not target.exists():
+        print(f"Error: target directory '{target}' does not exist.", file=sys.stderr)
+        sys.exit(1)
+
+    stored = read_govkit_marker(target)
+    if not stored:
+        print(
+            "Error: no .govkit marker found. Run 'govkit apply' first to "
+            "establish a baseline before swapping stacks.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    overlay = load_overlay(args.stack_id)
+    if overlay is None:
+        print(
+            f"Error: stack '{args.stack_id}' not found. "
+            f"Run `govkit stack list` to see available stacks.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    agent = stored.get("agent", "claude-code")
+    level = stored.get("level", "4")
+    prior_applied_at = stored.get("applied_at")
+    prior_assumptions = stored.get("assumptions", []) or []
+    options = {**stored.get("options", {}), "stack": overlay.id, "level": level}
+
+    print(f"\nApplying stack overlay '{overlay.id}' to {target}")
+    print(f"  {overlay.display_name}\n")
+    apply_overlay(overlay, target, applied_at=prior_applied_at, force=args.force)
+
+    stack_meta = {
+        "id": overlay.id,
+        "version": overlay.version,
+        "display_name": overlay.display_name,
+        "applied_at": datetime.now(timezone.utc).isoformat(),
+    }
+    # Replace any prior stack.id assumption; keep the rest.
+    assumptions = [a for a in prior_assumptions if a.get("id") != "stack.id"]
+    assumptions.append({
+        "id": "stack.id",
+        "value": overlay.id,
+        "source": "flag",
+        "confidence": "high",
+        "evidence": [],
+        "files_affected": [d["dest"] for d in overlay.docs],
+        "review_required": False,
+        "warning_message": None,
+        "calibrated_at": None,
+        "calibrated_against_overlay_version": None,
+    })
+
+    write_govkit_marker(
+        target, agent, level, options,
+        stack=stack_meta,
+        assumptions=assumptions,
+        calibration=stored.get("calibration"),
+    )
+
+    new_marker = read_govkit_marker(target)
+    if new_marker is not None:
+        from .setup_review import write_setup_review, print_review_checklist
+        write_setup_review(target, new_marker)
+        print_review_checklist(target, new_marker)
+
+    print(f"\nDone. Stack '{overlay.id}' applied to {target}")
 
 
 def cmd_list(_args: argparse.Namespace) -> None:
@@ -1127,6 +1300,11 @@ def main() -> None:
     apply_parser.add_argument("--ci", choices=["github", "azure"], default=None,
                               help="CI platform (default: prompted)")
     apply_parser.add_argument(
+        "--stack", default=None,
+        help="Stack overlay id (default: python-fastapi). Run `govkit stack list` "
+             "to see available stacks.",
+    )
+    apply_parser.add_argument(
         "--force", action="store_true",
         help="Override edit-protection and overwrite user-edited governed/shared "
              "docs (those carrying a govkit:editable header)",
@@ -1134,6 +1312,30 @@ def main() -> None:
 
     # --- list ---
     subparsers.add_parser("list", help="List available agents and their options")
+
+    # --- stack ---
+    stack_parser = subparsers.add_parser(
+        "stack",
+        help="List or apply bundled stack overlays (PR 2)",
+    )
+    stack_sub = stack_parser.add_subparsers(dest="stack_command", required=True)
+    stack_sub.add_parser("list", help="List bundled stack overlays")
+    stack_apply_parser = stack_sub.add_parser(
+        "apply",
+        help="Re-apply a stack overlay over an existing install",
+    )
+    stack_apply_parser.add_argument(
+        "stack_id",
+        help="Stack overlay id (e.g. dotnet-aspnet). See `govkit stack list`.",
+    )
+    stack_apply_parser.add_argument(
+        "--target", required=True,
+        help="Path to the target project root (must contain a .govkit marker)",
+    )
+    stack_apply_parser.add_argument(
+        "--force", action="store_true",
+        help="Override edit-protection and overwrite user-edited stack docs",
+    )
 
     # --- init ---
     init_parser = subparsers.add_parser("init", help="Create a new feature folder from a starter template")
@@ -1174,6 +1376,11 @@ def main() -> None:
         cmd_apply(args)
     elif args.command == "list":
         cmd_list(args)
+    elif args.command == "stack":
+        if args.stack_command == "list":
+            cmd_stack_list(args)
+        elif args.stack_command == "apply":
+            cmd_stack_apply(args)
     elif args.command == "init":
         cmd_init(args)
     elif args.command == "validate":

@@ -58,6 +58,10 @@ packages = ["cli"]
 "features" = "cli/features"
 "governance" = "cli/governance"
 "ci" = "cli/ci"
+# cli/stacks/ lives inside the cli package but contains data files (overlay.yaml
+# and stack-specific .md docs) that hatchling would otherwise drop from the
+# wheel — explicit force-include guarantees they ship.
+"cli/stacks" = "cli/stacks"
 
 [tool.ruff]
 line-length = 100
