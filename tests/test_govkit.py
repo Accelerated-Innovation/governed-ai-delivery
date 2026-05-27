@@ -2091,6 +2091,262 @@ class TestCmdApplyStackOverlay:
         assert not (target / "docs" / "backend" / "architecture" / "TECH_STACK.md").exists()
 
 
+class TestCmdApplyDetection:
+    """PR 3: cmd_apply runs detection before installing and uses the inferred
+    stack as the default (recording source='detected'). Explicit --stack
+    overrides detection."""
+
+    def _agent_with_stack(self, tmp_path, agent="test-agent"):
+        agents = tmp_path / "agents" / agent
+        agents.mkdir(parents=True)
+        contract = tmp_path / "docs" / "contract.md"
+        contract.parent.mkdir(parents=True)
+        contract.write_text("# Contract v1", encoding="utf-8")
+        manifest = {
+            "agent": agent,
+            "description": "detection test agent",
+            "options": {
+                "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
+                "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
+                "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
+                "stack": {
+                    "choices": ["python-fastapi", "dotnet-aspnet", "java-spring-boot",
+                                "nodejs-fastify", "go-gin"],
+                    "default": "python-fastapi",
+                },
+            },
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "CLAUDE.md", "dest": "CLAUDE.md"}],
+                        "shared": [],
+                        "governed": ["docs/"],
+                    }
+                }
+            },
+            "base_files": [],
+        }
+        (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        (agents / "CLAUDE.md").write_text("# Agent", encoding="utf-8")
+        return tmp_path
+
+    def test_dotnet_target_with_no_stack_flag_infers_dotnet_aspnet(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        # .NET signals in target
+        (target / "src").mkdir()
+        (target / "src" / "Api.csproj").write_text(
+            '<Project Sdk="Microsoft.NET.Sdk.Web"></Project>\n', encoding="utf-8",
+        )
+        (target / "global.json").write_text('{"sdk":{}}', encoding="utf-8")
+
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "dotnet-aspnet", "detection should override python-fastapi default"
+        stack_assumption = next((a for a in marker["assumptions"] if a["id"] == "stack.id"), None)
+        assert stack_assumption is not None
+        assert stack_assumption["source"] == "detected"
+        assert stack_assumption["confidence"] == "high"
+        # Evidence captured from detection.
+        assert stack_assumption["evidence"], "detected assumptions must carry evidence"
+
+    def test_explicit_stack_flag_overrides_detection(self, tmp_path, monkeypatch):
+        """User intent (--stack) always wins. The marker reflects the explicit
+        choice with source='flag', not the inferred stack."""
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        # .NET signals — would normally infer dotnet-aspnet
+        (target / "Api.csproj").write_text(
+            '<Project Sdk="Microsoft.NET.Sdk.Web"></Project>\n', encoding="utf-8",
+        )
+
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack="python-fastapi", force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "python-fastapi"
+        stack_assumption = next((a for a in marker["assumptions"] if a["id"] == "stack.id"), None)
+        assert stack_assumption["source"] == "flag"
+
+    def test_empty_target_falls_back_to_default(self, tmp_path, monkeypatch):
+        """No detectable signals → use python-fastapi as the default and
+        flag it review_required so the team knows we're guessing."""
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        # No signals at all in target
+
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "python-fastapi"
+        stack_assumption = next((a for a in marker["assumptions"] if a["id"] == "stack.id"), None)
+        assert stack_assumption["source"] == "default"
+        assert stack_assumption["review_required"] is True
+
+    def test_apply_prints_detection_summary(self, tmp_path, monkeypatch, capsys):
+        """cmd_apply emits a 'detecting repo profile' block before installing."""
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        (target / "Api.csproj").write_text(
+            '<Project Sdk="Microsoft.NET.Sdk.Web"></Project>\n', encoding="utf-8",
+        )
+        (target / "global.json").write_text('{"sdk":{}}', encoding="utf-8")
+
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+        ))
+
+        out = capsys.readouterr().out
+        assert "detect" in out.lower()
+        assert "csharp" in out or "dotnet-aspnet" in out
+
+
+class TestCmdApplyDetectFlag:
+    """PR 3-D: `govkit apply --detect` runs repo inference and prints the
+    proposed config without writing anything to the target."""
+
+    def _agent(self, tmp_path, agent="test-agent"):
+        agents = tmp_path / "agents" / agent
+        agents.mkdir(parents=True)
+        contract = tmp_path / "docs" / "contract.md"
+        contract.parent.mkdir(parents=True)
+        contract.write_text("# Contract v1", encoding="utf-8")
+        manifest = {
+            "agent": agent,
+            "description": "detect-flag test agent",
+            "options": {
+                "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
+                "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
+                "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
+                "stack": {
+                    "choices": ["python-fastapi", "dotnet-aspnet", "java-spring-boot",
+                                "nodejs-fastify", "go-gin"],
+                    "default": "python-fastapi",
+                },
+            },
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "CLAUDE.md", "dest": "CLAUDE.md"}],
+                        "shared": [],
+                        "governed": ["docs/"],
+                    }
+                }
+            },
+            "base_files": [],
+        }
+        (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        (agents / "CLAUDE.md").write_text("# Agent", encoding="utf-8")
+        return tmp_path
+
+    def test_detect_flag_writes_nothing_to_target(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        # Add some signals so detection has something to report
+        (target / "Api.csproj").write_text(
+            '<Project Sdk="Microsoft.NET.Sdk.Web"></Project>\n', encoding="utf-8",
+        )
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+            detect=True,
+        ))
+
+        # No marker
+        assert not (target / ".govkit").exists()
+        # No installed governance
+        assert not (target / "CLAUDE.md").exists()
+        assert not (target / "docs" / "backend" / "architecture" / "TECH_STACK.md").exists()
+        # No setup review file
+        assert not (target / "GOVKIT_SETUP_REVIEW.md").exists()
+        # Target's own .csproj file is preserved (we wrote nothing)
+        assert (target / "Api.csproj").is_file()
+
+    def test_detect_flag_prints_proposed_config(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        repo = self._agent(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        (target / "Api.csproj").write_text(
+            '<Project Sdk="Microsoft.NET.Sdk.Web"></Project>\n', encoding="utf-8",
+        )
+        (target / "global.json").write_text('{"sdk":{}}', encoding="utf-8")
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+            detect=True,
+        ))
+
+        out = capsys.readouterr().out
+        # Detection summary present
+        assert "csharp" in out
+        # Inferred stack reported
+        assert "dotnet-aspnet" in out
+        # Dry-run banner makes it clear nothing was written
+        assert "dry-run" in out.lower() or "--detect" in out
+
+    def test_detect_flag_on_empty_target_still_exits_cleanly(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        repo = self._agent(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        # Should not raise
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+            detect=True,
+        ))
+        assert not (target / ".govkit").exists()
+
+
 class TestCmdStackList:
     """PR 2 / Chunk F: govkit stack list enumerates bundled stack overlays."""
 

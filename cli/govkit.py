@@ -606,11 +606,95 @@ def resolve_variant_files(manifest: dict, options: dict) -> tuple[list, list, li
 # Commands
 # ---------------------------------------------------------------------------
 
+def _cmd_apply_detect_dry_run(target: Path, args: argparse.Namespace) -> None:
+    """`govkit apply --detect`: print the inferred configuration and exit
+    without writing anything to the target.
+
+    Useful before a real apply so the user can confirm the inferred stack
+    matches their expectations, and for CI scripts that want to log what
+    govkit would do without committing to a write.
+    """
+    from .detect import build_profile, infer_stack
+
+    profile = build_profile(target)
+    inferred_stack, inferred_confidence = infer_stack(profile)
+
+    cli_stack = getattr(args, "stack", None)
+    if cli_stack:
+        chosen_stack = cli_stack
+        stack_source = "flag"
+    elif inferred_stack and inferred_confidence == "high":
+        chosen_stack = inferred_stack
+        stack_source = "detected"
+    else:
+        chosen_stack = "python-fastapi"
+        stack_source = "default"
+
+    print(f"\n[dry-run --detect] govkit apply would target: {target}\n")
+    _print_detection_summary(
+        profile, inferred_stack, inferred_confidence,
+        chosen_stack, stack_source,
+    )
+    print("\nProposed configuration:")
+    print(f"  agent:  {getattr(args, 'agent', '(none)')}")
+    print(f"  level:  {getattr(args, 'level', '(prompted)')}")
+    print(f"  type:   {getattr(args, 'type', '(prompted)')}")
+    print(f"  ci:     {getattr(args, 'ci', '(prompted)')}")
+    print(f"  stack:  {chosen_stack}  (source: {stack_source})")
+    print("\nNo files written. Re-run without --detect to apply.")
+
+
+def _print_detection_summary(
+    profile,
+    inferred_stack: str | None,
+    inferred_confidence: str,
+    chosen_stack: str,
+    stack_source: str,
+) -> None:
+    """Print a one-block detection summary before installing.
+
+    Format mirrors the plan's Section 5 example: a 'detecting repo profile'
+    header with [confidence] tagged lines per category. Skipped quietly for
+    repos with no detectable signals.
+    """
+    if not (profile.detected_languages or profile.detected_frameworks
+            or profile.detected_ci or profile.detected_architecture_signals):
+        return
+    print("\nDetecting repo profile...")
+    if profile.detected_languages:
+        for lang in profile.detected_languages:
+            conf = profile.language_confidence(lang)
+            print(f"  [{conf:6s}] language       {lang}")
+    if profile.detected_frameworks:
+        for fw in profile.detected_frameworks:
+            print(f"  [high  ] framework      {fw}")
+    if profile.detected_ci:
+        for ci_name in profile.detected_ci:
+            print(f"  [high  ] ci             {ci_name}")
+    if profile.detected_architecture_signals:
+        for sig in profile.detected_architecture_signals:
+            print(f"  [medium] architecture   {sig}")
+    if profile.detected_llm_signals:
+        print(f"  [high  ] llm            {', '.join(profile.detected_llm_signals)}")
+
+    if inferred_stack and stack_source == "detected":
+        print(f"\n  → using detected stack: {chosen_stack} (confidence: {inferred_confidence})")
+    elif stack_source == "flag":
+        print(f"\n  → using explicit --stack: {chosen_stack}")
+    else:
+        print(f"\n  → using default stack: {chosen_stack} (no high-confidence match)")
+
+
 def cmd_apply(args: argparse.Namespace) -> None:
     target = Path(args.target).resolve()
     if not target.exists():
         print(f"Error: target directory '{target}' does not exist.")
         sys.exit(1)
+
+    # PR 3 / Chunk D: --detect runs inference and exits without writing.
+    if getattr(args, "detect", False):
+        _cmd_apply_detect_dry_run(target, args)
+        return
 
     manifest = load_manifest(args.agent)
     agent_dir = AGENTS_DIR / args.agent
@@ -674,22 +758,44 @@ def cmd_apply(args: argparse.Namespace) -> None:
 
         # PR 2: apply stack overlay for backend types. UI types have no stack
         # overlay (the stack model is backend-only for now).
+        # PR 3: run repo-fit detection first; use the inferred stack as the
+        # default when high confidence, falling back to python-fastapi otherwise.
         stack_meta = None
         stack_assumption = None
         type_value = options.get("type", "")
         is_backend = type_value in ("api", "cli")
         if is_backend:
             from .overlay import load_overlay, apply_overlay
+            from .detect import build_profile, infer_stack
             from datetime import datetime, timezone
 
-            # Resolve stack: manifest-declared option wins, then raw CLI flag,
-            # then fall back to python-fastapi. Same precedence as type/ci/level.
-            requested_stack = (
-                options.get("stack")
-                or getattr(args, "stack", None)
-                or "python-fastapi"
-            )
-            stack_source = "flag" if getattr(args, "stack", None) else "default"
+            profile = build_profile(target)
+            inferred_stack, inferred_confidence = infer_stack(profile)
+
+            cli_stack = getattr(args, "stack", None)
+            if cli_stack:
+                requested_stack = cli_stack
+                stack_source = "flag"
+                stack_confidence = "high"
+                stack_evidence: list[str] = []
+            elif inferred_stack and inferred_confidence == "high":
+                requested_stack = inferred_stack
+                stack_source = "detected"
+                stack_confidence = "high"
+                stack_evidence = list(
+                    profile.detected_frameworks
+                    + [str(p.relative_to(target)) for p in profile.detected_project_paths[:3]]
+                )
+            else:
+                requested_stack = options.get("stack") or "python-fastapi"
+                stack_source = "default"
+                stack_confidence = "low"
+                stack_evidence = []
+
+            # Surface the detection summary so the user can see what we found.
+            _print_detection_summary(profile, inferred_stack, inferred_confidence,
+                                     requested_stack, stack_source)
+
             overlay = load_overlay(requested_stack)
             if overlay is None:
                 print(
@@ -710,8 +816,8 @@ def cmd_apply(args: argparse.Namespace) -> None:
                 "id": "stack.id",
                 "value": overlay.id,
                 "source": stack_source,
-                "confidence": "high" if stack_source == "flag" else "low",
-                "evidence": [],
+                "confidence": stack_confidence,
+                "evidence": stack_evidence,
                 "files_affected": [d["dest"] for d in overlay.docs],
                 "review_required": stack_source == "default",
                 "warning_message": (
@@ -1303,6 +1409,11 @@ def main() -> None:
         "--stack", default=None,
         help="Stack overlay id (default: python-fastapi). Run `govkit stack list` "
              "to see available stacks.",
+    )
+    apply_parser.add_argument(
+        "--detect", action="store_true",
+        help="Dry-run: run repo inference, print the proposed config, and exit "
+             "without writing anything to the target",
     )
     apply_parser.add_argument(
         "--force", action="store_true",
