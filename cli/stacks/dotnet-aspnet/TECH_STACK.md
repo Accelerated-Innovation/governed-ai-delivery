@@ -80,74 +80,7 @@ docs/backend/architecture/API_CONVENTIONS.md
 
 ---
 
-# 4. Agent Frameworks
-
-This repository supports AI-driven features.
-
-Approved orchestration frameworks:
-```
-Microsoft Semantic Kernel
-LangChain.NET (limited use)
-```
-
-### Semantic Kernel
-
-Primary framework for agent orchestration.
-
-Used for:
-
-- multi-step reasoning and planning
-- tool/plugin execution
-- stateful agent workflows
-- deterministic pipeline graphs
-
-### LangChain.NET
-
-Allowed for:
-
-- model wrappers
-- prompt templates
-- lightweight utilities
-
-Avoid using LangChain.NET for complex orchestration.
-
-### Decision Matrix
-
-| Scenario | Use | Reason |
-|---|---|---|
-| Single LLM call with structured output | Direct provider SDK (Azure OpenAI, Anthropic) | No orchestration needed |
-| Prompt template with variable substitution | Semantic Kernel `PromptTemplateFactory` | Lightweight utility |
-| Sequential tool calls (> 2 steps) | Semantic Kernel `KernelFunction` pipeline | Stateful planning |
-| Branching logic based on LLM output | Semantic Kernel planner | Conditional step execution |
-| Multi-turn conversation with memory | Semantic Kernel with `ChatHistory` | State persistence across turns |
-| Parallel tool execution | Semantic Kernel parallel functions | Fan-out pattern |
-
-**Default rule:** If the task requires more than two sequential LLM interactions or any branching, use Semantic Kernel. Otherwise, prefer the direct provider SDK.
-
----
-
-# 4a. LLM Gateway (Level 5)
-
-Approved LLM gateway:
-```
-Semantic Kernel unified connector layer
-```
-
-All LLM completion requests must route through Semantic Kernel's connector abstraction. No direct provider SDK calls for inference outside `Adapters/Llm/`.
-
-Provides:
-
-- Provider abstraction (Azure OpenAI, OpenAI, Anthropic)
-- Retry and fallback logic
-- Token usage tracking
-
-Rules:
-
-- LLM adapter lives in `Adapters/Llm/` — an outbound adapter
-- Domain services call `ILlmPort`, never Semantic Kernel directly
-- Provider SDK imports restricted to `Adapters/Llm/`
-
-Full contract: `docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
+<!-- §4 Agent Frameworks, §4a LLM Gateway moved to AGENT_ARCHITECTURE.md (L5-only). -->
 
 ---
 
@@ -282,20 +215,7 @@ features/<feature_name>/eval_criteria.yaml
 
 ---
 
-# 10a. LLM Evaluation (Level 5)
-
-Approved LLM evaluation tools:
-```
-Promptfoo     — adversarial and regression testing (CI)
-Semantic Kernel evaluation helpers — quality metrics via provider APIs
-```
-
-Rules:
-
-- Promptfoo is required for user-facing features or features processing untrusted input
-- These tools complement FIRST/Virtues — they do not replace them
-
-Full contract: `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
+<!-- §10a LLM Evaluation moved to AGENT_ARCHITECTURE.md (L5-only). -->
 
 ---
 

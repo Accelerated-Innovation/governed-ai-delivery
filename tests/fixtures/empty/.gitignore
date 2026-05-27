@@ -1,0 +1,3 @@
+# empty fixture — no language / framework / CI signals
+.govkit/
+GOVKIT_*.md

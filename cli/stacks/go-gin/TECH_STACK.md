@@ -79,57 +79,7 @@ docs/backend/architecture/API_CONVENTIONS.md
 
 ---
 
-# 4. Agent Frameworks
-
-This repository supports AI-driven features.
-
-Approved orchestration frameworks:
-```
-LangChainGo (primary)
-Vercel AI SDK via HTTP (limited use — Go service calling TS orchestration)
-```
-
-### LangChainGo
-
-Primary framework for agent orchestration in Go.
-
-Used for:
-
-- multi-step LLM chains
-- tool calling
-- prompt templates
-- vector store integration
-
-### Decision Matrix
-
-| Scenario | Use | Reason |
-|---|---|---|
-| Single LLM call with structured output | Direct provider SDK (OpenAI Go, Anthropic Go) | No orchestration needed |
-| Prompt template with variable substitution | LangChainGo `PromptTemplate` | Lightweight utility |
-| Sequential tool calls (> 2 steps) | LangChainGo agents | Stateful tool execution |
-| Multi-turn conversation with memory | LangChainGo with memory | State persistence |
-| RAG pipeline | LangChainGo chains | Retrieve → Augment → Generate |
-
-**Default rule:** If the task requires more than two sequential LLM interactions, use LangChainGo. Otherwise, prefer the direct provider SDK.
-
----
-
-# 4a. LLM Gateway (Level 5)
-
-Approved LLM gateway:
-```
-LiteLLM (proxy server — language-agnostic)
-```
-
-All LLM completion requests must route through the LiteLLM proxy via standard OpenAI-compatible HTTP. No direct provider SDK calls for inference outside `adapters/llm/`.
-
-Rules:
-
-- LLM adapter lives in `adapters/llm/` — an outbound adapter
-- Domain services call `LlmPort`, never the HTTP client directly
-- Provider SDK imports restricted to `adapters/llm/`
-
-Full contract: `docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
+<!-- §4 Agent Frameworks, §4a LLM Gateway moved to AGENT_ARCHITECTURE.md (L5-only). -->
 
 ---
 
@@ -251,19 +201,7 @@ features/<feature_name>/eval_criteria.yaml
 
 ---
 
-# 10a. LLM Evaluation (Level 5)
-
-Approved LLM evaluation tools:
-```
-Promptfoo     — adversarial and regression testing (CI, language-agnostic)
-```
-
-Rules:
-
-- Promptfoo is required for user-facing features or features processing untrusted input
-- These tools complement FIRST/Virtues — they do not replace them
-
-Full contract: `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
+<!-- §10a LLM Evaluation moved to AGENT_ARCHITECTURE.md (L5-only). -->
 
 ---
 
@@ -319,20 +257,7 @@ Full contract: `docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md`
 
 ---
 
-# 11a. Runtime Guardrails (Level 5)
-
-Approved guardrail tools:
-```
-LiteLLM guardrail hooks    — behavioral safety (language-agnostic proxy layer)
-Custom validators           — structured output validation (Go type assertions + JSON Schema)
-```
-
-Rules:
-
-- Both tools live in `adapters/guardrails/`
-- Neither may be imported in domain or service layers
-
-Full contract: `docs/backend/architecture/GUARDRAILS_CONTRACT.md`
+<!-- §11a Runtime Guardrails moved to AGENT_ARCHITECTURE.md (L5-only). -->
 
 ---
 

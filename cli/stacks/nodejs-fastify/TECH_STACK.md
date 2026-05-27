@@ -81,74 +81,7 @@ docs/backend/architecture/API_CONVENTIONS.md
 
 ---
 
-# 4. Agent Frameworks
-
-This repository supports AI-driven features.
-
-Approved orchestration frameworks:
-```
-LangChain.js / LangGraph.js (primary)
-Vercel AI SDK (limited use)
-```
-
-### LangGraph.js
-
-Primary framework for agent orchestration.
-
-Used for:
-
-- multi-step reasoning
-- tool execution
-- stateful workflows
-- deterministic agent graphs
-
-### Vercel AI SDK
-
-Allowed for:
-
-- model wrappers (`generateText`, `streamText`)
-- prompt templates
-- lightweight utilities
-
-Avoid using Vercel AI SDK for complex orchestration.
-
-### Decision Matrix
-
-| Scenario | Use | Reason |
-|---|---|---|
-| Single LLM call with structured output | Vercel AI SDK `generateObject` | No orchestration needed |
-| Prompt template with variable substitution | LangChain.js `PromptTemplate` | Lightweight utility |
-| Sequential tool calls (> 2 steps) | LangGraph.js | Stateful graph manages step ordering |
-| Branching logic based on LLM output | LangGraph.js | Conditional edges |
-| Multi-turn conversation with memory | LangGraph.js with checkpointer | State persistence across turns |
-| Parallel tool execution | LangGraph.js | Fan-out/fan-in pattern |
-
-**Default rule:** If the task requires more than two sequential LLM interactions or any branching, use LangGraph.js. Otherwise, prefer Vercel AI SDK.
-
----
-
-# 4a. LLM Gateway (Level 5)
-
-Approved LLM gateway:
-```
-LiteLLM (proxy server) or Vercel AI SDK provider abstraction
-```
-
-All LLM completion requests must route through the approved gateway. No direct provider SDK calls for inference outside `adapters/llm/`.
-
-Provides:
-
-- Provider abstraction (Azure OpenAI, OpenAI, Anthropic)
-- Fallback chains and retry logic
-- Cost tracking
-
-Rules:
-
-- LLM adapter lives in `adapters/llm/` — an outbound adapter
-- Domain services call `LlmPort`, never the gateway directly
-- Provider SDK imports restricted to `adapters/llm/`
-
-Full contract: `docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
+<!-- §4 Agent Frameworks, §4a LLM Gateway moved to AGENT_ARCHITECTURE.md (L5-only). -->
 
 ---
 
@@ -273,20 +206,7 @@ features/<feature_name>/eval_criteria.yaml
 
 ---
 
-# 10a. LLM Evaluation (Level 5)
-
-Approved LLM evaluation tools:
-```
-Promptfoo     — adversarial and regression testing (CI)
-DeepEval      — quality metrics (via Python subprocess or API)
-```
-
-Rules:
-
-- Promptfoo is required for user-facing features or features processing untrusted input
-- These tools complement FIRST/Virtues — they do not replace them
-
-Full contract: `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
+<!-- §10a LLM Evaluation moved to AGENT_ARCHITECTURE.md (L5-only). -->
 
 ---
 

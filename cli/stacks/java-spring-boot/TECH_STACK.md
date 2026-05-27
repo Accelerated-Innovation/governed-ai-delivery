@@ -79,74 +79,7 @@ docs/backend/architecture/API_CONVENTIONS.md
 
 ---
 
-# 4. Agent Frameworks
-
-This repository supports AI-driven features.
-
-Approved orchestration frameworks:
-```
-Spring AI (primary)
-LangChain4j (limited use)
-```
-
-### Spring AI
-
-Primary framework for agent orchestration.
-
-Used for:
-
-- multi-step reasoning and tool-calling pipelines
-- structured LLM output via advisors
-- stateful chat memory
-- deterministic prompt templates
-
-### LangChain4j
-
-Allowed for:
-
-- model wrappers
-- prompt templates
-- lightweight utilities
-
-Avoid using LangChain4j for complex orchestration.
-
-### Decision Matrix
-
-| Scenario | Use | Reason |
-|---|---|---|
-| Single LLM call with structured output | Spring AI `ChatClient` | Clean abstraction, no orchestration overhead |
-| Prompt template with variable substitution | Spring AI `PromptTemplate` | Built-in; no extra dependency |
-| Sequential tool calls (> 2 steps) | Spring AI with tools + advisors | Stateful pipeline |
-| Branching logic based on LLM output | Spring AI custom advisor chain | Conditional step execution |
-| Multi-turn conversation with memory | Spring AI `MessageChatMemoryAdvisor` | State persistence |
-| Parallel tool execution | Spring AI parallel tool execution | Fan-out pattern |
-
-**Default rule:** If the task requires more than two sequential LLM interactions, use Spring AI advisors. Otherwise, prefer the direct `ChatClient`.
-
----
-
-# 4a. LLM Gateway (Level 5)
-
-Approved LLM gateway:
-```
-Spring AI unified model abstraction
-```
-
-All LLM completion requests must route through Spring AI's `ChatModel` abstraction. No direct provider SDK calls for inference outside `adapters/llm/`.
-
-Provides:
-
-- Provider abstraction (Azure OpenAI, OpenAI, Anthropic, Bedrock)
-- Retry and fallback logic via Spring Retry
-- Token usage tracking
-
-Rules:
-
-- LLM adapter lives in `adapters/llm/` — an outbound adapter
-- Domain services call `LlmPort`, never Spring AI `ChatModel` directly
-- Provider SDK imports restricted to `adapters/llm/`
-
-Full contract: `docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
+<!-- §4 Agent Frameworks, §4a LLM Gateway moved to AGENT_ARCHITECTURE.md (L5-only). -->
 
 ---
 
@@ -281,20 +214,7 @@ features/<feature_name>/eval_criteria.yaml
 
 ---
 
-# 10a. LLM Evaluation (Level 5)
-
-Approved LLM evaluation tools:
-```
-Promptfoo     — adversarial and regression testing (CI)
-Spring AI evaluation helpers — quality metrics via provider APIs
-```
-
-Rules:
-
-- Promptfoo is required for user-facing features or features processing untrusted input
-- These tools complement FIRST/Virtues — they do not replace them
-
-Full contract: `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
+<!-- §10a LLM Evaluation moved to AGENT_ARCHITECTURE.md (L5-only). -->
 
 ---
 

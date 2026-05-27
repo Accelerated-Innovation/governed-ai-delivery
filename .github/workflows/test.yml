@@ -59,3 +59,61 @@ jobs:
           govkit doctor --target "$tmp" || rc=$?
           rc="${rc:-0}"
           if [ "$rc" -gt 1 ]; then exit "$rc"; fi
+
+  wheel-smoke:
+    # PR 7 / A12: build a real wheel and install it into a clean venv. The
+    # pytest job uses `pip install -e .` which resolves AGENTS_DIR / STACKS_DIR
+    # against the source tree; the wheel path can have entirely different
+    # asset bundling (e.g. a missing force-include for cli/stacks/). This job
+    # catches packaging regressions that editable installs hide.
+    runs-on: ubuntu-latest
+    needs: pytest
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install build tooling
+        run: pip install build
+
+      - name: Build wheel
+        run: python -m build --wheel
+
+      - name: Install wheel into a clean venv
+        run: |
+          set -euxo pipefail
+          python -m venv /tmp/wheel-smoke-venv
+          /tmp/wheel-smoke-venv/bin/pip install --upgrade pip
+          /tmp/wheel-smoke-venv/bin/pip install dist/govkit-*.whl
+
+      - name: Stack list resolves from wheel layout
+        # `govkit stack list` reads cli/stacks/*/overlay.yaml — if hatch
+        # didn't bundle the YAML+MD data files, this returns no stacks
+        # (or crashes) inside the clean venv even though it works in dev.
+        run: |
+          set -euxo pipefail
+          out="$(/tmp/wheel-smoke-venv/bin/govkit stack list)"
+          echo "$out"
+          for expected in python-fastapi dotnet-aspnet java-spring-boot nodejs-fastify go-gin; do
+            echo "$out" | grep -q "$expected" || { echo "MISSING: $expected"; exit 1; }
+          done
+
+      - name: Apply against a fresh tmp dir from the wheel install
+        # End-to-end: the wheel-installed `govkit apply` writes the marker,
+        # the stack overlay docs, the editable header, and the skill_context.
+        # Catches the case where docs/ assets are absent in the wheel.
+        run: |
+          set -euxo pipefail
+          tmp="$(mktemp -d)"
+          /tmp/wheel-smoke-venv/bin/govkit apply --agent claude-code \
+              --target "$tmp" --level 4 --type api --ci github \
+              --stack dotnet-aspnet
+          test -f "$tmp/.govkit/marker.json"
+          test -f "$tmp/.govkit/skill_context.yaml"
+          test -f "$tmp/docs/backend/architecture/TECH_STACK.md"
+          test -f "$tmp/GOVKIT_SETUP_REVIEW.md"
+          grep -q "baseline: dotnet-aspnet@" "$tmp/docs/backend/architecture/TECH_STACK.md"

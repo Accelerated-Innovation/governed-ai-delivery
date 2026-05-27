@@ -6,6 +6,179 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.10.0] — 2026-05-27
+
+### Added — Governance Accelerator
+
+Govkit shifts from "template installer" to **calibrated governance accelerator**. Every install now (1) declares what it assumes about the repo, (2) provides a `doctor` for CI-time fit validation, and (3) provides a `calibrate` for guided team review. The goal: an install never silently contradicts the repo it landed in.
+
+Three new commands ship in this release:
+
+```bash
+govkit stack list                      # enumerate bundled stack overlays
+govkit apply --stack dotnet-aspnet     # first-class stack selection (with auto-detection)
+govkit apply --detect                  # dry-run inference, print proposed config, exit 0
+govkit stack apply <id> --target .     # swap stacks on an existing install (edit-protected)
+govkit doctor [--target .]             # read-only fit validator with 12 checks
+govkit calibrate [--target .] [--non-interactive] [--only <step>]
+                                       # guided 9-step team review of installed governance
+```
+
+### Why the change
+
+Pre-0.10 govkit installed a Python/FastAPI/hexagonal baseline regardless of the target repo, with no way to detect or warn about mismatches. A .NET repo that ran `govkit apply` got rule globs pointing at `**/adapters/**` (no matches), Python pytest examples in TESTING.md, and L5 LLM tooling sections in TECH_STACK.md it would never use. The agent then followed that contradictory guidance.
+
+0.10 keeps the small, opinionated baseline but adds explicit assumptions, repo-fit detection, and an edit-protection contract so teams can adapt the installed governance without losing their changes on the next `upgrade`.
+
+### `.govkit/` directory migration
+
+The `.govkit` marker file becomes a `.govkit/` **directory** containing `marker.json` + (post-`apply`) `skill_context.yaml`. Legacy single-file markers are read tolerantly and migrated in place on first read; a one-time stderr warning fires (suppressible via `GOVKIT_NO_DIRECTORY_MIGRATION_WARNING=1`). No team action required.
+
+`marker.json` schema (validated by `governance/schemas/govkit-marker.schema.json`) gains three new top-level fields:
+- `stack: { id, version, display_name, applied_at }` — selected stack overlay metadata
+- `assumptions: [ { id, value, source, confidence, evidence, files_affected, review_required, warning_message, calibrated_at, calibrated_against_overlay_version } ]` — every load-bearing choice with provenance
+- `calibration: { completed_at, decisions: [...] }` — team's review state
+
+### Edit-protection contract
+
+Every governed/shared `.md` doc gets a `<!-- govkit:editable baseline: <id>@<version> -->` header on install. Subsequent `govkit upgrade` and `govkit stack apply` check the file's mtime against the marker's `applied_at` — if you've edited the doc since the last apply, it's preserved and the command exits without overwriting. Pass `--force` to override (the warning makes the destruction explicit). `cmd_upgrade` previously overwrote governed docs unconditionally; this PR closes that data-loss path.
+
+### First-class stack overlays
+
+The four stack overlays in `docs/stacks/` (dotnet-aspnet, java-spring-boot, nodejs-fastify, go-gin) move to `cli/stacks/` and gain a `python-fastapi` sibling so all 5 are structurally identical. Each carries an `overlay.yaml` with `id`, `version`, `display_name`, `summary`, `default_assumptions`, `docs`, `skill_context`, and `review_checklist`.
+
+- `govkit apply --stack <id>` installs the chosen overlay on top of the baseline copy.
+- `govkit stack list` enumerates bundled stacks from the installed wheel — no more `cp docs/stacks/...` against the repo checkout.
+- `govkit stack apply <id> --target <path>` swaps stacks on an existing install.
+
+### Repo-fit detection
+
+A new `cli/detect.py` inspects the target tree for language, framework, CI, architecture, and LLM signals. Detection is target-scoped (per A10 — never walks from cwd, so monorepos don't cross-contaminate). csproj parsing uses `xml.etree.ElementTree` and checks `Project.Sdk` / `FrameworkReference.Include` rather than substring-matching package names (R3 — avoids false-positives like `Microsoft.AspNetCore.Authentication.Core` being mistaken for ASP.NET Core).
+
+When `--stack` is omitted, `cmd_apply` runs detection and either: (a) high-confidence framework match → use the inferred stack, record assumption with `source: "detected"`; (b) otherwise → fall back to `python-fastapi`, record `source: "default", review_required: true` so the team is nudged to calibrate.
+
+### `govkit doctor`
+
+Read-only validator with monorepo auto-discovery (per A9). When `--target` is omitted, doctor walks for `.govkit/` directories under cwd and processes each install. 12 checks ship:
+
+| ID | Severity | Catches |
+|---|---|---|
+| D000 | error | No `.govkit/marker.json` at target |
+| D001 | error | Rule glob (agent-aware: claude-code `paths:`, copilot `applyTo:`, codex nested AGENTS.md skipped) resolves to 0 files |
+| D003 | warning | Marker CI ≠ detected CI files |
+| D004 | warning | Both GitHub Actions and Azure Pipelines present |
+| D005 | warning | Stack's expected language disagrees with detection |
+| D006 | warning | Installed doc baseline header older than bundled overlay version |
+| D007 | warning | L5-only keywords (LiteLLM, DeepEval, NeMo, etc.) in a non-L5 install |
+| D008 | info | L5 install with no LLM SDK in deps |
+| D009 | warning | TESTING.md names a framework absent from dep manifests |
+| D010 | warning | `review_required` assumption stale >30 days without calibration |
+| D011 | error | Assumption `files_affected` lists missing paths |
+| D013/D014 | error/warning | Extension manifest issues (delegates to `cli/extensions.py`) |
+
+### `govkit calibrate`
+
+Walks the team through a 9-step checklist (marker, TECH_STACK, BOUNDARIES, API_CONVENTIONS, TESTING, agent-instruction file, rules tree, CI gates, skill context). Two modes:
+
+- **Interactive** (default) — prompts per step with `[y/n/s/q]` decisions
+- **`--non-interactive`** — emits `GOVKIT_CALIBRATION_CHECKLIST.md` as a markdown todo file (CI-friendly)
+
+Decisions are recorded in `marker.json.calibration.decisions[]` and per-assumption `calibrated_at` + `calibrated_against_overlay_version` fields. An assumption is resolved only when ALL linked steps confirm with no `needs-review` — one needs-review keeps it open. `--only <step>` revisits a single decision. Monorepo behavior mirrors doctor's. `calibrate` preserves the original `applied_at` (per A2) so edit-protection isn't silently weakened by every calibration pass.
+
+### Skill context
+
+A new `.govkit/skill_context.yaml` ships alongside `marker.json`. Skills (PR 6b/c rewrites) read a typed `SkillContext` via `load_skill_context(target)` for architecture style, source root, layer-to-folder hints, stack facts, CI, LLM flag, and discovered extensions. Written by `apply`, `upgrade`, `stack apply`, and `calibrate` — always fresh.
+
+### Rule-glob templating
+
+Layer-bound rule files in the source tree (e.g. `agents/claude-code/rules/backend/adapters.md`) now declare `paths_template: layers.outbound` alongside a hexagonal fallback `paths:`. At install time, `template_installed_rules(target, agent, layers)` expands the directive using `skill_context.layers.*` so the actual rule frontmatter ends up matching the team's folder layout (`**/Infrastructure/**` for clean architecture, `**/adapters/**` for hexagonal). Copilot's `applyTo:` (single string) is handled by the same helper via an `applyTo_template:` schema.
+
+### L5 contract isolation
+
+The 5 L5-only architecture contracts (`AGENT_ARCHITECTURE.md`, `LLM_GATEWAY_CONTRACT.md`, `GUARDRAILS_CONTRACT.md`, `OBSERVABILITY_LLM_CONTRACT.md`, `EVALUATION_LLM_CONTRACT.md`) now install only at L5. `cmd_apply` and `cmd_upgrade` pass an exclusion set to `copy_entry` at L3/L4. The L5-tagged sections of `TECH_STACK.md` (§4 Agent Frameworks, §4a LLM Gateway, §10a LLM Evaluation, §11 LLM Observability subsection, §11a Runtime Guardrails) were stripped from all 5 stack overlays — the same content already lived in `AGENT_ARCHITECTURE.md`. Doctor's D007 is silent on fresh L4 installs as a result.
+
+### Skill body audit
+
+The four claude-code backend skills (`architecture-preflight`, `spec-planning`, `implementation-plan`, `adr-author`) no longer name architecture-style folders (`ports/`, `adapters/`, `Controllers/`, `Application/`) or stack-specific libraries (`pytest`, `pydantic`, `FastAPI`) inline. They cite `docs/backend/architecture/BOUNDARIES.md` and `.govkit/skill_context.yaml` instead — the same skill text now works whether the team's repo is hexagonal, clean, or layered.
+
+The architecture-preflight skill's §2.6 Extension Discovery block (per R4) is preserved intact; the `agent_guidance.architecture_preflight` contract on extension manifests continues to work.
+
+### Added
+- **New CLI commands**: `govkit doctor`, `govkit calibrate`, `govkit stack list`, `govkit stack apply <id>`.
+- **New `--stack <id>`, `--detect`, and `--force` flags** on `govkit apply`.
+- **New `--force` flag** on `govkit upgrade` for explicit override of edit-protection (the existing `--force` on upgrade keeps its "re-apply at current version" meaning; both behaviors now ride the same flag).
+- **`cli/detect.py`** — `RepoProfile`, `build_profile(target)`, `infer_stack(profile)`, language/framework/CI/architecture/LLM signal detectors.
+- **`cli/doctor.py`** — `ValidationFinding`, `run_doctor`, `cmd_doctor`, `discover_install_targets`, and 9 registered checks (D001, D003–D011, D013/D014).
+- **`cli/calibrate.py`** — `CalibrationStep`, `CalibrationDecision`, `build_checklist`, `cmd_calibrate`, `render_checklist_markdown`.
+- **`cli/skill_context.py`** — `SkillContext`, `build_skill_context`, `write_skill_context`, `load_skill_context`.
+- **`cli/overlay.py`** — `Overlay`, `STACKS_DIR`, `load_overlay`, `list_overlays`, `apply_overlay`.
+- **`cli/headers.py`** — `format_editable_header`, `parse_editable_header`, `has_editable_header`, `prepend_header_to_file`.
+- **`cli/setup_review.py`** — `write_setup_review`, `print_review_checklist` (agent-aware paths for claude-code / copilot / codex).
+- **`cli/rule_templating.py`** — `expand_rule_template`, `template_installed_rules` (handles claude-code `paths_template:` and copilot `applyTo_template:`).
+- **`governance/schemas/govkit-marker.schema.json`** — JSON Schema for `marker.json`, exercised by `tests/test_schemas.py`.
+- **`cli/stacks/<id>/overlay.yaml`** for all 5 stacks — `id`, `version`, `display_name`, `summary`, `default_assumptions`, `docs`, `skill_context`, `review_checklist`.
+- **Four fixture repos** under `tests/fixtures/` — `dotnet-aspnet-azure/`, `python-fastapi-github/`, `empty/`, `monorepo/` (apps/api + apps/web) for end-to-end coverage.
+- **Built-wheel smoke test** (per A12) — new `wheel-smoke` CI job: `python -m build`, `pip install dist/*.whl` into a clean venv, `govkit stack list` confirms all 5 stacks resolve, then a fresh `apply --stack dotnet-aspnet` exercises the full install path. Catches packaging regressions that editable installs can't.
+- **Tests** — 326 new tests (440 → 766). New modules: `test_doctor.py` (50), `test_calibrate.py` (20), `test_skill_context.py` (17), `test_detect.py` (42), `test_overlay.py` (13), `test_rule_templating.py` (15), `test_setup_review.py` (13), `test_headers.py` (20), `test_fixtures.py` (33). Existing test modules also grew with PR-specific additions.
+
+### Changed
+- **`.govkit` marker** — now a directory (`.govkit/marker.json` + `.govkit/skill_context.yaml`). Legacy single-file markers auto-migrated on first read.
+- **`copy_entry`** — extended with `applied_at`, `force`, `header_baseline`, `header_see`, `exclude_basenames`. Default values preserve pre-0.10 behavior for agent files; governed/shared paths pass the new args.
+- **`write_govkit_marker`** — accepts optional `stack`, `assumptions`, `calibration`, `applied_at` kwargs; the marker always emits all four slots so the schema validates.
+- **`resolve_options`** — options declared without a `prompt:` key are silently defaulted (so `--stack` doesn't interrupt users who want the default).
+- **Agent manifests** for all three agents (claude-code, copilot, codex) — added `stack` option.
+- **`agent-manifest.schema.json`** — `options.propertyNames` enum extended to include `"stack"`; the `prompt:` key on individual option specs is now optional.
+- **`docs/stacks/<id>/` → `cli/stacks/<id>/`** — stack overlays moved under the `cli` package; the wheel ships them automatically.
+- **Stack TECH_STACK.md files** — L5-only sections (§4, §4a, §10a, §11 LLM, §11a) stripped from all 5 overlays.
+- **L5-only architecture contracts** — `AGENT_ARCHITECTURE.md`, `LLM_GATEWAY_CONTRACT.md`, `GUARDRAILS_CONTRACT.md`, `OBSERVABILITY_LLM_CONTRACT.md`, `EVALUATION_LLM_CONTRACT.md` excluded from L3/L4 installs via `copy_entry(exclude_basenames=...)`.
+- **claude-code rules** — `api.md`, `ports.md`, `services.md`, `adapters.md` use `paths_template: layers.<key>` with hexagonal fallback.
+- **copilot instructions** — `api.instructions.md`, `ports.instructions.md`, `services.instructions.md`, `adapters.instructions.md` use `applyTo_template: layers.<key>` with hexagonal fallback.
+- **claude-code skills** — `architecture-preflight`, `spec-planning`, `implementation-plan`, `adr-author` no longer reference architecture-style folders or stack libraries inline; cite `BOUNDARIES.md` and `skill_context.yaml` instead.
+- **CI workflow** ([.github/workflows/test.yml](.github/workflows/test.yml)) — added the self-doctor smoke step (PR 4) and the wheel-smoke job (PR 7).
+- **README** — "Switching Tech Stacks" section rewritten around `govkit stack list` / `--stack` / `govkit stack apply`; the `cp docs/stacks/...` recipe is gone.
+- **`pyproject.toml`** — dropped the redundant `"cli/stacks" = "cli/stacks"` force-include that caused zipfile duplicate-name warnings during build; cli/stacks/ ships via the `packages = ["cli"]` declaration.
+
+### Removed
+- **Old `cp docs/stacks/<id>/*` recipe** from README — superseded by `govkit stack apply`.
+- **`docs/stacks/` directory** — moved to `cli/stacks/` (preserves git history via `git mv`).
+- **L5-only sections in stack TECH_STACK.md files** — same content remains in `AGENT_ARCHITECTURE.md`, now L5-only.
+
+### Plan amendments honored
+
+This release ships against the 12 amendments captured in [plans/GOVERNANCE_ACCELERATOR_PLAN.md](plans/GOVERNANCE_ACCELERATOR_PLAN.md): A1 (.govkit → directory), A2 (upgrade edit-protection), A3 (single shared `cli/stacks/`), A4 (skill-content rule scoped to vocabulary, not file references), A5 (overlay `version:` for D006), A6 (`calibrated_against_overlay_version`), A7 (D003 warning, not error), A8 (PR 6 split into 6a/6b/6c), A9 (monorepo auto-discovery for doctor + calibrate), A10 (detectors take explicit `target: Path`), A11 (marker schema in `governance/schemas/`), A12 (built-wheel smoke verifies the wheel layout, not the editable install).
+
+### Verification
+
+- 766 pytest tests pass + 1 expected skip (was 440).
+- Built wheel installs cleanly into a fresh venv; `govkit stack list` resolves all 5 stacks from the wheel layout; `govkit apply --stack dotnet-aspnet` produces a complete install with marker, skill_context, baseline header, review file.
+- Doctor on a fresh L4 install of any agent: zero D007 errors (L5 leakage closed); D001/D003 surfaces real mismatches.
+- Monorepo fixture (apps/api Python + apps/web TypeScript): doctor + calibrate auto-discover both installs; per-install findings are isolated.
+
+### Upgrade
+
+```bash
+pip install --upgrade govkit
+```
+
+Existing installs auto-migrate on the next `govkit upgrade` or `govkit validate`:
+- `.govkit` (file) → `.govkit/` (directory with `marker.json` + `skill_context.yaml`). One-time stderr warning; suppressible with `GOVKIT_NO_DIRECTORY_MIGRATION_WARNING=1`.
+- Governed docs gain the `<!-- govkit:editable baseline: govkit@0.10.0 -->` header on the next overwrite.
+- The 5 L5-only contracts are removed from L3/L4 installs on the next `upgrade` (this is intentional — they shouldn't have been there).
+
+For non-L5 installs that want to keep the L5 reference docs locally, copy them out before upgrading or simply re-add them as project-authored files (govkit will leave them alone if they lack the editable header).
+
+To exercise the new commands:
+
+```bash
+govkit apply --detect --target .              # see what would be inferred
+govkit doctor --target .                       # validate fit
+govkit calibrate --target . --non-interactive  # emit the review checklist
+govkit stack list                              # see bundled stacks
+govkit stack apply dotnet-aspnet --target .    # swap overlays (edit-protected)
+```
+
+---
+
 ## [0.9.0] — 2026-05-24
 
 ### Added — extension pack discovery
