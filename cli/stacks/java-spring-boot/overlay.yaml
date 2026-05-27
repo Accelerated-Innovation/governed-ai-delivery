@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../governance/schemas/stack-overlay.schema.json
 id: java-spring-boot
 version: "0.10.0"
 display_name: "Java 21 / Spring Boot 3 / Spring Web MVC"

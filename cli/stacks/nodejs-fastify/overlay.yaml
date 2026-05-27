@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../governance/schemas/stack-overlay.schema.json
 id: nodejs-fastify
 version: "0.10.0"
 display_name: "Node.js 20 LTS / TypeScript 5 / Fastify 4"

@@ -889,3 +889,53 @@ class TestMarkerSchemaRejectsInvalid:
         }]
         errors = list(Draft202012Validator(_load_marker_schema()).iter_errors(marker))
         assert not errors
+
+
+# ---------------------------------------------------------------------------
+# cli/stacks/<id>/overlay.yaml schema
+# ---------------------------------------------------------------------------
+
+
+STACK_OVERLAY_SCHEMA_PATH = REPO_ROOT / "governance" / "schemas" / "stack-overlay.schema.json"
+STACKS_DIR = REPO_ROOT / "cli" / "stacks"
+
+
+def _bundled_stack_ids() -> list[str]:
+    return sorted(
+        d.name for d in STACKS_DIR.iterdir()
+        if d.is_dir() and (d / "overlay.yaml").is_file()
+    )
+
+
+def test_stack_overlay_schema_is_a_valid_json_schema():
+    schema = json.loads(STACK_OVERLAY_SCHEMA_PATH.read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(schema)
+
+
+@pytest.mark.parametrize("stack_id", _bundled_stack_ids())
+def test_bundled_overlay_validates_against_schema(stack_id):
+    """Every cli/stacks/<id>/overlay.yaml must validate against the shipped
+    schema. Catches drift between an overlay author and the schema authors."""
+    yaml_mod = pytest.importorskip("yaml")
+    schema = json.loads(STACK_OVERLAY_SCHEMA_PATH.read_text(encoding="utf-8"))
+    overlay_path = STACKS_DIR / stack_id / "overlay.yaml"
+    overlay = yaml_mod.safe_load(overlay_path.read_text(encoding="utf-8"))
+
+    validator = Draft202012Validator(schema)
+    errors = sorted(validator.iter_errors(overlay), key=lambda e: list(e.path))
+    assert not errors, (
+        f"{stack_id}/overlay.yaml failed schema validation:\n"
+        + "\n".join(f"  - at {list(e.absolute_path)}: {e.message}" for e in errors)
+    )
+
+
+@pytest.mark.parametrize("stack_id", _bundled_stack_ids())
+def test_overlay_has_yaml_language_server_modeline(stack_id):
+    """The first line of every overlay.yaml must point VS Code's YAML
+    extension at the right schema — otherwise it tries to validate against
+    unrelated public schemas (e.g. the JSON Schema Overlay spec) and floods
+    the Problems panel with false errors."""
+    overlay_path = STACKS_DIR / stack_id / "overlay.yaml"
+    first_line = overlay_path.read_text(encoding="utf-8").splitlines()[0]
+    assert first_line.startswith("# yaml-language-server: $schema=")
+    assert "stack-overlay.schema.json" in first_line

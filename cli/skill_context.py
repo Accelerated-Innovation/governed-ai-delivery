@@ -12,10 +12,16 @@ stack apply / calibrate to all keep the file fresh. Skill consumers
 The file lives at .govkit/skill_context.yaml alongside marker.json.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import yaml
+
+if TYPE_CHECKING:
+    from .detect import RepoProfile
 
 
 # Architecture-signal → style id mapping.
@@ -143,7 +149,7 @@ def _stack_facts(marker: dict) -> dict:
     return facts
 
 
-def build_skill_context(target: Path, marker: dict, profile=None) -> dict:
+def build_skill_context(target: Path, marker: dict, profile: RepoProfile | None = None) -> dict:
     """Build the skill-context dict that gets serialized to YAML.
 
     Pure function — does no I/O beyond build_profile (which reads the
@@ -175,7 +181,7 @@ def build_skill_context(target: Path, marker: dict, profile=None) -> dict:
     }
 
 
-def write_skill_context(target: Path, marker: dict, profile=None) -> Path:
+def write_skill_context(target: Path, marker: dict, profile: RepoProfile | None = None) -> Path:
     """Write .govkit/skill_context.yaml under target.
 
     Returns the path written. The .govkit directory must already exist (it

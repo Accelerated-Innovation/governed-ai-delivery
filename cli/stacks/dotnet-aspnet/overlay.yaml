@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../governance/schemas/stack-overlay.schema.json
 id: dotnet-aspnet
 version: "0.10.0"
 display_name: "C# 12 / .NET 8 / ASP.NET Core Minimal APIs"

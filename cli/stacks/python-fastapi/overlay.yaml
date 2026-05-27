@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../governance/schemas/stack-overlay.schema.json
 id: python-fastapi
 version: "0.10.0"
 display_name: "Python 3.11+ / FastAPI"

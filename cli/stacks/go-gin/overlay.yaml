@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../governance/schemas/stack-overlay.schema.json
 id: go-gin
 version: "0.10.0"
 display_name: "Go 1.22+ / Gin"

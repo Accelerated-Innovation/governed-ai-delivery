@@ -24,6 +24,8 @@ Usage:
     govkit validate --target /path/to/project
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -31,6 +33,10 @@ import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .detect import RepoProfile
 
 try:
     from importlib.metadata import version as _pkg_version
@@ -849,7 +855,7 @@ def _build_stack_assumption(
 def _apply_stack_overlay_block(
     target: Path, args: argparse.Namespace, options: dict,
     prior_applied_at: str | None, force: bool,
-) -> tuple[dict | None, dict | None, dict, object | None]:
+) -> tuple[dict | None, dict | None, dict, RepoProfile | None]:
     """Run detection, apply the chosen stack overlay, return
     (stack_meta, stack_assumption, updated_options, profile).
 
@@ -902,7 +908,7 @@ def _apply_stack_overlay_block(
 def _apply_variant_install(
     target: Path, args: argparse.Namespace, manifest: dict, agent_dir: Path,
     prior_applied_at: str | None, force: bool, baseline: str,
-) -> tuple[dict, object | None]:
+) -> tuple[dict, RepoProfile | None]:
     """Variant-based manifest path (new format used by all 3 production agents).
 
     Returns `(marker, profile)` so the caller can thread both into
@@ -964,7 +970,7 @@ def _apply_legacy_install(
 
 def _post_install_finalize(
     target: Path, agent: str,
-    marker: dict | None = None, profile=None,
+    marker: dict | None = None, profile: RepoProfile | None = None,
 ) -> None:
     """Write derived files (setup review + skill_context), re-template rule
     globs to match the team's actual layout, print the post-install checklist.
