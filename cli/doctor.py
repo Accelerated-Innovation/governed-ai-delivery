@@ -28,10 +28,9 @@ from typing import Literal
 # ---------------------------------------------------------------------------
 
 
-Severity = Literal["error", "warning", "info"]
+from .govkit import MARKER_DIRNAME, MARKER_FILENAME, STACK_ID_ASSUMPTION
 
-# Marker name reused across discovery + per-target checks.
-_MARKER_DIRNAME = ".govkit"
+Severity = Literal["error", "warning", "info"]
 
 
 @dataclass
@@ -681,14 +680,14 @@ def discover_install_targets(cwd: Path) -> list[Path]:
     Otherwise walks under cwd looking for .govkit/ markers. Skips
     `.git`, `node_modules`, `.venv`, etc. so the walk is bounded.
     """
-    cwd_marker = cwd / _MARKER_DIRNAME
+    cwd_marker = cwd / MARKER_DIRNAME
     if cwd_marker.is_dir() or cwd_marker.is_file():
         return [cwd]
 
     skip_dirs = {".git", "node_modules", ".venv", "venv", "__pycache__",
                  "dist", "build", "target", "bin", "obj"}
     targets: list[Path] = []
-    for marker in cwd.rglob(_MARKER_DIRNAME):
+    for marker in cwd.rglob(MARKER_DIRNAME):
         # Skip if any parent in the chain is a skip-dir
         try:
             rel_parts = marker.relative_to(cwd).parts
@@ -808,7 +807,7 @@ def cmd_doctor(args: argparse.Namespace) -> None:
             except ValueError:
                 rel = target
             print(f"\n=== {rel} ===")
-        print(f"  reading {target / '.govkit' / 'marker.json'}")
+        print(f"  reading {target / MARKER_DIRNAME / MARKER_FILENAME}")
         findings = run_doctor(target)
         _print_findings(target, findings)
         if any(f.severity == "error" for f in findings):

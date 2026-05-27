@@ -409,11 +409,6 @@ class TestValidateExtensionRelatesTo:
         (ext_dir / "docs").mkdir()
         (ext_dir / "docs" / "CORE.md").write_text("x", encoding="utf-8")
         (ext_dir / "docs" / "SAMPLE.md").write_text("x", encoding="utf-8")
-        body = VALID_MANIFEST + textwrap.dedent("""\
-            relates_to:
-              extends:
-                - docs/CORE.md
-        """)
         # Indent the relates_to block to keep it under contract_sets[0]
         body = VALID_MANIFEST + "    relates_to:\n      extends:\n        - docs/CORE.md\n"
         (ext_dir / MANIFEST_FILE).write_text(body, encoding="utf-8")

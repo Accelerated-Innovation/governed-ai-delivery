@@ -27,6 +27,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .govkit import STACK_ID_ASSUMPTION
+
 
 # ---------------------------------------------------------------------------
 # Step + decision model
@@ -141,7 +143,7 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
             "with the right flags. The stack can be swapped with "
             "`govkit stack apply <id>` without a full re-apply."
         ),
-        assumption_id="stack.id",
+        assumption_id=STACK_ID_ASSUMPTION,
     ))
 
     # 2. TECH_STACK.md
@@ -162,7 +164,7 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
             "library versions match your repo. If level < 5, strip any "
             "LLM-specific sections (LiteLLM, DeepEval, NeMo Guardrails)."
         ),
-        assumption_id="stack.id",
+        assumption_id=STACK_ID_ASSUMPTION,
     ))
 
     # 3. BOUNDARIES.md

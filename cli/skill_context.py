@@ -143,15 +143,20 @@ def _stack_facts(marker: dict) -> dict:
     return facts
 
 
-def build_skill_context(target: Path, marker: dict) -> dict:
+def build_skill_context(target: Path, marker: dict, profile=None) -> dict:
     """Build the skill-context dict that gets serialized to YAML.
 
     Pure function — does no I/O beyond build_profile (which reads the
     target tree) and discover_extensions (which reads target/extensions/).
+
+    Callers that already built a `RepoProfile` for this target (cmd_apply
+    builds one during stack-overlay selection) can pass it in to skip a
+    second walk of the target tree.
     """
     from .detect import build_profile
 
-    profile = build_profile(target)
+    if profile is None:
+        profile = build_profile(target)
     options = marker.get("options") or {}
     level = marker.get("level")
 
@@ -170,13 +175,16 @@ def build_skill_context(target: Path, marker: dict) -> dict:
     }
 
 
-def write_skill_context(target: Path, marker: dict) -> Path:
+def write_skill_context(target: Path, marker: dict, profile=None) -> Path:
     """Write .govkit/skill_context.yaml under target.
 
     Returns the path written. The .govkit directory must already exist (it
     is created by write_govkit_marker before any skill_context write).
+
+    Optional `profile` is forwarded to `build_skill_context` so cmd_apply
+    can avoid a second filesystem walk per install.
     """
-    data = build_skill_context(target, marker)
+    data = build_skill_context(target, marker, profile=profile)
     out_path = target / ".govkit" / "skill_context.yaml"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(

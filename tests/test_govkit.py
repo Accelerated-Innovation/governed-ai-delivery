@@ -1436,7 +1436,13 @@ def _make_fake_agent(tmp_path: Path, shared: list[str] | None = None) -> Path:
 
 
 def _apply_args(target: Path, **overrides) -> argparse.Namespace:
-    defaults = dict(agent="claude-code", target=str(target), level="4", type="api", ci="github")
+    defaults = {
+        "agent": "claude-code",
+        "target": str(target),
+        "level": "4",
+        "type": "api",
+        "ci": "github",
+    }
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
 
@@ -1634,7 +1640,7 @@ class TestGoverned:
                 }
             }
         }
-        files, shared, governed = resolve_variant_files(manifest, {"type": "api"})
+        _, shared, governed = resolve_variant_files(manifest, {"type": "api"})
         assert governed == ["docs/backend/", "governance/backend/"]
         assert shared == ["features/starter_backend/"]
 

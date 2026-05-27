@@ -167,11 +167,19 @@ def _reset_directory_migration_warning() -> None:
     _DIRECTORY_MIGRATION_WARNING_PRINTED = False
 
 
+from .headers import has_editable_header, prepend_header_to_file
+
 _HERE = Path(__file__).parent
 # When installed via pip, agents/ is bundled inside the cli package.
 # When running from the repo directly, fall back to the repo root.
 AGENTS_DIR = _HERE / "agents" if (_HERE / "agents").exists() else _HERE.parent / "agents"
 REPO_ROOT = AGENTS_DIR.parent
+
+MARKER_DIRNAME = ".govkit"
+MARKER_FILENAME = "marker.json"
+STACK_ID_ASSUMPTION = "stack.id"
+_FEATURES_PREFIX = "features/"
+_TARGET_HELP = "Path to the target project root"
 
 
 def load_manifest(agent: str) -> dict:
@@ -211,7 +219,6 @@ def is_user_edited(dest: Path, applied_at: str | None) -> bool:
         content = dest.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return False
-    from .headers import has_editable_header
     if not has_editable_header(content):
         return False
     try:
@@ -220,6 +227,48 @@ def is_user_edited(dest: Path, applied_at: str | None) -> bool:
         return False
     mtime_dt = datetime.fromtimestamp(dest.stat().st_mtime, tz=timezone.utc)
     return mtime_dt > applied_dt
+
+
+def _copy_entry_should_refuse(
+    dest: Path, applied_at: str | None, force: bool,
+) -> bool:
+    """Decide whether edit-protection should block overwriting `dest`.
+
+    True ⇒ caller skips. False ⇒ caller proceeds; if force=True and the
+    file IS user-edited, a warning is emitted as a side effect.
+    """
+    if applied_at is None or not dest.is_file() or not is_user_edited(dest, applied_at):
+        return False
+    if not force:
+        print(
+            f"  refused {dest}  (user-edited since last apply; "
+            "re-run with --force to overwrite)",
+            file=sys.stderr,
+        )
+        return True
+    print(
+        f"  warning: overwriting user edits at {dest} (--force set)",
+        file=sys.stderr,
+    )
+    return False
+
+
+def _copy_file(
+    src: Path, dest: Path,
+    skip_existing: bool, applied_at: str | None, force: bool,
+    header_baseline: str | None, header_see: str,
+) -> None:
+    """Copy a single file with edit-protection + header injection applied."""
+    if skip_existing and dest.exists():
+        print(f"  skipped {dest}  (already exists)")
+        return
+    if _copy_entry_should_refuse(dest, applied_at, force):
+        return
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dest)
+    print(f"  copied  {dest}")
+    if header_baseline is not None:
+        prepend_header_to_file(dest, baseline=header_baseline, see=header_see)
 
 
 def copy_entry(
@@ -268,28 +317,8 @@ def copy_entry(
                 header_see=header_see,
                 exclude_basenames=exclude_basenames,
             )
-    else:
-        if skip_existing and dest.exists():
-            print(f"  skipped {dest}  (already exists)")
-            return
-        if applied_at is not None and dest.is_file() and is_user_edited(dest, applied_at):
-            if not force:
-                print(
-                    f"  refused {dest}  (user-edited since last apply; "
-                    "re-run with --force to overwrite)",
-                    file=sys.stderr,
-                )
-                return
-            print(
-                f"  warning: overwriting user edits at {dest} (--force set)",
-                file=sys.stderr,
-            )
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, dest)
-        print(f"  copied  {dest}")
-        if header_baseline is not None:
-            from .headers import prepend_header_to_file
-            prepend_header_to_file(dest, baseline=header_baseline, see=header_see)
+        return
+    _copy_file(src, dest, skip_existing, applied_at, force, header_baseline, header_see)
 
 
 # PR 6c: L5-only architecture docs. These live in docs/backend/architecture/
@@ -343,13 +372,13 @@ def read_govkit_marker(target: Path) -> dict | None:
       - legacy `ui` option (0.7 → 0.8 shape refactor)
     Each warning is independently suppressible via env var.
     """
-    marker_node = target / ".govkit"
+    marker_node = target / MARKER_DIRNAME
     if not marker_node.exists():
         return None
 
     # New layout: .govkit/ directory containing marker.json
     if marker_node.is_dir():
-        marker_path = marker_node / "marker.json"
+        marker_path = marker_node / MARKER_FILENAME
         if not marker_path.is_file():
             return None
         try:
@@ -373,7 +402,7 @@ def read_govkit_marker(target: Path) -> dict | None:
         try:
             marker_node.unlink()
             marker_node.mkdir(parents=True, exist_ok=True)
-            (marker_node / "marker.json").write_text(
+            (marker_node / MARKER_FILENAME).write_text(
                 json.dumps(data, indent=2) + "\n", encoding="utf-8"
             )
         except OSError:
@@ -394,7 +423,7 @@ def write_govkit_marker(
     assumptions: list | None = None,
     calibration: dict | None = None,
     applied_at: str | None = None,
-) -> None:
+) -> dict:
     """Write the .govkit/marker.json file to track the applied configuration.
 
     The marker is the source of truth for `agent`, `level`, `options`, the
@@ -408,8 +437,11 @@ def write_govkit_marker(
 
     If a legacy single-file .govkit marker exists at the target, it is
     removed first so the directory can take its place.
+
+    Returns the marker dict that was just written so callers can hand it to
+    `_post_install_finalize` instead of re-reading + re-parsing it from disk.
     """
-    marker_dir = target / ".govkit"
+    marker_dir = target / MARKER_DIRNAME
     # Replace any legacy single-file marker.
     if marker_dir.is_file():
         marker_dir.unlink()
@@ -428,10 +460,11 @@ def write_govkit_marker(
             "decisions": [],
         },
     }
-    (marker_dir / "marker.json").write_text(
+    (marker_dir / MARKER_FILENAME).write_text(
         json.dumps(data, indent=2) + "\n", encoding="utf-8"
     )
     print(f"\n  .govkit/marker.json written (level {level}, govkit {_GOVKIT_VERSION})")
+    return data
 
 
 # ---------------------------------------------------------------------------
@@ -682,6 +715,34 @@ def _cmd_apply_detect_dry_run(target: Path, args: argparse.Namespace) -> None:
     print("\nNo files written. Re-run without --detect to apply.")
 
 
+def _print_detected_signals(profile) -> None:
+    """Emit the per-category `[confidence] kind value` lines."""
+    for lang in profile.detected_languages:
+        conf = profile.language_confidence(lang)
+        print(f"  [{conf:6s}] language       {lang}")
+    for fw in profile.detected_frameworks:
+        print(f"  [high  ] framework      {fw}")
+    for ci_name in profile.detected_ci:
+        print(f"  [high  ] ci             {ci_name}")
+    for sig in profile.detected_architecture_signals:
+        print(f"  [medium] architecture   {sig}")
+    if profile.detected_llm_signals:
+        print(f"  [high  ] llm            {', '.join(profile.detected_llm_signals)}")
+
+
+def _print_chosen_stack_line(
+    inferred_stack: str | None, inferred_confidence: str,
+    chosen_stack: str, stack_source: str,
+) -> None:
+    """Trailing one-liner that names the stack the install will use."""
+    if inferred_stack and stack_source == "detected":
+        print(f"\n  → using detected stack: {chosen_stack} (confidence: {inferred_confidence})")
+    elif stack_source == "flag":
+        print(f"\n  → using explicit --stack: {chosen_stack}")
+    else:
+        print(f"\n  → using default stack: {chosen_stack} (no high-confidence match)")
+
+
 def _print_detection_summary(
     profile,
     inferred_stack: str | None,
@@ -699,28 +760,236 @@ def _print_detection_summary(
             or profile.detected_ci or profile.detected_architecture_signals):
         return
     print("\nDetecting repo profile...")
-    if profile.detected_languages:
-        for lang in profile.detected_languages:
-            conf = profile.language_confidence(lang)
-            print(f"  [{conf:6s}] language       {lang}")
-    if profile.detected_frameworks:
-        for fw in profile.detected_frameworks:
-            print(f"  [high  ] framework      {fw}")
-    if profile.detected_ci:
-        for ci_name in profile.detected_ci:
-            print(f"  [high  ] ci             {ci_name}")
-    if profile.detected_architecture_signals:
-        for sig in profile.detected_architecture_signals:
-            print(f"  [medium] architecture   {sig}")
-    if profile.detected_llm_signals:
-        print(f"  [high  ] llm            {', '.join(profile.detected_llm_signals)}")
+    _print_detected_signals(profile)
+    _print_chosen_stack_line(inferred_stack, inferred_confidence, chosen_stack, stack_source)
 
-    if inferred_stack and stack_source == "detected":
-        print(f"\n  → using detected stack: {chosen_stack} (confidence: {inferred_confidence})")
-    elif stack_source == "flag":
-        print(f"\n  → using explicit --stack: {chosen_stack}")
-    else:
-        print(f"\n  → using default stack: {chosen_stack} (no high-confidence match)")
+
+def _copy_governed_or_shared(
+    paths: list, target: Path, prior_applied_at: str | None,
+    force: bool, baseline: str, exclude: set[str] | None,
+    skip_existing: bool = True,
+) -> None:
+    """Copy each governed/shared dir from REPO_ROOT to target.
+
+    `features/` entries are deferred — those land via `govkit init`, not
+    apply/upgrade. `skip_existing=True` (the default) is correct for `apply`
+    governed/shared and for `upgrade` shared. `upgrade` governed passes
+    `skip_existing=False` because upgrade re-installs governed contracts.
+    """
+    for rel in paths:
+        if rel.startswith(_FEATURES_PREFIX):
+            continue
+        copy_entry(
+            REPO_ROOT / rel, target / rel,
+            skip_existing=skip_existing,
+            applied_at=prior_applied_at,
+            force=force,
+            header_baseline=baseline,
+            exclude_basenames=exclude,
+        )
+
+
+def _create_features_dir_if_missing(target: Path) -> None:
+    """Create `features/` under target if absent. Idempotent."""
+    features_dir = target / "features"
+    if not features_dir.exists():
+        features_dir.mkdir(parents=True)
+        print(f"  Created {features_dir} (empty)")
+
+
+def _ensure_features_dir(target: Path, level: str) -> None:
+    """L3 ships agent rules + architecture contracts only. L4/L5 also get an
+    empty `features/` so `govkit init <feature>` has somewhere to scaffold."""
+    if level == "3":
+        return
+    _create_features_dir_if_missing(target)
+
+
+def _resolve_stack_choice(
+    args: argparse.Namespace, options: dict, profile, inferred_stack: str | None,
+    inferred_confidence: str, target: Path,
+) -> tuple[str, str, str, list[str]]:
+    """Return (requested_stack, source, confidence, evidence).
+
+    Precedence: explicit --stack > high-confidence inference > python-fastapi default.
+    """
+    cli_stack = getattr(args, "stack", None)
+    if cli_stack:
+        return cli_stack, "flag", "high", []
+    if inferred_stack and inferred_confidence == "high":
+        evidence = list(
+            profile.detected_frameworks
+            + [str(p.relative_to(target)) for p in profile.detected_project_paths[:3]]
+        )
+        return inferred_stack, "detected", "high", evidence
+    return options.get("stack") or "python-fastapi", "default", "low", []
+
+
+def _build_stack_assumption(
+    overlay, source: str, confidence: str, evidence: list[str],
+) -> dict:
+    """Construct the `stack.id` assumption block to write into the marker."""
+    return {
+        "id": STACK_ID_ASSUMPTION,
+        "value": overlay.id,
+        "source": source,
+        "confidence": confidence,
+        "evidence": evidence,
+        "files_affected": [d["dest"] for d in overlay.docs],
+        "review_required": source == "default",
+        "warning_message": (
+            f"Defaulted to {overlay.id}. If your repo uses a different stack, "
+            f"re-run `govkit stack apply <id>` or pass `--stack <id>` to apply."
+        ) if source == "default" else None,
+        "calibrated_at": None,
+        "calibrated_against_overlay_version": None,
+    }
+
+
+def _apply_stack_overlay_block(
+    target: Path, args: argparse.Namespace, options: dict,
+    prior_applied_at: str | None, force: bool,
+) -> tuple[dict | None, dict | None, dict, object | None]:
+    """Run detection, apply the chosen stack overlay, return
+    (stack_meta, stack_assumption, updated_options, profile).
+
+    `profile` is threaded back to the caller so `_post_install_finalize` can
+    pass it to `write_skill_context` without re-walking the target tree.
+
+    No-op for UI types (returns Nones + original options + None profile).
+    """
+    type_value = options.get("type", "")
+    if type_value not in ("api", "cli"):
+        return None, None, options, None
+
+    from .overlay import load_overlay, apply_overlay
+    from .detect import build_profile, infer_stack
+    from datetime import datetime, timezone
+
+    profile = build_profile(target)
+    inferred_stack, inferred_confidence = infer_stack(profile)
+    requested_stack, source, confidence, evidence = _resolve_stack_choice(
+        args, options, profile, inferred_stack, inferred_confidence, target,
+    )
+
+    _print_detection_summary(
+        profile, inferred_stack, inferred_confidence, requested_stack, source,
+    )
+
+    overlay = load_overlay(requested_stack)
+    if overlay is None:
+        print(
+            f"Error: stack '{requested_stack}' not found. "
+            f"Run `govkit stack list` to see available stacks.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    print(f"\nStack overlay: {overlay.id} ({overlay.display_name})")
+    apply_overlay(overlay, target, applied_at=prior_applied_at, force=force)
+
+    stack_meta = {
+        "id": overlay.id,
+        "version": overlay.version,
+        "display_name": overlay.display_name,
+        "applied_at": datetime.now(timezone.utc).isoformat(),
+    }
+    stack_assumption = _build_stack_assumption(overlay, source, confidence, evidence)
+    # Persist the chosen stack in marker.options so future commands
+    # (upgrade, stack apply, doctor) know what was selected.
+    return stack_meta, stack_assumption, {**options, "stack": overlay.id}, profile
+
+
+def _apply_variant_install(
+    target: Path, args: argparse.Namespace, manifest: dict, agent_dir: Path,
+    prior_applied_at: str | None, force: bool, baseline: str,
+) -> tuple[dict, object | None]:
+    """Variant-based manifest path (new format used by all 3 production agents).
+
+    Returns `(marker, profile)` so the caller can thread both into
+    `_post_install_finalize` and skip one marker read + one repo-tree walk.
+    """
+    print(f"\nApplying govkit agent '{args.agent}' to {target}\n")
+    options = resolve_options(manifest, args)
+    level = options.get("level", "3")
+    print(f"\n  Configuration: {options}\n")
+    files, shared, governed = resolve_variant_files(manifest, options)
+
+    print("Agent files:")
+    for entry in files:
+        copy_entry(agent_dir / entry["src"], target / entry["dest"])
+
+    l5_exclude = _exclude_for_level(level)
+    print("\nGoverned contracts (skip if present):")
+    _copy_governed_or_shared(governed, target, prior_applied_at, force, baseline, l5_exclude)
+    print("\nShared governance:")
+    _copy_governed_or_shared(shared, target, prior_applied_at, force, baseline, l5_exclude)
+
+    _ensure_features_dir(target, level)
+
+    stack_meta, stack_assumption, options, profile = _apply_stack_overlay_block(
+        target, args, options, prior_applied_at, force,
+    )
+
+    marker = write_govkit_marker(
+        target, args.agent, level, options,
+        stack=stack_meta,
+        assumptions=[stack_assumption] if stack_assumption else [],
+    )
+    return marker, profile
+
+
+def _apply_legacy_install(
+    target: Path, args: argparse.Namespace, manifest: dict, agent_dir: Path,
+    prior_applied_at: str | None, force: bool, baseline: str,
+) -> tuple[dict | None, None]:
+    """Pre-variant flat-manifest path; retained for back-compat with custom agents.
+
+    Returns `(None, None)` — legacy manifests don't write a govkit marker,
+    so `_post_install_finalize` will read from disk if needed (it'll find
+    nothing and no-op cleanly).
+    """
+    print(f"\nApplying govkit agent '{args.agent}' to {target}\n")
+    print("Agent files:")
+    for entry in manifest["files"]:
+        copy_entry(agent_dir / entry["src"], target / entry["dest"])
+
+    print("\nShared governance:")
+    _copy_governed_or_shared(
+        manifest.get("shared", []), target, prior_applied_at, force, baseline, None,
+    )
+
+    _create_features_dir_if_missing(target)
+    return None, None
+
+
+def _post_install_finalize(
+    target: Path, agent: str,
+    marker: dict | None = None, profile=None,
+) -> None:
+    """Write derived files (setup review + skill_context), re-template rule
+    globs to match the team's actual layout, print the post-install checklist.
+
+    `marker` and `profile` may be passed in by callers that already have them
+    in hand (cmd_apply, cmd_upgrade) so we skip a redundant marker read +
+    repo-tree walk. If omitted, both are derived from disk/target.
+
+    No-op when no marker is available (something earlier failed)."""
+    from .extensions import report_extensions
+    report_extensions(target)
+
+    if marker is None:
+        marker = read_govkit_marker(target)
+    if marker is None:
+        return
+    from .setup_review import write_setup_review, print_review_checklist
+    from .skill_context import write_skill_context, load_skill_context
+    from .rule_templating import template_installed_rules
+    write_setup_review(target, marker)
+    write_skill_context(target, marker, profile=profile)
+    sc = load_skill_context(target)
+    if sc is not None:
+        template_installed_rules(target, agent, sc.layers)
+    print_review_checklist(target, marker)
 
 
 def cmd_apply(args: argparse.Namespace) -> None:
@@ -744,188 +1013,18 @@ def cmd_apply(args: argparse.Namespace) -> None:
     force = bool(getattr(args, "force", False))
     baseline = f"govkit@{_GOVKIT_VERSION}"
 
-    # Detect manifest format: variant-based (new) or flat (legacy)
+    # Variant manifests are the post-v0.6 format used by all 3 production
+    # agents; the flat path is retained for custom agents on the old layout.
     if "variants" in manifest:
-        print(f"\nApplying govkit agent '{args.agent}' to {target}\n")
-        options = resolve_options(manifest, args)
-        level = options.get("level", "3")
-        print(f"\n  Configuration: {options}\n")
-        files, shared, governed = resolve_variant_files(manifest, options)
-
-        print("Agent files:")
-        for entry in files:
-            src = agent_dir / entry["src"]
-            dest = target / entry["dest"]
-            copy_entry(src, dest)
-
-        # PR 6c: at L3/L4, L5-only architecture docs (AGENT_ARCHITECTURE.md,
-        # LLM_*_CONTRACT.md) are excluded from the governed copy.
-        l5_exclude = _exclude_for_level(level)
-
-        print("\nGoverned contracts (skip if present):")
-        for governed_path in governed:
-            if governed_path.startswith("features/"):
-                continue
-            src = REPO_ROOT / governed_path
-            dest = target / governed_path
-            copy_entry(
-                src, dest,
-                skip_existing=True,
-                applied_at=prior_applied_at,
-                force=force,
-                header_baseline=baseline,
-                exclude_basenames=l5_exclude,
-            )
-
-        print("\nShared governance:")
-        for shared_path in shared:
-            if shared_path.startswith("features/"):
-                continue
-            src = REPO_ROOT / shared_path
-            dest = target / shared_path
-            copy_entry(
-                src, dest,
-                skip_existing=True,
-                applied_at=prior_applied_at,
-                force=force,
-                header_baseline=baseline,
-                exclude_basenames=l5_exclude,
-            )
-
-        # L3 (Foundations) ships agent rules + architecture contracts only.
-        # The features/ directory model is part of the L4 Spec-Driven Add-On.
-        if level != "3":
-            features_dir = target / "features"
-            if not features_dir.exists():
-                features_dir.mkdir(parents=True)
-                print(f"  Created {features_dir} (empty)")
-
-        # PR 2: apply stack overlay for backend types. UI types have no stack
-        # overlay (the stack model is backend-only for now).
-        # PR 3: run repo-fit detection first; use the inferred stack as the
-        # default when high confidence, falling back to python-fastapi otherwise.
-        stack_meta = None
-        stack_assumption = None
-        type_value = options.get("type", "")
-        is_backend = type_value in ("api", "cli")
-        if is_backend:
-            from .overlay import load_overlay, apply_overlay
-            from .detect import build_profile, infer_stack
-            from datetime import datetime, timezone
-
-            profile = build_profile(target)
-            inferred_stack, inferred_confidence = infer_stack(profile)
-
-            cli_stack = getattr(args, "stack", None)
-            if cli_stack:
-                requested_stack = cli_stack
-                stack_source = "flag"
-                stack_confidence = "high"
-                stack_evidence: list[str] = []
-            elif inferred_stack and inferred_confidence == "high":
-                requested_stack = inferred_stack
-                stack_source = "detected"
-                stack_confidence = "high"
-                stack_evidence = list(
-                    profile.detected_frameworks
-                    + [str(p.relative_to(target)) for p in profile.detected_project_paths[:3]]
-                )
-            else:
-                requested_stack = options.get("stack") or "python-fastapi"
-                stack_source = "default"
-                stack_confidence = "low"
-                stack_evidence = []
-
-            # Surface the detection summary so the user can see what we found.
-            _print_detection_summary(profile, inferred_stack, inferred_confidence,
-                                     requested_stack, stack_source)
-
-            overlay = load_overlay(requested_stack)
-            if overlay is None:
-                print(
-                    f"Error: stack '{requested_stack}' not found. "
-                    f"Run `govkit stack list` to see available stacks.",
-                    file=sys.stderr,
-                )
-                sys.exit(1)
-            print(f"\nStack overlay: {overlay.id} ({overlay.display_name})")
-            apply_overlay(overlay, target, applied_at=prior_applied_at, force=force)
-            stack_meta = {
-                "id": overlay.id,
-                "version": overlay.version,
-                "display_name": overlay.display_name,
-                "applied_at": datetime.now(timezone.utc).isoformat(),
-            }
-            stack_assumption = {
-                "id": "stack.id",
-                "value": overlay.id,
-                "source": stack_source,
-                "confidence": stack_confidence,
-                "evidence": stack_evidence,
-                "files_affected": [d["dest"] for d in overlay.docs],
-                "review_required": stack_source == "default",
-                "warning_message": (
-                    f"Defaulted to {overlay.id}. If your repo uses a different stack, "
-                    f"re-run `govkit stack apply <id>` or pass `--stack <id>` to apply."
-                ) if stack_source == "default" else None,
-                "calibrated_at": None,
-                "calibrated_against_overlay_version": None,
-            }
-            # Persist the chosen stack in marker.options so future commands
-            # (upgrade, stack apply, doctor) know what was selected.
-            options = {**options, "stack": overlay.id}
-
-        write_govkit_marker(
-            target, args.agent, level, options,
-            stack=stack_meta,
-            assumptions=[stack_assumption] if stack_assumption else [],
+        marker, profile = _apply_variant_install(
+            target, args, manifest, agent_dir, prior_applied_at, force, baseline,
         )
     else:
-        # Legacy flat manifest — backward compatibility
-        print(f"\nApplying govkit agent '{args.agent}' to {target}\n")
-        print("Agent files:")
-        for entry in manifest["files"]:
-            src = agent_dir / entry["src"]
-            dest = target / entry["dest"]
-            copy_entry(src, dest)
+        marker, profile = _apply_legacy_install(
+            target, args, manifest, agent_dir, prior_applied_at, force, baseline,
+        )
 
-        print("\nShared governance:")
-        for shared_path in manifest.get("shared", []):
-            if shared_path.startswith("features/"):
-                continue
-            src = REPO_ROOT / shared_path
-            dest = target / shared_path
-            copy_entry(
-                src, dest,
-                skip_existing=True,
-                applied_at=prior_applied_at,
-                force=force,
-                header_baseline=baseline,
-            )
-
-        features_dir = target / "features"
-        if not features_dir.exists():
-            features_dir.mkdir(parents=True)
-            print(f"  Created {features_dir} (empty)")
-
-    from .extensions import report_extensions
-    report_extensions(target)
-
-    # PR 1 / Chunk E: write the setup review file and print the checklist.
-    # PR 6a: also refresh .govkit/skill_context.yaml so skills see fresh facts.
-    # PR 6b: expand `paths_template:` in installed rules using the skill_context
-    # layers so glob frontmatter matches the team's actual folder layout.
-    new_marker = read_govkit_marker(target)
-    if new_marker is not None:
-        from .setup_review import write_setup_review, print_review_checklist
-        from .skill_context import write_skill_context, load_skill_context
-        from .rule_templating import template_installed_rules
-        write_setup_review(target, new_marker)
-        write_skill_context(target, new_marker)
-        sc = load_skill_context(target)
-        if sc is not None:
-            template_installed_rules(target, args.agent, sc.layers)
-        print_review_checklist(target, new_marker)
+    _post_install_finalize(target, args.agent, marker=marker, profile=profile)
 
     print(f"\nDone. '{args.agent}' spec kit applied to {target}")
     print("\nNext step: add your first feature package.")
@@ -1008,9 +1107,9 @@ def cmd_stack_apply(args: argparse.Namespace) -> None:
         "applied_at": datetime.now(timezone.utc).isoformat(),
     }
     # Replace any prior stack.id assumption; keep the rest.
-    assumptions = [a for a in prior_assumptions if a.get("id") != "stack.id"]
+    assumptions = [a for a in prior_assumptions if a.get("id") != STACK_ID_ASSUMPTION]
     assumptions.append({
-        "id": "stack.id",
+        "id": STACK_ID_ASSUMPTION,
         "value": overlay.id,
         "source": "flag",
         "confidence": "high",
@@ -1227,51 +1326,17 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     l5_exclude = _exclude_for_level(stored_level)
 
     print("\nGoverned contracts (refreshed, edit-protected):")
-    for governed_path in governed:
-        if governed_path.startswith("features/"):
-            continue
-        src = REPO_ROOT / governed_path
-        dest = target / governed_path
-        copy_entry(
-            src, dest,
-            applied_at=prior_applied_at,
-            force=args.force,
-            header_baseline=baseline,
-            exclude_basenames=l5_exclude,
-        )
-
+    _copy_governed_or_shared(
+        governed, target, prior_applied_at, args.force, baseline, l5_exclude,
+        skip_existing=False,
+    )
     print("\nShared governance (skip if present):")
-    for shared_path in shared:
-        if shared_path.startswith("features/"):
-            continue
-        src = REPO_ROOT / shared_path
-        dest = target / shared_path
-        copy_entry(
-            src, dest,
-            skip_existing=True,
-            applied_at=prior_applied_at,
-            force=args.force,
-            header_baseline=baseline,
-            exclude_basenames=l5_exclude,
-        )
+    _copy_governed_or_shared(
+        shared, target, prior_applied_at, args.force, baseline, l5_exclude,
+    )
 
-    write_govkit_marker(target, agent, stored_level, options)
-
-    # PR 1 / Chunk E: refresh the setup review file and print the checklist.
-    # PR 6a: also refresh .govkit/skill_context.yaml so skills see fresh facts.
-    # PR 6b: re-template installed rules — upgrade re-copies agent files so
-    # paths_template comes back; expansion retunes globs to current layers.
-    new_marker = read_govkit_marker(target)
-    if new_marker is not None:
-        from .setup_review import write_setup_review, print_review_checklist
-        from .skill_context import write_skill_context, load_skill_context
-        from .rule_templating import template_installed_rules
-        write_setup_review(target, new_marker)
-        write_skill_context(target, new_marker)
-        sc = load_skill_context(target)
-        if sc is not None:
-            template_installed_rules(target, agent, sc.layers)
-        print_review_checklist(target, new_marker)
+    marker = write_govkit_marker(target, agent, stored_level, options)
+    _post_install_finalize(target, agent, marker=marker)
 
     print(f"\nDone. '{agent}' upgraded to govkit {_GOVKIT_VERSION} at {target}")
     print("\nReview changes with: git diff")
@@ -1383,13 +1448,8 @@ def _cmd_upgrade_migrate_levels(
     return 1
 
 
-def _migrate_l3_interactive(
-    target: Path, stored_version: str, agent: str, options: dict,
-) -> int:
-    """Interactive 4-option prompt for v0.6 L3 (3-artifact) projects."""
-    features_dir = target / "features"
-    feature_dirs = _list_user_features(features_dir)
-
+def _print_l3_migration_menu(stored_version: str, feature_dirs: list) -> None:
+    """Display the 4-option migration menu for v0.6 L3 → v0.7+ migration."""
     print(f"\nDetected .govkit marker: version={stored_version}  level=3")
     print(
         f"Project has {len(feature_dirs)} feature director(ies) under features/, "
@@ -1411,47 +1471,78 @@ def _migrate_l3_interactive(
     print(f"      Marker becomes level=3, version={_GOVKIT_VERSION}.")
     print("  [4] Abort — make no changes. Pin govkit==0.6.* in your project.\n")
 
+
+def _migrate_choice_l4_with_stubs(
+    target: Path, agent: str, options: dict, feature_dirs: list,
+) -> int:
+    """Choice 1: write the marker as L4 and stub the two new L4 artifacts in
+    every feature dir that lacks them."""
+    for fd in feature_dirs:
+        eval_path = fd / "eval_criteria.yaml"
+        if not eval_path.exists():
+            eval_path.write_text(_EVAL_CRITERIA_STUB, encoding="utf-8")
+        preflight_path = fd / "architecture_preflight.md"
+        if not preflight_path.exists():
+            preflight_path.write_text(_ARCH_PREFLIGHT_STUB, encoding="utf-8")
+    write_govkit_marker(target, agent, "4", options)
+    print(f"\n  Generated stubs in {len(feature_dirs)} feature director(ies).")
+    print("\n  Next: edit each feature's eval_criteria.yaml and architecture_preflight.md")
+    print("  to replace TBD placeholders. Then run `govkit validate`.")
+    return 0
+
+
+def _migrate_choice_l4_no_stubs(target: Path, agent: str, options: dict) -> int:
+    """Choice 2: write the marker as L4 without generating stubs."""
+    write_govkit_marker(target, agent, "4", options)
+    print("\n  Marker rewritten without stub generation.")
+    print("  Next: author eval_criteria.yaml and architecture_preflight.md per")
+    print("  feature manually. `govkit validate` will fail until you do.")
+    return 0
+
+
+def _migrate_choice_delete_features(
+    target: Path, agent: str, options: dict, features_dir: Path,
+) -> int:
+    """Choice 3: confirm + delete features/, write marker as L3 (Foundations)."""
+    confirm = input(
+        f"\n  This will DELETE {features_dir} and all its contents. "
+        "Type 'yes' to confirm: "
+    ).strip().lower()
+    if confirm != "yes":
+        print("  Cancelled.")
+        return 1
+    if features_dir.exists():
+        shutil.rmtree(features_dir)
+    write_govkit_marker(target, agent, "3", options)
+    print(f"\n  Removed {features_dir}.")
+    return 0
+
+
+def _migrate_choice_abort() -> int:
+    """Choice 4: no changes, advise pinning the legacy govkit version."""
+    print("\n  No changes made.")
+    print("  Pin `govkit==0.6.*` in your project until you're ready to migrate.")
+    return 0
+
+
+def _migrate_l3_interactive(
+    target: Path, stored_version: str, agent: str, options: dict,
+) -> int:
+    """Interactive 4-option prompt for v0.6 L3 (3-artifact) projects."""
+    features_dir = target / "features"
+    feature_dirs = _list_user_features(features_dir)
+
+    _print_l3_migration_menu(stored_version, feature_dirs)
     choice = input("  Choice [1-4]: ").strip()
 
     if choice == "1":
-        for fd in feature_dirs:
-            eval_path = fd / "eval_criteria.yaml"
-            if not eval_path.exists():
-                eval_path.write_text(_EVAL_CRITERIA_STUB, encoding="utf-8")
-            preflight_path = fd / "architecture_preflight.md"
-            if not preflight_path.exists():
-                preflight_path.write_text(_ARCH_PREFLIGHT_STUB, encoding="utf-8")
-        write_govkit_marker(target, agent, "4", options)
-        print(f"\n  Generated stubs in {len(feature_dirs)} feature director(ies).")
-        print("\n  Next: edit each feature's eval_criteria.yaml and architecture_preflight.md")
-        print("  to replace TBD placeholders. Then run `govkit validate`.")
-        return 0
-
+        return _migrate_choice_l4_with_stubs(target, agent, options, feature_dirs)
     if choice == "2":
-        write_govkit_marker(target, agent, "4", options)
-        print("\n  Marker rewritten without stub generation.")
-        print("  Next: author eval_criteria.yaml and architecture_preflight.md per")
-        print("  feature manually. `govkit validate` will fail until you do.")
-        return 0
-
+        return _migrate_choice_l4_no_stubs(target, agent, options)
     if choice == "3":
-        confirm = input(
-            f"\n  This will DELETE {features_dir} and all its contents. "
-            "Type 'yes' to confirm: "
-        ).strip().lower()
-        if confirm != "yes":
-            print("  Cancelled.")
-            return 1
-        if features_dir.exists():
-            shutil.rmtree(features_dir)
-        write_govkit_marker(target, agent, "3", options)
-        print(f"\n  Removed {features_dir}.")
-        return 0
-
+        return _migrate_choice_delete_features(target, agent, options, features_dir)
     if choice == "4":
-        print("\n  No changes made.")
-        print("  Pin `govkit==0.6.*` in your project until you're ready to migrate.")
-        return 0
+        return _migrate_choice_abort()
 
     print(f"\n  Invalid choice: {choice!r}. Aborting without changes.")
     return 1
@@ -1467,7 +1558,7 @@ def main() -> None:
     # --- apply ---
     apply_parser = subparsers.add_parser("apply", help="Apply an agent spec kit to a target project")
     apply_parser.add_argument("--agent", required=True, help="Agent name (e.g. claude-code, copilot)")
-    apply_parser.add_argument("--target", required=True, help="Path to the target project root")
+    apply_parser.add_argument("--target", required=True, help=_TARGET_HELP)
     apply_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                               help="Maturity level (default: prompted)")
     apply_parser.add_argument("--type", choices=["api", "cli", "ui-react", "ui-angular"], default=None,
@@ -1563,7 +1654,7 @@ def main() -> None:
 
     # --- validate ---
     validate_parser = subparsers.add_parser("validate", help="Check governance compliance in a project")
-    validate_parser.add_argument("--target", required=True, help="Path to the target project root")
+    validate_parser.add_argument("--target", required=True, help=_TARGET_HELP)
     validate_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                                  help="Maturity level (default: read from .govkit or 4)")
     validate_parser.add_argument("--strict", action="store_true",
@@ -1574,7 +1665,7 @@ def main() -> None:
         "upgrade",
         help="Refresh agent config and governed contracts to the current govkit version",
     )
-    upgrade_parser.add_argument("--target", required=True, help="Path to the target project root")
+    upgrade_parser.add_argument("--target", required=True, help=_TARGET_HELP)
     upgrade_parser.add_argument(
         "--force", action="store_true",
         help="Re-apply even when the project is already at the current govkit version",
