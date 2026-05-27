@@ -743,3 +743,149 @@ class TestInc6RuntimeContracts:
         m = self._live_manifest()
         paths = m["contract_sets"][0]["paths"]
         assert "docs/backend/architecture/REGISTRY_CONTRACT.md" in paths
+
+
+# ---------------------------------------------------------------------------
+# .govkit/marker.json schema (PR 1 / A11)
+# ---------------------------------------------------------------------------
+
+
+MARKER_SCHEMA_PATH = REPO_ROOT / "governance" / "schemas" / "govkit-marker.schema.json"
+
+
+def _load_marker_schema() -> dict:
+    return json.loads(MARKER_SCHEMA_PATH.read_text(encoding="utf-8"))
+
+
+def test_marker_schema_is_a_valid_json_schema():
+    """The marker schema must itself conform to the meta-schema."""
+    Draft202012Validator.check_schema(_load_marker_schema())
+
+
+class TestMarkerSchemaAcceptsFreshlyWrittenMarkers:
+    """A marker written by write_govkit_marker() must validate against the
+    shipped schema. Otherwise the schema and the writer have drifted."""
+
+    def test_minimal_apply_marker_validates(self, tmp_path):
+        from cli.govkit import write_govkit_marker
+
+        write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
+        marker = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
+
+        validator = Draft202012Validator(_load_marker_schema())
+        errors = list(validator.iter_errors(marker))
+        assert not errors, "freshly written marker failed schema validation: " + "; ".join(e.message for e in errors)
+
+    def test_marker_with_populated_stack_validates(self, tmp_path):
+        from cli.govkit import write_govkit_marker
+
+        stack = {
+            "id": "dotnet-aspnet",
+            "version": "0.10.0",
+            "display_name": "C# 12 / .NET 8 / ASP.NET Core",
+            "applied_at": "2026-05-27T15:00:00+00:00",
+        }
+        write_govkit_marker(
+            tmp_path, "claude-code", "4",
+            {"type": "api", "ci": "azure", "level": "4"},
+            stack=stack,
+        )
+        marker = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
+
+        validator = Draft202012Validator(_load_marker_schema())
+        errors = list(validator.iter_errors(marker))
+        assert not errors, "; ".join(e.message for e in errors)
+
+    def test_marker_with_assumptions_validates(self, tmp_path):
+        from cli.govkit import write_govkit_marker
+
+        assumptions = [{
+            "id": "architecture.style",
+            "value": "hexagonal",
+            "source": "default",
+            "confidence": "low",
+            "evidence": [],
+            "files_affected": ["docs/backend/architecture/BOUNDARIES.md"],
+            "review_required": True,
+            "warning_message": "Hexagonal layout assumed; no ports/ or adapters/ folder detected.",
+            "calibrated_at": None,
+            "calibrated_against_overlay_version": None,
+        }]
+        write_govkit_marker(
+            tmp_path, "claude-code", "4",
+            {"type": "api", "ci": "github", "level": "4"},
+            assumptions=assumptions,
+        )
+        marker = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
+
+        validator = Draft202012Validator(_load_marker_schema())
+        errors = list(validator.iter_errors(marker))
+        assert not errors, "; ".join(e.message for e in errors)
+
+
+class TestMarkerSchemaRejectsInvalid:
+    def _valid_marker(self) -> dict:
+        return {
+            "version": "0.10.0",
+            "level": "4",
+            "agent": "claude-code",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": "2026-05-27T15:00:00+00:00",
+            "stack": None,
+            "assumptions": [],
+            "calibration": {"completed_at": None, "decisions": []},
+        }
+
+    def test_rejects_missing_agent(self):
+        marker = self._valid_marker()
+        del marker["agent"]
+        errors = list(Draft202012Validator(_load_marker_schema()).iter_errors(marker))
+        assert errors and any("agent" in e.message for e in errors)
+
+    def test_rejects_unknown_level(self):
+        marker = self._valid_marker()
+        marker["level"] = "6"
+        errors = list(Draft202012Validator(_load_marker_schema()).iter_errors(marker))
+        assert errors
+
+    def test_rejects_unknown_type(self):
+        marker = self._valid_marker()
+        marker["options"]["type"] = "fullstack"
+        errors = list(Draft202012Validator(_load_marker_schema()).iter_errors(marker))
+        assert errors
+
+    def test_rejects_unknown_assumption_source(self):
+        marker = self._valid_marker()
+        marker["assumptions"] = [{
+            "id": "stack.language", "value": "python",
+            "source": "wishful-thinking",  # not in enum
+            "confidence": "low", "evidence": [], "files_affected": [],
+            "review_required": False,
+        }]
+        errors = list(Draft202012Validator(_load_marker_schema()).iter_errors(marker))
+        assert errors
+
+    def test_rejects_unknown_top_level_key(self):
+        marker = self._valid_marker()
+        marker["extra_field"] = "nope"
+        errors = list(Draft202012Validator(_load_marker_schema()).iter_errors(marker))
+        assert errors
+
+    def test_accepts_marker_with_extension_sourced_assumption(self):
+        """source='extension' is one of the new sources added per the
+        Extensions Compatibility section."""
+        marker = self._valid_marker()
+        marker["assumptions"] = [{
+            "id": "extension.agentic-skills.agent-runtime",
+            "value": "true",
+            "source": "extension",
+            "confidence": "high",
+            "evidence": ["extensions/agentic-skills/manifest.yaml"],
+            "files_affected": [],
+            "review_required": False,
+            "warning_message": None,
+            "calibrated_at": None,
+            "calibrated_against_overlay_version": None,
+        }]
+        errors = list(Draft202012Validator(_load_marker_schema()).iter_errors(marker))
+        assert not errors

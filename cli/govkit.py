@@ -132,6 +132,41 @@ def _reset_shape_migration_warning() -> None:
     global _SHAPE_MIGRATION_WARNING_PRINTED
     _SHAPE_MIGRATION_WARNING_PRINTED = False
 
+
+_DIRECTORY_MIGRATION_WARNING_PRINTED = False
+
+
+def _maybe_warn_directory_migration() -> None:
+    """Print one-time warning when a legacy single-file .govkit marker is
+    detected and auto-migrated to the new .govkit/ directory layout.
+
+    The 0.9→0.10 layout refactor turns .govkit (file) into .govkit/
+    (directory) holding marker.json + skill_context.yaml. Legacy markers
+    are read tolerantly and migrated on first read. Suppressible via
+    GOVKIT_NO_DIRECTORY_MIGRATION_WARNING=1.
+    """
+    global _DIRECTORY_MIGRATION_WARNING_PRINTED
+    if _DIRECTORY_MIGRATION_WARNING_PRINTED:
+        return
+    if os.environ.get("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING") == "1":
+        return
+    print(
+        "warning: legacy single-file .govkit marker detected — "
+        "the layout changed in 0.10.0 and is now .govkit/ (directory) "
+        "containing marker.json. Govkit auto-migrated this marker; no "
+        "action required. "
+        "(Set GOVKIT_NO_DIRECTORY_MIGRATION_WARNING=1 to suppress.)",
+        file=sys.stderr,
+    )
+    _DIRECTORY_MIGRATION_WARNING_PRINTED = True
+
+
+def _reset_directory_migration_warning() -> None:
+    """Test helper: reset the one-time directory-migration warning flag."""
+    global _DIRECTORY_MIGRATION_WARNING_PRINTED
+    _DIRECTORY_MIGRATION_WARNING_PRINTED = False
+
+
 _HERE = Path(__file__).parent
 # When installed via pip, agents/ is bundled inside the cli package.
 # When running from the repo directly, fall back to the repo root.
@@ -157,21 +192,95 @@ def load_manifest(agent: str) -> dict:
     return manifest
 
 
-def copy_entry(src: Path, dest: Path, skip_existing: bool = False) -> None:
+def is_user_edited(dest: Path, applied_at: str | None) -> bool:
+    """True if `dest` carries a govkit:editable header and was modified after
+    the recorded apply time. Used by edit-protection (A2) to avoid clobbering
+    team edits during `apply` / `upgrade` / `stack apply`.
+
+    Returns False (no protection triggered) when:
+      - applied_at is None or unparseable (no prior install to compare to)
+      - dest doesn't exist or isn't a regular file
+      - dest has no editable header (was never govkit-managed)
+      - dest's mtime is at or before applied_at (no edit since)
+    """
+    if applied_at is None:
+        return False
+    if not dest.is_file():
+        return False
+    try:
+        content = dest.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
+    from .headers import has_editable_header
+    if not has_editable_header(content):
+        return False
+    try:
+        applied_dt = datetime.fromisoformat(applied_at)
+    except (ValueError, TypeError):
+        return False
+    mtime_dt = datetime.fromtimestamp(dest.stat().st_mtime, tz=timezone.utc)
+    return mtime_dt > applied_dt
+
+
+def copy_entry(
+    src: Path,
+    dest: Path,
+    skip_existing: bool = False,
+    applied_at: str | None = None,
+    force: bool = False,
+    header_baseline: str | None = None,
+    header_see: str = "GOVKIT_SETUP_REVIEW.md",
+) -> None:
+    """Copy a file or directory tree.
+
+    Edit-protection (A2): when `applied_at` is supplied, files at `dest` that
+    carry a govkit:editable header and were modified after `applied_at` are
+    skipped with a warning unless `force=True`. Pass `applied_at=None` (the
+    default) to preserve pre-PR-1 behavior for callers that don't manage
+    editable docs.
+
+    Header injection: when `header_baseline` is supplied, every .md file
+    successfully copied gets the govkit:editable header prepended (or
+    refreshed) afterwards. Used by governed/shared paths in apply/upgrade so
+    doc baselines stay in sync. Files skipped (existed when skip_existing was
+    set, or refused by edit-protection) do not get the header touched.
+    """
     if not src.exists():
         print(f"Error: source path does not exist: {src}")
         sys.exit(1)
     if src.is_dir():
         dest.mkdir(parents=True, exist_ok=True)
         for item in src.iterdir():
-            copy_entry(item, dest / item.name, skip_existing=skip_existing)
+            copy_entry(
+                item, dest / item.name,
+                skip_existing=skip_existing,
+                applied_at=applied_at,
+                force=force,
+                header_baseline=header_baseline,
+                header_see=header_see,
+            )
     else:
         if skip_existing and dest.exists():
             print(f"  skipped {dest}  (already exists)")
             return
+        if applied_at is not None and dest.is_file() and is_user_edited(dest, applied_at):
+            if not force:
+                print(
+                    f"  refused {dest}  (user-edited since last apply; "
+                    "re-run with --force to overwrite)",
+                    file=sys.stderr,
+                )
+                return
+            print(
+                f"  warning: overwriting user edits at {dest} (--force set)",
+                file=sys.stderr,
+            )
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dest)
         print(f"  copied  {dest}")
+        if header_baseline is not None:
+            from .headers import prepend_header_to_file
+            prepend_header_to_file(dest, baseline=header_baseline, see=header_see)
 
 
 # ---------------------------------------------------------------------------
@@ -191,34 +300,100 @@ def read_govkit_level(target: Path) -> str | None:
 def read_govkit_marker(target: Path) -> dict | None:
     """Read the full .govkit marker dict, or None if missing or unreadable.
 
-    Side effect: emits a one-time stderr warning when the stored version is
-    pre-0.7.0 (the L3/L4 maturity-model swap). Suppressible via
-    GOVKIT_NO_MIGRATION_WARNING=1.
+    Layout: .govkit/marker.json (current) OR a legacy single .govkit file
+    (pre-0.10). Legacy files are read tolerantly and migrated to the new
+    directory layout in-place on first read.
+
+    Side effects: emits one-time stderr warnings for
+      - pre-0.10 layout (file → directory migration)
+      - pre-0.7 maturity-model marker (L3/L4 swap)
+      - legacy `ui` option (0.7 → 0.8 shape refactor)
+    Each warning is independently suppressible via env var.
     """
-    marker = target / ".govkit"
-    if not marker.exists():
+    marker_node = target / ".govkit"
+    if not marker_node.exists():
         return None
-    try:
-        data = json.loads(marker.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return None
-    _maybe_warn_migration(data.get("version"))
-    _maybe_warn_shape_migration(data.get("options"))
-    return data
+
+    # New layout: .govkit/ directory containing marker.json
+    if marker_node.is_dir():
+        marker_path = marker_node / "marker.json"
+        if not marker_path.is_file():
+            return None
+        try:
+            data = json.loads(marker_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return None
+        _maybe_warn_migration(data.get("version"))
+        _maybe_warn_shape_migration(data.get("options"))
+        return data
+
+    # Legacy layout: .govkit is a single file. Read, then migrate.
+    if marker_node.is_file():
+        try:
+            data = json.loads(marker_node.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return None
+        _maybe_warn_directory_migration()
+        # Best-effort auto-migration to .govkit/marker.json. If the migration
+        # fails (read-only fs, permissions), we still return data — next read
+        # will retry.
+        try:
+            marker_node.unlink()
+            marker_node.mkdir(parents=True, exist_ok=True)
+            (marker_node / "marker.json").write_text(
+                json.dumps(data, indent=2) + "\n", encoding="utf-8"
+            )
+        except OSError:
+            pass
+        _maybe_warn_migration(data.get("version"))
+        _maybe_warn_shape_migration(data.get("options"))
+        return data
+
+    return None
 
 
-def write_govkit_marker(target: Path, agent: str, level: str, options: dict) -> None:
-    """Write the .govkit marker file to track the applied configuration."""
-    marker = target / ".govkit"
+def write_govkit_marker(
+    target: Path,
+    agent: str,
+    level: str,
+    options: dict,
+    stack: dict | None = None,
+    assumptions: list | None = None,
+    calibration: dict | None = None,
+) -> None:
+    """Write the .govkit/marker.json file to track the applied configuration.
+
+    The marker is the source of truth for `agent`, `level`, `options`, the
+    selected `stack`, declared `assumptions`, and `calibration` state.
+    PR 1 exposes the slots; PR 2 (stack), PR 3 (assumptions), and PR 5
+    (calibration) populate them.
+
+    If a legacy single-file .govkit marker exists at the target, it is
+    removed first so the directory can take its place.
+    """
+    marker_dir = target / ".govkit"
+    # Replace any legacy single-file marker.
+    if marker_dir.is_file():
+        marker_dir.unlink()
+    marker_dir.mkdir(parents=True, exist_ok=True)
+
     data = {
         "version": _GOVKIT_VERSION,
         "level": level,
         "agent": agent,
         "options": {k: v for k, v in options.items() if k != "level"},
         "applied_at": datetime.now(timezone.utc).isoformat(),
+        "stack": stack,
+        "assumptions": assumptions if assumptions is not None else [],
+        "calibration": calibration if calibration is not None else {
+            "completed_at": None,
+            "decisions": [],
+        },
     }
-    marker.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-    print(f"\n  .govkit marker written (level {level}, govkit {_GOVKIT_VERSION})")
+    (marker_dir / "marker.json").write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8"
+    )
+    print(f"\n  .govkit/marker.json written (level {level}, govkit {_GOVKIT_VERSION})")
 
 
 # ---------------------------------------------------------------------------
@@ -429,6 +604,13 @@ def cmd_apply(args: argparse.Namespace) -> None:
     manifest = load_manifest(args.agent)
     agent_dir = AGENTS_DIR / args.agent
 
+    # Edit-protection (A2): consult any prior marker for applied_at so
+    # governed/shared docs the user has edited since last apply are protected.
+    prior_marker = read_govkit_marker(target)
+    prior_applied_at = prior_marker.get("applied_at") if prior_marker else None
+    force = bool(getattr(args, "force", False))
+    baseline = f"govkit@{_GOVKIT_VERSION}"
+
     # Detect manifest format: variant-based (new) or flat (legacy)
     if "variants" in manifest:
         print(f"\nApplying govkit agent '{args.agent}' to {target}\n")
@@ -449,7 +631,13 @@ def cmd_apply(args: argparse.Namespace) -> None:
                 continue
             src = REPO_ROOT / governed_path
             dest = target / governed_path
-            copy_entry(src, dest, skip_existing=True)
+            copy_entry(
+                src, dest,
+                skip_existing=True,
+                applied_at=prior_applied_at,
+                force=force,
+                header_baseline=baseline,
+            )
 
         print("\nShared governance:")
         for shared_path in shared:
@@ -457,7 +645,13 @@ def cmd_apply(args: argparse.Namespace) -> None:
                 continue
             src = REPO_ROOT / shared_path
             dest = target / shared_path
-            copy_entry(src, dest, skip_existing=True)
+            copy_entry(
+                src, dest,
+                skip_existing=True,
+                applied_at=prior_applied_at,
+                force=force,
+                header_baseline=baseline,
+            )
 
         # L3 (Foundations) ships agent rules + architecture contracts only.
         # The features/ directory model is part of the L4 Spec-Driven Add-On.
@@ -483,7 +677,13 @@ def cmd_apply(args: argparse.Namespace) -> None:
                 continue
             src = REPO_ROOT / shared_path
             dest = target / shared_path
-            copy_entry(src, dest, skip_existing=True)
+            copy_entry(
+                src, dest,
+                skip_existing=True,
+                applied_at=prior_applied_at,
+                force=force,
+                header_baseline=baseline,
+            )
 
         features_dir = target / "features"
         if not features_dir.exists():
@@ -492,6 +692,13 @@ def cmd_apply(args: argparse.Namespace) -> None:
 
     from .extensions import report_extensions
     report_extensions(target)
+
+    # PR 1 / Chunk E: write the setup review file and print the checklist.
+    new_marker = read_govkit_marker(target)
+    if new_marker is not None:
+        from .setup_review import write_setup_review, print_review_checklist
+        write_setup_review(target, new_marker)
+        print_review_checklist(target, new_marker)
 
     print(f"\nDone. '{args.agent}' spec kit applied to {target}")
     print("\nNext step: add your first feature package.")
@@ -669,19 +876,31 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     options = {**stored_options, "level": stored_level}
     files, shared, governed = resolve_variant_files(manifest, options)
 
+    # Edit-protection (A2): governed/shared overwrites consult applied_at and
+    # respect --force. Agent files (the `files` category) are unconditionally
+    # refreshed because they are govkit-managed and don't carry editable
+    # headers.
+    prior_applied_at = stored.get("applied_at")
+    baseline = f"govkit@{_GOVKIT_VERSION}"
+
     print("Agent files (refreshed):")
     for entry in files:
         src = agent_dir / entry["src"]
         dest = target / entry["dest"]
         copy_entry(src, dest)
 
-    print("\nGoverned contracts (refreshed):")
+    print("\nGoverned contracts (refreshed, edit-protected):")
     for governed_path in governed:
         if governed_path.startswith("features/"):
             continue
         src = REPO_ROOT / governed_path
         dest = target / governed_path
-        copy_entry(src, dest)
+        copy_entry(
+            src, dest,
+            applied_at=prior_applied_at,
+            force=args.force,
+            header_baseline=baseline,
+        )
 
     print("\nShared governance (skip if present):")
     for shared_path in shared:
@@ -689,9 +908,23 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
             continue
         src = REPO_ROOT / shared_path
         dest = target / shared_path
-        copy_entry(src, dest, skip_existing=True)
+        copy_entry(
+            src, dest,
+            skip_existing=True,
+            applied_at=prior_applied_at,
+            force=args.force,
+            header_baseline=baseline,
+        )
 
     write_govkit_marker(target, agent, stored_level, options)
+
+    # PR 1 / Chunk E: refresh the setup review file and print the checklist.
+    new_marker = read_govkit_marker(target)
+    if new_marker is not None:
+        from .setup_review import write_setup_review, print_review_checklist
+        write_setup_review(target, new_marker)
+        print_review_checklist(target, new_marker)
+
     print(f"\nDone. '{agent}' upgraded to govkit {_GOVKIT_VERSION} at {target}")
     print("\nReview changes with: git diff")
 
@@ -893,6 +1126,11 @@ def main() -> None:
                               help="Project type (default: prompted)")
     apply_parser.add_argument("--ci", choices=["github", "azure"], default=None,
                               help="CI platform (default: prompted)")
+    apply_parser.add_argument(
+        "--force", action="store_true",
+        help="Override edit-protection and overwrite user-edited governed/shared "
+             "docs (those carrying a govkit:editable header)",
+    )
 
     # --- list ---
     subparsers.add_parser("list", help="List available agents and their options")
