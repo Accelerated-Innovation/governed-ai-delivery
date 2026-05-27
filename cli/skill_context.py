@@ -5,13 +5,14 @@
 # you may not use this file except in compliance with the License.
 """Skill context — what skills read to adapt to the team's repo.
 
-PR 5 ships the writer; PR 6a will add the loader and refactor apply /
-stack apply to also call write_skill_context so consumers (skills in
-PR 6b/c) always see fresh facts.
+PR 5 shipped the writer. PR 6a adds the typed loader and wires apply /
+stack apply / calibrate to all keep the file fresh. Skill consumers
+(PR 6b/c) read via `load_skill_context(target) -> SkillContext`.
 
 The file lives at .govkit/skill_context.yaml alongside marker.json.
 """
 
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -25,8 +26,52 @@ _STYLE_NAME = {
     "layered-shape": "layered",
 }
 
+# Default layer-name hints per style. Skills read this to scope guidance to
+# the right folders without hardcoding architecture vocabulary themselves.
+_STYLE_LAYERS = {
+    "hexagonal": {
+        "inbound":  ["api/", "ports/inbound/"],
+        "outbound": ["adapters/", "ports/outbound/"],
+        "domain":   ["services/"],
+    },
+    "clean": {
+        "inbound":  ["Presentation/", "Api/"],
+        "outbound": ["Infrastructure/"],
+        "domain":   ["Application/", "Domain/"],
+    },
+    "layered": {
+        "inbound":  ["Controllers/"],
+        "outbound": ["Repositories/"],
+        "domain":   ["Services/"],
+    },
+    "unknown": {"inbound": [], "outbound": [], "domain": []},
+}
+
 # CI option in marker → friendlier CI id used in skill_context.
 _CI_NAME = {"github": "github-actions", "azure": "azure-pipelines"}
+
+
+@dataclass
+class SkillContext:
+    """Typed view of .govkit/skill_context.yaml for skill consumers (PR 6b/c).
+
+    Flat field shape (rather than nested dicts) so skill code that reads it
+    can stay short and obvious. `layers` and `extensions` keep their dict /
+    list shape because consumers need to iterate them.
+    """
+    architecture_style: str
+    source_root: str
+    detected_signals: list[str]
+    layers: dict[str, list[str]]
+    stack_id: str | None
+    stack_version: str | None
+    language: str | None
+    api_framework: str | None
+    unit_test: str | None
+    bdd_test: str | None
+    ci: str | None
+    llm: bool
+    extensions: list[dict] = field(default_factory=list)
 
 
 def _infer_architecture_style(profile) -> str:
@@ -43,6 +88,18 @@ def _infer_architecture_style(profile) -> str:
     return "unknown"
 
 
+def _extract_contract_paths(manifest: dict) -> list[str]:
+    """Flatten every contract_sets[].paths[] string from an extension manifest."""
+    paths: list[str] = []
+    for cs in manifest.get("contract_sets") or []:
+        if not isinstance(cs, dict):
+            continue
+        for p in cs.get("paths") or []:
+            if isinstance(p, str):
+                paths.append(p)
+    return paths
+
+
 def _extension_facts(target: Path) -> list[dict]:
     """Discover extensions and project their manifest data into a flat list
     of (id, version, capabilities, contract_paths) dicts for skill consumers."""
@@ -54,18 +111,11 @@ def _extension_facts(target: Path) -> list[dict]:
             # Skip ext with discovery errors — doctor's D013 surfaces those.
             continue
         manifest = ext.manifest or {}
-        contract_paths: list[str] = []
-        for cs in manifest.get("contract_sets") or []:
-            if not isinstance(cs, dict):
-                continue
-            for p in cs.get("paths") or []:
-                if isinstance(p, str):
-                    contract_paths.append(p)
         out.append({
             "id": ext.id,
             "version": ext.version,
             "capabilities": list(manifest.get("capabilities") or []),
-            "contract_paths": contract_paths,
+            "contract_paths": _extract_contract_paths(manifest),
         })
     return out
 
@@ -105,11 +155,13 @@ def build_skill_context(target: Path, marker: dict) -> dict:
     options = marker.get("options") or {}
     level = marker.get("level")
 
+    style = _infer_architecture_style(profile)
     return {
         "architecture": {
-            "style": _infer_architecture_style(profile),
+            "style": style,
             "source_root": "src/",  # caller may edit post-write
             "detected_signals": list(profile.detected_architecture_signals),
+            "layers": _STYLE_LAYERS.get(style, _STYLE_LAYERS["unknown"]),
         },
         "stack": _stack_facts(marker),
         "ci": _CI_NAME.get(options.get("ci"), options.get("ci")),
@@ -132,3 +184,40 @@ def write_skill_context(target: Path, marker: dict) -> Path:
         encoding="utf-8",
     )
     return out_path
+
+
+def load_skill_context(target: Path) -> SkillContext | None:
+    """Read .govkit/skill_context.yaml and return a typed SkillContext.
+
+    Returns None when the file is missing or unparseable so skills can
+    degrade gracefully at agent runtime (no exceptions propagating into
+    user-facing skill output).
+    """
+    path = target / ".govkit" / "skill_context.yaml"
+    if not path.is_file():
+        return None
+    try:
+        text = path.read_text(encoding="utf-8")
+        data = yaml.safe_load(text)
+    except (OSError, UnicodeDecodeError, yaml.YAMLError):
+        return None
+    if not isinstance(data, dict):
+        return None
+
+    arch = data.get("architecture") or {}
+    stack = data.get("stack") or {}
+    return SkillContext(
+        architecture_style=arch.get("style", "unknown"),
+        source_root=arch.get("source_root", "src/"),
+        detected_signals=list(arch.get("detected_signals") or []),
+        layers=dict(arch.get("layers") or _STYLE_LAYERS["unknown"]),
+        stack_id=stack.get("id"),
+        stack_version=stack.get("version"),
+        language=stack.get("language"),
+        api_framework=stack.get("api_framework"),
+        unit_test=stack.get("unit_test"),
+        bdd_test=stack.get("bdd_test"),
+        ci=data.get("ci"),
+        llm=bool(data.get("llm")),
+        extensions=list(data.get("extensions") or []),
+    )

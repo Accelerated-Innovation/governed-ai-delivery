@@ -155,3 +155,147 @@ class TestWriteSkillContext:
         write_skill_context(tmp_path, marker)
         data = yaml.safe_load((tmp_path / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8"))
         assert data["extensions"] == []
+
+
+# ---------------------------------------------------------------------------
+# load_skill_context — typed reader for skill consumers (PR 6b/c)
+# ---------------------------------------------------------------------------
+
+
+class TestLoadSkillContext:
+    def test_returns_skill_context_dataclass(self, tmp_path):
+        from cli.skill_context import write_skill_context, load_skill_context, SkillContext
+
+        marker = _write_marker(tmp_path)
+        write_skill_context(tmp_path, marker)
+        ctx = load_skill_context(tmp_path)
+        assert isinstance(ctx, SkillContext)
+
+    def test_returns_none_when_skill_context_yaml_missing(self, tmp_path):
+        """A target without .govkit/skill_context.yaml returns None so
+        callers (skills) can degrade gracefully — no crash."""
+        from cli.skill_context import load_skill_context
+
+        assert load_skill_context(tmp_path) is None
+
+    def test_returns_none_when_no_govkit_dir(self, tmp_path):
+        from cli.skill_context import load_skill_context
+
+        assert load_skill_context(tmp_path) is None
+
+    def test_returns_none_for_malformed_yaml(self, tmp_path):
+        """If the file exists but is broken YAML, return None rather than
+        propagating an exception into a skill at agent runtime."""
+        from cli.skill_context import load_skill_context
+
+        (tmp_path / ".govkit").mkdir()
+        (tmp_path / ".govkit" / "skill_context.yaml").write_text(
+            "not: valid: yaml: here:\n  - [unbalanced", encoding="utf-8",
+        )
+        assert load_skill_context(tmp_path) is None
+
+    def test_typed_fields_match_yaml_payload(self, tmp_path):
+        from cli.skill_context import write_skill_context, load_skill_context
+
+        marker = _write_marker(tmp_path)
+        write_skill_context(tmp_path, marker)
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.architecture_style == "unknown"
+        assert ctx.stack_id == "python-fastapi"
+        assert ctx.language == "python"
+        assert ctx.api_framework == "fastapi"
+        assert ctx.unit_test == "pytest"
+        assert ctx.ci == "github-actions"
+        assert ctx.llm is False
+        assert ctx.extensions == []
+
+    def test_layers_reflects_architecture_style(self, tmp_path):
+        """The loader exposes a `layers` dict mapping inbound/outbound/domain
+        to folder hints. Hexagonal repos get hexagonal layer names."""
+        from cli.skill_context import write_skill_context, load_skill_context
+
+        marker = _write_marker(tmp_path)
+        # Hexagonal signals
+        (tmp_path / "src" / "ports").mkdir(parents=True)
+        (tmp_path / "src" / "adapters").mkdir(parents=True)
+        write_skill_context(tmp_path, marker)
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.architecture_style == "hexagonal"
+        assert isinstance(ctx.layers, dict)
+        # The loader should expose at least inbound/outbound/domain keys.
+        assert "inbound" in ctx.layers
+        assert "outbound" in ctx.layers
+        assert "domain" in ctx.layers
+
+    def test_apply_writes_skill_context_yaml(self, tmp_path, monkeypatch):
+        """PR 6a: cmd_apply must call write_skill_context so the file exists
+        from day one — skills shouldn't have to wait for calibrate to run."""
+        import argparse
+        from cli.govkit import cmd_apply, AGENTS_DIR
+        from cli.skill_context import load_skill_context
+
+        target = tmp_path / "project"
+        target.mkdir()
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target),
+            level="4", type="api", ci="github",
+            stack="python-fastapi", force=False, detect=False,
+        ))
+
+        ctx = load_skill_context(target)
+        assert ctx is not None
+        assert ctx.stack_id == "python-fastapi"
+        assert ctx.language == "python"
+
+    def test_stack_apply_refreshes_skill_context_yaml(self, tmp_path):
+        """PR 6a: cmd_stack_apply must rewrite skill_context.yaml so the
+        stack swap is reflected immediately for any skill that consults it."""
+        import argparse
+        from cli.govkit import cmd_apply, cmd_stack_apply
+        from cli.skill_context import load_skill_context
+
+        target = tmp_path / "project"
+        target.mkdir()
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target),
+            level="4", type="api", ci="github",
+            stack="python-fastapi", force=False, detect=False,
+        ))
+        before = load_skill_context(target)
+        assert before.stack_id == "python-fastapi"
+
+        cmd_stack_apply(argparse.Namespace(
+            stack_id="dotnet-aspnet", target=str(target), force=False,
+        ))
+
+        after = load_skill_context(target)
+        assert after is not None
+        assert after.stack_id == "dotnet-aspnet"
+        assert after.language == "csharp"
+        assert after.api_framework == "aspnet-core"
+
+    def test_extensions_carry_capability_lists(self, tmp_path):
+        from cli.skill_context import write_skill_context, load_skill_context
+
+        marker = _write_marker(tmp_path)
+        ext_dir = tmp_path / "extensions" / "test-ext"
+        ext_dir.mkdir(parents=True)
+        (ext_dir / "manifest.yaml").write_text(
+            "id: test-ext\nname: Test\nversion: 0.2.0\nextension_type: architecture\n"
+            "contract_sets:\n  - id: x\n    description: x\n    paths: []\n"
+            "capabilities:\n  - agent-runtime\n  - human-approval\n",
+            encoding="utf-8",
+        )
+        write_skill_context(tmp_path, marker)
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert len(ctx.extensions) == 1
+        ext = ctx.extensions[0]
+        assert ext["id"] == "test-ext"
+        assert ext["version"] == "0.2.0"
+        assert "agent-runtime" in ext["capabilities"]
+        assert "human-approval" in ext["capabilities"]

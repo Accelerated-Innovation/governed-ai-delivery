@@ -873,10 +873,13 @@ def cmd_apply(args: argparse.Namespace) -> None:
     report_extensions(target)
 
     # PR 1 / Chunk E: write the setup review file and print the checklist.
+    # PR 6a: also refresh .govkit/skill_context.yaml so skills see fresh facts.
     new_marker = read_govkit_marker(target)
     if new_marker is not None:
         from .setup_review import write_setup_review, print_review_checklist
+        from .skill_context import write_skill_context
         write_setup_review(target, new_marker)
+        write_skill_context(target, new_marker)
         print_review_checklist(target, new_marker)
 
     print(f"\nDone. '{args.agent}' spec kit applied to {target}")
@@ -984,7 +987,9 @@ def cmd_stack_apply(args: argparse.Namespace) -> None:
     new_marker = read_govkit_marker(target)
     if new_marker is not None:
         from .setup_review import write_setup_review, print_review_checklist
+        from .skill_context import write_skill_context
         write_setup_review(target, new_marker)
+        write_skill_context(target, new_marker)
         print_review_checklist(target, new_marker)
 
     print(f"\nDone. Stack '{overlay.id}' applied to {target}")
@@ -1203,10 +1208,13 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     write_govkit_marker(target, agent, stored_level, options)
 
     # PR 1 / Chunk E: refresh the setup review file and print the checklist.
+    # PR 6a: also refresh .govkit/skill_context.yaml so skills see fresh facts.
     new_marker = read_govkit_marker(target)
     if new_marker is not None:
         from .setup_review import write_setup_review, print_review_checklist
+        from .skill_context import write_skill_context
         write_setup_review(target, new_marker)
+        write_skill_context(target, new_marker)
         print_review_checklist(target, new_marker)
 
     print(f"\nDone. '{agent}' upgraded to govkit {_GOVKIT_VERSION} at {target}")
