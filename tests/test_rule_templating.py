@@ -130,6 +130,44 @@ class TestExpandRuleTemplate:
 
         assert expand_rule_template("", {}) == ""
 
+    def test_copilot_applyto_template_expands_to_comma_string(self):
+        """Copilot rules use `applyTo:` (single string with comma-separated
+        globs), not `paths:` (list). The templating helper handles both."""
+        from cli.rule_templating import expand_rule_template
+
+        text = (
+            "---\n"
+            "applyTo_template: layers.inbound\n"
+            "---\n"
+            "# Inbound rule body\n"
+        )
+        layers = {"inbound": ["api/", "Controllers/"]}
+        out = expand_rule_template(text, layers)
+        assert "applyTo_template:" not in out
+        # applyTo is a single string with comma-separated globs.
+        fm = yaml.safe_load(out.split("---", 2)[1])
+        assert "applyTo" in fm
+        assert "**/api/**" in fm["applyTo"]
+        assert "**/Controllers/**" in fm["applyTo"]
+        assert "," in fm["applyTo"]
+
+    def test_copilot_applyto_fallback_preserved_when_layer_empty(self):
+        from cli.rule_templating import expand_rule_template
+
+        text = (
+            "---\n"
+            "applyTo_template: layers.inbound\n"
+            'applyTo: "**/api/**"\n'
+            "---\n"
+        )
+        layers = {"inbound": []}
+        out = expand_rule_template(text, layers)
+        fm = yaml.safe_load(out.split("---", 2)[1])
+        # Fallback survives intact.
+        assert fm["applyTo"] == "**/api/**"
+        # Template directive removed.
+        assert "applyTo_template:" not in out
+
     def test_strips_trailing_slash_from_layer_hint(self):
         """Layer hints come in like 'api/' or 'Controllers/'. The expansion
         normalises to `**/api/**` style globs — trailing slash is dropped."""

@@ -230,6 +230,7 @@ def copy_entry(
     force: bool = False,
     header_baseline: str | None = None,
     header_see: str = "GOVKIT_SETUP_REVIEW.md",
+    exclude_basenames: set[str] | None = None,
 ) -> None:
     """Copy a file or directory tree.
 
@@ -244,10 +245,17 @@ def copy_entry(
     refreshed) afterwards. Used by governed/shared paths in apply/upgrade so
     doc baselines stay in sync. Files skipped (existed when skip_existing was
     set, or refused by edit-protection) do not get the header touched.
+
+    Exclusion (PR 6c): when `exclude_basenames` is supplied, files whose
+    basename matches are silently skipped. Used by L5-only governed docs
+    (AGENT_ARCHITECTURE.md, LLM_GATEWAY_CONTRACT.md, etc.) to keep them
+    out of L3/L4 installs without restructuring the source tree.
     """
     if not src.exists():
         print(f"Error: source path does not exist: {src}")
         sys.exit(1)
+    if exclude_basenames and src.name in exclude_basenames and src.is_file():
+        return
     if src.is_dir():
         dest.mkdir(parents=True, exist_ok=True)
         for item in src.iterdir():
@@ -258,6 +266,7 @@ def copy_entry(
                 force=force,
                 header_baseline=header_baseline,
                 header_see=header_see,
+                exclude_basenames=exclude_basenames,
             )
     else:
         if skip_existing and dest.exists():
@@ -281,6 +290,30 @@ def copy_entry(
         if header_baseline is not None:
             from .headers import prepend_header_to_file
             prepend_header_to_file(dest, baseline=header_baseline, see=header_see)
+
+
+# PR 6c: L5-only architecture docs. These live in docs/backend/architecture/
+# alongside the universal baseline files for repo-self-governance purposes,
+# but they must NOT install at L3/L4 — doctor D007 (LLM-leakage in non-L5)
+# is the canary. Future PR may relocate these into a separate dir and drop
+# the exclusion machinery.
+_L5_ONLY_GOVERNED_BASENAMES: set[str] = {
+    "AGENT_ARCHITECTURE.md",
+    "LLM_GATEWAY_CONTRACT.md",
+    "GUARDRAILS_CONTRACT.md",
+    "OBSERVABILITY_LLM_CONTRACT.md",
+    "EVALUATION_LLM_CONTRACT.md",
+}
+
+
+def _exclude_for_level(level: str) -> set[str] | None:
+    """Return basenames to exclude from governed copy at this level.
+
+    None at L5 (everything ships); the L5-only set at L3/L4.
+    """
+    if level == "5":
+        return None
+    return _L5_ONLY_GOVERNED_BASENAMES
 
 
 # ---------------------------------------------------------------------------
@@ -725,6 +758,10 @@ def cmd_apply(args: argparse.Namespace) -> None:
             dest = target / entry["dest"]
             copy_entry(src, dest)
 
+        # PR 6c: at L3/L4, L5-only architecture docs (AGENT_ARCHITECTURE.md,
+        # LLM_*_CONTRACT.md) are excluded from the governed copy.
+        l5_exclude = _exclude_for_level(level)
+
         print("\nGoverned contracts (skip if present):")
         for governed_path in governed:
             if governed_path.startswith("features/"):
@@ -737,6 +774,7 @@ def cmd_apply(args: argparse.Namespace) -> None:
                 applied_at=prior_applied_at,
                 force=force,
                 header_baseline=baseline,
+                exclude_basenames=l5_exclude,
             )
 
         print("\nShared governance:")
@@ -751,6 +789,7 @@ def cmd_apply(args: argparse.Namespace) -> None:
                 applied_at=prior_applied_at,
                 force=force,
                 header_baseline=baseline,
+                exclude_basenames=l5_exclude,
             )
 
         # L3 (Foundations) ships agent rules + architecture contracts only.
@@ -1184,6 +1223,9 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
         dest = target / entry["dest"]
         copy_entry(src, dest)
 
+    # PR 6c: keep L5-only docs out of L3/L4 upgrades too.
+    l5_exclude = _exclude_for_level(stored_level)
+
     print("\nGoverned contracts (refreshed, edit-protected):")
     for governed_path in governed:
         if governed_path.startswith("features/"):
@@ -1195,6 +1237,7 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
             applied_at=prior_applied_at,
             force=args.force,
             header_baseline=baseline,
+            exclude_basenames=l5_exclude,
         )
 
     print("\nShared governance (skip if present):")
@@ -1209,6 +1252,7 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
             applied_at=prior_applied_at,
             force=args.force,
             header_baseline=baseline,
+            exclude_basenames=l5_exclude,
         )
 
     write_govkit_marker(target, agent, stored_level, options)

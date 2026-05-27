@@ -28,8 +28,15 @@ from pathlib import Path
 import yaml
 
 
-_TEMPLATE_KEY = "paths_template"
-_PATHS_KEY = "paths"
+# Each agent uses its own frontmatter shape:
+#   claude-code → paths_template: layers.<k>  →  paths: [<globs>]      (list)
+#   copilot     → applyTo_template: layers.<k>→  applyTo: "<glob,...>" (string)
+# _TEMPLATE_SCHEMAS encodes the per-key (template_key, output_key, list_vs_string)
+# so the helper can handle both shapes from one entry point.
+_TEMPLATE_SCHEMAS: list[tuple[str, str, str]] = [
+    ("paths_template", "paths", "list"),
+    ("applyTo_template", "applyTo", "comma-string"),
+]
 
 # Where each agent's rule files land. Codex uses nested AGENTS.md placement —
 # no glob frontmatter, so nothing to template.
@@ -41,11 +48,16 @@ _RULES_DIRS_BY_AGENT: dict[str, list[str]] = {
 
 
 def expand_rule_template(text: str, layers: dict[str, list[str]]) -> str:
-    """Expand `paths_template: layers.<key>` in a rule file's frontmatter.
+    """Expand any `<key>_template: layers.<k>` directive in a rule file's
+    frontmatter.
 
-    Returns the rewritten file text. Files without `paths_template:` come
-    through unchanged. Files where the template resolves to non-empty
-    layer hints get a `paths:` block that replaces any fallback.
+    Handles both supported schemas:
+      - `paths_template:`   → writes `paths:`   (list)        — claude-code
+      - `applyTo_template:` → writes `applyTo:` (comma-string) — copilot
+
+    Files with no template directive come through unchanged. Files where
+    the template resolves to non-empty layer hints get the output key
+    replaced; empty layer hints leave any existing fallback intact.
     """
     if not text or not text.startswith("---"):
         return text
@@ -62,16 +74,23 @@ def expand_rule_template(text: str, layers: dict[str, list[str]]) -> str:
     if not isinstance(fm, dict):
         return text
 
-    template_ref = fm.get(_TEMPLATE_KEY)
-    if not isinstance(template_ref, str):
-        return text
+    changed = False
+    for template_key, output_key, kind in _TEMPLATE_SCHEMAS:
+        ref = fm.get(template_key)
+        if not isinstance(ref, str):
+            continue
+        globs = _expand_template_ref(ref, layers)
+        fm.pop(template_key, None)
+        changed = True
+        if not globs:
+            continue  # fallback (existing `paths:` / `applyTo:`) survives
+        if kind == "list":
+            fm[output_key] = globs
+        else:  # "comma-string"
+            fm[output_key] = ",".join(globs)
 
-    expanded = _expand_template_ref(template_ref, layers)
-    # Drop the template directive so apply doesn't re-process this file.
-    fm.pop(_TEMPLATE_KEY, None)
-    if expanded:
-        fm[_PATHS_KEY] = expanded
-    # Else: leave `paths:` untouched (fallback preserved).
+    if not changed:
+        return text
 
     new_fm_text = yaml.safe_dump(fm, sort_keys=False, default_flow_style=False).rstrip("\n")
     return f"---\n{new_fm_text}\n---{body}"

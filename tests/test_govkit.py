@@ -1165,6 +1165,99 @@ class TestCopyEntryEditProtection:
         assert "new b" in (dest_dir / "b.md").read_text(encoding="utf-8")
 
 
+class TestCopyEntryExcludeBasenames:
+    """copy_entry with exclude_basenames skips matching files. Used by
+    cmd_apply (PR 6c) to keep L5-only architecture docs out of L3/L4 installs."""
+
+    def test_excludes_named_files_at_root(self, tmp_path):
+        from cli.govkit import copy_entry
+
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "keep.md").write_text("k", encoding="utf-8")
+        (src / "drop.md").write_text("d", encoding="utf-8")
+        dest = tmp_path / "dest"
+
+        copy_entry(src, dest, exclude_basenames={"drop.md"})
+
+        assert (dest / "keep.md").is_file()
+        assert not (dest / "drop.md").exists()
+
+    def test_excludes_named_files_in_nested_dirs(self, tmp_path):
+        from cli.govkit import copy_entry
+
+        src = tmp_path / "src"
+        sub = src / "nested"
+        sub.mkdir(parents=True)
+        (sub / "AGENT_ARCHITECTURE.md").write_text("x", encoding="utf-8")
+        (sub / "BOUNDARIES.md").write_text("b", encoding="utf-8")
+        dest = tmp_path / "dest"
+
+        copy_entry(src, dest, exclude_basenames={"AGENT_ARCHITECTURE.md"})
+
+        assert (dest / "nested" / "BOUNDARIES.md").is_file()
+        assert not (dest / "nested" / "AGENT_ARCHITECTURE.md").exists()
+
+    def test_exclude_none_preserves_default_behaviour(self, tmp_path):
+        from cli.govkit import copy_entry
+
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "a.md").write_text("a", encoding="utf-8")
+        (src / "b.md").write_text("b", encoding="utf-8")
+        dest = tmp_path / "dest"
+
+        copy_entry(src, dest)
+        assert (dest / "a.md").is_file()
+        assert (dest / "b.md").is_file()
+
+
+class TestL5OnlyGovernedExclusion:
+    """cmd_apply at L3/L4 must NOT install L5-only architecture contracts
+    (AGENT_ARCHITECTURE.md, LLM_GATEWAY_CONTRACT.md, etc.). L5 installs DO
+    get them. This is what makes doctor's D007 quiet on fresh L4 installs."""
+
+    def test_l4_apply_excludes_llm_contracts_from_governed(self, tmp_path, monkeypatch):
+        import argparse
+        from cli.govkit import cmd_apply
+
+        target = tmp_path / "project"
+        target.mkdir()
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target),
+            level="4", type="api", ci="github",
+            stack="python-fastapi", force=False, detect=False,
+        ))
+
+        arch = target / "docs" / "backend" / "architecture"
+        for l5_only in (
+            "AGENT_ARCHITECTURE.md",
+            "LLM_GATEWAY_CONTRACT.md",
+            "GUARDRAILS_CONTRACT.md",
+            "OBSERVABILITY_LLM_CONTRACT.md",
+            "EVALUATION_LLM_CONTRACT.md",
+        ):
+            assert not (arch / l5_only).exists(), \
+                f"L4 install must not ship {l5_only}; doctor D007 will leak"
+
+    def test_l5_apply_includes_llm_contracts(self, tmp_path, monkeypatch):
+        import argparse
+        from cli.govkit import cmd_apply
+
+        target = tmp_path / "project"
+        target.mkdir()
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target),
+            level="5", type="api", ci="github",
+            stack="python-fastapi", force=False, detect=False,
+        ))
+
+        arch = target / "docs" / "backend" / "architecture"
+        assert (arch / "AGENT_ARCHITECTURE.md").is_file()
+        assert (arch / "LLM_GATEWAY_CONTRACT.md").is_file()
+        assert (arch / "GUARDRAILS_CONTRACT.md").is_file()
+
+
 class TestCopyEntryHeaderInjection:
     """copy_entry with header_baseline prepends the govkit:editable header
     after each successful .md copy. Used by governed/shared paths in apply

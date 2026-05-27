@@ -80,79 +80,9 @@ docs/backend/architecture/API_CONVENTIONS.md
 
 ---
 
-# 4. Agent Frameworks
-
-This repository supports AI-driven features.
-
-Approved orchestration frameworks:
-```
-LangGraph
-LangChain (limited use)
-```
-
-
-### LangGraph
-
-Primary framework for agent orchestration.
-
-Used for:
-
-- multi-step reasoning
-- tool execution
-- stateful workflows
-- deterministic agent graphs
-
-### LangChain
-
-Allowed for:
-
-- model wrappers
-- prompt templates
-- lightweight utilities
-
-Avoid using LangChain for complex orchestration.
-
-### Decision Matrix
-
-| Scenario | Use | Reason |
-|---|---|---|
-| Single LLM call with structured output | Direct provider SDK (Anthropic, OpenAI) | No orchestration needed; avoids unnecessary abstraction |
-| Prompt template with variable substitution | LangChain `PromptTemplate` | Lightweight utility; no orchestration |
-| Sequential tool calls (> 2 steps) | LangGraph | Stateful graph manages step ordering and error recovery |
-| Branching logic based on LLM output | LangGraph | Conditional edges are a graph concern, not a chain concern |
-| Multi-turn conversation with memory | LangGraph | State persistence across turns requires graph checkpointing |
-| Parallel tool execution | LangGraph | Fan-out/fan-in is a graph pattern |
-| Simple model wrapper (retry, fallback) | LangChain or direct SDK | Either is acceptable; prefer direct SDK for fewer dependencies |
-| RAG pipeline (retrieve → augment → generate) | LangGraph if > 2 steps; direct SDK if simple | Simple RAG can be a single function; complex RAG benefits from graph structure |
-
-**Default rule:** If the task requires more than two sequential LLM interactions or any branching, use LangGraph. Otherwise, prefer the direct provider SDK.
-
----
-
-# 4a. LLM Gateway (Level 5)
-
-Approved LLM gateway:
-```
-LiteLLM
-```
-
-**LiteLLM is the sole LLM gateway.** All LLM completion and chat requests must route through LiteLLM. No direct provider SDK calls are permitted for inference.
-
-LiteLLM provides:
-
-- Model routing and provider abstraction
-- Fallback chains and retry logic
-- Cost tracking and budget enforcement
-- Rate limiting and load balancing
-
-Rules:
-
-- LiteLLM client lives in `adapters/llm/` — an outbound adapter
-- Domain services call `LLMPort`, never LiteLLM directly
-- Provider SDKs (`openai`, `anthropic`) must not be imported outside `adapters/llm/`
-- When using LangGraph/LangChain, LLM calls must route through LiteLLM
-
-Full contract: `docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
+<!-- §4 Agent Frameworks, §4a LLM Gateway moved to AGENT_ARCHITECTURE.md
+     (L5-only). See `docs/backend/architecture/AGENT_ARCHITECTURE.md`
+     under "Approved LLM Tooling — moved from TECH_STACK". -->
 
 ---
 
@@ -289,29 +219,7 @@ Evaluation includes:
 
 ---
 
-# 10a. LLM Evaluation (Level 5)
-
-Approved LLM evaluation tools:
-```
-DeepEval      — feature-level quality evaluation (dev + CI)
-Promptfoo     — adversarial and regression testing (CI)
-RAGAS         — retrieval-specific evaluation (CI, RAG features only)
-```
-
-| Tool | Sole Responsibility |
-|------|-------------------|
-| DeepEval | Quality metrics: faithfulness, answer relevancy, hallucination, contextual relevancy |
-| Promptfoo | Safety metrics: jailbreak resistance, prompt injection, adversarial robustness |
-| RAGAS | Retrieval metrics: context recall, context precision, answer correctness |
-
-Rules:
-
-- DeepEval is required for all features with `mode: llm`
-- Promptfoo is required for user-facing features or features processing untrusted input
-- RAGAS is required only for RAG (retrieval-augmented generation) features
-- These tools complement FIRST/Virtues — they do not replace them
-
-Full contract: `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
+<!-- §10a LLM Evaluation moved to AGENT_ARCHITECTURE.md (L5-only). -->
 
 ---
 
@@ -365,49 +273,8 @@ An outbound port (`ObservabilityPort`) must abstract logging and tracing from th
 - Adapter implements the port using `structlog` + OpenTelemetry
 - This keeps the domain layer infrastructure-agnostic (per architecture contract)
 
-### LLM Observability (Level 5)
-
-Approved LLM-specific observability:
-```
-OpenLLMetry    — LLM telemetry emission (auto-instruments LiteLLM)
-Langfuse       — trace storage, prompt versioning, production dashboards
-```
-
-| Tool | Role |
-|------|------|
-| OpenLLMetry | Emits OpenTelemetry spans with LLM-specific attributes (model, tokens, cost, latency) |
-| Langfuse | Receives and stores traces, provides prompt management, evaluation dashboards |
-
-Rules:
-
-- OpenLLMetry and Langfuse SDK imports restricted to `adapters/observability/`
-- OpenLLMetry auto-instruments LiteLLM at startup — no manual span creation for LLM calls
-- Langfuse replaces LangSmith and Arize from the previous stack
-
-Full contract: `docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md`
-
----
-
-# 11a. Runtime Guardrails (Level 5)
-
-Approved guardrail tools:
-```
-NeMo Guardrails    — conversational safety (dialog flow, topic boundaries, jailbreak prevention)
-Guardrails AI      — structured output validation (schema enforcement on LLM responses)
-```
-
-| Tool | Sole Responsibility |
-|------|-------------------|
-| NeMo Guardrails | Behavioral safety — what the LLM is allowed to discuss and how |
-| Guardrails AI | Structural correctness — whether LLM output matches the expected schema |
-
-Rules:
-
-- Both tools live in `adapters/guardrails/`
-- Neither may be imported in domain or service layers
-- Guardrail mode (`nemo`, `guardrails-ai`, `both`, `none`) is declared in architecture preflight
-
-Full contract: `docs/backend/architecture/GUARDRAILS_CONTRACT.md`
+<!-- §11 LLM Observability subsection and §11a Runtime Guardrails moved
+     to AGENT_ARCHITECTURE.md (L5-only). -->
 
 ---
 

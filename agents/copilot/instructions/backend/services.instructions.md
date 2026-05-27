@@ -1,4 +1,5 @@
 ---
+applyTo_template: layers.domain
 applyTo: "**/services/**"
 ---
 
