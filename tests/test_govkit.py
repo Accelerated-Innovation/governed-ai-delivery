@@ -136,6 +136,22 @@ class TestLoadManifest:
         with pytest.raises(SystemExit):
             load_manifest("incomplete")
 
+    def test_loads_legacy_flat_manifest(self, tmp_path, monkeypatch):
+        """A flat (legacy) manifest declares `files` instead of `variants`.
+        cmd_apply still has an _apply_legacy_install branch for these, so the
+        loader must accept them rather than sys.exit on the missing `variants`."""
+        agent = tmp_path / "legacy-agent"
+        agent.mkdir()
+        (agent / "manifest.json").write_text(
+            '{"agent": "legacy-agent", "files": [{"src": "a.md", "dest": "A.md"}]}',
+            encoding="utf-8",
+        )
+        monkeypatch.setattr("cli.paths.AGENTS_DIR", tmp_path)
+        m = load_manifest("legacy-agent")
+        assert m["agent"] == "legacy-agent"
+        assert "variants" not in m
+        assert "files" in m
+
 
 # ---------------------------------------------------------------------------
 # resolve_options

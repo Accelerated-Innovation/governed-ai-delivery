@@ -31,10 +31,15 @@ def load_manifest(agent: str) -> dict:
     except json.JSONDecodeError as e:
         print(f"Error: invalid JSON in {manifest_path}: {e}")
         sys.exit(1)
-    required_keys = {"agent", "variants"}
-    missing = required_keys - manifest.keys()
-    if missing:
-        print(f"Error: manifest for '{agent}' missing required keys: {', '.join(sorted(missing))}")
+    # A manifest must name its agent and declare an install set in one of the
+    # two supported formats: `variants` (the post-v0.6 variant format used by
+    # the production agents) or `files` (the legacy flat format still honored by
+    # cmd_apply's _apply_legacy_install path for custom/older agents).
+    if "agent" not in manifest or not ({"variants", "files"} & manifest.keys()):
+        print(
+            f"Error: manifest for '{agent}' must define 'agent' and either "
+            f"'variants' (variant format) or 'files' (legacy flat format)."
+        )
         sys.exit(1)
     return manifest
 
