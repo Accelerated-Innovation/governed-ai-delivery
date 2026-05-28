@@ -379,6 +379,16 @@ def read_govkit_marker(target: Path) -> dict | None:
     Each warning is independently suppressible via env var.
     """
     marker_node = target / MARKER_DIRNAME
+    # Recovery: if a prior migration crashed after backing up the legacy file
+    # but before renaming the new dir into place, restore the backup as the
+    # legacy file so the normal legacy-read branch below picks it up.
+    backup_node = target / ".govkit.legacy.bak"
+    if backup_node.is_file() and not marker_node.exists():
+        try:
+            backup_node.rename(marker_node)
+        except OSError:
+            pass
+
     if not marker_node.exists():
         return None
 
@@ -402,22 +412,59 @@ def read_govkit_marker(target: Path) -> dict | None:
         except (json.JSONDecodeError, OSError):
             return None
         _maybe_warn_directory_migration()
-        # Best-effort auto-migration to .govkit/marker.json. If the migration
-        # fails (read-only fs, permissions), we still return data — next read
-        # will retry.
-        try:
-            marker_node.unlink()
-            marker_node.mkdir(parents=True, exist_ok=True)
-            (marker_node / MARKER_FILENAME).write_text(
-                json.dumps(data, indent=2) + "\n", encoding="utf-8"
-            )
-        except OSError:
-            pass
+        _migrate_legacy_marker_to_directory(target, marker_node, data)
         _maybe_warn_migration(data.get("version"))
         _maybe_warn_shape_migration(data.get("options"))
         return data
 
     return None
+
+
+def _migrate_legacy_marker_to_directory(target: Path, marker_node: Path, data: dict) -> None:
+    """Best-effort, durable migration from legacy single-file .govkit to
+    .govkit/marker.json. Sequence is ordered so a crash at any step leaves
+    the repo with a recoverable marker (legacy file OR backup), never nothing.
+
+    Sequence:
+      1. Remove any stale .govkit.migrate.tmp/ from a prior failed attempt.
+      2. Write new marker.json into .govkit.migrate.tmp/.
+      3. Move the legacy file to .govkit.legacy.bak (atomic on POSIX/NTFS).
+      4. Move .govkit.migrate.tmp/ into .govkit/ (the now-vacant slot).
+      5. Delete .govkit.legacy.bak (best-effort; harmless leftover if it stays).
+
+    A failure between (3) and (4) leaves the backup on disk; the recovery
+    branch at the top of read_govkit_marker restores it on the next read.
+    Failures elsewhere leave the legacy file intact.
+    """
+    tmp_dir = target / ".govkit.migrate.tmp"
+    backup = target / ".govkit.legacy.bak"
+    try:
+        if tmp_dir.exists():
+            shutil.rmtree(tmp_dir)
+        tmp_dir.mkdir(parents=True)
+        (tmp_dir / MARKER_FILENAME).write_text(
+            json.dumps(data, indent=2) + "\n", encoding="utf-8",
+        )
+        # Drop any orphan backup from a prior crash before we create a new one.
+        if backup.exists():
+            try:
+                backup.unlink()
+            except OSError:
+                pass
+        marker_node.rename(backup)        # legacy file → backup
+        tmp_dir.rename(marker_node)       # tmp dir   → final .govkit/
+        try:
+            backup.unlink()               # cleanup; safe to leave if this fails
+        except OSError:
+            pass
+    except OSError:
+        # Best-effort cleanup so we don't accrue migrate.tmp dirs on retry.
+        if tmp_dir.exists():
+            try:
+                shutil.rmtree(tmp_dir)
+            except OSError:
+                pass
+        return
 
 
 def write_govkit_marker(

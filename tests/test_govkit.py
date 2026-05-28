@@ -886,6 +886,116 @@ class TestMarkerDirectoryLayout:
         assert read_govkit_level(tmp_path) == "5"
 
 
+class TestMarkerMigrationDurability:
+    """Legacy-file → directory migration must never leave the repo with no
+    marker. The original sequence (unlink → mkdir → write) could lose the
+    marker entirely if the mkdir or write failed after the unlink. The fix
+    writes to a temp dir first, backs up the legacy file, then swaps —
+    failures leave either the legacy intact or a recoverable backup.
+    """
+
+    _LEGACY_PAYLOAD = {
+        "version": "0.9.0",
+        "level": "4",
+        "agent": "claude-code",
+        "options": {"type": "api", "ci": "github"},
+        "applied_at": "2026-04-01T00:00:00+00:00",
+    }
+
+    def _seed_legacy(self, tmp_path):
+        import cli.govkit as mod
+        mod._reset_directory_migration_warning()
+        mod._reset_migration_warning()
+        mod._reset_shape_migration_warning()
+        (tmp_path / ".govkit").write_text(json.dumps(self._LEGACY_PAYLOAD), encoding="utf-8")
+
+    def test_stale_migrate_tmp_from_prior_failed_attempt_is_cleaned_up(self, tmp_path, monkeypatch):
+        """A previous migration attempt that crashed leaves .govkit.migrate.tmp/
+        behind. The next read must clean it up and successfully migrate."""
+        import cli.govkit as mod
+        monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
+        self._seed_legacy(tmp_path)
+
+        stale_tmp = tmp_path / ".govkit.migrate.tmp"
+        stale_tmp.mkdir()
+        (stale_tmp / "marker.json").write_text('{"garbage": "from prior failed migration"}', encoding="utf-8")
+        (stale_tmp / "extra_file.txt").write_text("noise", encoding="utf-8")
+
+        data = mod.read_govkit_marker(tmp_path)
+
+        assert data is not None
+        assert data["agent"] == "claude-code"
+        assert (tmp_path / ".govkit").is_dir()
+        assert (tmp_path / ".govkit" / "marker.json").is_file()
+        roundtrip = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
+        assert roundtrip["agent"] == "claude-code"
+        # Stale tmp must be gone after a successful migration.
+        assert not stale_tmp.exists()
+
+    def test_migration_failure_leaves_legacy_marker_intact_and_returns_data(self, tmp_path, monkeypatch):
+        """If the migration write/rename fails mid-flight, the original .govkit
+        file must still exist (or a recoverable backup must) AND the function
+        must still return the parsed legacy data. The repo must never end up
+        with no marker."""
+        import cli.govkit as mod
+        from pathlib import Path
+        monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
+        self._seed_legacy(tmp_path)
+        legacy_path = tmp_path / ".govkit"
+        assert legacy_path.is_file()
+
+        # Force the rename step to fail (simulates disk full, permission
+        # denied, interrupted process, etc.).
+        original_rename = Path.rename
+
+        def failing_rename(self, target):
+            # Trip the failure on any rename whose target is inside our tmp_path
+            # — this fires for both the legacy→backup and tmp→final renames.
+            if str(tmp_path) in str(target) or str(tmp_path) in str(self):
+                raise OSError("simulated rename failure")
+            return original_rename(self, target)
+
+        monkeypatch.setattr(Path, "rename", failing_rename)
+
+        data = mod.read_govkit_marker(tmp_path)
+
+        # Contract: caller must still get the data — migration is best-effort.
+        assert data is not None
+        assert data["agent"] == "claude-code"
+        assert data["level"] == "4"
+
+        # Contract: SOMEWHERE on disk there's still a recoverable marker.
+        # Either the legacy file is still there, or a backup is.
+        legacy_still_there = legacy_path.is_file()
+        backup_exists = (tmp_path / ".govkit.legacy.bak").is_file()
+        assert legacy_still_there or backup_exists, (
+            "migration failure left no recoverable marker on disk — repo is bricked"
+        )
+
+    def test_orphan_backup_restored_on_next_read(self, tmp_path, monkeypatch):
+        """If a prior migration crashed AFTER moving legacy → backup but BEFORE
+        the new directory was renamed into place, the only thing on disk is
+        .govkit.legacy.bak. The next read must recover from it."""
+        import cli.govkit as mod
+        monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
+        mod._reset_directory_migration_warning()
+        mod._reset_migration_warning()
+        mod._reset_shape_migration_warning()
+
+        # No .govkit file or dir — only the backup from a half-finished migration.
+        (tmp_path / ".govkit.legacy.bak").write_text(
+            json.dumps(self._LEGACY_PAYLOAD), encoding="utf-8",
+        )
+
+        data = mod.read_govkit_marker(tmp_path)
+
+        assert data is not None
+        assert data["agent"] == "claude-code"
+        # After recovery, a normal directory layout should exist.
+        assert (tmp_path / ".govkit").is_dir()
+        assert (tmp_path / ".govkit" / "marker.json").is_file()
+
+
 class TestExtendedMarkerFields:
     """PR 1: marker carries assumptions[], stack{}, calibration{} so future
     PRs (2/3/5) can populate them without further schema migrations."""
