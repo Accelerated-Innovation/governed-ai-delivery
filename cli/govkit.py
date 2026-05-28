@@ -29,30 +29,13 @@ from __future__ import annotations
 import argparse
 
 from .calibrate import register as _register_calibrate
-from .cmd_apply import cmd_apply as cmd_apply
 from .cmd_apply import register as _register_apply
-from .cmd_init import _resolve_starter_dir as _resolve_starter_dir
-from .cmd_init import cmd_init as cmd_init
 from .cmd_init import register as _register_init
 from .cmd_list import register as _register_list
-from .cmd_stack import cmd_stack_apply as cmd_stack_apply
-from .cmd_stack import cmd_stack_list as cmd_stack_list
 from .cmd_stack import register as _register_stack
-from .cmd_upgrade import cmd_upgrade as cmd_upgrade
 from .cmd_upgrade import register as _register_upgrade
 from .cmd_validate import register as _register_validate
 from .doctor import register as _register_doctor
-from .fs import copy_entry as copy_entry
-from .fs import is_user_edited as is_user_edited
-from .manifest import load_manifest as load_manifest
-from .manifest import resolve_options as resolve_options
-from .manifest import resolve_variant_files as resolve_variant_files
-from .marker import _reset_directory_migration_warning as _reset_directory_migration_warning
-from .marker import _reset_migration_warning as _reset_migration_warning
-from .marker import _reset_shape_migration_warning as _reset_shape_migration_warning
-from .marker import read_govkit_level as read_govkit_level
-from .marker import read_govkit_marker as read_govkit_marker
-from .marker import write_govkit_marker as write_govkit_marker
 
 # Subcommand registrars. Each command module owns its argparse surface and
 # binds its handler via `set_defaults(func=...)`. Adding a command = create its

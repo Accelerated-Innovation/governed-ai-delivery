@@ -1,4 +1,4 @@
-"""Tests for cli/govkit.py — copy_entry, load_manifest, resolve_options, resolve_variant_files."""
+"""Tests for the govkit CLI: apply/upgrade flows, marker I/O, manifest resolution, and file copy."""
 
 import argparse
 import json
@@ -7,17 +7,12 @@ from pathlib import Path
 
 import pytest
 
-from cli.govkit import (
-    cmd_apply,
-    cmd_init,
-    cmd_upgrade,
-    copy_entry,
-    load_manifest,
-    read_govkit_marker,
-    resolve_options,
-    resolve_variant_files,
-    write_govkit_marker,
-)
+from cli.cmd_apply import cmd_apply
+from cli.cmd_init import cmd_init
+from cli.cmd_upgrade import cmd_upgrade
+from cli.fs import copy_entry
+from cli.manifest import load_manifest, resolve_options, resolve_variant_files
+from cli.marker import read_govkit_marker, write_govkit_marker
 from cli.version import GOVKIT_VERSION as _GOVKIT_VERSION
 
 # ---------------------------------------------------------------------------
@@ -665,7 +660,7 @@ class TestMergeMode:
 
 class TestGovkitMarker:
     def test_write_and_read_marker(self, tmp_path):
-        from cli.govkit import read_govkit_level, write_govkit_marker
+        from cli.marker import read_govkit_level, write_govkit_marker
 
         write_govkit_marker(tmp_path, "claude-code", "3", {"type": "api", "level": "3"})
         assert (tmp_path / ".govkit").exists()
@@ -673,12 +668,12 @@ class TestGovkitMarker:
         assert level == "3"
 
     def test_read_missing_marker(self, tmp_path):
-        from cli.govkit import read_govkit_level
+        from cli.marker import read_govkit_level
 
         assert read_govkit_level(tmp_path) is None
 
     def test_read_corrupt_marker(self, tmp_path):
-        from cli.govkit import read_govkit_level
+        from cli.marker import read_govkit_level
 
         (tmp_path / ".govkit").write_text("not json", encoding="utf-8")
         assert read_govkit_level(tmp_path) is None
@@ -686,7 +681,7 @@ class TestGovkitMarker:
     def test_marker_excludes_level_from_options(self, tmp_path):
         import json
 
-        from cli.govkit import write_govkit_marker
+        from cli.marker import write_govkit_marker
 
         write_govkit_marker(tmp_path, "claude-code", "3", {"type": "api", "level": "3", "ci": "github"})
         data = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
@@ -697,7 +692,7 @@ class TestGovkitMarker:
     def test_write_level_5_marker(self, tmp_path):
         import json
 
-        from cli.govkit import read_govkit_level, write_govkit_marker
+        from cli.marker import read_govkit_level, write_govkit_marker
 
         write_govkit_marker(tmp_path, "claude-code", "5", {"type": "api", "level": "5"})
         data = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
@@ -714,7 +709,7 @@ class TestMarkerDirectoryLayout:
     """
 
     def test_write_creates_directory_with_marker_json(self, tmp_path):
-        from cli.govkit import write_govkit_marker
+        from cli.marker import write_govkit_marker
 
         write_govkit_marker(tmp_path, "claude-code", "3", {"type": "api", "level": "3"})
 
@@ -724,7 +719,7 @@ class TestMarkerDirectoryLayout:
         assert marker_json.is_file(), ".govkit/marker.json must exist"
 
     def test_write_does_not_create_legacy_file(self, tmp_path):
-        from cli.govkit import write_govkit_marker
+        from cli.marker import write_govkit_marker
 
         write_govkit_marker(tmp_path, "claude-code", "3", {"type": "api", "level": "3"})
 
@@ -733,7 +728,7 @@ class TestMarkerDirectoryLayout:
         assert not (tmp_path / ".govkit").is_file(), ".govkit must not be a single file"
 
     def test_read_new_directory_layout_returns_payload(self, tmp_path):
-        from cli.govkit import read_govkit_marker, write_govkit_marker
+        from cli.marker import read_govkit_marker, write_govkit_marker
 
         write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
 
@@ -745,8 +740,11 @@ class TestMarkerDirectoryLayout:
 
     def test_read_legacy_file_layout_back_compat(self, tmp_path, monkeypatch):
         """A pre-existing .govkit single-file marker must still be readable."""
-        import cli.govkit as mod
-        mod._reset_directory_migration_warning()
+        from cli.marker import (
+            _reset_directory_migration_warning,
+            read_govkit_marker,
+        )
+        _reset_directory_migration_warning()
         monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
 
         legacy_payload = {
@@ -758,7 +756,7 @@ class TestMarkerDirectoryLayout:
         }
         (tmp_path / ".govkit").write_text(json.dumps(legacy_payload), encoding="utf-8")
 
-        data = mod.read_govkit_marker(tmp_path)
+        data = read_govkit_marker(tmp_path)
         assert data is not None
         assert data["agent"] == "claude-code"
         assert data["options"]["type"] == "api"
@@ -766,8 +764,11 @@ class TestMarkerDirectoryLayout:
     def test_read_legacy_file_layout_auto_migrates_to_directory(self, tmp_path, monkeypatch):
         """After reading a legacy file marker, the directory layout must exist
         and the legacy file must be gone."""
-        import cli.govkit as mod
-        mod._reset_directory_migration_warning()
+        from cli.marker import (
+            _reset_directory_migration_warning,
+            read_govkit_marker,
+        )
+        _reset_directory_migration_warning()
         monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
 
         legacy_payload = {
@@ -781,7 +782,7 @@ class TestMarkerDirectoryLayout:
         legacy_path.write_text(json.dumps(legacy_payload), encoding="utf-8")
         assert legacy_path.is_file()
 
-        mod.read_govkit_marker(tmp_path)
+        read_govkit_marker(tmp_path)
 
         marker_dir = tmp_path / ".govkit"
         assert marker_dir.is_dir(), "directory layout must be created on read"
@@ -792,10 +793,15 @@ class TestMarkerDirectoryLayout:
         assert roundtrip["options"]["type"] == "api"
 
     def test_migration_warning_fires_for_legacy_file(self, tmp_path, monkeypatch, capsys):
-        import cli.govkit as mod
-        mod._reset_directory_migration_warning()
-        mod._reset_migration_warning()
-        mod._reset_shape_migration_warning()
+        from cli.marker import (
+            _reset_directory_migration_warning,
+            _reset_migration_warning,
+            _reset_shape_migration_warning,
+            read_govkit_marker,
+        )
+        _reset_directory_migration_warning()
+        _reset_migration_warning()
+        _reset_shape_migration_warning()
         monkeypatch.delenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", raising=False)
 
         legacy_payload = {
@@ -805,17 +811,22 @@ class TestMarkerDirectoryLayout:
         }
         (tmp_path / ".govkit").write_text(json.dumps(legacy_payload), encoding="utf-8")
 
-        mod.read_govkit_marker(tmp_path)
+        read_govkit_marker(tmp_path)
         err = capsys.readouterr().err
         assert "legacy single-file .govkit marker" in err
         assert "layout changed in 0.10.0" in err
         assert "GOVKIT_NO_DIRECTORY_MIGRATION_WARNING" in err
 
     def test_migration_warning_only_fires_once_per_invocation(self, tmp_path, monkeypatch, capsys):
-        import cli.govkit as mod
-        mod._reset_directory_migration_warning()
-        mod._reset_migration_warning()
-        mod._reset_shape_migration_warning()
+        from cli.marker import (
+            _reset_directory_migration_warning,
+            _reset_migration_warning,
+            _reset_shape_migration_warning,
+            read_govkit_marker,
+        )
+        _reset_directory_migration_warning()
+        _reset_migration_warning()
+        _reset_shape_migration_warning()
         monkeypatch.delenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", raising=False)
 
         legacy_payload = {
@@ -826,19 +837,24 @@ class TestMarkerDirectoryLayout:
         (tmp_path / ".govkit").write_text(json.dumps(legacy_payload), encoding="utf-8")
 
         # First read migrates; subsequent reads see the directory and emit nothing.
-        mod.read_govkit_marker(tmp_path)
-        mod.read_govkit_marker(tmp_path)
-        mod.read_govkit_marker(tmp_path)
+        read_govkit_marker(tmp_path)
+        read_govkit_marker(tmp_path)
+        read_govkit_marker(tmp_path)
         err = capsys.readouterr().err
         # Directory message appears at most once.
         directory_msg_count = err.count("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING")
         assert directory_msg_count == 1
 
     def test_migration_warning_suppressed_by_env_var(self, tmp_path, monkeypatch, capsys):
-        import cli.govkit as mod
-        mod._reset_directory_migration_warning()
-        mod._reset_migration_warning()
-        mod._reset_shape_migration_warning()
+        from cli.marker import (
+            _reset_directory_migration_warning,
+            _reset_migration_warning,
+            _reset_shape_migration_warning,
+            read_govkit_marker,
+        )
+        _reset_directory_migration_warning()
+        _reset_migration_warning()
+        _reset_shape_migration_warning()
         monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
         # Also suppress unrelated warnings so we can assert err == ""
         monkeypatch.setenv("GOVKIT_NO_MIGRATION_WARNING", "1")
@@ -851,30 +867,35 @@ class TestMarkerDirectoryLayout:
         }
         (tmp_path / ".govkit").write_text(json.dumps(legacy_payload), encoding="utf-8")
 
-        mod.read_govkit_marker(tmp_path)
+        read_govkit_marker(tmp_path)
         err = capsys.readouterr().err
         assert err == ""
 
     def test_no_migration_warning_when_already_directory(self, tmp_path, monkeypatch, capsys):
         """Fresh installs that write the directory layout straight away must
         not emit the directory migration warning."""
-        import cli.govkit as mod
-        mod._reset_directory_migration_warning()
-        mod._reset_migration_warning()
-        mod._reset_shape_migration_warning()
+        from cli.marker import (
+            _reset_directory_migration_warning,
+            _reset_migration_warning,
+            _reset_shape_migration_warning,
+            read_govkit_marker,
+        )
+        _reset_directory_migration_warning()
+        _reset_migration_warning()
+        _reset_shape_migration_warning()
         monkeypatch.delenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", raising=False)
 
-        from cli.govkit import write_govkit_marker
+        from cli.marker import write_govkit_marker
         write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
 
-        mod.read_govkit_marker(tmp_path)
+        read_govkit_marker(tmp_path)
         err = capsys.readouterr().err
         assert "GOVKIT_NO_DIRECTORY_MIGRATION_WARNING" not in err
 
     def test_write_over_legacy_file_replaces_with_directory(self, tmp_path):
         """If a legacy file exists when write is called, write must remove the
         file and create the directory layout."""
-        from cli.govkit import write_govkit_marker
+        from cli.marker import write_govkit_marker
 
         legacy_payload = {
             "version": "0.9.0", "level": "4", "agent": "claude-code",
@@ -888,7 +909,7 @@ class TestMarkerDirectoryLayout:
         assert (tmp_path / ".govkit" / "marker.json").is_file()
 
     def test_read_level_under_new_directory_layout(self, tmp_path):
-        from cli.govkit import read_govkit_level, write_govkit_marker
+        from cli.marker import read_govkit_level, write_govkit_marker
 
         write_govkit_marker(tmp_path, "claude-code", "5", {"type": "api", "ci": "github", "level": "5"})
         assert read_govkit_level(tmp_path) == "5"
@@ -911,16 +932,22 @@ class TestMarkerMigrationDurability:
     }
 
     def _seed_legacy(self, tmp_path):
-        import cli.govkit as mod
-        mod._reset_directory_migration_warning()
-        mod._reset_migration_warning()
-        mod._reset_shape_migration_warning()
+        from cli.marker import (
+            _reset_directory_migration_warning,
+            _reset_migration_warning,
+            _reset_shape_migration_warning,
+        )
+        _reset_directory_migration_warning()
+        _reset_migration_warning()
+        _reset_shape_migration_warning()
         (tmp_path / ".govkit").write_text(json.dumps(self._LEGACY_PAYLOAD), encoding="utf-8")
 
     def test_stale_migrate_tmp_from_prior_failed_attempt_is_cleaned_up(self, tmp_path, monkeypatch):
         """A previous migration attempt that crashed leaves .govkit.migrate.tmp/
         behind. The next read must clean it up and successfully migrate."""
-        import cli.govkit as mod
+        from cli.marker import (
+            read_govkit_marker,
+        )
         monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
         self._seed_legacy(tmp_path)
 
@@ -929,7 +956,7 @@ class TestMarkerMigrationDurability:
         (stale_tmp / "marker.json").write_text('{"garbage": "from prior failed migration"}', encoding="utf-8")
         (stale_tmp / "extra_file.txt").write_text("noise", encoding="utf-8")
 
-        data = mod.read_govkit_marker(tmp_path)
+        data = read_govkit_marker(tmp_path)
 
         assert data is not None
         assert data["agent"] == "claude-code"
@@ -947,7 +974,9 @@ class TestMarkerMigrationDurability:
         with no marker."""
         from pathlib import Path
 
-        import cli.govkit as mod
+        from cli.marker import (
+            read_govkit_marker,
+        )
         monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
         self._seed_legacy(tmp_path)
         legacy_path = tmp_path / ".govkit"
@@ -966,7 +995,7 @@ class TestMarkerMigrationDurability:
 
         monkeypatch.setattr(Path, "rename", failing_rename)
 
-        data = mod.read_govkit_marker(tmp_path)
+        data = read_govkit_marker(tmp_path)
 
         # Contract: caller must still get the data — migration is best-effort.
         assert data is not None
@@ -985,18 +1014,23 @@ class TestMarkerMigrationDurability:
         """If a prior migration crashed AFTER moving legacy → backup but BEFORE
         the new directory was renamed into place, the only thing on disk is
         .govkit.legacy.bak. The next read must recover from it."""
-        import cli.govkit as mod
+        from cli.marker import (
+            _reset_directory_migration_warning,
+            _reset_migration_warning,
+            _reset_shape_migration_warning,
+            read_govkit_marker,
+        )
         monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
-        mod._reset_directory_migration_warning()
-        mod._reset_migration_warning()
-        mod._reset_shape_migration_warning()
+        _reset_directory_migration_warning()
+        _reset_migration_warning()
+        _reset_shape_migration_warning()
 
         # No .govkit file or dir — only the backup from a half-finished migration.
         (tmp_path / ".govkit.legacy.bak").write_text(
             json.dumps(self._LEGACY_PAYLOAD), encoding="utf-8",
         )
 
-        data = mod.read_govkit_marker(tmp_path)
+        data = read_govkit_marker(tmp_path)
 
         assert data is not None
         assert data["agent"] == "claude-code"
@@ -1012,7 +1046,7 @@ class TestExtendedMarkerFields:
     def test_new_marker_includes_empty_assumptions(self, tmp_path):
         import json
 
-        from cli.govkit import write_govkit_marker
+        from cli.marker import write_govkit_marker
 
         write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
         data = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
@@ -1022,7 +1056,7 @@ class TestExtendedMarkerFields:
     def test_new_marker_includes_null_stack(self, tmp_path):
         import json
 
-        from cli.govkit import write_govkit_marker
+        from cli.marker import write_govkit_marker
 
         write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
         data = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
@@ -1032,7 +1066,7 @@ class TestExtendedMarkerFields:
     def test_new_marker_includes_calibration_block(self, tmp_path):
         import json
 
-        from cli.govkit import write_govkit_marker
+        from cli.marker import write_govkit_marker
 
         write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
         data = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
@@ -1044,7 +1078,7 @@ class TestExtendedMarkerFields:
         """PR 2 will populate stack via this kwarg; PR 1 exposes the slot."""
         import json
 
-        from cli.govkit import write_govkit_marker
+        from cli.marker import write_govkit_marker
 
         stack = {
             "id": "dotnet-aspnet",
@@ -1065,7 +1099,7 @@ class TestExtendedMarkerFields:
         """PR 3 will populate assumptions via this kwarg; PR 1 exposes the slot."""
         import json
 
-        from cli.govkit import write_govkit_marker
+        from cli.marker import write_govkit_marker
 
         assumptions = [{
             "id": "stack.language",
@@ -1094,10 +1128,15 @@ class TestExtendedMarkerFields:
         dict.get() defaults."""
         import json
 
-        import cli.govkit as mod
-        mod._reset_directory_migration_warning()
-        mod._reset_migration_warning()
-        mod._reset_shape_migration_warning()
+        from cli.marker import (
+            _reset_directory_migration_warning,
+            _reset_migration_warning,
+            _reset_shape_migration_warning,
+            read_govkit_marker,
+        )
+        _reset_directory_migration_warning()
+        _reset_migration_warning()
+        _reset_shape_migration_warning()
         monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
         monkeypatch.setenv("GOVKIT_NO_MIGRATION_WARNING", "1")
         monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
@@ -1110,7 +1149,7 @@ class TestExtendedMarkerFields:
         }
         (tmp_path / ".govkit").write_text(json.dumps(legacy), encoding="utf-8")
 
-        data = mod.read_govkit_marker(tmp_path)
+        data = read_govkit_marker(tmp_path)
         assert data is not None
         # Caller uses .get(...) defaults to access new fields.
         assert data.get("assumptions", []) == []
@@ -1128,19 +1167,19 @@ class TestIsUserEdited:
         path.write_text(header + content_body, encoding="utf-8")
 
     def test_returns_false_when_applied_at_is_none(self, tmp_path):
-        from cli.govkit import is_user_edited
+        from cli.fs import is_user_edited
 
         doc = tmp_path / "TECH_STACK.md"
         self._write_headed_file(doc)
         assert is_user_edited(doc, None) is False
 
     def test_returns_false_when_file_does_not_exist(self, tmp_path):
-        from cli.govkit import is_user_edited
+        from cli.fs import is_user_edited
 
         assert is_user_edited(tmp_path / "missing.md", "2026-05-27T10:00:00+00:00") is False
 
     def test_returns_false_when_file_has_no_editable_header(self, tmp_path):
-        from cli.govkit import is_user_edited
+        from cli.fs import is_user_edited
 
         doc = tmp_path / "TECH_STACK.md"
         doc.write_text("# Just a doc\n", encoding="utf-8")
@@ -1151,7 +1190,7 @@ class TestIsUserEdited:
         import os
         from datetime import datetime, timezone
 
-        from cli.govkit import is_user_edited
+        from cli.fs import is_user_edited
 
         doc = tmp_path / "TECH_STACK.md"
         self._write_headed_file(doc)
@@ -1165,7 +1204,7 @@ class TestIsUserEdited:
         import os
         from datetime import datetime, timezone
 
-        from cli.govkit import is_user_edited
+        from cli.fs import is_user_edited
 
         doc = tmp_path / "TECH_STACK.md"
         self._write_headed_file(doc)
@@ -1176,7 +1215,7 @@ class TestIsUserEdited:
         assert is_user_edited(doc, applied_at) is True
 
     def test_returns_false_for_malformed_applied_at(self, tmp_path):
-        from cli.govkit import is_user_edited
+        from cli.fs import is_user_edited
 
         doc = tmp_path / "TECH_STACK.md"
         self._write_headed_file(doc)
@@ -1194,7 +1233,7 @@ class TestCopyEntryEditProtection:
 
     def test_legacy_copy_without_applied_at_overwrites_freely(self, tmp_path):
         """Today's behavior must not break: copy_entry with no applied_at copies."""
-        from cli.govkit import copy_entry
+        from cli.fs import copy_entry
 
         src = tmp_path / "src.md"
         src.write_text("# new\n", encoding="utf-8")
@@ -1208,7 +1247,7 @@ class TestCopyEntryEditProtection:
         import os
         from datetime import datetime, timezone
 
-        from cli.govkit import copy_entry
+        from cli.fs import copy_entry
 
         src = tmp_path / "src.md"
         src.write_text("# refreshed baseline\n", encoding="utf-8")
@@ -1232,7 +1271,7 @@ class TestCopyEntryEditProtection:
         import os
         from datetime import datetime, timezone
 
-        from cli.govkit import copy_entry
+        from cli.fs import copy_entry
 
         src = tmp_path / "src.md"
         src.write_text("# refreshed baseline\n", encoding="utf-8")
@@ -1252,7 +1291,7 @@ class TestCopyEntryEditProtection:
         import os
         from datetime import datetime, timezone
 
-        from cli.govkit import copy_entry
+        from cli.fs import copy_entry
 
         src = tmp_path / "src.md"
         src.write_text("# refreshed\n", encoding="utf-8")
@@ -1270,7 +1309,7 @@ class TestCopyEntryEditProtection:
         import os
         from datetime import datetime, timezone
 
-        from cli.govkit import copy_entry
+        from cli.fs import copy_entry
 
         src_dir = tmp_path / "src"
         src_dir.mkdir()
@@ -1301,7 +1340,7 @@ class TestCopyEntryExcludeBasenames:
     cmd_apply (PR 6c) to keep L5-only architecture docs out of L3/L4 installs."""
 
     def test_excludes_named_files_at_root(self, tmp_path):
-        from cli.govkit import copy_entry
+        from cli.fs import copy_entry
 
         src = tmp_path / "src"
         src.mkdir()
@@ -1315,7 +1354,7 @@ class TestCopyEntryExcludeBasenames:
         assert not (dest / "drop.md").exists()
 
     def test_excludes_named_files_in_nested_dirs(self, tmp_path):
-        from cli.govkit import copy_entry
+        from cli.fs import copy_entry
 
         src = tmp_path / "src"
         sub = src / "nested"
@@ -1330,7 +1369,7 @@ class TestCopyEntryExcludeBasenames:
         assert not (dest / "nested" / "AGENT_ARCHITECTURE.md").exists()
 
     def test_exclude_none_preserves_default_behaviour(self, tmp_path):
-        from cli.govkit import copy_entry
+        from cli.fs import copy_entry
 
         src = tmp_path / "src"
         src.mkdir()
@@ -1351,7 +1390,7 @@ class TestL5OnlyGovernedExclusion:
     def test_l4_apply_excludes_llm_contracts_from_governed(self, tmp_path, monkeypatch):
         import argparse
 
-        from cli.govkit import cmd_apply
+        from cli.cmd_apply import cmd_apply
 
         target = tmp_path / "project"
         target.mkdir()
@@ -1375,7 +1414,7 @@ class TestL5OnlyGovernedExclusion:
     def test_l5_apply_includes_llm_contracts(self, tmp_path, monkeypatch):
         import argparse
 
-        from cli.govkit import cmd_apply
+        from cli.cmd_apply import cmd_apply
 
         target = tmp_path / "project"
         target.mkdir()
@@ -1405,7 +1444,8 @@ class TestApplyTypeDataStackDefault:
     def test_apply_type_data_defaults_to_dbt_stack(self, tmp_path):
         import argparse
 
-        from cli.govkit import cmd_apply, read_govkit_marker
+        from cli.cmd_apply import cmd_apply
+        from cli.marker import read_govkit_marker
 
         target = tmp_path / "project"
         target.mkdir()
@@ -1425,7 +1465,7 @@ class TestCopyEntryHeaderInjection:
     and upgrade so doc baselines stay in sync."""
 
     def test_prepends_header_to_md_file_on_copy(self, tmp_path):
-        from cli.govkit import copy_entry
+        from cli.fs import copy_entry
 
         src = tmp_path / "src.md"
         src.write_text("# Body\n", encoding="utf-8")
@@ -1439,7 +1479,7 @@ class TestCopyEntryHeaderInjection:
         assert "# Body" in content
 
     def test_does_not_add_header_to_non_md_file(self, tmp_path):
-        from cli.govkit import copy_entry
+        from cli.fs import copy_entry
 
         src = tmp_path / "src.yaml"
         src.write_text("key: value\n", encoding="utf-8")
@@ -1450,7 +1490,7 @@ class TestCopyEntryHeaderInjection:
         assert dest.read_text(encoding="utf-8") == "key: value\n"
 
     def test_does_not_add_header_when_skip_existing_skipped(self, tmp_path):
-        from cli.govkit import copy_entry
+        from cli.fs import copy_entry
 
         src = tmp_path / "src.md"
         src.write_text("# new\n", encoding="utf-8")
@@ -1463,7 +1503,7 @@ class TestCopyEntryHeaderInjection:
         assert dest.read_text(encoding="utf-8") == "# pre-existing user file\n"
 
     def test_directory_copy_adds_headers_to_each_md_child(self, tmp_path):
-        from cli.govkit import copy_entry
+        from cli.fs import copy_entry
 
         src_dir = tmp_path / "src"
         src_dir.mkdir()
@@ -1764,11 +1804,11 @@ class TestSmokeInit:
     ])
     def test_resolve_starter_dir_ui_variants(self, tmp_path, monkeypatch, ui_starter, level):
         """_resolve_starter_dir maps both UI variants to starter_ui (no starter_ui_l5 today)."""
-        import cli.govkit as mod
+        from cli.cmd_init import _resolve_starter_dir
         fake_repo = self._bundled_repo(tmp_path, starter="starter_ui")
         monkeypatch.setattr("cli.paths.REPO_ROOT", fake_repo)
 
-        result = mod._resolve_starter_dir(ui_starter, level)
+        result = _resolve_starter_dir(ui_starter, level)
         assert result.name == "starter_ui", (
             f"--starter {ui_starter} --level {level} must resolve to starter_ui, got {result.name}"
         )
@@ -2613,7 +2653,7 @@ class TestCmdStackList:
     """PR 2 / Chunk F: govkit stack list enumerates bundled stack overlays."""
 
     def test_lists_all_bundled_stacks(self, capsys):
-        from cli.govkit import cmd_stack_list
+        from cli.cmd_stack import cmd_stack_list
 
         cmd_stack_list(argparse.Namespace())
         out = capsys.readouterr().out
@@ -2623,7 +2663,7 @@ class TestCmdStackList:
             assert stack_id in out
 
     def test_includes_display_name_and_summary(self, capsys):
-        from cli.govkit import cmd_stack_list
+        from cli.cmd_stack import cmd_stack_list
 
         cmd_stack_list(argparse.Namespace())
         out = capsys.readouterr().out
@@ -2654,7 +2694,7 @@ class TestCmdStackApply:
         return target
 
     def test_stack_apply_switches_overlay(self, tmp_path, monkeypatch):
-        from cli.govkit import cmd_stack_apply
+        from cli.cmd_stack import cmd_stack_apply
 
         target = self._existing_install(tmp_path, monkeypatch, stack_id="python-fastapi")
         # Sanity: python-fastapi baseline is in place.
@@ -2670,7 +2710,8 @@ class TestCmdStackApply:
         assert "baseline: dotnet-aspnet@" in new_content
 
     def test_stack_apply_updates_marker_stack_field(self, tmp_path, monkeypatch):
-        from cli.govkit import cmd_stack_apply, read_govkit_marker
+        from cli.cmd_stack import cmd_stack_apply
+        from cli.marker import read_govkit_marker
 
         target = self._existing_install(tmp_path, monkeypatch, stack_id="python-fastapi")
 
@@ -2683,7 +2724,7 @@ class TestCmdStackApply:
         assert marker["options"]["stack"] == "java-spring-boot"
 
     def test_stack_apply_refuses_without_marker(self, tmp_path):
-        from cli.govkit import cmd_stack_apply
+        from cli.cmd_stack import cmd_stack_apply
 
         empty = tmp_path / "empty"
         empty.mkdir()
@@ -2693,7 +2734,7 @@ class TestCmdStackApply:
             ))
 
     def test_stack_apply_unknown_stack_exits(self, tmp_path, monkeypatch):
-        from cli.govkit import cmd_stack_apply
+        from cli.cmd_stack import cmd_stack_apply
 
         target = self._existing_install(tmp_path, monkeypatch)
         with pytest.raises(SystemExit):
@@ -2707,7 +2748,7 @@ class TestCmdStackApply:
         import os
         from datetime import datetime, timezone
 
-        from cli.govkit import cmd_stack_apply
+        from cli.cmd_stack import cmd_stack_apply
 
         target = self._existing_install(tmp_path, monkeypatch, stack_id="python-fastapi")
 
@@ -2850,61 +2891,76 @@ class TestMigrationWarning:
     """read_govkit_marker emits a one-time warning when version < 0.7.0."""
 
     def test_warning_fires_for_pre_070_marker(self, tmp_path, monkeypatch, capsys):
-        import cli.govkit as mod
+        from cli.marker import (
+            _reset_migration_warning,
+            read_govkit_marker,
+        )
 
-        mod._reset_migration_warning()
+        _reset_migration_warning()
         monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
         target = _make_legacy_target(tmp_path, level="3", version="0.6.0")
 
-        mod.read_govkit_marker(target)
+        read_govkit_marker(target)
         err = capsys.readouterr().err
         assert "L3/L4 maturity model changed in 0.7.0" in err
         assert "govkit upgrade --migrate-levels" in err
 
     def test_warning_only_fires_once_per_invocation(self, tmp_path, monkeypatch, capsys):
-        import cli.govkit as mod
+        from cli.marker import (
+            _reset_migration_warning,
+            read_govkit_marker,
+        )
 
-        mod._reset_migration_warning()
+        _reset_migration_warning()
         monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
         target = _make_legacy_target(tmp_path, level="3", version="0.6.0")
 
-        mod.read_govkit_marker(target)
-        mod.read_govkit_marker(target)
-        mod.read_govkit_marker(target)
+        read_govkit_marker(target)
+        read_govkit_marker(target)
+        read_govkit_marker(target)
         err = capsys.readouterr().err
         # Count distinct warning lines (allowing for the message containing the marker once)
         assert err.count("L3/L4 maturity model changed in 0.7.0") == 1
 
     def test_warning_suppressed_by_env_var(self, tmp_path, monkeypatch, capsys):
-        import cli.govkit as mod
+        from cli.marker import (
+            _reset_migration_warning,
+            read_govkit_marker,
+        )
 
-        mod._reset_migration_warning()
+        _reset_migration_warning()
         monkeypatch.setenv("GOVKIT_NO_MIGRATION_WARNING", "1")
         target = _make_legacy_target(tmp_path, level="3", version="0.6.0")
 
-        mod.read_govkit_marker(target)
+        read_govkit_marker(target)
         err = capsys.readouterr().err
         assert err == ""
 
     def test_warning_does_not_fire_for_current_version(self, tmp_path, monkeypatch, capsys):
-        import cli.govkit as mod
+        from cli.marker import (
+            _reset_migration_warning,
+            read_govkit_marker,
+        )
 
-        mod._reset_migration_warning()
+        _reset_migration_warning()
         monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
         target = _make_legacy_target(tmp_path, level="3", version="0.7.0")
 
-        mod.read_govkit_marker(target)
+        read_govkit_marker(target)
         err = capsys.readouterr().err
         assert "maturity model" not in err
 
     def test_warning_does_not_fire_for_dev_version(self, tmp_path, monkeypatch, capsys):
-        import cli.govkit as mod
+        from cli.marker import (
+            _reset_migration_warning,
+            read_govkit_marker,
+        )
 
-        mod._reset_migration_warning()
+        _reset_migration_warning()
         monkeypatch.delenv("GOVKIT_NO_MIGRATION_WARNING", raising=False)
         target = _make_legacy_target(tmp_path, level="3", version="dev")
 
-        mod.read_govkit_marker(target)
+        read_govkit_marker(target)
         err = capsys.readouterr().err
         # Non-numeric versions compare equal — no warning
         assert "maturity model" not in err
@@ -2954,50 +3010,65 @@ class TestShapeMigrationWarning:
         return target
 
     def test_marker_with_ui_is_read_tolerantly(self, tmp_path, monkeypatch):
-        import cli.govkit as mod
-        mod._reset_shape_migration_warning()
+        from cli.marker import (
+            _reset_shape_migration_warning,
+            read_govkit_marker,
+        )
+        _reset_shape_migration_warning()
         monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")  # suppress warning, just check no crash
         target = self._make_target_with_ui(tmp_path, ui_value="react")
-        data = mod.read_govkit_marker(target)
+        data = read_govkit_marker(target)
         assert data is not None
         assert data["options"]["ui"] == "react", "marker data must be returned untouched"
 
     def test_warning_fires_for_marker_with_ui(self, tmp_path, monkeypatch, capsys):
-        import cli.govkit as mod
-        mod._reset_shape_migration_warning()
+        from cli.marker import (
+            _reset_shape_migration_warning,
+            read_govkit_marker,
+        )
+        _reset_shape_migration_warning()
         monkeypatch.delenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", raising=False)
         target = self._make_target_with_ui(tmp_path)
 
-        mod.read_govkit_marker(target)
+        read_govkit_marker(target)
         err = capsys.readouterr().err
         assert "project-shape model changed in 0.8.0" in err
         assert "govkit apply --type ui-react" in err
 
     def test_warning_only_fires_once_per_invocation(self, tmp_path, monkeypatch, capsys):
-        import cli.govkit as mod
-        mod._reset_shape_migration_warning()
+        from cli.marker import (
+            _reset_shape_migration_warning,
+            read_govkit_marker,
+        )
+        _reset_shape_migration_warning()
         monkeypatch.delenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", raising=False)
         target = self._make_target_with_ui(tmp_path)
 
-        mod.read_govkit_marker(target)
-        mod.read_govkit_marker(target)
-        mod.read_govkit_marker(target)
+        read_govkit_marker(target)
+        read_govkit_marker(target)
+        read_govkit_marker(target)
         err = capsys.readouterr().err
         assert err.count("project-shape model changed in 0.8.0") == 1
 
     def test_warning_suppressed_by_env_var(self, tmp_path, monkeypatch, capsys):
-        import cli.govkit as mod
-        mod._reset_shape_migration_warning()
+        from cli.marker import (
+            _reset_shape_migration_warning,
+            read_govkit_marker,
+        )
+        _reset_shape_migration_warning()
         monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
         target = self._make_target_with_ui(tmp_path)
 
-        mod.read_govkit_marker(target)
+        read_govkit_marker(target)
         err = capsys.readouterr().err
         assert err == ""
 
     def test_warning_does_not_fire_when_no_ui_in_marker(self, tmp_path, monkeypatch, capsys):
-        import cli.govkit as mod
-        mod._reset_shape_migration_warning()
+        from cli.marker import (
+            _reset_shape_migration_warning,
+            read_govkit_marker,
+        )
+        _reset_shape_migration_warning()
         monkeypatch.delenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", raising=False)
         target = tmp_path / "fresh"
         target.mkdir()
@@ -3010,7 +3081,7 @@ class TestShapeMigrationWarning:
         }
         (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
 
-        mod.read_govkit_marker(target)
+        read_govkit_marker(target)
         err = capsys.readouterr().err
         assert "project-shape model" not in err
 
@@ -3020,10 +3091,12 @@ class TestUpgradeMigrateLevels:
 
     @pytest.fixture(autouse=True)
     def _reset_warning(self):
-        import cli.govkit as mod
-        mod._reset_migration_warning()
+        from cli.marker import (
+            _reset_migration_warning,
+        )
+        _reset_migration_warning()
         yield
-        mod._reset_migration_warning()
+        _reset_migration_warning()
 
     def test_already_at_070_is_noop(self, tmp_path, monkeypatch, capsys):
 
@@ -3209,7 +3282,10 @@ class TestUpgradeMigrateLevels:
 
     def test_warning_clears_after_migration(self, tmp_path, monkeypatch, capsys):
         """After --migrate-levels rewrites the marker to 0.7.0, the warning stops firing."""
-        import cli.govkit as mod
+        from cli.marker import (
+            _reset_migration_warning,
+            read_govkit_marker,
+        )
 
         monkeypatch.setattr("cli.version.GOVKIT_VERSION", "0.7.0")
         monkeypatch.setattr("builtins.input", lambda _: "2")
@@ -3219,10 +3295,10 @@ class TestUpgradeMigrateLevels:
         with pytest.raises(SystemExit):
             cmd_upgrade(_migrate_args(target))
         # Reset the one-time flag to test the next invocation in isolation
-        mod._reset_migration_warning()
+        _reset_migration_warning()
         capsys.readouterr()  # discard prior output
 
-        mod.read_govkit_marker(target)
+        read_govkit_marker(target)
         err = capsys.readouterr().err
         assert "maturity model" not in err, (
             "After --migrate-levels rewrites marker to 0.7.0, the warning must not fire"

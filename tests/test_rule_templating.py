@@ -8,7 +8,6 @@ where a rule scoped to `**/adapters/**` produces no matches in a
 Clean Architecture repo using `Infrastructure/`.
 """
 
-import pytest
 import yaml
 
 
@@ -195,7 +194,8 @@ class TestTemplateInstalledRules:
         """Every installed rule must have its `paths_template:` resolved
         away; otherwise Claude Code would see invalid frontmatter."""
         import argparse
-        from cli.govkit import cmd_apply
+
+        from cli.cmd_apply import cmd_apply
 
         target = tmp_path / "project"
         target.mkdir()
@@ -213,8 +213,10 @@ class TestTemplateInstalledRules:
         """A target with Application/Domain/Infrastructure signals must end
         up with rule globs targeting those folders, not hexagonal defaults."""
         import argparse
+
         import yaml
-        from cli.govkit import cmd_apply
+
+        from cli.cmd_apply import cmd_apply
 
         target = tmp_path / "project"
         target.mkdir()
@@ -240,8 +242,10 @@ class TestTemplateInstalledRules:
         """A target with ports/ + adapters/ folders keeps the hexagonal
         glob defaults."""
         import argparse
+
         import yaml
-        from cli.govkit import cmd_apply
+
+        from cli.cmd_apply import cmd_apply
 
         target = tmp_path / "project"
         target.mkdir()
@@ -264,8 +268,10 @@ class TestTemplateInstalledRules:
         """An empty target has no architecture signals → style=unknown →
         layers are []. Rule fallback paths survive intact."""
         import argparse
+
         import yaml
-        from cli.govkit import cmd_apply
+
+        from cli.cmd_apply import cmd_apply
 
         target = tmp_path / "project"
         target.mkdir()
@@ -286,8 +292,11 @@ class TestTemplateInstalledRules:
         property of the repo, not the stack — rule globs should stay
         consistent across stack swaps."""
         import argparse
+
         import yaml
-        from cli.govkit import cmd_apply, cmd_stack_apply
+
+        from cli.cmd_apply import cmd_apply
+        from cli.cmd_stack import cmd_stack_apply
 
         target = tmp_path / "project"
         target.mkdir()

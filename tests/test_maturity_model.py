@@ -21,7 +21,11 @@ from pathlib import Path
 
 import pytest
 
-from cli import govkit, paths, validate
+from cli import paths, validate
+from cli.cmd_apply import cmd_apply
+from cli.cmd_init import _resolve_starter_dir, cmd_init
+from cli.manifest import resolve_variant_files
+from cli.marker import write_govkit_marker
 
 # ---------------------------------------------------------------------------
 # Fixtures and helpers
@@ -205,7 +209,7 @@ class TestApplyFeaturesDirBehavior:
         monkeypatch.setattr(paths, "AGENTS_DIR", repo / "agents")
         monkeypatch.setattr(paths, "REPO_ROOT", repo)
 
-        govkit.cmd_apply(_apply_args(target, level="3"))
+        cmd_apply(_apply_args(target, level="3"))
 
         assert not (target / "features").exists(), (
             "At L3 (Foundations), govkit apply must NOT create features/."
@@ -219,7 +223,7 @@ class TestApplyFeaturesDirBehavior:
         monkeypatch.setattr(paths, "AGENTS_DIR", repo / "agents")
         monkeypatch.setattr(paths, "REPO_ROOT", repo)
 
-        govkit.cmd_apply(_apply_args(target, level="4"))
+        cmd_apply(_apply_args(target, level="4"))
 
         features = target / "features"
         assert features.is_dir(), "At L4, govkit apply must create features/."
@@ -241,10 +245,10 @@ class TestInitErrorsAtL3:
         # After refactor: init at L3 must exit non-zero with a Level 4 hint.
         target = tmp_path / "project"
         (target / "features").mkdir(parents=True)  # so today's "no features/" check passes
-        govkit.write_govkit_marker(target, "claude-code", "3", {"type": "api"})
+        write_govkit_marker(target, "claude-code", "3", {"type": "api"})
 
         with pytest.raises(SystemExit) as exc_info:
-            govkit.cmd_init(argparse.Namespace(
+            cmd_init(argparse.Namespace(
                 feature="my-feat",
                 target=str(target),
                 level="3",
@@ -262,7 +266,7 @@ class TestInitErrorsAtL3:
         # Either it raises ValueError or cmd_init never calls it; this asserts
         # the function-level contract.
         with pytest.raises(ValueError, match=r"L3"):
-            govkit._resolve_starter_dir("backend", "3")
+            _resolve_starter_dir("backend", "3")
 
 
 # ---------------------------------------------------------------------------
@@ -337,7 +341,7 @@ class TestManifestMergeSemantics:
                 }
             }
         }
-        files, _, _ = govkit.resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
         srcs = [f["src"] for f in files]
         assert "base.md" in srcs, "L4 must keep the L3 base entries (merge, not replace)."
         assert "addon.md" in srcs, "L4 must add level_4 entries on top of base."
@@ -357,7 +361,7 @@ class TestManifestMergeSemantics:
                 }
             }
         }
-        files, _, _ = govkit.resolve_variant_files(manifest, {"type": "api", "level": "4"})
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "4"})
         claude_entries = [f for f in files if f["dest"] == "CLAUDE.md"]
         assert len(claude_entries) == 1, (
             "Merge-mode collision on dest must yield exactly one entry; "
@@ -378,7 +382,7 @@ class TestManifestMergeSemantics:
                 }
             }
         }
-        files, _, _ = govkit.resolve_variant_files(manifest, {"type": "api", "level": "3"})
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "3"})
         srcs = [f["src"] for f in files]
         assert srcs == ["base.md"]
 
@@ -397,7 +401,7 @@ class TestManifestMergeSemantics:
                 }
             }
         }
-        files, _, _ = govkit.resolve_variant_files(manifest, {"type": "api", "level": "5"})
+        files, _, _ = resolve_variant_files(manifest, {"type": "api", "level": "5"})
         srcs = [f["src"] for f in files]
         assert "base.md" not in srcs, (
             "Replace-mode L5 must drop the L3 base entries."

@@ -244,7 +244,7 @@ class TestLoadSkillContext:
         from day one — skills shouldn't have to wait for calibrate to run."""
         import argparse
 
-        from cli.govkit import cmd_apply
+        from cli.cmd_apply import cmd_apply
         from cli.skill_context import load_skill_context
 
         target = tmp_path / "project"
@@ -265,7 +265,8 @@ class TestLoadSkillContext:
         stack swap is reflected immediately for any skill that consults it."""
         import argparse
 
-        from cli.govkit import cmd_apply, cmd_stack_apply
+        from cli.cmd_apply import cmd_apply
+        from cli.cmd_stack import cmd_stack_apply
         from cli.skill_context import load_skill_context
 
         target = tmp_path / "project"

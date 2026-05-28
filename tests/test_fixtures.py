@@ -15,13 +15,11 @@ than byte-exact so timestamps and govkit version don't make tests flaky.
 """
 
 import argparse
-import json
 import shutil
 from pathlib import Path
 
 import pytest
 import yaml
-
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -45,7 +43,7 @@ class TestDotnetAspnetAzureFixture:
     """
 
     def _apply(self, fixture: Path, agent: str) -> None:
-        from cli.govkit import cmd_apply
+        from cli.cmd_apply import cmd_apply
 
         cmd_apply(argparse.Namespace(
             agent=agent, target=str(fixture),
@@ -54,7 +52,7 @@ class TestDotnetAspnetAzureFixture:
         ))
 
     def test_apply_picks_dotnet_aspnet_stack(self, tmp_path, agent):
-        from cli.govkit import read_govkit_marker
+        from cli.marker import read_govkit_marker
 
         target = _copy_fixture("dotnet-aspnet-azure", tmp_path)
         self._apply(target, agent)
@@ -63,7 +61,7 @@ class TestDotnetAspnetAzureFixture:
         assert marker["stack"]["id"] == "dotnet-aspnet"
 
     def test_apply_records_csharp_detection_as_source(self, tmp_path, agent):
-        from cli.govkit import read_govkit_marker
+        from cli.marker import read_govkit_marker
 
         target = _copy_fixture("dotnet-aspnet-azure", tmp_path)
         self._apply(target, agent)
@@ -117,7 +115,7 @@ class TestDotnetAspnetClaudeRulesTemplating:
     because rule templating is the highest-leverage piece for D001)."""
 
     def test_adapters_rule_targets_infrastructure_folder(self, tmp_path):
-        from cli.govkit import cmd_apply
+        from cli.cmd_apply import cmd_apply
 
         target = _copy_fixture("dotnet-aspnet-azure", tmp_path)
         cmd_apply(argparse.Namespace(
@@ -133,7 +131,7 @@ class TestDotnetAspnetClaudeRulesTemplating:
         assert "**/adapters/**" not in (fm.get("paths") or [])
 
     def test_copilot_adapters_applyto_targets_infrastructure(self, tmp_path):
-        from cli.govkit import cmd_apply
+        from cli.cmd_apply import cmd_apply
 
         target = _copy_fixture("dotnet-aspnet-azure", tmp_path)
         cmd_apply(argparse.Namespace(
@@ -157,7 +155,7 @@ class TestPythonFastapiGithubFixture:
     """
 
     def _apply(self, fixture: Path, agent: str) -> None:
-        from cli.govkit import cmd_apply
+        from cli.cmd_apply import cmd_apply
 
         cmd_apply(argparse.Namespace(
             agent=agent, target=str(fixture),
@@ -166,7 +164,7 @@ class TestPythonFastapiGithubFixture:
         ))
 
     def test_apply_picks_python_fastapi_stack(self, tmp_path, agent):
-        from cli.govkit import read_govkit_marker
+        from cli.marker import read_govkit_marker
 
         target = _copy_fixture("python-fastapi-github", tmp_path)
         self._apply(target, agent)
@@ -216,7 +214,7 @@ class TestDbtProjectFixture:
     """
 
     def _apply(self, fixture: Path) -> None:
-        from cli.govkit import cmd_apply
+        from cli.cmd_apply import cmd_apply
 
         cmd_apply(argparse.Namespace(
             agent="claude-code", target=str(fixture),
@@ -225,7 +223,7 @@ class TestDbtProjectFixture:
         ))
 
     def test_apply_picks_python_dbt_stack(self, tmp_path):
-        from cli.govkit import read_govkit_marker
+        from cli.marker import read_govkit_marker
 
         target = _copy_fixture("dbt-project", tmp_path)
         self._apply(target)
@@ -310,7 +308,8 @@ class TestEmptyFixture:
     and the install should still succeed (defaults to python-fastapi)."""
 
     def test_apply_falls_back_to_default_stack(self, tmp_path):
-        from cli.govkit import cmd_apply, read_govkit_marker
+        from cli.cmd_apply import cmd_apply
+        from cli.marker import read_govkit_marker
 
         target = _copy_fixture("empty", tmp_path)
         cmd_apply(argparse.Namespace(
@@ -326,7 +325,7 @@ class TestEmptyFixture:
         assert stack_assumption["review_required"] is True
 
     def test_skill_context_architecture_style_is_unknown(self, tmp_path):
-        from cli.govkit import cmd_apply
+        from cli.cmd_apply import cmd_apply
         from cli.skill_context import load_skill_context
 
         target = _copy_fixture("empty", tmp_path)
@@ -343,7 +342,7 @@ class TestEmptyFixture:
     def test_doctor_runs_cleanly_on_empty_target(self, tmp_path):
         """Empty repo is the worst-case input; doctor must not crash and
         must produce useful findings (D001 for rule globs that don't match)."""
-        from cli.govkit import cmd_apply
+        from cli.cmd_apply import cmd_apply
         from cli.doctor import run_doctor
 
         target = _copy_fixture("empty", tmp_path)
@@ -366,8 +365,8 @@ class TestCalibrateNonInteractiveFixture:
     file, refresh skill_context, refresh setup review."""
 
     def test_non_interactive_writes_checklist_and_refreshes_artifacts(self, tmp_path):
-        from cli.govkit import cmd_apply
         from cli.calibrate import cmd_calibrate
+        from cli.cmd_apply import cmd_apply
 
         target = _copy_fixture("python-fastapi-github", tmp_path)
         cmd_apply(argparse.Namespace(
@@ -408,7 +407,7 @@ class TestMonorepoFixture:
     the monorepo root must discover BOTH installs and process each."""
 
     def _install_both(self, monorepo_root: Path) -> tuple[Path, Path]:
-        from cli.govkit import cmd_apply
+        from cli.cmd_apply import cmd_apply
 
         api = monorepo_root / "apps" / "api"
         web = monorepo_root / "apps" / "web"
@@ -425,7 +424,7 @@ class TestMonorepoFixture:
         return api, web
 
     def test_each_install_gets_its_own_marker(self, tmp_path):
-        from cli.govkit import read_govkit_marker
+        from cli.marker import read_govkit_marker
 
         root = _copy_fixture("monorepo", tmp_path)
         api, web = self._install_both(root)
