@@ -27,7 +27,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import shutil
 import sys
 from pathlib import Path
@@ -37,6 +36,8 @@ if TYPE_CHECKING:
     from .detect import RepoProfile
 
 from . import paths, version
+from .cmd_list import cmd_list
+from .cmd_stack import cmd_stack_apply, cmd_stack_list
 from .fs import copy_entry
 from .fs import is_user_edited as is_user_edited
 from .manifest import load_manifest, resolve_options, resolve_variant_files
@@ -56,7 +57,6 @@ from .marker import (
     _reset_shape_migration_warning as _reset_shape_migration_warning,
 )
 from .stack_select import (
-    STACK_ID_ASSUMPTION,
     apply_stack_overlay,
     print_detection_summary,
     resolve_stack_choice,
@@ -298,140 +298,6 @@ def cmd_apply(args: argparse.Namespace) -> None:
     print("\nNext step: add your first feature package.")
     print("  govkit init <feature-name> --target <target>   # scaffold from a starter template")
     print("  or drop a feature folder manually into features/")
-
-
-def cmd_stack_list(_args: argparse.Namespace) -> None:
-    """Print every bundled stack overlay (id, display name, summary).
-
-    Source of truth for "which stacks can I pass to --stack" — read by users
-    before running `govkit apply --stack <id>` or `govkit stack apply <id>`.
-    """
-    from .overlay import list_overlays
-    overlays = list_overlays()
-    if not overlays:
-        print("No stack overlays found.")
-        return
-    print("\nAvailable stack overlays:\n")
-    for ov in overlays:
-        print(f"  {ov.id:24s} {ov.display_name}")
-        if ov.summary:
-            print(f"  {'':24s}   {ov.summary}")
-    print(
-        "\nApply at install time:\n"
-        "  govkit apply --agent <agent> --target <path> --stack <id>\n"
-        "Or swap an existing install:\n"
-        "  govkit stack apply <id> --target <path>\n"
-    )
-
-
-def cmd_stack_apply(args: argparse.Namespace) -> None:
-    """Re-apply a stack overlay over an existing install.
-
-    Requires a .govkit/marker.json to exist (errors otherwise). Honors
-    edit-protection — user-edited stack docs are not clobbered without
-    --force. Updates the marker's `stack` and `options.stack` fields and
-    rewrites GOVKIT_SETUP_REVIEW.md.
-    """
-    from datetime import datetime, timezone
-
-    from .overlay import apply_overlay, load_overlay
-
-    target = Path(args.target).resolve()
-    if not target.exists():
-        print(f"Error: target directory '{target}' does not exist.", file=sys.stderr)
-        sys.exit(1)
-
-    stored = read_govkit_marker(target)
-    if not stored:
-        print(
-            "Error: no .govkit marker found. Run 'govkit apply' first to "
-            "establish a baseline before swapping stacks.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    overlay = load_overlay(args.stack_id)
-    if overlay is None:
-        print(
-            f"Error: stack '{args.stack_id}' not found. "
-            f"Run `govkit stack list` to see available stacks.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    agent = stored.get("agent", "claude-code")
-    level = stored.get("level", "4")
-    prior_applied_at = stored.get("applied_at")
-    prior_assumptions = stored.get("assumptions", []) or []
-    options = {**stored.get("options", {}), "stack": overlay.id, "level": level}
-
-    print(f"\nApplying stack overlay '{overlay.id}' to {target}")
-    print(f"  {overlay.display_name}\n")
-    apply_overlay(overlay, target, applied_at=prior_applied_at, force=args.force)
-
-    stack_meta = {
-        "id": overlay.id,
-        "version": overlay.version,
-        "display_name": overlay.display_name,
-        "applied_at": datetime.now(timezone.utc).isoformat(),
-    }
-    # Replace any prior stack.id assumption; keep the rest.
-    assumptions = [a for a in prior_assumptions if a.get("id") != STACK_ID_ASSUMPTION]
-    assumptions.append({
-        "id": STACK_ID_ASSUMPTION,
-        "value": overlay.id,
-        "source": "flag",
-        "confidence": "high",
-        "evidence": [],
-        "files_affected": [d["dest"] for d in overlay.docs],
-        "review_required": False,
-        "warning_message": None,
-        "calibrated_at": None,
-        "calibrated_against_overlay_version": None,
-    })
-
-    write_govkit_marker(
-        target, agent, level, options,
-        stack=stack_meta,
-        assumptions=assumptions,
-        calibration=stored.get("calibration"),
-    )
-
-    new_marker = read_govkit_marker(target)
-    if new_marker is not None:
-        from .setup_review import print_review_checklist, write_setup_review
-        from .skill_context import write_skill_context
-        write_setup_review(target, new_marker)
-        write_skill_context(target, new_marker)
-        print_review_checklist(target, new_marker)
-
-    print(f"\nDone. Stack '{overlay.id}' applied to {target}")
-
-
-def cmd_list(_args: argparse.Namespace) -> None:
-    print("\nAvailable agents:\n")
-    for agent_dir in sorted(paths.AGENTS_DIR.iterdir()):
-        if not agent_dir.is_dir():
-            continue
-        manifest_path = agent_dir / "manifest.json"
-        if manifest_path.exists():
-            try:
-                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError) as e:
-                print(f"  Warning: failed to read {manifest_path}: {e}")
-                continue
-            name = manifest["agent"]
-            desc = manifest.get("description", "")
-            options = manifest.get("options", {})
-            if options:
-                opts_summary = " | ".join(
-                    f"{k}: {', '.join(v['choices'])}" for k, v in options.items()
-                )
-                print(f"  {name:<20} {desc}")
-                print(f"  {'':20} options: {opts_summary}")
-            else:
-                print(f"  {name:<20} {desc}")
-    print()
 
 
 def _prompt_starter_type() -> str:
