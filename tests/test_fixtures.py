@@ -274,6 +274,20 @@ class TestDbtProjectFixture:
         assert (arch_dir / "DATA_QUALITY_CONTRACT.md").is_file()
         assert (arch_dir / "PII_HANDLING_CONTRACT.md").is_file()
 
+    def test_data_adr_template_installed(self, tmp_path):
+        """The adr-author skill + l4-data.md both advertise ADRs, so the data
+        install must ship docs/data/architecture/ADR/TEMPLATE.md — otherwise
+        /adr-author points at a missing file in a dbt project."""
+        target = _copy_fixture("dbt-project", tmp_path)
+        self._apply(target)
+
+        adr = target / "docs" / "data" / "architecture" / "ADR" / "TEMPLATE.md"
+        assert adr.is_file(), "data install must ship an ADR template"
+        body = adr.read_text(encoding="utf-8")
+        # Data-adapted: it should speak to data contracts, not HTTP routes.
+        assert "Data Contract Impact" in body
+        assert "PII" in body
+
     def test_doctor_d001_quiet_on_dbt_layered_rules(self, tmp_path):
         """The dbt-layered rules (staging.md, intermediate.md, marts.md)
         should expand to globs that resolve in this fixture."""
