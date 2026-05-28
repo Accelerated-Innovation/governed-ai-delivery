@@ -743,3 +743,199 @@ class TestInc6RuntimeContracts:
         m = self._live_manifest()
         paths = m["contract_sets"][0]["paths"]
         assert "docs/backend/architecture/REGISTRY_CONTRACT.md" in paths
+
+
+# ---------------------------------------------------------------------------
+# .govkit/marker.json schema (PR 1 / A11)
+# ---------------------------------------------------------------------------
+
+
+MARKER_SCHEMA_PATH = REPO_ROOT / "governance" / "schemas" / "govkit-marker.schema.json"
+
+
+def _load_marker_schema() -> dict:
+    return json.loads(MARKER_SCHEMA_PATH.read_text(encoding="utf-8"))
+
+
+def test_marker_schema_is_a_valid_json_schema():
+    """The marker schema must itself conform to the meta-schema."""
+    Draft202012Validator.check_schema(_load_marker_schema())
+
+
+class TestMarkerSchemaAcceptsFreshlyWrittenMarkers:
+    """A marker written by write_govkit_marker() must validate against the
+    shipped schema. Otherwise the schema and the writer have drifted."""
+
+    def test_minimal_apply_marker_validates(self, tmp_path):
+        from cli.govkit import write_govkit_marker
+
+        write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
+        marker = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
+
+        validator = Draft202012Validator(_load_marker_schema())
+        errors = list(validator.iter_errors(marker))
+        assert not errors, "freshly written marker failed schema validation: " + "; ".join(e.message for e in errors)
+
+    def test_marker_with_populated_stack_validates(self, tmp_path):
+        from cli.govkit import write_govkit_marker
+
+        stack = {
+            "id": "dotnet-aspnet",
+            "version": "0.10.0",
+            "display_name": "C# 12 / .NET 8 / ASP.NET Core",
+            "applied_at": "2026-05-27T15:00:00+00:00",
+        }
+        write_govkit_marker(
+            tmp_path, "claude-code", "4",
+            {"type": "api", "ci": "azure", "level": "4"},
+            stack=stack,
+        )
+        marker = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
+
+        validator = Draft202012Validator(_load_marker_schema())
+        errors = list(validator.iter_errors(marker))
+        assert not errors, "; ".join(e.message for e in errors)
+
+    def test_marker_with_assumptions_validates(self, tmp_path):
+        from cli.govkit import write_govkit_marker
+
+        assumptions = [{
+            "id": "architecture.style",
+            "value": "hexagonal",
+            "source": "default",
+            "confidence": "low",
+            "evidence": [],
+            "files_affected": ["docs/backend/architecture/BOUNDARIES.md"],
+            "review_required": True,
+            "warning_message": "Hexagonal layout assumed; no ports/ or adapters/ folder detected.",
+            "calibrated_at": None,
+            "calibrated_against_overlay_version": None,
+        }]
+        write_govkit_marker(
+            tmp_path, "claude-code", "4",
+            {"type": "api", "ci": "github", "level": "4"},
+            assumptions=assumptions,
+        )
+        marker = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
+
+        validator = Draft202012Validator(_load_marker_schema())
+        errors = list(validator.iter_errors(marker))
+        assert not errors, "; ".join(e.message for e in errors)
+
+
+class TestMarkerSchemaRejectsInvalid:
+    def _valid_marker(self) -> dict:
+        return {
+            "version": "0.10.0",
+            "level": "4",
+            "agent": "claude-code",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": "2026-05-27T15:00:00+00:00",
+            "stack": None,
+            "assumptions": [],
+            "calibration": {"completed_at": None, "decisions": []},
+        }
+
+    def test_rejects_missing_agent(self):
+        marker = self._valid_marker()
+        del marker["agent"]
+        errors = list(Draft202012Validator(_load_marker_schema()).iter_errors(marker))
+        assert errors and any("agent" in e.message for e in errors)
+
+    def test_rejects_unknown_level(self):
+        marker = self._valid_marker()
+        marker["level"] = "6"
+        errors = list(Draft202012Validator(_load_marker_schema()).iter_errors(marker))
+        assert errors
+
+    def test_rejects_unknown_type(self):
+        marker = self._valid_marker()
+        marker["options"]["type"] = "fullstack"
+        errors = list(Draft202012Validator(_load_marker_schema()).iter_errors(marker))
+        assert errors
+
+    def test_rejects_unknown_assumption_source(self):
+        marker = self._valid_marker()
+        marker["assumptions"] = [{
+            "id": "stack.language", "value": "python",
+            "source": "wishful-thinking",  # not in enum
+            "confidence": "low", "evidence": [], "files_affected": [],
+            "review_required": False,
+        }]
+        errors = list(Draft202012Validator(_load_marker_schema()).iter_errors(marker))
+        assert errors
+
+    def test_rejects_unknown_top_level_key(self):
+        marker = self._valid_marker()
+        marker["extra_field"] = "nope"
+        errors = list(Draft202012Validator(_load_marker_schema()).iter_errors(marker))
+        assert errors
+
+    def test_accepts_marker_with_extension_sourced_assumption(self):
+        """source='extension' is one of the new sources added per the
+        Extensions Compatibility section."""
+        marker = self._valid_marker()
+        marker["assumptions"] = [{
+            "id": "extension.agentic-skills.agent-runtime",
+            "value": "true",
+            "source": "extension",
+            "confidence": "high",
+            "evidence": ["extensions/agentic-skills/manifest.yaml"],
+            "files_affected": [],
+            "review_required": False,
+            "warning_message": None,
+            "calibrated_at": None,
+            "calibrated_against_overlay_version": None,
+        }]
+        errors = list(Draft202012Validator(_load_marker_schema()).iter_errors(marker))
+        assert not errors
+
+
+# ---------------------------------------------------------------------------
+# cli/stacks/<id>/overlay.yaml schema
+# ---------------------------------------------------------------------------
+
+
+STACK_OVERLAY_SCHEMA_PATH = REPO_ROOT / "governance" / "schemas" / "stack-overlay.schema.json"
+STACKS_DIR = REPO_ROOT / "cli" / "stacks"
+
+
+def _bundled_stack_ids() -> list[str]:
+    return sorted(
+        d.name for d in STACKS_DIR.iterdir()
+        if d.is_dir() and (d / "overlay.yaml").is_file()
+    )
+
+
+def test_stack_overlay_schema_is_a_valid_json_schema():
+    schema = json.loads(STACK_OVERLAY_SCHEMA_PATH.read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(schema)
+
+
+@pytest.mark.parametrize("stack_id", _bundled_stack_ids())
+def test_bundled_overlay_validates_against_schema(stack_id):
+    """Every cli/stacks/<id>/overlay.yaml must validate against the shipped
+    schema. Catches drift between an overlay author and the schema authors."""
+    yaml_mod = pytest.importorskip("yaml")
+    schema = json.loads(STACK_OVERLAY_SCHEMA_PATH.read_text(encoding="utf-8"))
+    overlay_path = STACKS_DIR / stack_id / "overlay.yaml"
+    overlay = yaml_mod.safe_load(overlay_path.read_text(encoding="utf-8"))
+
+    validator = Draft202012Validator(schema)
+    errors = sorted(validator.iter_errors(overlay), key=lambda e: list(e.path))
+    assert not errors, (
+        f"{stack_id}/overlay.yaml failed schema validation:\n"
+        + "\n".join(f"  - at {list(e.absolute_path)}: {e.message}" for e in errors)
+    )
+
+
+@pytest.mark.parametrize("stack_id", _bundled_stack_ids())
+def test_overlay_has_yaml_language_server_modeline(stack_id):
+    """The first line of every overlay.yaml must point VS Code's YAML
+    extension at the right schema — otherwise it tries to validate against
+    unrelated public schemas (e.g. the JSON Schema Overlay spec) and floods
+    the Problems panel with false errors."""
+    overlay_path = STACKS_DIR / stack_id / "overlay.yaml"
+    first_line = overlay_path.read_text(encoding="utf-8").splitlines()[0]
+    assert first_line.startswith("# yaml-language-server: $schema=")
+    assert "stack-overlay.schema.json" in first_line

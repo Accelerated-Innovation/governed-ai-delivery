@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=../../../governance/schemas/stack-overlay.schema.json
+id: python-dbt
+version: "0.10.0"
+display_name: "Python 3.11+ / dbt-core (staging / intermediate / marts)"
+summary: "dbt-core + a warehouse adapter (Snowflake / BigQuery / Redshift / Postgres); SQLfluff + dbt schema tests + optional dbt-expectations for L4"
+default_assumptions:
+  - id: stack.language
+    value: python
+  - id: stack.framework
+    value: dbt
+  - id: testing.schema
+    value: dbt-tests
+  - id: testing.advanced
+    value: dbt-expectations
+    review_required: true
+docs:
+  - src: TECH_STACK.md
+    dest: docs/data/architecture/TECH_STACK.md
+    editable: true
+  - src: QUERY_CONVENTIONS.md
+    dest: docs/data/architecture/QUERY_CONVENTIONS.md
+    editable: true
+  - src: TESTING.md
+    dest: docs/data/architecture/TESTING.md
+    editable: true
+  - src: MODEL_LAYERING.md
+    dest: docs/data/architecture/MODEL_LAYERING.md
+    editable: true
+  - src: PII_HANDLING.md
+    dest: docs/data/architecture/PII_HANDLING.md
+    editable: true
+  - src: LINEAGE_OBSERVABILITY.md
+    dest: docs/data/architecture/LINEAGE_OBSERVABILITY.md
+    editable: true
+skill_context:
+  language: python
+  framework: dbt
+  unit_test: dbt-tests
+  advanced_test: dbt-expectations
+  package_files: ["dbt_project.yml", "packages.yml", "profiles.yml"]
+  source_folder_hint: ["models/", "tests/", "macros/", "snapshots/", "seeds/"]
+review_checklist:
+  - "Confirm dbt adapter (snowflake / bigquery / redshift / postgres / databricks) in TECH_STACK.md §1"
+  - "Confirm model layering convention — staging / intermediate / marts is the assumed default; medallion (bronze / silver / gold) is a common alternate"
+  - "Confirm test policy: which severity blocks deploys (warn vs error)?"
+  - "Confirm PII handling: which columns are masked in non-prod, via which macros?"
+  - "Confirm lineage destination (dbt Cloud, OpenLineage, Datahub, custom)?"

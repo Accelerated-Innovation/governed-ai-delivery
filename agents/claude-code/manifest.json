@@ -9,13 +9,17 @@
     },
     "type": {
       "prompt": "Project type?",
-      "choices": ["api", "cli", "ui-react", "ui-angular"],
+      "choices": ["api", "cli", "ui-react", "ui-angular", "data"],
       "default": "api"
     },
     "ci": {
       "prompt": "CI platform?",
       "choices": ["github", "azure"],
       "default": "github"
+    },
+    "stack": {
+      "choices": ["python-fastapi", "dotnet-aspnet", "java-spring-boot", "nodejs-fastify", "go-gin"],
+      "default": "python-fastapi"
     }
   },
   "variants": {
@@ -281,6 +285,34 @@
             "governance/ui/"
           ]
         }
+      },
+      "data": {
+        "files": [
+          { "src": "claude-md/data.md", "dest": "CLAUDE.md" },
+          { "src": "rules/data/staging.md", "dest": ".claude/rules/staging.md" },
+          { "src": "rules/data/intermediate.md", "dest": ".claude/rules/intermediate.md" },
+          { "src": "rules/data/marts.md", "dest": ".claude/rules/marts.md" },
+          { "src": "rules/data/data-quality.md", "dest": ".claude/rules/data-quality.md" },
+          { "src": "rules/data/pii.md", "dest": ".claude/rules/pii.md" },
+          { "src": "rules/generic/repo-scope-backend.md", "dest": ".claude/rules/repo-scope.md" },
+          { "src": "skills/backend/adr-author/", "dest": ".claude/skills/adr-author/" }
+        ],
+        "shared": [],
+        "governed": [
+          "docs/data/architecture/"
+        ],
+        "level_4": {
+          "mode": "merge",
+          "files": [
+            { "src": "claude-md/l4-data.md", "dest": "CLAUDE.md" },
+            { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
+            { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" }
+          ],
+          "shared": [
+            "features/starter_data/"
+          ],
+          "governed": []
+        }
       }
     },
     "ci": {
@@ -292,7 +324,8 @@
           "api":        { "governed": ["ci/github/l3-quality-gate.yml"] },
           "cli":        { "governed": ["ci/github/l3-quality-gate.yml"] },
           "ui-react":   { "governed": ["ci/github/l3-ui-quality-gate.yml"] },
-          "ui-angular": { "governed": ["ci/github/l3-ui-quality-gate.yml"] }
+          "ui-angular": { "governed": ["ci/github/l3-ui-quality-gate.yml"] },
+          "data":       { "governed": [] }
         },
         "level_4": {
           "mode": "merge",
@@ -303,7 +336,8 @@
             "api":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml"] },
             "cli":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml"] },
             "ui-react":   { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml"] },
-            "ui-angular": { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml"] }
+            "ui-angular": { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml"] },
+            "data":       { "governed": [] }
           }
         },
         "level_5": {
@@ -359,7 +393,8 @@
           "api":        { "governed": ["ci/azure/l3-quality-gate.yml"] },
           "cli":        { "governed": ["ci/azure/l3-quality-gate.yml"] },
           "ui-react":   { "governed": ["ci/azure/l3-ui-quality-gate.yml"] },
-          "ui-angular": { "governed": ["ci/azure/l3-ui-quality-gate.yml"] }
+          "ui-angular": { "governed": ["ci/azure/l3-ui-quality-gate.yml"] },
+          "data":       { "governed": [] }
         },
         "level_4": {
           "mode": "merge",
@@ -370,7 +405,8 @@
             "api":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml"] },
             "cli":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml"] },
             "ui-react":   { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml"] },
-            "ui-angular": { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml"] }
+            "ui-angular": { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml"] },
+            "data":       { "governed": [] }
           }
         },
         "level_5": {

@@ -22,7 +22,10 @@ Read these artifacts before planning:
 
 The plan must:
 
-- Follow Hexagonal Architecture (ports + adapters)
+- Follow **this project's architecture** — read `.govkit/skill_context.yaml`
+  for `architecture.style` and the layer-to-folder mapping under
+  `architecture.layers`. Cite `docs/backend/architecture/BOUNDARIES.md` for
+  the canonical layer contract.
 - Enforce FIRST principles for unit tests
 - Enforce 7 Code Virtues for implementation
 - Respect all boundary and dependency contracts
@@ -36,7 +39,11 @@ The plan must:
 
 ### Architecture Mapping
 
-Identify inbound ports, domain services, outbound ports, adapters, and API routes. Explicitly confirm no boundary violations.
+Map the work to the layers in `.govkit/skill_context.yaml` under
+`architecture.layers` (inbound / outbound / domain). Cite the actual
+folder names this project uses (per `skill_context.architecture.layers.*`
+and `docs/backend/architecture/BOUNDARIES.md`). Explicitly confirm no
+boundary violations.
 
 ### Task Breakdown (Ordered Checklist)
 

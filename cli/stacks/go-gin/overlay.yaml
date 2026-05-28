@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=../../../governance/schemas/stack-overlay.schema.json
+id: go-gin
+version: "0.10.0"
+display_name: "Go 1.22+ / Gin"
+summary: "Gin + standard library testing + testify + optional godog for L4 BDD"
+default_assumptions:
+  - id: stack.language
+    value: go
+  - id: stack.framework
+    value: gin
+  - id: testing.unit
+    value: testing-testify
+  - id: testing.bdd
+    value: godog
+    review_required: true
+docs:
+  - src: TECH_STACK.md
+    dest: docs/backend/architecture/TECH_STACK.md
+    editable: true
+  - src: API_CONVENTIONS.md
+    dest: docs/backend/architecture/API_CONVENTIONS.md
+    editable: true
+  - src: TESTING.md
+    dest: docs/backend/architecture/TESTING.md
+    editable: true
+  - src: LAYER_IMPLEMENTATION.md
+    dest: docs/backend/architecture/LAYER_IMPLEMENTATION.md
+    editable: true
+  - src: SECURITY_AUTH_PATTERNS.md
+    dest: docs/backend/architecture/SECURITY_AUTH_PATTERNS.md
+    editable: true
+  - src: OBSERVABILITY_PORT_CONTRACT.md
+    dest: docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md
+    editable: true
+skill_context:
+  language: go
+  api_framework: gin
+  unit_test: testing-testify
+  bdd_test: godog
+  package_files: ["go.mod", "go.sum"]
+  source_folder_hint: ["cmd/", "internal/", "pkg/"]
+review_checklist:
+  - "Confirm Go version (1.22+ assumed) in TECH_STACK.md §1"
+  - "Confirm Gin vs alternatives (Echo, Chi, Fiber, net/http) — change TECH_STACK.md §3 if different"
+  - "Confirm standard project layout (cmd/ + internal/ + pkg/) matches your repo"
+  - "Confirm godog for BDD if applicable; set BDD to 'none' if your team does not practise BDD"

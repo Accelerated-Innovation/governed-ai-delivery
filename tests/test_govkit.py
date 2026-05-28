@@ -682,7 +682,7 @@ class TestGovkitMarker:
         from cli.govkit import write_govkit_marker
 
         write_govkit_marker(tmp_path, "claude-code", "3", {"type": "api", "level": "3", "ci": "github"})
-        data = json.loads((tmp_path / ".govkit").read_text(encoding="utf-8"))
+        data = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
         assert "level" not in data["options"]
         assert data["options"]["type"] == "api"
         assert data["level"] == "3"
@@ -692,10 +692,741 @@ class TestGovkitMarker:
         from cli.govkit import write_govkit_marker, read_govkit_level, _GOVKIT_VERSION
 
         write_govkit_marker(tmp_path, "claude-code", "5", {"type": "api", "level": "5"})
-        data = json.loads((tmp_path / ".govkit").read_text(encoding="utf-8"))
+        data = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
         assert data["level"] == "5"
         assert data["version"] == _GOVKIT_VERSION
         assert read_govkit_level(tmp_path) == "5"
+
+
+class TestMarkerDirectoryLayout:
+    """PR 1 / A1: .govkit becomes a directory containing marker.json.
+
+    Legacy single-file markers are read tolerantly and migrated on first read.
+    Write paths only emit the directory layout.
+    """
+
+    def test_write_creates_directory_with_marker_json(self, tmp_path):
+        from cli.govkit import write_govkit_marker
+
+        write_govkit_marker(tmp_path, "claude-code", "3", {"type": "api", "level": "3"})
+
+        marker_dir = tmp_path / ".govkit"
+        marker_json = marker_dir / "marker.json"
+        assert marker_dir.is_dir(), ".govkit must be a directory after write"
+        assert marker_json.is_file(), ".govkit/marker.json must exist"
+
+    def test_write_does_not_create_legacy_file(self, tmp_path):
+        from cli.govkit import write_govkit_marker
+
+        write_govkit_marker(tmp_path, "claude-code", "3", {"type": "api", "level": "3"})
+
+        # On Windows/POSIX a name is either a file or a directory, but assert
+        # the inverse explicitly so the layout intent is recorded in the test.
+        assert not (tmp_path / ".govkit").is_file(), ".govkit must not be a single file"
+
+    def test_read_new_directory_layout_returns_payload(self, tmp_path):
+        from cli.govkit import write_govkit_marker, read_govkit_marker
+
+        write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
+
+        data = read_govkit_marker(tmp_path)
+        assert data is not None
+        assert data["agent"] == "claude-code"
+        assert data["level"] == "4"
+        assert data["options"]["type"] == "api"
+
+    def test_read_legacy_file_layout_back_compat(self, tmp_path, monkeypatch):
+        """A pre-existing .govkit single-file marker must still be readable."""
+        import cli.govkit as mod
+        mod._reset_directory_migration_warning()
+        monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
+
+        legacy_payload = {
+            "version": "0.9.0",
+            "level": "4",
+            "agent": "claude-code",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": "2026-04-01T00:00:00+00:00",
+        }
+        (tmp_path / ".govkit").write_text(json.dumps(legacy_payload), encoding="utf-8")
+
+        data = mod.read_govkit_marker(tmp_path)
+        assert data is not None
+        assert data["agent"] == "claude-code"
+        assert data["options"]["type"] == "api"
+
+    def test_read_legacy_file_layout_auto_migrates_to_directory(self, tmp_path, monkeypatch):
+        """After reading a legacy file marker, the directory layout must exist
+        and the legacy file must be gone."""
+        import cli.govkit as mod
+        mod._reset_directory_migration_warning()
+        monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
+
+        legacy_payload = {
+            "version": "0.9.0",
+            "level": "4",
+            "agent": "claude-code",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": "2026-04-01T00:00:00+00:00",
+        }
+        legacy_path = tmp_path / ".govkit"
+        legacy_path.write_text(json.dumps(legacy_payload), encoding="utf-8")
+        assert legacy_path.is_file()
+
+        mod.read_govkit_marker(tmp_path)
+
+        marker_dir = tmp_path / ".govkit"
+        assert marker_dir.is_dir(), "directory layout must be created on read"
+        assert (marker_dir / "marker.json").is_file(), "marker.json must be written"
+
+        roundtrip = json.loads((marker_dir / "marker.json").read_text(encoding="utf-8"))
+        assert roundtrip["agent"] == "claude-code"
+        assert roundtrip["options"]["type"] == "api"
+
+    def test_migration_warning_fires_for_legacy_file(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+        mod._reset_directory_migration_warning()
+        mod._reset_migration_warning()
+        mod._reset_shape_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", raising=False)
+
+        legacy_payload = {
+            "version": "0.9.0", "level": "4", "agent": "claude-code",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": "2026-04-01T00:00:00+00:00",
+        }
+        (tmp_path / ".govkit").write_text(json.dumps(legacy_payload), encoding="utf-8")
+
+        mod.read_govkit_marker(tmp_path)
+        err = capsys.readouterr().err
+        assert "legacy single-file .govkit marker" in err
+        assert "layout changed in 0.10.0" in err
+        assert "GOVKIT_NO_DIRECTORY_MIGRATION_WARNING" in err
+
+    def test_migration_warning_only_fires_once_per_invocation(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+        mod._reset_directory_migration_warning()
+        mod._reset_migration_warning()
+        mod._reset_shape_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", raising=False)
+
+        legacy_payload = {
+            "version": "0.9.0", "level": "4", "agent": "claude-code",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": "2026-04-01T00:00:00+00:00",
+        }
+        (tmp_path / ".govkit").write_text(json.dumps(legacy_payload), encoding="utf-8")
+
+        # First read migrates; subsequent reads see the directory and emit nothing.
+        mod.read_govkit_marker(tmp_path)
+        mod.read_govkit_marker(tmp_path)
+        mod.read_govkit_marker(tmp_path)
+        err = capsys.readouterr().err
+        # Directory message appears at most once.
+        directory_msg_count = err.count("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING")
+        assert directory_msg_count == 1
+
+    def test_migration_warning_suppressed_by_env_var(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+        mod._reset_directory_migration_warning()
+        mod._reset_migration_warning()
+        mod._reset_shape_migration_warning()
+        monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
+        # Also suppress unrelated warnings so we can assert err == ""
+        monkeypatch.setenv("GOVKIT_NO_MIGRATION_WARNING", "1")
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+
+        legacy_payload = {
+            "version": "0.9.0", "level": "4", "agent": "claude-code",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": "2026-04-01T00:00:00+00:00",
+        }
+        (tmp_path / ".govkit").write_text(json.dumps(legacy_payload), encoding="utf-8")
+
+        mod.read_govkit_marker(tmp_path)
+        err = capsys.readouterr().err
+        assert err == ""
+
+    def test_no_migration_warning_when_already_directory(self, tmp_path, monkeypatch, capsys):
+        """Fresh installs that write the directory layout straight away must
+        not emit the directory migration warning."""
+        import cli.govkit as mod
+        mod._reset_directory_migration_warning()
+        mod._reset_migration_warning()
+        mod._reset_shape_migration_warning()
+        monkeypatch.delenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", raising=False)
+
+        from cli.govkit import write_govkit_marker
+        write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
+
+        mod.read_govkit_marker(tmp_path)
+        err = capsys.readouterr().err
+        assert "GOVKIT_NO_DIRECTORY_MIGRATION_WARNING" not in err
+
+    def test_write_over_legacy_file_replaces_with_directory(self, tmp_path):
+        """If a legacy file exists when write is called, write must remove the
+        file and create the directory layout."""
+        from cli.govkit import write_govkit_marker
+
+        legacy_payload = {
+            "version": "0.9.0", "level": "4", "agent": "claude-code",
+            "options": {"type": "api"}, "applied_at": "2026-04-01T00:00:00+00:00",
+        }
+        (tmp_path / ".govkit").write_text(json.dumps(legacy_payload), encoding="utf-8")
+
+        write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
+
+        assert (tmp_path / ".govkit").is_dir()
+        assert (tmp_path / ".govkit" / "marker.json").is_file()
+
+    def test_read_level_under_new_directory_layout(self, tmp_path):
+        from cli.govkit import write_govkit_marker, read_govkit_level
+
+        write_govkit_marker(tmp_path, "claude-code", "5", {"type": "api", "ci": "github", "level": "5"})
+        assert read_govkit_level(tmp_path) == "5"
+
+
+class TestMarkerMigrationDurability:
+    """Legacy-file → directory migration must never leave the repo with no
+    marker. The original sequence (unlink → mkdir → write) could lose the
+    marker entirely if the mkdir or write failed after the unlink. The fix
+    writes to a temp dir first, backs up the legacy file, then swaps —
+    failures leave either the legacy intact or a recoverable backup.
+    """
+
+    _LEGACY_PAYLOAD = {
+        "version": "0.9.0",
+        "level": "4",
+        "agent": "claude-code",
+        "options": {"type": "api", "ci": "github"},
+        "applied_at": "2026-04-01T00:00:00+00:00",
+    }
+
+    def _seed_legacy(self, tmp_path):
+        import cli.govkit as mod
+        mod._reset_directory_migration_warning()
+        mod._reset_migration_warning()
+        mod._reset_shape_migration_warning()
+        (tmp_path / ".govkit").write_text(json.dumps(self._LEGACY_PAYLOAD), encoding="utf-8")
+
+    def test_stale_migrate_tmp_from_prior_failed_attempt_is_cleaned_up(self, tmp_path, monkeypatch):
+        """A previous migration attempt that crashed leaves .govkit.migrate.tmp/
+        behind. The next read must clean it up and successfully migrate."""
+        import cli.govkit as mod
+        monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
+        self._seed_legacy(tmp_path)
+
+        stale_tmp = tmp_path / ".govkit.migrate.tmp"
+        stale_tmp.mkdir()
+        (stale_tmp / "marker.json").write_text('{"garbage": "from prior failed migration"}', encoding="utf-8")
+        (stale_tmp / "extra_file.txt").write_text("noise", encoding="utf-8")
+
+        data = mod.read_govkit_marker(tmp_path)
+
+        assert data is not None
+        assert data["agent"] == "claude-code"
+        assert (tmp_path / ".govkit").is_dir()
+        assert (tmp_path / ".govkit" / "marker.json").is_file()
+        roundtrip = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
+        assert roundtrip["agent"] == "claude-code"
+        # Stale tmp must be gone after a successful migration.
+        assert not stale_tmp.exists()
+
+    def test_migration_failure_leaves_legacy_marker_intact_and_returns_data(self, tmp_path, monkeypatch):
+        """If the migration write/rename fails mid-flight, the original .govkit
+        file must still exist (or a recoverable backup must) AND the function
+        must still return the parsed legacy data. The repo must never end up
+        with no marker."""
+        import cli.govkit as mod
+        from pathlib import Path
+        monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
+        self._seed_legacy(tmp_path)
+        legacy_path = tmp_path / ".govkit"
+        assert legacy_path.is_file()
+
+        # Force the rename step to fail (simulates disk full, permission
+        # denied, interrupted process, etc.).
+        original_rename = Path.rename
+
+        def failing_rename(self, target):
+            # Trip the failure on any rename whose target is inside our tmp_path
+            # — this fires for both the legacy→backup and tmp→final renames.
+            if str(tmp_path) in str(target) or str(tmp_path) in str(self):
+                raise OSError("simulated rename failure")
+            return original_rename(self, target)
+
+        monkeypatch.setattr(Path, "rename", failing_rename)
+
+        data = mod.read_govkit_marker(tmp_path)
+
+        # Contract: caller must still get the data — migration is best-effort.
+        assert data is not None
+        assert data["agent"] == "claude-code"
+        assert data["level"] == "4"
+
+        # Contract: SOMEWHERE on disk there's still a recoverable marker.
+        # Either the legacy file is still there, or a backup is.
+        legacy_still_there = legacy_path.is_file()
+        backup_exists = (tmp_path / ".govkit.legacy.bak").is_file()
+        assert legacy_still_there or backup_exists, (
+            "migration failure left no recoverable marker on disk — repo is bricked"
+        )
+
+    def test_orphan_backup_restored_on_next_read(self, tmp_path, monkeypatch):
+        """If a prior migration crashed AFTER moving legacy → backup but BEFORE
+        the new directory was renamed into place, the only thing on disk is
+        .govkit.legacy.bak. The next read must recover from it."""
+        import cli.govkit as mod
+        monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
+        mod._reset_directory_migration_warning()
+        mod._reset_migration_warning()
+        mod._reset_shape_migration_warning()
+
+        # No .govkit file or dir — only the backup from a half-finished migration.
+        (tmp_path / ".govkit.legacy.bak").write_text(
+            json.dumps(self._LEGACY_PAYLOAD), encoding="utf-8",
+        )
+
+        data = mod.read_govkit_marker(tmp_path)
+
+        assert data is not None
+        assert data["agent"] == "claude-code"
+        # After recovery, a normal directory layout should exist.
+        assert (tmp_path / ".govkit").is_dir()
+        assert (tmp_path / ".govkit" / "marker.json").is_file()
+
+
+class TestExtendedMarkerFields:
+    """PR 1: marker carries assumptions[], stack{}, calibration{} so future
+    PRs (2/3/5) can populate them without further schema migrations."""
+
+    def test_new_marker_includes_empty_assumptions(self, tmp_path):
+        import json
+        from cli.govkit import write_govkit_marker
+
+        write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
+        data = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
+        assert "assumptions" in data
+        assert data["assumptions"] == []
+
+    def test_new_marker_includes_null_stack(self, tmp_path):
+        import json
+        from cli.govkit import write_govkit_marker
+
+        write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
+        data = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
+        assert "stack" in data
+        assert data["stack"] is None
+
+    def test_new_marker_includes_calibration_block(self, tmp_path):
+        import json
+        from cli.govkit import write_govkit_marker
+
+        write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
+        data = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
+        assert "calibration" in data
+        assert data["calibration"]["completed_at"] is None
+        assert data["calibration"]["decisions"] == []
+
+    def test_write_marker_accepts_stack_param(self, tmp_path):
+        """PR 2 will populate stack via this kwarg; PR 1 exposes the slot."""
+        import json
+        from cli.govkit import write_govkit_marker
+
+        stack = {
+            "id": "dotnet-aspnet",
+            "version": "0.10.0",
+            "display_name": "C# 12 / .NET 8 / ASP.NET Core",
+            "applied_at": "2026-05-27T15:00:00+00:00",
+        }
+        write_govkit_marker(
+            tmp_path, "claude-code", "4",
+            {"type": "api", "ci": "azure", "level": "4"},
+            stack=stack,
+        )
+        data = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
+        assert data["stack"]["id"] == "dotnet-aspnet"
+        assert data["stack"]["version"] == "0.10.0"
+
+    def test_write_marker_accepts_assumptions_param(self, tmp_path):
+        """PR 3 will populate assumptions via this kwarg; PR 1 exposes the slot."""
+        import json
+        from cli.govkit import write_govkit_marker
+
+        assumptions = [{
+            "id": "stack.language",
+            "value": "python",
+            "source": "default",
+            "confidence": "low",
+            "evidence": [],
+            "files_affected": ["docs/backend/architecture/TECH_STACK.md"],
+            "review_required": True,
+            "warning_message": None,
+            "calibrated_at": None,
+            "calibrated_against_overlay_version": None,
+        }]
+        write_govkit_marker(
+            tmp_path, "claude-code", "4",
+            {"type": "api", "ci": "github", "level": "4"},
+            assumptions=assumptions,
+        )
+        data = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
+        assert len(data["assumptions"]) == 1
+        assert data["assumptions"][0]["id"] == "stack.language"
+
+    def test_read_legacy_marker_without_new_fields_succeeds(self, tmp_path, monkeypatch):
+        """Markers written by older govkit versions lack the new fields.
+        read_govkit_marker must not crash; callers that need the fields use
+        dict.get() defaults."""
+        import json
+        import cli.govkit as mod
+        mod._reset_directory_migration_warning()
+        mod._reset_migration_warning()
+        mod._reset_shape_migration_warning()
+        monkeypatch.setenv("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING", "1")
+        monkeypatch.setenv("GOVKIT_NO_MIGRATION_WARNING", "1")
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+
+        # Pre-PR-1 marker shape: no assumptions / stack / calibration fields.
+        legacy = {
+            "version": "0.9.0", "level": "4", "agent": "claude-code",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": "2026-04-01T00:00:00+00:00",
+        }
+        (tmp_path / ".govkit").write_text(json.dumps(legacy), encoding="utf-8")
+
+        data = mod.read_govkit_marker(tmp_path)
+        assert data is not None
+        # Caller uses .get(...) defaults to access new fields.
+        assert data.get("assumptions", []) == []
+        assert data.get("stack") is None
+        assert data.get("calibration", {"completed_at": None, "decisions": []})["decisions"] == []
+
+
+class TestIsUserEdited:
+    """PR 1 / A2: is_user_edited(dest, applied_at) is the primitive that
+    edit-protection in cmd_apply / cmd_upgrade rely on."""
+
+    def _write_headed_file(self, path, content_body="# Doc\n\nBody\n"):
+        from cli.headers import format_editable_header
+        header = format_editable_header(baseline="govkit@0.10.0")
+        path.write_text(header + content_body, encoding="utf-8")
+
+    def test_returns_false_when_applied_at_is_none(self, tmp_path):
+        from cli.govkit import is_user_edited
+
+        doc = tmp_path / "TECH_STACK.md"
+        self._write_headed_file(doc)
+        assert is_user_edited(doc, None) is False
+
+    def test_returns_false_when_file_does_not_exist(self, tmp_path):
+        from cli.govkit import is_user_edited
+
+        assert is_user_edited(tmp_path / "missing.md", "2026-05-27T10:00:00+00:00") is False
+
+    def test_returns_false_when_file_has_no_editable_header(self, tmp_path):
+        from cli.govkit import is_user_edited
+
+        doc = tmp_path / "TECH_STACK.md"
+        doc.write_text("# Just a doc\n", encoding="utf-8")
+        # mtime is now; applied_at is in the past — without header, no protection
+        assert is_user_edited(doc, "2020-01-01T00:00:00+00:00") is False
+
+    def test_returns_false_when_mtime_at_or_before_applied_at(self, tmp_path):
+        import os
+        from datetime import datetime, timezone
+        from cli.govkit import is_user_edited
+
+        doc = tmp_path / "TECH_STACK.md"
+        self._write_headed_file(doc)
+        # Set mtime to a known instant; applied_at slightly later.
+        file_time = datetime(2026, 5, 27, 10, 0, 0, tzinfo=timezone.utc).timestamp()
+        os.utime(doc, (file_time, file_time))
+        applied_at = datetime(2026, 5, 27, 10, 0, 1, tzinfo=timezone.utc).isoformat()
+        assert is_user_edited(doc, applied_at) is False
+
+    def test_returns_true_when_headed_file_modified_after_applied_at(self, tmp_path):
+        import os
+        from datetime import datetime, timezone
+        from cli.govkit import is_user_edited
+
+        doc = tmp_path / "TECH_STACK.md"
+        self._write_headed_file(doc)
+        # File mtime: an hour after the supposed last apply.
+        file_time = datetime(2026, 5, 27, 11, 0, 0, tzinfo=timezone.utc).timestamp()
+        os.utime(doc, (file_time, file_time))
+        applied_at = datetime(2026, 5, 27, 10, 0, 0, tzinfo=timezone.utc).isoformat()
+        assert is_user_edited(doc, applied_at) is True
+
+    def test_returns_false_for_malformed_applied_at(self, tmp_path):
+        from cli.govkit import is_user_edited
+
+        doc = tmp_path / "TECH_STACK.md"
+        self._write_headed_file(doc)
+        assert is_user_edited(doc, "not-an-iso-timestamp") is False
+
+
+class TestCopyEntryEditProtection:
+    """copy_entry with applied_at activates the edit-protection guard.
+    Without applied_at, copy_entry preserves its pre-PR-1 behavior."""
+
+    def _write_headed_file(self, path, content_body="# Existing\n"):
+        from cli.headers import format_editable_header
+        header = format_editable_header(baseline="govkit@0.10.0")
+        path.write_text(header + content_body, encoding="utf-8")
+
+    def test_legacy_copy_without_applied_at_overwrites_freely(self, tmp_path):
+        """Today's behavior must not break: copy_entry with no applied_at copies."""
+        from cli.govkit import copy_entry
+
+        src = tmp_path / "src.md"
+        src.write_text("# new\n", encoding="utf-8")
+        dest = tmp_path / "dest.md"
+        self._write_headed_file(dest, "# old\n")
+
+        copy_entry(src, dest)  # no applied_at → no guard
+        assert "# new" in dest.read_text(encoding="utf-8")
+
+    def test_refuses_overwrite_of_user_edited_file(self, tmp_path, capsys):
+        import os
+        from datetime import datetime, timezone
+        from cli.govkit import copy_entry
+
+        src = tmp_path / "src.md"
+        src.write_text("# refreshed baseline\n", encoding="utf-8")
+        dest = tmp_path / "dest.md"
+        self._write_headed_file(dest, "# my edits\n")
+
+        # User edited an hour after the last apply.
+        edited_time = datetime(2026, 5, 27, 11, 0, 0, tzinfo=timezone.utc).timestamp()
+        os.utime(dest, (edited_time, edited_time))
+        applied_at = datetime(2026, 5, 27, 10, 0, 0, tzinfo=timezone.utc).isoformat()
+
+        copy_entry(src, dest, applied_at=applied_at, force=False)
+
+        assert "my edits" in dest.read_text(encoding="utf-8")
+        assert "refreshed baseline" not in dest.read_text(encoding="utf-8")
+        err = capsys.readouterr().err
+        assert "refused" in err
+        assert "--force" in err
+
+    def test_force_overrides_protection(self, tmp_path, capsys):
+        import os
+        from datetime import datetime, timezone
+        from cli.govkit import copy_entry
+
+        src = tmp_path / "src.md"
+        src.write_text("# refreshed baseline\n", encoding="utf-8")
+        dest = tmp_path / "dest.md"
+        self._write_headed_file(dest, "# my edits\n")
+        edited_time = datetime(2026, 5, 27, 11, 0, 0, tzinfo=timezone.utc).timestamp()
+        os.utime(dest, (edited_time, edited_time))
+        applied_at = datetime(2026, 5, 27, 10, 0, 0, tzinfo=timezone.utc).isoformat()
+
+        copy_entry(src, dest, applied_at=applied_at, force=True)
+
+        assert "refreshed baseline" in dest.read_text(encoding="utf-8")
+        err = capsys.readouterr().err
+        assert "overwriting user edits" in err
+
+    def test_copies_freely_when_file_unedited_since_apply(self, tmp_path):
+        import os
+        from datetime import datetime, timezone
+        from cli.govkit import copy_entry
+
+        src = tmp_path / "src.md"
+        src.write_text("# refreshed\n", encoding="utf-8")
+        dest = tmp_path / "dest.md"
+        self._write_headed_file(dest, "# baseline\n")
+        old_time = datetime(2026, 5, 27, 9, 0, 0, tzinfo=timezone.utc).timestamp()
+        os.utime(dest, (old_time, old_time))
+        applied_at = datetime(2026, 5, 27, 10, 0, 0, tzinfo=timezone.utc).isoformat()
+
+        copy_entry(src, dest, applied_at=applied_at, force=False)
+
+        assert "refreshed" in dest.read_text(encoding="utf-8")
+
+    def test_directory_copy_protects_per_file(self, tmp_path):
+        import os
+        from datetime import datetime, timezone
+        from cli.govkit import copy_entry
+
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "a.md").write_text("# new a\n", encoding="utf-8")
+        (src_dir / "b.md").write_text("# new b\n", encoding="utf-8")
+
+        dest_dir = tmp_path / "dest"
+        dest_dir.mkdir()
+        self._write_headed_file(dest_dir / "a.md", "# user-edited a\n")
+        self._write_headed_file(dest_dir / "b.md", "# unedited b\n")
+
+        # Only `a.md` is edited after the apply timestamp.
+        edited_time = datetime(2026, 5, 27, 11, 0, 0, tzinfo=timezone.utc).timestamp()
+        old_time = datetime(2026, 5, 27, 9, 0, 0, tzinfo=timezone.utc).timestamp()
+        os.utime(dest_dir / "a.md", (edited_time, edited_time))
+        os.utime(dest_dir / "b.md", (old_time, old_time))
+        applied_at = datetime(2026, 5, 27, 10, 0, 0, tzinfo=timezone.utc).isoformat()
+
+        copy_entry(src_dir, dest_dir, applied_at=applied_at, force=False)
+
+        # a.md kept user edits; b.md refreshed
+        assert "user-edited a" in (dest_dir / "a.md").read_text(encoding="utf-8")
+        assert "new b" in (dest_dir / "b.md").read_text(encoding="utf-8")
+
+
+class TestCopyEntryExcludeBasenames:
+    """copy_entry with exclude_basenames skips matching files. Used by
+    cmd_apply (PR 6c) to keep L5-only architecture docs out of L3/L4 installs."""
+
+    def test_excludes_named_files_at_root(self, tmp_path):
+        from cli.govkit import copy_entry
+
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "keep.md").write_text("k", encoding="utf-8")
+        (src / "drop.md").write_text("d", encoding="utf-8")
+        dest = tmp_path / "dest"
+
+        copy_entry(src, dest, exclude_basenames={"drop.md"})
+
+        assert (dest / "keep.md").is_file()
+        assert not (dest / "drop.md").exists()
+
+    def test_excludes_named_files_in_nested_dirs(self, tmp_path):
+        from cli.govkit import copy_entry
+
+        src = tmp_path / "src"
+        sub = src / "nested"
+        sub.mkdir(parents=True)
+        (sub / "AGENT_ARCHITECTURE.md").write_text("x", encoding="utf-8")
+        (sub / "BOUNDARIES.md").write_text("b", encoding="utf-8")
+        dest = tmp_path / "dest"
+
+        copy_entry(src, dest, exclude_basenames={"AGENT_ARCHITECTURE.md"})
+
+        assert (dest / "nested" / "BOUNDARIES.md").is_file()
+        assert not (dest / "nested" / "AGENT_ARCHITECTURE.md").exists()
+
+    def test_exclude_none_preserves_default_behaviour(self, tmp_path):
+        from cli.govkit import copy_entry
+
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "a.md").write_text("a", encoding="utf-8")
+        (src / "b.md").write_text("b", encoding="utf-8")
+        dest = tmp_path / "dest"
+
+        copy_entry(src, dest)
+        assert (dest / "a.md").is_file()
+        assert (dest / "b.md").is_file()
+
+
+class TestL5OnlyGovernedExclusion:
+    """cmd_apply at L3/L4 must NOT install L5-only architecture contracts
+    (AGENT_ARCHITECTURE.md, LLM_GATEWAY_CONTRACT.md, etc.). L5 installs DO
+    get them. This is what makes doctor's D007 quiet on fresh L4 installs."""
+
+    def test_l4_apply_excludes_llm_contracts_from_governed(self, tmp_path, monkeypatch):
+        import argparse
+        from cli.govkit import cmd_apply
+
+        target = tmp_path / "project"
+        target.mkdir()
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target),
+            level="4", type="api", ci="github",
+            stack="python-fastapi", force=False, detect=False,
+        ))
+
+        arch = target / "docs" / "backend" / "architecture"
+        for l5_only in (
+            "AGENT_ARCHITECTURE.md",
+            "LLM_GATEWAY_CONTRACT.md",
+            "GUARDRAILS_CONTRACT.md",
+            "OBSERVABILITY_LLM_CONTRACT.md",
+            "EVALUATION_LLM_CONTRACT.md",
+        ):
+            assert not (arch / l5_only).exists(), \
+                f"L4 install must not ship {l5_only}; doctor D007 will leak"
+
+    def test_l5_apply_includes_llm_contracts(self, tmp_path, monkeypatch):
+        import argparse
+        from cli.govkit import cmd_apply
+
+        target = tmp_path / "project"
+        target.mkdir()
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target),
+            level="5", type="api", ci="github",
+            stack="python-fastapi", force=False, detect=False,
+        ))
+
+        arch = target / "docs" / "backend" / "architecture"
+        assert (arch / "AGENT_ARCHITECTURE.md").is_file()
+        assert (arch / "LLM_GATEWAY_CONTRACT.md").is_file()
+        assert (arch / "GUARDRAILS_CONTRACT.md").is_file()
+
+
+class TestCopyEntryHeaderInjection:
+    """copy_entry with header_baseline prepends the govkit:editable header
+    after each successful .md copy. Used by governed/shared paths in apply
+    and upgrade so doc baselines stay in sync."""
+
+    def test_prepends_header_to_md_file_on_copy(self, tmp_path):
+        from cli.govkit import copy_entry
+
+        src = tmp_path / "src.md"
+        src.write_text("# Body\n", encoding="utf-8")
+        dest = tmp_path / "dest.md"
+
+        copy_entry(src, dest, header_baseline="govkit@0.10.0")
+
+        content = dest.read_text(encoding="utf-8")
+        assert content.startswith("<!-- govkit:editable")
+        assert "baseline: govkit@0.10.0" in content
+        assert "# Body" in content
+
+    def test_does_not_add_header_to_non_md_file(self, tmp_path):
+        from cli.govkit import copy_entry
+
+        src = tmp_path / "src.yaml"
+        src.write_text("key: value\n", encoding="utf-8")
+        dest = tmp_path / "dest.yaml"
+
+        copy_entry(src, dest, header_baseline="govkit@0.10.0")
+
+        assert dest.read_text(encoding="utf-8") == "key: value\n"
+
+    def test_does_not_add_header_when_skip_existing_skipped(self, tmp_path):
+        from cli.govkit import copy_entry
+
+        src = tmp_path / "src.md"
+        src.write_text("# new\n", encoding="utf-8")
+        dest = tmp_path / "dest.md"
+        dest.write_text("# pre-existing user file\n", encoding="utf-8")
+
+        copy_entry(src, dest, skip_existing=True, header_baseline="govkit@0.10.0")
+
+        # Skip-existing means no copy and no header injection.
+        assert dest.read_text(encoding="utf-8") == "# pre-existing user file\n"
+
+    def test_directory_copy_adds_headers_to_each_md_child(self, tmp_path):
+        from cli.govkit import copy_entry
+
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "a.md").write_text("# A\n", encoding="utf-8")
+        (src_dir / "b.md").write_text("# B\n", encoding="utf-8")
+        (src_dir / "c.yaml").write_text("c: 1\n", encoding="utf-8")
+
+        dest_dir = tmp_path / "dest"
+
+        copy_entry(src_dir, dest_dir, header_baseline="govkit@0.10.0")
+
+        assert (dest_dir / "a.md").read_text(encoding="utf-8").startswith("<!-- govkit:editable")
+        assert (dest_dir / "b.md").read_text(encoding="utf-8").startswith("<!-- govkit:editable")
+        assert (dest_dir / "c.yaml").read_text(encoding="utf-8") == "c: 1\n"
 
 
 # ---------------------------------------------------------------------------
@@ -815,7 +1546,13 @@ def _make_fake_agent(tmp_path: Path, shared: list[str] | None = None) -> Path:
 
 
 def _apply_args(target: Path, **overrides) -> argparse.Namespace:
-    defaults = dict(agent="claude-code", target=str(target), level="4", type="api", ci="github")
+    defaults = {
+        "agent": "claude-code",
+        "target": str(target),
+        "level": "4",
+        "type": "api",
+        "ci": "github",
+    }
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
 
@@ -1013,7 +1750,7 @@ class TestGoverned:
                 }
             }
         }
-        files, shared, governed = resolve_variant_files(manifest, {"type": "api"})
+        _, shared, governed = resolve_variant_files(manifest, {"type": "api"})
         assert governed == ["docs/backend/", "governance/backend/"]
         assert shared == ["features/starter_backend/"]
 
@@ -1140,7 +1877,12 @@ class TestCmdUpgrade:
         assert (target / "CLAUDE.md").read_text(encoding="utf-8") == "# Agent instructions v2"
 
     def test_upgrade_refreshes_governed_files(self, tmp_path, monkeypatch):
-        """cmd_upgrade overwrites governed files when version advances."""
+        """cmd_upgrade overwrites governed files when version advances.
+
+        Post-PR-1: refreshed governed .md files carry the govkit:editable
+        header reflecting the new baseline; the file body equals the new
+        baseline content.
+        """
         import cli.govkit as mod
 
         repo = _make_upgrade_repo(tmp_path)
@@ -1154,7 +1896,10 @@ class TestCmdUpgrade:
 
         cmd_upgrade(argparse.Namespace(target=str(target), force=False))
 
-        assert (target / "docs" / "contract.md").read_text(encoding="utf-8") == "# Contract v2"
+        result = (target / "docs" / "contract.md").read_text(encoding="utf-8")
+        assert "# Contract v2" in result
+        assert result.startswith("<!-- govkit:editable")
+        assert "baseline: govkit@0.2.0" in result
 
     def test_upgrade_skips_when_version_current(self, tmp_path, monkeypatch, capsys):
         """cmd_upgrade does nothing when already at current version."""
@@ -1210,6 +1955,801 @@ class TestCmdUpgrade:
 
         with pytest.raises(SystemExit):
             cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+
+class TestCmdUpgradeEditProtection:
+    """PR 1 / A2: cmd_upgrade refuses to overwrite user-edited governed
+    docs unless --force is supplied. Files without a govkit:editable header
+    keep today's overwrite behavior."""
+
+    def _setup_repo_and_target(self, tmp_path):
+        """Build a tiny repo + target where the target has a headed,
+        user-edited governed doc."""
+        import os
+        import json
+        from datetime import datetime, timezone
+        from cli.headers import format_editable_header
+
+        repo = _make_upgrade_repo(tmp_path)
+        # Repo's fresh contract content represents the new baseline.
+        (repo / "docs" / "contract.md").write_text("# Contract v2 (refreshed)\n", encoding="utf-8")
+
+        target = tmp_path / "project"
+        target.mkdir()
+        (target / "CLAUDE.md").write_text("# old\n", encoding="utf-8")
+        # Target's contract: has editable header + body, then user edits it later.
+        contract = target / "docs" / "contract.md"
+        contract.parent.mkdir(parents=True)
+        header = format_editable_header(baseline="govkit@0.1.0")
+        contract.write_text(header + "# Contract user edits\n", encoding="utf-8")
+        edited_time = datetime(2026, 5, 27, 11, 0, 0, tzinfo=timezone.utc).timestamp()
+        os.utime(contract, (edited_time, edited_time))
+
+        applied_at = datetime(2026, 5, 27, 10, 0, 0, tzinfo=timezone.utc).isoformat()
+        marker = {
+            "version": "0.1.0",
+            "level": "4",
+            "agent": "test-agent",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": applied_at,
+        }
+        marker_dir = target / ".govkit"
+        marker_dir.mkdir()
+        (marker_dir / "marker.json").write_text(json.dumps(marker), encoding="utf-8")
+        return repo, target
+
+    def test_upgrade_refuses_overwriting_edited_governed_file(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        repo, target = self._setup_repo_and_target(tmp_path)
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.2.0")
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+        contract = target / "docs" / "contract.md"
+        body = contract.read_text(encoding="utf-8")
+        # User edits preserved; baseline body NOT installed.
+        assert "Contract user edits" in body
+        assert "Contract v2 (refreshed)" not in body
+        err = capsys.readouterr().err
+        assert "refused" in err
+        assert "--force" in err
+
+    def test_upgrade_with_force_overwrites_edited_governed_file(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        repo, target = self._setup_repo_and_target(tmp_path)
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.2.0")
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=True))
+
+        body = (target / "docs" / "contract.md").read_text(encoding="utf-8")
+        assert "Contract v2 (refreshed)" in body
+        err = capsys.readouterr().err
+        assert "overwriting user edits" in err
+
+    def test_upgrade_refreshes_unedited_headed_file(self, tmp_path, monkeypatch):
+        """A headed governed doc that hasn't been edited since applied_at
+        gets refreshed normally, with the header regenerated for the new
+        baseline."""
+        import os
+        import json
+        from datetime import datetime, timezone
+        from cli.headers import format_editable_header
+        import cli.govkit as mod
+
+        repo = _make_upgrade_repo(tmp_path)
+        (repo / "docs" / "contract.md").write_text("# Contract v2\n", encoding="utf-8")
+
+        target = tmp_path / "project"
+        target.mkdir()
+        (target / "CLAUDE.md").write_text("# old\n", encoding="utf-8")
+        contract = target / "docs" / "contract.md"
+        contract.parent.mkdir(parents=True)
+        header = format_editable_header(baseline="govkit@0.1.0")
+        contract.write_text(header + "# Contract v1\n", encoding="utf-8")
+        # File mtime is BEFORE applied_at — no edits since install.
+        old_time = datetime(2026, 5, 27, 9, 0, 0, tzinfo=timezone.utc).timestamp()
+        os.utime(contract, (old_time, old_time))
+        applied_at = datetime(2026, 5, 27, 10, 0, 0, tzinfo=timezone.utc).isoformat()
+
+        marker = {
+            "version": "0.1.0", "level": "4", "agent": "test-agent",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": applied_at,
+        }
+        marker_dir = target / ".govkit"
+        marker_dir.mkdir()
+        (marker_dir / "marker.json").write_text(json.dumps(marker), encoding="utf-8")
+
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.2.0")
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+        body = (target / "docs" / "contract.md").read_text(encoding="utf-8")
+        assert "Contract v2" in body
+        # Header refreshed with the new govkit version.
+        assert "baseline: govkit@0.2.0" in body
+
+
+class TestCmdApplyAddsEditableHeaders:
+    """PR 1: cmd_apply adds the govkit:editable header to every governed/shared
+    markdown file as it copies them."""
+
+    def test_governed_md_files_get_header(self, tmp_path, monkeypatch):
+        """When cmd_apply copies a governed .md doc, the doc gets the
+        govkit:editable header prepended."""
+        import cli.govkit as mod
+
+        repo = _make_upgrade_repo(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent",
+            target=str(target),
+            level="4",
+            type="api",
+            ci="github",
+            force=False,
+        ))
+
+        contract = target / "docs" / "contract.md"
+        assert contract.is_file()
+        content = contract.read_text(encoding="utf-8")
+        assert content.startswith("<!-- govkit:editable")
+        assert "baseline: govkit@" in content
+        assert "Contract" in content  # body preserved
+
+
+class TestCmdApplyStackOverlay:
+    """PR 2: cmd_apply respects --stack, applies the overlay, records
+    assumption and stack metadata in the marker."""
+
+    def _agent_with_stack(self, tmp_path, agent="test-agent"):
+        """Build a minimal agent + governed dir like _make_upgrade_repo but
+        with the `stack` option declared in manifest."""
+        agents = tmp_path / "agents" / agent
+        agents.mkdir(parents=True)
+        contract = tmp_path / "docs" / "contract.md"
+        contract.parent.mkdir(parents=True)
+        contract.write_text("# Contract v1", encoding="utf-8")
+
+        manifest = {
+            "agent": agent,
+            "description": "stack-overlay test agent",
+            "options": {
+                "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
+                "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
+                "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
+                "stack": {
+                    "choices": ["python-fastapi", "dotnet-aspnet", "java-spring-boot",
+                                "nodejs-fastify", "go-gin"],
+                    "default": "python-fastapi",
+                },
+            },
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "CLAUDE.md", "dest": "CLAUDE.md"}],
+                        "shared": [],
+                        "governed": ["docs/"],
+                    }
+                }
+            },
+            "base_files": [],
+        }
+        (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        (agents / "CLAUDE.md").write_text("# Agent instructions", encoding="utf-8")
+        return tmp_path
+
+    def test_apply_with_default_stack_installs_python_fastapi(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+        ))
+
+        tech_stack = target / "docs" / "backend" / "architecture" / "TECH_STACK.md"
+        assert tech_stack.is_file(), "python-fastapi overlay must install TECH_STACK.md"
+        content = tech_stack.read_text(encoding="utf-8")
+        assert "baseline: python-fastapi@" in content
+
+    def test_apply_with_explicit_stack_installs_overlay(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack="dotnet-aspnet", force=False,
+        ))
+
+        tech_stack = target / "docs" / "backend" / "architecture" / "TECH_STACK.md"
+        content = tech_stack.read_text(encoding="utf-8")
+        assert "baseline: dotnet-aspnet@" in content
+        # .NET stack TECH_STACK.md should mention C# / .NET
+        assert "C#" in content or ".NET" in content
+
+    def test_marker_records_stack_metadata(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack="dotnet-aspnet", force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"] is not None
+        assert marker["stack"]["id"] == "dotnet-aspnet"
+        assert marker["stack"]["version"] == "0.10.0"
+        assert marker["stack"]["display_name"].startswith("C# 12")
+        assert marker["options"]["stack"] == "dotnet-aspnet"
+
+    def test_marker_records_stack_assumption_source_flag_when_cli_provided(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack="dotnet-aspnet", force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        stack_assumption = next((a for a in marker["assumptions"] if a["id"] == "stack.id"), None)
+        assert stack_assumption is not None
+        assert stack_assumption["value"] == "dotnet-aspnet"
+        assert stack_assumption["source"] == "flag"
+
+    def test_marker_records_stack_assumption_source_default_when_no_flag(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        stack_assumption = next((a for a in marker["assumptions"] if a["id"] == "stack.id"), None)
+        assert stack_assumption is not None
+        assert stack_assumption["value"] == "python-fastapi"
+        assert stack_assumption["source"] == "default"
+
+    def test_ui_type_does_not_apply_stack_overlay(self, tmp_path, monkeypatch):
+        """UI installs target docs/ui/architecture/, not docs/backend/. Stack
+        overlays only ship backend docs, so they must be a no-op for UI types."""
+        import cli.govkit as mod
+
+        agent = "ui-test-agent"
+        agents = tmp_path / "agents" / agent
+        agents.mkdir(parents=True)
+        manifest = {
+            "agent": agent,
+            "description": "ui agent",
+            "options": {
+                "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
+                "type": {"prompt": "Type?", "choices": ["ui-react"], "default": "ui-react"},
+                "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
+                "stack": {
+                    "prompt": "Stack?",
+                    "choices": ["python-fastapi", "dotnet-aspnet"],
+                    "default": "python-fastapi",
+                },
+            },
+            "variants": {
+                "type": {
+                    "ui-react": {
+                        "files": [{"src": "CLAUDE.md", "dest": "CLAUDE.md"}],
+                        "shared": [],
+                        "governed": [],
+                    }
+                }
+            },
+            "base_files": [],
+        }
+        (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        (agents / "CLAUDE.md").write_text("# UI", encoding="utf-8")
+
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", tmp_path / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", tmp_path)
+
+        cmd_apply(argparse.Namespace(
+            agent=agent, target=str(target),
+            level="4", type="ui-react", ci="github", stack="dotnet-aspnet", force=False,
+        ))
+
+        # No backend architecture docs should have been written for ui-react.
+        assert not (target / "docs" / "backend" / "architecture" / "TECH_STACK.md").exists()
+
+
+class TestCmdApplyDetection:
+    """PR 3: cmd_apply runs detection before installing and uses the inferred
+    stack as the default (recording source='detected'). Explicit --stack
+    overrides detection."""
+
+    def _agent_with_stack(self, tmp_path, agent="test-agent"):
+        agents = tmp_path / "agents" / agent
+        agents.mkdir(parents=True)
+        contract = tmp_path / "docs" / "contract.md"
+        contract.parent.mkdir(parents=True)
+        contract.write_text("# Contract v1", encoding="utf-8")
+        manifest = {
+            "agent": agent,
+            "description": "detection test agent",
+            "options": {
+                "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
+                "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
+                "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
+                "stack": {
+                    "choices": ["python-fastapi", "dotnet-aspnet", "java-spring-boot",
+                                "nodejs-fastify", "go-gin"],
+                    "default": "python-fastapi",
+                },
+            },
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "CLAUDE.md", "dest": "CLAUDE.md"}],
+                        "shared": [],
+                        "governed": ["docs/"],
+                    }
+                }
+            },
+            "base_files": [],
+        }
+        (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        (agents / "CLAUDE.md").write_text("# Agent", encoding="utf-8")
+        return tmp_path
+
+    def test_dotnet_target_with_no_stack_flag_infers_dotnet_aspnet(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        # .NET signals in target
+        (target / "src").mkdir()
+        (target / "src" / "Api.csproj").write_text(
+            '<Project Sdk="Microsoft.NET.Sdk.Web"></Project>\n', encoding="utf-8",
+        )
+        (target / "global.json").write_text('{"sdk":{}}', encoding="utf-8")
+
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "dotnet-aspnet", "detection should override python-fastapi default"
+        stack_assumption = next((a for a in marker["assumptions"] if a["id"] == "stack.id"), None)
+        assert stack_assumption is not None
+        assert stack_assumption["source"] == "detected"
+        assert stack_assumption["confidence"] == "high"
+        # Evidence captured from detection.
+        assert stack_assumption["evidence"], "detected assumptions must carry evidence"
+
+    def test_explicit_stack_flag_overrides_detection(self, tmp_path, monkeypatch):
+        """User intent (--stack) always wins. The marker reflects the explicit
+        choice with source='flag', not the inferred stack."""
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        # .NET signals — would normally infer dotnet-aspnet
+        (target / "Api.csproj").write_text(
+            '<Project Sdk="Microsoft.NET.Sdk.Web"></Project>\n', encoding="utf-8",
+        )
+
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack="python-fastapi", force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "python-fastapi"
+        stack_assumption = next((a for a in marker["assumptions"] if a["id"] == "stack.id"), None)
+        assert stack_assumption["source"] == "flag"
+
+    def test_empty_target_falls_back_to_default(self, tmp_path, monkeypatch):
+        """No detectable signals → use python-fastapi as the default and
+        flag it review_required so the team knows we're guessing."""
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        # No signals at all in target
+
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "python-fastapi"
+        stack_assumption = next((a for a in marker["assumptions"] if a["id"] == "stack.id"), None)
+        assert stack_assumption["source"] == "default"
+        assert stack_assumption["review_required"] is True
+
+    def test_apply_prints_detection_summary(self, tmp_path, monkeypatch, capsys):
+        """cmd_apply emits a 'detecting repo profile' block before installing."""
+        import cli.govkit as mod
+
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        (target / "Api.csproj").write_text(
+            '<Project Sdk="Microsoft.NET.Sdk.Web"></Project>\n', encoding="utf-8",
+        )
+        (target / "global.json").write_text('{"sdk":{}}', encoding="utf-8")
+
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+        ))
+
+        out = capsys.readouterr().out
+        assert "detect" in out.lower()
+        assert "csharp" in out or "dotnet-aspnet" in out
+
+
+class TestCmdApplyDetectFlag:
+    """PR 3-D: `govkit apply --detect` runs repo inference and prints the
+    proposed config without writing anything to the target."""
+
+    def _agent(self, tmp_path, agent="test-agent"):
+        agents = tmp_path / "agents" / agent
+        agents.mkdir(parents=True)
+        contract = tmp_path / "docs" / "contract.md"
+        contract.parent.mkdir(parents=True)
+        contract.write_text("# Contract v1", encoding="utf-8")
+        manifest = {
+            "agent": agent,
+            "description": "detect-flag test agent",
+            "options": {
+                "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
+                "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
+                "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
+                "stack": {
+                    "choices": ["python-fastapi", "dotnet-aspnet", "java-spring-boot",
+                                "nodejs-fastify", "go-gin"],
+                    "default": "python-fastapi",
+                },
+            },
+            "variants": {
+                "type": {
+                    "api": {
+                        "files": [{"src": "CLAUDE.md", "dest": "CLAUDE.md"}],
+                        "shared": [],
+                        "governed": ["docs/"],
+                    }
+                }
+            },
+            "base_files": [],
+        }
+        (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        (agents / "CLAUDE.md").write_text("# Agent", encoding="utf-8")
+        return tmp_path
+
+    def test_detect_flag_writes_nothing_to_target(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = self._agent(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        # Add some signals so detection has something to report
+        (target / "Api.csproj").write_text(
+            '<Project Sdk="Microsoft.NET.Sdk.Web"></Project>\n', encoding="utf-8",
+        )
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+            detect=True,
+        ))
+
+        # No marker
+        assert not (target / ".govkit").exists()
+        # No installed governance
+        assert not (target / "CLAUDE.md").exists()
+        assert not (target / "docs" / "backend" / "architecture" / "TECH_STACK.md").exists()
+        # No setup review file
+        assert not (target / "GOVKIT_SETUP_REVIEW.md").exists()
+        # Target's own .csproj file is preserved (we wrote nothing)
+        assert (target / "Api.csproj").is_file()
+
+    def test_detect_flag_prints_proposed_config(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        repo = self._agent(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        (target / "Api.csproj").write_text(
+            '<Project Sdk="Microsoft.NET.Sdk.Web"></Project>\n', encoding="utf-8",
+        )
+        (target / "global.json").write_text('{"sdk":{}}', encoding="utf-8")
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+            detect=True,
+        ))
+
+        out = capsys.readouterr().out
+        # Detection summary present
+        assert "csharp" in out
+        # Inferred stack reported
+        assert "dotnet-aspnet" in out
+        # Dry-run banner makes it clear nothing was written
+        assert "dry-run" in out.lower() or "--detect" in out
+
+    def test_detect_flag_on_empty_target_still_exits_cleanly(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        repo = self._agent(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        # Should not raise
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=None, force=False,
+            detect=True,
+        ))
+        assert not (target / ".govkit").exists()
+
+
+class TestCmdStackList:
+    """PR 2 / Chunk F: govkit stack list enumerates bundled stack overlays."""
+
+    def test_lists_all_bundled_stacks(self, capsys):
+        from cli.govkit import cmd_stack_list
+
+        cmd_stack_list(argparse.Namespace())
+        out = capsys.readouterr().out
+
+        for stack_id in ("python-fastapi", "dotnet-aspnet", "java-spring-boot",
+                         "nodejs-fastify", "go-gin"):
+            assert stack_id in out
+
+    def test_includes_display_name_and_summary(self, capsys):
+        from cli.govkit import cmd_stack_list
+
+        cmd_stack_list(argparse.Namespace())
+        out = capsys.readouterr().out
+
+        # display names appear (sample one — dotnet-aspnet is unambiguous)
+        assert "ASP.NET Core" in out
+        # summaries appear (sample — xUnit is in dotnet-aspnet.summary)
+        assert "xUnit" in out
+
+
+class TestCmdStackApply:
+    """PR 2 / Chunk G: govkit stack apply <id> re-applies an overlay over
+    an existing install and records the new stack in the marker."""
+
+    def _existing_install(self, tmp_path, monkeypatch, stack_id="python-fastapi"):
+        """Build a target with an existing .govkit/marker.json (as written by
+        cmd_apply) so cmd_stack_apply has something to read."""
+        import cli.govkit as mod
+
+        repo = _make_upgrade_repo(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", stack=stack_id, force=False,
+        ))
+        return target
+
+    def test_stack_apply_switches_overlay(self, tmp_path, monkeypatch):
+        from cli.govkit import cmd_stack_apply
+
+        target = self._existing_install(tmp_path, monkeypatch, stack_id="python-fastapi")
+        # Sanity: python-fastapi baseline is in place.
+        tech_stack = target / "docs" / "backend" / "architecture" / "TECH_STACK.md"
+        assert "baseline: python-fastapi@" in tech_stack.read_text(encoding="utf-8")
+
+        cmd_stack_apply(argparse.Namespace(
+            stack_id="dotnet-aspnet", target=str(target), force=False,
+        ))
+
+        # After stack apply, the dotnet baseline header is in place.
+        new_content = tech_stack.read_text(encoding="utf-8")
+        assert "baseline: dotnet-aspnet@" in new_content
+
+    def test_stack_apply_updates_marker_stack_field(self, tmp_path, monkeypatch):
+        from cli.govkit import cmd_stack_apply, read_govkit_marker
+
+        target = self._existing_install(tmp_path, monkeypatch, stack_id="python-fastapi")
+
+        cmd_stack_apply(argparse.Namespace(
+            stack_id="java-spring-boot", target=str(target), force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "java-spring-boot"
+        assert marker["options"]["stack"] == "java-spring-boot"
+
+    def test_stack_apply_refuses_without_marker(self, tmp_path):
+        from cli.govkit import cmd_stack_apply
+
+        empty = tmp_path / "empty"
+        empty.mkdir()
+        with pytest.raises(SystemExit):
+            cmd_stack_apply(argparse.Namespace(
+                stack_id="dotnet-aspnet", target=str(empty), force=False,
+            ))
+
+    def test_stack_apply_unknown_stack_exits(self, tmp_path, monkeypatch):
+        from cli.govkit import cmd_stack_apply
+
+        target = self._existing_install(tmp_path, monkeypatch)
+        with pytest.raises(SystemExit):
+            cmd_stack_apply(argparse.Namespace(
+                stack_id="no-such-stack", target=str(target), force=False,
+            ))
+
+    def test_stack_apply_respects_edit_protection(self, tmp_path, monkeypatch, capsys):
+        """User edits to a stack doc since the last applied_at must survive
+        stack apply without --force."""
+        import os
+        from datetime import datetime, timezone
+        from cli.govkit import cmd_stack_apply
+
+        target = self._existing_install(tmp_path, monkeypatch, stack_id="python-fastapi")
+
+        tech_stack = target / "docs" / "backend" / "architecture" / "TECH_STACK.md"
+        # Replace body with user edits and bump mtime past applied_at.
+        current = tech_stack.read_text(encoding="utf-8")
+        # Keep the existing header; overwrite body.
+        header_end = current.index("-->") + len("-->\n")
+        tech_stack.write_text(current[:header_end] + "\n# my own edits\n", encoding="utf-8")
+        future = datetime.now(timezone.utc).timestamp() + 3600  # 1h ahead
+        os.utime(tech_stack, (future, future))
+
+        cmd_stack_apply(argparse.Namespace(
+            stack_id="dotnet-aspnet", target=str(target), force=False,
+        ))
+
+        # User edits preserved.
+        assert "my own edits" in tech_stack.read_text(encoding="utf-8")
+        err = capsys.readouterr().err
+        assert "refused" in err
+
+
+class TestCmdApplyWritesSetupReview:
+    """PR 1 / Chunk E: every cmd_apply writes GOVKIT_SETUP_REVIEW.md and
+    prints the Review Checklist banner."""
+
+    def test_apply_writes_setup_review_file(self, tmp_path, monkeypatch):
+        import cli.govkit as mod
+
+        repo = _make_upgrade_repo(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", force=False,
+        ))
+
+        review = target / "GOVKIT_SETUP_REVIEW.md"
+        assert review.is_file()
+        content = review.read_text(encoding="utf-8")
+        assert "GovKit Setup Review" in content
+        assert "test-agent" in content
+
+    def test_apply_prints_review_checklist_banner(self, tmp_path, monkeypatch, capsys):
+        import cli.govkit as mod
+
+        repo = _make_upgrade_repo(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="api", ci="github", force=False,
+        ))
+
+        out = capsys.readouterr().out
+        assert "REVIEW CHECKLIST" in out
+        assert "GOVKIT_SETUP_REVIEW.md" in out
+
+    def test_upgrade_refreshes_setup_review(self, tmp_path, monkeypatch):
+        """cmd_upgrade must also (re)write GOVKIT_SETUP_REVIEW.md so the
+        review reflects the post-upgrade state, not the prior install."""
+        import json
+        import cli.govkit as mod
+
+        repo = _make_upgrade_repo(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        # Pre-existing marker (legacy file layout → triggers migration on read)
+        marker = {
+            "version": "0.1.0", "level": "4", "agent": "test-agent",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": "2025-01-01T00:00:00+00:00",
+        }
+        (target / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
+        # Stale review from prior install:
+        (target / "GOVKIT_SETUP_REVIEW.md").write_text("# stale from prior apply\n", encoding="utf-8")
+        # Pre-existing agent file so upgrade has something to refresh:
+        (target / "CLAUDE.md").write_text("# old\n", encoding="utf-8")
+
+        monkeypatch.setattr(mod, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(mod, "REPO_ROOT", repo)
+        monkeypatch.setattr(mod, "_GOVKIT_VERSION", "0.2.0")
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+        review = (target / "GOVKIT_SETUP_REVIEW.md").read_text(encoding="utf-8")
+        assert "stale from prior apply" not in review
+        assert "GovKit Setup Review" in review
+        assert "0.2.0" in review
 
 
 # ---------------------------------------------------------------------------

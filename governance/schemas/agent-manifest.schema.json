@@ -17,9 +17,9 @@
     },
     "options": {
       "type": "object",
-      "description": "Variant options presented to the user during govkit apply. In v0.8 the allowed dimensions are level, type, and ci; the legacy `ui` dimension was removed by the project-shape refactor.",
+      "description": "Variant options presented to the user during govkit apply. In v0.8 the allowed dimensions were level, type, and ci. PR 2 (Governance Accelerator) added `stack` for selecting the stack overlay applied on top of governed docs.",
       "propertyNames": {
-        "enum": ["level", "type", "ci"]
+        "enum": ["level", "type", "ci", "stack"]
       },
       "additionalProperties": {
         "$ref": "#/$defs/option"
@@ -42,12 +42,12 @@
   "$defs": {
     "option": {
       "type": "object",
-      "required": ["prompt", "choices"],
+      "required": ["choices"],
       "additionalProperties": false,
       "properties": {
         "prompt": {
           "type": "string",
-          "description": "Interactive prompt text shown to the user"
+          "description": "Interactive prompt text shown to the user. Optional: when omitted, the option is silently filled from `default` instead of prompting (used by `stack` so it never interrupts the user when the default is desired)."
         },
         "choices": {
           "type": "array",
@@ -57,7 +57,7 @@
         },
         "default": {
           "type": "string",
-          "description": "Default value if user presses enter without choosing"
+          "description": "Default value if user presses enter without choosing, or if `prompt` is omitted"
         }
       }
     },

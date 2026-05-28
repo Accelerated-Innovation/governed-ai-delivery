@@ -1,0 +1,64 @@
+# Evaluation criteria for the customer_dim_freshness feature.
+#
+# `mode: deterministic` means the criteria are checked by query results +
+# CI test outcomes, not by an LLM evaluator. (LLM eval is for L5 features
+# involving generated text.)
+#
+# Each criterion has:
+#   id          — kebab-case identifier
+#   description — one-sentence what's being checked
+#   measurement — how it's measured (query / test / metric)
+#   threshold   — pass/fail boundary
+#   severity    — error blocks merge; warn surfaces in PR summary
+
+version: "1"
+mode: deterministic
+
+criteria:
+  - id: pk-uniqueness
+    description: customer_id is unique in marts.customer_dim
+    measurement: dbt schema test (unique)
+    threshold: zero rows with duplicate customer_id
+    severity: error
+
+  - id: pk-not-null
+    description: customer_id is non-null in marts.customer_dim
+    measurement: dbt schema test (not_null)
+    threshold: zero null rows
+    severity: error
+
+  - id: freshness-1h
+    description: marts.customer_dim refreshed within 1 hour of scheduled time
+    measurement: max(dim_loaded_at) >= scheduled_run_time
+    threshold: staleness <= 1 hour at any query time after 07:00 UTC
+    severity: warn
+
+  - id: row-count-drift
+    description: row count within 10% of source.customers
+    measurement: dbt-expectations row count test
+    threshold: 0.9 * source_count <= mart_count <= 1.1 * source_count
+    severity: warn
+
+  - id: pii-tag-coverage
+    description: every PII column tagged + masked
+    measurement: scripts/check_pii_tags.py
+    threshold: zero untagged-yet-PII-likely columns
+    severity: error
+
+  - id: pii-masked-non-prod
+    description: PII fields return masked values in dev/ci/staging
+    measurement: post-run query asserting masked-pattern values
+    threshold: 100% of sampled rows show masked format
+    severity: error
+
+  - id: exposure-declared
+    description: marts.customer_dim has an exposure entry naming downstream consumers
+    measurement: presence in models/marts/_exposures.yml
+    threshold: at least one exposure entry references customer_dim
+    severity: error
+
+  - id: backfill-idempotent
+    description: backfill produces identical row counts to scheduled refresh
+    measurement: pre/post row count diff after a synthetic backfill in CI
+    threshold: zero row count drift
+    severity: error

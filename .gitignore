@@ -82,8 +82,10 @@ secrets/
 # ----------------------------
 # Evaluation / Data
 # ----------------------------
-data/
-datasets/
+# Anchored to repo root so nested data/ folders (e.g. docs/data/,
+# agents/<agent>/rules/data/, features/*/data/) remain trackable.
+/data/
+/datasets/
 *.sqlite3
 *.db
 *.csv

@@ -74,7 +74,7 @@ From your project root, run `govkit apply` and answer the prompts:
 govkit apply --agent claude-code --target .
 ```
 
-Or specify all options explicitly. Each `govkit apply` configures **one project shape**: backend (`api` / `cli`) or UI (`ui-react` / `ui-angular`). Fullstack-in-one-repo is supported via the [monorepo pattern](docs/MONOREPO_PATTERN.md) — one `govkit apply` per subdirectory.
+Or specify all options explicitly. Each `govkit apply` configures **one project shape**: backend (`api` / `cli`), UI (`ui-react` / `ui-angular`), or data (`data`, dbt-layered, claude-code only for now). Fullstack-in-one-repo is supported via the [monorepo pattern](docs/MONOREPO_PATTERN.md) — one `govkit apply` per subdirectory.
 
 ```bash
 # Level 3: Governed AI Delivery (Foundations) — agent rules + architecture docs only (default)
@@ -94,6 +94,9 @@ govkit apply --agent copilot --level 4 --type ui-react --ci github --target .
 
 # Angular UI project (L4) on OpenAI Codex
 govkit apply --agent codex --level 4 --type ui-angular --ci github --target .
+
+# Data project (L4) — dbt-layered, python-dbt stack inferred from dbt_project.yml
+govkit apply --agent claude-code --level 4 --type data --ci github --target .
 ```
 
 A `.govkit` marker file is written to your project root, tracking the agent, level, options, and govkit version. This enables `govkit init`, `govkit validate`, and `govkit upgrade` to auto-detect your configuration without re-specifying flags.
@@ -105,7 +108,7 @@ $ govkit apply --agent claude-code --target .
 
 Applying govkit agent 'claude-code' to /path/to/your/project
 
-  Project type? [api / cli / ui-react / ui-angular] (default: api): ui-react
+  Project type? [api / cli / ui-react / ui-angular / data] (default: api): ui-react
   CI platform? [github / azure] (default: github): github
 
   Configuration: {'type': 'ui-react', 'ci': 'github'}
@@ -322,6 +325,8 @@ The `--type` choices are flat — one install configures one project shape. The 
 **Hexagonal Architecture (Ports & Adapters)** — Your domain logic lives at the center, isolated from infrastructure. Inbound adapters (API routes, CLI commands) call inbound ports. Outbound ports define contracts that adapters (databases, APIs, message queues) implement. Domain code never imports infrastructure libraries.
 
 **MVVM (UI projects)** — Model-View-ViewModel. Components (View) render UI. Hooks or inject functions (ViewModel) provide data and actions. API functions (Model) call the backend. Components never call APIs directly.
+
+**dbt-layered (Data projects)** — Staging → Intermediate → Marts. Staging models present source data with light cleanup (one source each). Intermediate models hold business logic and cross-source joins. Marts are the downstream-facing contracts that BI tools, reverse-ETL, and consumers read. Each layer's allowed reads + materialization rules are enforced via per-layer agent rules. Teams using medallion (bronze/silver/gold) edit the layer names in `skill_context.yaml` once; the rules and skills follow.
 
 **FIRST Principles** — Test quality framework. Tests must be **F**ast, **I**solated, **R**epeatable, **S**elf-verifying, and **T**imely. Each principle is scored 1–5 with a minimum average of 4.0.
 
@@ -556,6 +561,25 @@ The 8-step workflow above applies to all project types. Key differences by type:
 
 **CI gates:** `ci/github/ui-quality-gate.yml`, `ci/github/ui-eval-gate.yml`
 
+### Data (dbt)
+
+**Architecture:** dbt-layered — Staging → Intermediate → Marts. Staging cleans source data (one source per model), Intermediate holds joins and business logic, Marts are the downstream contracts. See `docs/data/architecture/BOUNDARIES.md` and the `python-dbt` stack overlay's `MODEL_LAYERING.md`.
+
+**Layer rules** (load automatically):
+- `staging.md` for `**/models/staging/**`
+- `intermediate.md` for `**/models/intermediate/**`
+- `marts.md` for `**/models/marts/**`
+- `data-quality.md` for `**/tests/**` (dbt schema + singular tests)
+- `pii.md` for `**/models/**`, `**/macros/**`, `**/seeds/**` (PII tagging + masking)
+
+**Stack overlay:** `python-dbt` (dbt-core + Snowflake / BigQuery / Redshift / Postgres adapter, SQLfluff, dbt schema tests, optional `dbt-expectations` for L4).
+
+**Worked starter:** `govkit init <feature> --starter data` scaffolds a `customer_dim_freshness` feature with `@nfr-freshness / @nfr-quality / @nfr-pii / @nfr-lineage / @nfr-reliability / @nfr-cost` Gherkin scenarios.
+
+**CI gates:** intentionally empty in this release — gate selection (source freshness, dbt test, SQLfluff) is the kind of thing data teams want to shape themselves. Wire your own in `ci/github/` or `ci/azure/` for now; opinionated defaults arrive in a future release.
+
+**Agent support:** claude-code only for now. copilot and codex variants follow once the shape is validated against real dbt teams.
+
 ---
 
 ## Monorepo (Fullstack) Pattern
@@ -581,11 +605,39 @@ If your backend and UI live in **separate repositories** instead of subdirectori
 
 ## Switching Tech Stacks
 
-The default installed stack is **Python / FastAPI**. To switch to a different backend language, copy the 6 stack-specific architecture doc files from `docs/stacks/<stack>/` into `docs/backend/architecture/`. The AI agents read those files as the authoritative source of truth — no agent rules, manifests, or CLI configuration changes needed.
+GovKit ships **stack overlays** — small bundles of 6 stack-specific architecture docs plus metadata. Pick one at install time with `--stack`, or swap later with `govkit stack apply`. Stack overlays apply to backend types (`api`, `cli`) and the `data` type; UI installs ignore `--stack`. The 6 docs vary per shape:
+
+- **Backend stacks** (`python-fastapi`, `dotnet-aspnet`, `java-spring-boot`, `nodejs-fastify`, `go-gin`): `TECH_STACK.md`, `API_CONVENTIONS.md`, `TESTING.md`, `LAYER_IMPLEMENTATION.md`, `SECURITY_AUTH_PATTERNS.md`, `OBSERVABILITY_PORT_CONTRACT.md`.
+- **Data stacks** (`python-dbt`): `TECH_STACK.md`, `QUERY_CONVENTIONS.md`, `TESTING.md`, `MODEL_LAYERING.md`, `PII_HANDLING.md`, `LINEAGE_OBSERVABILITY.md`.
+
+### See what's available
+
+```bash
+govkit stack list
+```
+
+Lists every bundled overlay (id, display name, summary) along with the apply commands.
+
+### Pick a stack at install time
+
+```bash
+govkit apply --agent claude-code --target . --level 4 --type api --ci github \
+             --stack dotnet-aspnet
+```
+
+If you omit `--stack`, the default `python-fastapi` overlay is applied and recorded as a "default-source" assumption in `.govkit/marker.json` so `govkit doctor` (future release) can warn if the default doesn't fit your repo.
+
+### Swap stacks on an existing install
+
+```bash
+govkit stack apply java-spring-boot --target .
+```
+
+Re-applies the new overlay on top of the existing install. Edit-protection respects user changes: any of the 6 stack docs you've modified since the last apply are preserved unless you pass `--force` (your edits are detected via the `govkit:editable` header + file mtime vs. the marker's `applied_at`).
 
 ### Why only 6 files?
 
-The agent rules and most architecture docs are language-agnostic. Only these 6 files define stack-specific conventions:
+The agent rules and most architecture docs (DESIGN_PRINCIPLES, ARCH_CONTRACT, BOUNDARIES, GHERKIN_CONVENTIONS, ERROR_MAPPING, etc.) are language-agnostic and ship from the baseline. Only these 6 vary per stack:
 
 | File | What it defines |
 |---|---|
@@ -596,36 +648,20 @@ The agent rules and most architecture docs are language-agnostic. Only these 6 f
 | `SECURITY_AUTH_PATTERNS.md` | Auth libraries, token handling, hashing |
 | `OBSERVABILITY_PORT_CONTRACT.md` | Structured logging library, OTel SDK |
 
-All other docs (DESIGN_PRINCIPLES, ARCH_CONTRACT, BOUNDARIES, GHERKIN_CONVENTIONS, ERROR_MAPPING, etc.) are universal and require no changes.
+### Bundled stacks
 
-### Available stacks
+| Id | Shape | Stack |
+|---|---|---|
+| `python-fastapi` | backend | Python 3.11+ / FastAPI / pytest (default for `api` / `cli`) |
+| `dotnet-aspnet` | backend | C# 12 / .NET 8 / ASP.NET Core Minimal APIs / xUnit |
+| `java-spring-boot` | backend | Java 21 / Spring Boot 3 / Spring Web MVC / JUnit 5 |
+| `nodejs-fastify` | backend | Node.js 20 LTS / TypeScript 5 / Fastify 4 / Vitest |
+| `go-gin` | backend | Go 1.22+ / Gin / standard library testing + testify |
+| `python-dbt` | data | Python 3.11+ / dbt-core (staging → intermediate → marts) / Snowflake \| BigQuery \| Redshift \| Postgres adapter / SQLfluff / dbt schema tests (default for `data`) |
 
-| Directory | Stack |
-|---|---|
-| `docs/stacks/dotnet-aspnet/` | C# 12 / .NET 8 / ASP.NET Core Minimal APIs |
-| `docs/stacks/java-spring-boot/` | Java 21 / Spring Boot 3 / Spring Web MVC |
-| `docs/stacks/nodejs-fastify/` | Node.js 20 LTS / TypeScript 5 / Fastify 4 |
-| `docs/stacks/go-gin/` | Go 1.22+ / Gin |
+After applying a stack, review the installed files and adapt anything specific to your repo (approved library versions, internal service names, etc.). `GOVKIT_SETUP_REVIEW.md` at the target root lists each stack doc with a one-line review prompt. Consider raising an ADR to document the stack decision.
 
-### How to switch
-
-```bash
-# Switch to C# / ASP.NET Core
-cp docs/stacks/dotnet-aspnet/* docs/backend/architecture/
-
-# Switch to Java / Spring Boot
-cp docs/stacks/java-spring-boot/* docs/backend/architecture/
-
-# Switch to Node.js / Fastify
-cp docs/stacks/nodejs-fastify/* docs/backend/architecture/
-
-# Switch to Go / Gin
-cp docs/stacks/go-gin/* docs/backend/architecture/
-```
-
-After copying, review the files and update any project-specific details (approved library versions, internal service names, etc.). Consider raising an ADR to document the stack decision.
-
-See [`docs/stacks/README.md`](docs/stacks/README.md) for the complete guide, including how to add new stacks.
+See [`cli/stacks/README.md`](cli/stacks/README.md) for the complete guide, including how to add new stacks.
 
 ---
 
@@ -765,6 +801,26 @@ A: Document the order in your `nfrs.md` "Key Cross-Repo Contracts" section. Idea
 - [COMPONENT_CONVENTIONS.md](docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md)
 - [STATE_MANAGEMENT.md](docs/ui/architecture/angular/STATE_MANAGEMENT.md) — TanStack Angular Query + Signals
 - [TECH_STACK.md](docs/ui/architecture/angular/TECH_STACK.md)
+
+### Data (Core — Level 4)
+
+- [ARCH_CONTRACT.md](docs/data/architecture/ARCH_CONTRACT.md) — dbt-layered architecture contract
+- [BOUNDARIES.md](docs/data/architecture/BOUNDARIES.md) — Staging / Intermediate / Marts layer rules
+- [DESIGN_PRINCIPLES.md](docs/data/architecture/DESIGN_PRINCIPLES.md) — Data engineering principles (idempotency, freshness, etc.)
+- [PIPELINE_CONTRACT.md](docs/data/architecture/PIPELINE_CONTRACT.md) — Source freshness, run cadence, SLAs
+- [DATA_QUALITY_CONTRACT.md](docs/data/architecture/DATA_QUALITY_CONTRACT.md) — Schema tests, distribution tests, severity policy
+- [LINEAGE_CONTRACT.md](docs/data/architecture/LINEAGE_CONTRACT.md) — Column-lineage requirements (especially for PII)
+- [PII_HANDLING_CONTRACT.md](docs/data/architecture/PII_HANDLING_CONTRACT.md) — PII tagging, masking macro contract
+- [ENVIRONMENTS.md](docs/data/architecture/ENVIRONMENTS.md) — dev / ci / staging / prod separation + PII masking by env
+
+### Data (Stack overlay — python-dbt)
+
+- [TECH_STACK.md](cli/stacks/python-dbt/TECH_STACK.md) — dbt-core + warehouse adapter, SQLfluff, dbt-expectations
+- [QUERY_CONVENTIONS.md](cli/stacks/python-dbt/QUERY_CONVENTIONS.md) — CTE skeleton, `stg_<source>__<table>` naming
+- [TESTING.md](cli/stacks/python-dbt/TESTING.md) — dbt schema tests, custom singular tests, freshness
+- [MODEL_LAYERING.md](cli/stacks/python-dbt/MODEL_LAYERING.md) — staging / intermediate / marts materialization defaults
+- [PII_HANDLING.md](cli/stacks/python-dbt/PII_HANDLING.md) — `mask_pii()` macro pattern
+- [LINEAGE_OBSERVABILITY.md](cli/stacks/python-dbt/LINEAGE_OBSERVABILITY.md) — Exposure docs, OpenLineage hooks
 
 ---
 

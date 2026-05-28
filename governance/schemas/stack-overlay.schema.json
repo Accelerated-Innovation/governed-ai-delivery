@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GovKit Stack Overlay Schema",
+  "description": "Schema for cli/stacks/<id>/overlay.yaml — the metadata file shipped alongside the 6 stack-specific architecture docs (TECH_STACK, API_CONVENTIONS, TESTING, LAYER_IMPLEMENTATION, SECURITY_AUTH_PATTERNS, OBSERVABILITY_PORT_CONTRACT). Loaded by cli/overlay.py.",
+  "type": "object",
+  "required": ["id", "version", "display_name", "summary", "docs"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "description": "Overlay id (e.g. 'python-fastapi'). Must match the parent directory name."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Overlay version bumped when the docs change in a way that warrants user re-review. Doctor's D006 compares this against the baseline header in installed docs."
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable stack name shown by `govkit stack list`."
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One-line description of the stack's tooling. Surfaces alongside display_name in `govkit stack list`."
+    },
+    "default_assumptions": {
+      "type": "array",
+      "description": "Assumptions the overlay declares by default. Each is materialized into the marker's assumptions[] at apply time.",
+      "items": {
+        "type": "object",
+        "required": ["id", "value"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "value": {"type": ["string", "number", "boolean"]},
+          "review_required": {"type": "boolean"}
+        }
+      }
+    },
+    "docs": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Files the overlay copies into the target. `src` is relative to the overlay dir; `dest` is relative to the target.",
+      "items": {
+        "type": "object",
+        "required": ["src", "dest"],
+        "additionalProperties": false,
+        "properties": {
+          "src": {"type": "string", "minLength": 1},
+          "dest": {"type": "string", "minLength": 1},
+          "editable": {"type": "boolean"}
+        }
+      }
+    },
+    "skill_context": {
+      "type": "object",
+      "description": "Stack facts merged into .govkit/skill_context.yaml under `stack` for skill consumers. Keys vary per stack (language, api_framework, unit_test, bdd_test, package_files, source_folder_hint, ...)."
+    },
+    "review_checklist": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Per-overlay items appended to the team's review checklist by `govkit calibrate`."
+    }
+  }
+}
