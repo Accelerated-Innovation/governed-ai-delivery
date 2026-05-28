@@ -36,14 +36,16 @@ if TYPE_CHECKING:
     from .detect import RepoProfile
 
 from . import paths, version
+from .cmd_init import _resolve_starter_dir as _resolve_starter_dir
+from .cmd_init import cmd_init
 from .cmd_list import cmd_list
 from .cmd_stack import cmd_stack_apply, cmd_stack_list
+from .cmd_validate import cmd_validate
 from .fs import copy_entry
 from .fs import is_user_edited as is_user_edited
 from .manifest import load_manifest, resolve_options, resolve_variant_files
 from .marker import (
     _compare_version,
-    read_govkit_level,
     read_govkit_marker,
     write_govkit_marker,
 )
@@ -56,6 +58,7 @@ from .marker import (
 from .marker import (
     _reset_shape_migration_warning as _reset_shape_migration_warning,
 )
+from .marker import read_govkit_level as read_govkit_level
 from .stack_select import (
     apply_stack_overlay,
     print_detection_summary,
@@ -298,109 +301,6 @@ def cmd_apply(args: argparse.Namespace) -> None:
     print("\nNext step: add your first feature package.")
     print("  govkit init <feature-name> --target <target>   # scaffold from a starter template")
     print("  or drop a feature folder manually into features/")
-
-
-def _prompt_starter_type() -> str:
-    """Interactively prompt for the starter template type."""
-    choices = ["backend", "cli", "ui-react", "ui-angular", "data"]
-    prompt_text = f"  Feature type? [{' / '.join(choices)}] (default: backend): "
-    answer = input(prompt_text).strip().lower()
-    if answer == "":
-        answer = "backend"
-    if answer not in choices:
-        print(f"Error: invalid choice '{answer}'. Must be one of: {', '.join(choices)}")
-        sys.exit(1)
-    return answer
-
-
-def _starter_dir_slug(starter_type: str) -> str:
-    """Map a starter_type to its bundled directory slug.
-
-    Most types map 1:1 (backend → starter_backend). UI variants currently
-    share a single framework-agnostic starter — both ui-react and ui-angular
-    resolve to starter_ui. If they diverge later, separate starter_ui_react
-    and starter_ui_angular dirs can be added without resolver changes (the
-    1:1 path is the default).
-    """
-    if starter_type in ("ui-react", "ui-angular"):
-        return "ui"
-    return starter_type
-
-
-def _resolve_starter_dir(starter_type: str, level: str) -> Path:
-    """Select the level-appropriate starter directory from the bundled govkit templates.
-
-    L3 (Foundations) has no feature starter — `govkit init` is gated to L4+.
-    """
-    if level == "3":
-        raise ValueError(
-            "L3 (Governed AI Delivery — Foundations) has no feature starter. "
-            "Run 'govkit apply --level 4' first to enable the spec-driven feature workflow."
-        )
-    bundled = paths.REPO_ROOT / "features"
-    slug = _starter_dir_slug(starter_type)
-    if level == "5":
-        level_dir = bundled / f"starter_{slug}_l5"
-        if level_dir.exists():
-            return level_dir
-    return bundled / f"starter_{slug}"
-
-
-def cmd_init(args: argparse.Namespace) -> None:
-    """Create a new feature folder from the appropriate starter template."""
-    target = Path(args.target).resolve()
-
-    # Determine level early so we can gate L3 before any other checks.
-    level = args.level or read_govkit_level(target) or "3"
-
-    if level == "3":
-        print(
-            "Error: 'govkit init' requires Level 4 (Spec-Driven Add-On) or higher.\n"
-            "  Level 3 (Foundations) ships agent rules and architecture contracts only;\n"
-            "  it has no features/ directory model.\n"
-            "  Run 'govkit apply --level 4 --target <path>' to enable the spec-driven\n"
-            "  feature workflow, then re-run 'govkit init'."
-        )
-        sys.exit(1)
-
-    features_dir = target / "features"
-    if not features_dir.exists():
-        print(f"Error: no features/ directory found in {target}. Run 'govkit apply' first.")
-        sys.exit(1)
-
-    feature_name = args.feature
-    feature_dir = features_dir / feature_name
-    if feature_dir.exists():
-        print(f"Error: feature '{feature_name}' already exists at {feature_dir}")
-        sys.exit(1)
-
-    starter_type = args.starter or _prompt_starter_type()
-    starter_dir = _resolve_starter_dir(starter_type, level)
-
-    if not starter_dir.exists():
-        print(f"Error: starter template not found at {starter_dir}")
-        sys.exit(1)
-
-    copy_entry(starter_dir, feature_dir)
-    print(f"\nCreated feature '{feature_name}' from {starter_dir.name} (level {level})")
-    print(f"  Location: {feature_dir}")
-    print("\nNext steps:")
-    print(f"  1. Edit {feature_dir / 'acceptance.feature'} — write your Gherkin scenarios")
-    print(f"  2. Edit {feature_dir / 'nfrs.md'} — replace all TBD entries")
-    if level == "5":
-        print(f"  3. Run /architecture-preflight {feature_name}")
-        print(f"  4. Run /genai-preflight {feature_name}")
-    else:  # L4
-        print(f"  3. Run /architecture-preflight {feature_name}")
-        print(f"  4. Run /spec-planning {feature_name}")
-
-
-def cmd_validate(args: argparse.Namespace) -> None:
-    from .validate import run_validation
-    target = Path(args.target).resolve()
-    level = args.level
-    strict = getattr(args, "strict", False)
-    sys.exit(run_validation(target, level=level, strict=strict))
 
 
 def cmd_upgrade(args: argparse.Namespace) -> None:
