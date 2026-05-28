@@ -18,6 +18,8 @@ Per the plan's A10: `build_profile` always takes an explicit `target: Path`
 so monorepos don't cross-contaminate detection.
 """
 
+import fnmatch
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -103,28 +105,44 @@ def _find_one(target: Path, pattern: str) -> list[Path]:
         return []
 
 
-def _find_recursive(target: Path, pattern: str, max_depth: int = 4) -> list[Path]:
-    """Recursive search bounded by depth so we don't scan node_modules / .venv etc.
+_SKIP_DIRS = frozenset({
+    ".git", "node_modules", ".venv", "venv", "__pycache__", "dist",
+    "build", "target", "bin", "obj", ".tox", ".pytest_cache",
+})
 
-    Returns at most one match per signal-detection use case (caller decides).
+
+def _find_recursive(target: Path, pattern: str, max_depth: int = 4) -> list[Path]:
+    """Recursive search bounded by depth, pruning noise dirs during traversal.
+
+    Uses os.walk with in-place `dirnames[:]` mutation so node_modules / .venv /
+    etc. are never entered — important for large repos where rglob's
+    walk-then-filter approach dominated build_profile() runtime.
+
+    Depth is counted as path segments from target: a file at target/a/b/c.txt
+    is depth 3. With max_depth=4, files up to four segments deep are returned.
     """
     matches: list[Path] = []
     if not target.is_dir():
         return matches
-    skip_dirs = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist",
-                 "build", "target", "bin", "obj", ".tox", ".pytest_cache"}
-    for path in target.rglob(pattern):
-        try:
-            rel = path.relative_to(target)
-        except ValueError:
-            continue
-        parts = rel.parts
-        if any(p in skip_dirs for p in parts[:-1]):
-            continue
-        if len(parts) > max_depth:
-            continue
-        if path.is_file():
-            matches.append(path)
+    target_depth = len(target.parts)
+    try:
+        for dirpath, dirnames, filenames in os.walk(target):
+            # Prune noise dirs in place — os.walk respects this and won't recurse.
+            dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+            current = Path(dirpath)
+            depth = len(current.parts) - target_depth  # 0 at target, +1 per descent
+            if depth + 1 > max_depth:
+                # Files here would be at file_depth > max_depth; bail without descent.
+                dirnames[:] = []
+                continue
+            for fname in filenames:
+                if fnmatch.fnmatch(fname, pattern):
+                    matches.append(current / fname)
+            if depth + 1 >= max_depth:
+                # Next level's files would exceed max_depth; stop descent.
+                dirnames[:] = []
+    except OSError:
+        pass
     return matches
 
 

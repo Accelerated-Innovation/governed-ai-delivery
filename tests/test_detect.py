@@ -457,3 +457,88 @@ class TestInferStack:
         prof = build_profile(tmp_path)
         stack_id, _ = infer_stack(prof)
         assert stack_id == "dotnet-aspnet"
+
+
+class TestFindRecursivePruning:
+    """_find_recursive must prune noise dirs during traversal (not after).
+    Walking into node_modules / .venv etc. is what makes detection slow on
+    large repos. These tests pin both behaviour (right file set) and
+    implementation (os.walk + dirnames pruning)."""
+
+    def _make_tree(self, tmp_path):
+        # Files at varying depths, inside and outside noise dirs.
+        (tmp_path / "pyproject.toml").write_text("", encoding="utf-8")
+        (tmp_path / "src" / "Api").mkdir(parents=True)
+        (tmp_path / "src" / "Api" / "Api.csproj").write_text("", encoding="utf-8")
+        # Inside a skip_dir at depth 1 — must be ignored.
+        (tmp_path / "node_modules" / "pkg" / "subpkg").mkdir(parents=True)
+        (tmp_path / "node_modules" / "pkg" / "pyproject.toml").write_text("", encoding="utf-8")
+        (tmp_path / "node_modules" / "pkg" / "subpkg" / "deep.csproj").write_text("", encoding="utf-8")
+        # Inside .venv at depth 1 — must be ignored.
+        (tmp_path / ".venv" / "lib").mkdir(parents=True)
+        (tmp_path / ".venv" / "lib" / "pyproject.toml").write_text("", encoding="utf-8")
+        # File beyond max_depth=4 → must be ignored.
+        deep = tmp_path / "a" / "b" / "c" / "d"
+        deep.mkdir(parents=True)
+        (deep / "too_deep.csproj").write_text("", encoding="utf-8")
+
+    def test_returns_files_outside_skip_dirs_only(self, tmp_path):
+        from cli.detect import _find_recursive
+
+        self._make_tree(tmp_path)
+        py = {p.name for p in _find_recursive(tmp_path, "pyproject.toml")}
+        cs = {p.relative_to(tmp_path).as_posix() for p in _find_recursive(tmp_path, "*.csproj")}
+
+        assert py == {"pyproject.toml"}, (
+            "should find exactly one pyproject.toml at root; "
+            f"found from skip_dirs/excess depth: {py}"
+        )
+        assert cs == {"src/Api/Api.csproj"}, (
+            "should find the one .csproj at depth 3; deep file (depth 5) and "
+            f"node_modules file must be excluded; got: {cs}"
+        )
+
+    def test_respects_max_depth_exactly_at_boundary(self, tmp_path):
+        from cli.detect import _find_recursive
+
+        # At depth = max_depth (4 segments incl. file name) → included.
+        ok = tmp_path / "w" / "x" / "y"
+        ok.mkdir(parents=True)
+        (ok / "ok.csproj").write_text("", encoding="utf-8")
+        # At depth = max_depth + 1 (5 segments) → excluded.
+        nope = tmp_path / "w" / "x" / "y" / "z"
+        nope.mkdir(parents=True)
+        (nope / "nope.csproj").write_text("", encoding="utf-8")
+
+        names = {p.name for p in _find_recursive(tmp_path, "*.csproj", max_depth=4)}
+        assert names == {"ok.csproj"}
+
+    def test_does_not_walk_into_skip_dirs(self, tmp_path, monkeypatch):
+        """Implementation contract: traversal must prune noise dirs, not just
+        filter results. We prove it by spying on os.walk and asserting no
+        yielded dirpath is inside a skip_dir."""
+        import cli.detect as detect_mod
+
+        self._make_tree(tmp_path)
+
+        visited_dirs: list[str] = []
+        real_walk = detect_mod.os.walk
+
+        def tracking_walk(path, *args, **kwargs):
+            for dirpath, dirnames, filenames in real_walk(path, *args, **kwargs):
+                visited_dirs.append(str(dirpath))
+                yield dirpath, dirnames, filenames
+
+        monkeypatch.setattr(detect_mod.os, "walk", tracking_walk)
+        detect_mod._find_recursive(tmp_path, "pyproject.toml")
+
+        # No yielded dirpath should be inside node_modules / .venv / etc.
+        skip = {"node_modules", ".venv", "venv", ".git", "__pycache__",
+                "dist", "build", "target", "bin", "obj", ".tox", ".pytest_cache"}
+        from pathlib import Path as _P
+        for d in visited_dirs:
+            parts = set(_P(d).relative_to(tmp_path).parts)
+            assert not (parts & skip), (
+                f"_find_recursive walked into a skip dir: {d}; "
+                f"pruning must happen via dirnames[:] mutation"
+            )
