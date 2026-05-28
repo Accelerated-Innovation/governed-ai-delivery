@@ -103,6 +103,21 @@ The four claude-code backend skills (`architecture-preflight`, `spec-planning`, 
 
 The architecture-preflight skill's §2.6 Extension Discovery block (per R4) is preserved intact; the `agent_guidance.architecture_preflight` contract on extension manifests continues to work.
 
+### `--type data` (dbt-layered, claude-code)
+
+A first cut of `--type data` ships for the claude-code agent so data teams can adopt the same calibrated-installer flow as backend teams. The shape mirrors `--type api`: opinionated baseline + stack overlay + worked starter feature, all editable with assumptions surfaced for team review.
+
+- **New `--type data` choice** on `govkit apply` (claude-code only for now; copilot/codex variants land later).
+- **New `python-dbt` stack overlay** (`cli/stacks/python-dbt/`) — 6 docs (TECH_STACK, QUERY_CONVENTIONS, TESTING, MODEL_LAYERING, PII_HANDLING, LINEAGE_OBSERVABILITY) covering dbt-core + a warehouse adapter (Snowflake / BigQuery / Redshift / Postgres), SQLfluff, dbt schema tests, optional `dbt-expectations` for L4.
+- **New `docs/data/architecture/` baseline contracts** — 8 governed contracts (ARCH_CONTRACT, BOUNDARIES, DESIGN_PRINCIPLES, PIPELINE_CONTRACT, DATA_QUALITY_CONTRACT, LINEAGE_CONTRACT, PII_HANDLING_CONTRACT, ENVIRONMENTS) — the data-shape equivalent of the backend contracts.
+- **New `.claude/rules/data/`** — 5 rules (`staging`, `intermediate`, `marts`, `data-quality`, `pii`); the layering rules use `paths_template: layers.{inbound,domain,outbound}` so they expand to whichever layer vocabulary the team uses (staging/intermediate/marts by default; medallion teams edit `skill_context.yaml`).
+- **New `cli/detect.py` signals** — `dbt` framework (via `dbt_project.yml`) and `dbt-shape` architecture (via `models/{staging,intermediate,marts}/`). Detection promotes `python-dbt` to the inferred stack when `dbt_project.yml` is present.
+- **New `dbt-layered` architecture style** in `cli/skill_context.py` — `inbound = models/staging/`, `domain = models/intermediate/`, `outbound = models/marts/`. Calibrate steps 3 (boundaries), 4 (now `QUERY_CONVENTIONS` instead of `API_CONVENTIONS` for data installs), and 5 (testing) speak data-team language.
+- **New `features/starter_data/`** — a worked `customer_dim_freshness` L4 feature (acceptance.feature with `@nfr-freshness / @nfr-quality / @nfr-pii / @nfr-lineage / @nfr-reliability / @nfr-cost` scenarios, nfrs.md, eval_criteria.yaml, plan.md, architecture_preflight.md). `govkit init <feature> --starter data` scaffolds it.
+- **New `tests/fixtures/dbt-project/`** — minimal dbt fixture (`dbt_project.yml` + `models/{staging,intermediate,marts}/` + `.github/workflows/`) backing 6 new tests in `tests/test_fixtures.py::TestDbtProjectFixture` that lock down detection, stack inference, rule-glob templating, and contract installation.
+
+CI gates for `--type data` are intentionally left empty in `agents/claude-code/manifest.json::ci.<platform>.by_type.data` for this release — gate selection is the kind of thing teams want to shape themselves, and shipping a default would foreclose that conversation. Future releases will add opinionated dbt CI gates (source freshness checks, dbt test, SQLfluff) once we have feedback from real teams.
+
 ### Added
 - **New CLI commands**: `govkit doctor`, `govkit calibrate`, `govkit stack list`, `govkit stack apply <id>`.
 - **New `--stack <id>`, `--detect`, and `--force` flags** on `govkit apply`.
@@ -116,8 +131,9 @@ The architecture-preflight skill's §2.6 Extension Discovery block (per R4) is p
 - **`cli/setup_review.py`** — `write_setup_review`, `print_review_checklist` (agent-aware paths for claude-code / copilot / codex).
 - **`cli/rule_templating.py`** — `expand_rule_template`, `template_installed_rules` (handles claude-code `paths_template:` and copilot `applyTo_template:`).
 - **`governance/schemas/govkit-marker.schema.json`** — JSON Schema for `marker.json`, exercised by `tests/test_schemas.py`.
-- **`cli/stacks/<id>/overlay.yaml`** for all 5 stacks — `id`, `version`, `display_name`, `summary`, `default_assumptions`, `docs`, `skill_context`, `review_checklist`.
-- **Four fixture repos** under `tests/fixtures/` — `dotnet-aspnet-azure/`, `python-fastapi-github/`, `empty/`, `monorepo/` (apps/api + apps/web) for end-to-end coverage.
+- **`cli/stacks/<id>/overlay.yaml`** for all 6 stacks (the 5 backend stacks + `python-dbt`) — `id`, `version`, `display_name`, `summary`, `default_assumptions`, `docs`, `skill_context`, `review_checklist`.
+- **`--type data`** end-to-end (claude-code only): `python-dbt` stack overlay, `docs/data/architecture/` baseline contracts, `.claude/rules/data/` (staging/intermediate/marts/data-quality/pii), `dbt` framework + `dbt-shape` architecture detection, `dbt-layered` skill_context style, `features/starter_data/` worked example, data-aware calibrate steps. See narrative section above.
+- **Five fixture repos** under `tests/fixtures/` — `dotnet-aspnet-azure/`, `python-fastapi-github/`, `empty/`, `monorepo/` (apps/api + apps/web), `dbt-project/` (dbt_project.yml + models/{staging,intermediate,marts}/) for end-to-end coverage.
 - **Built-wheel smoke test** (per A12) — new `wheel-smoke` CI job: `python -m build`, `pip install dist/*.whl` into a clean venv, `govkit stack list` confirms all 5 stacks resolve, then a fresh `apply --stack dotnet-aspnet` exercises the full install path. Catches packaging regressions that editable installs can't.
 - **Tests** — 326 new tests (440 → 766). New modules: `test_doctor.py` (50), `test_calibrate.py` (20), `test_skill_context.py` (17), `test_detect.py` (42), `test_overlay.py` (13), `test_rule_templating.py` (15), `test_setup_review.py` (13), `test_headers.py` (20), `test_fixtures.py` (33). Existing test modules also grew with PR-specific additions.
 
@@ -149,8 +165,8 @@ This release ships against the 12 amendments captured in [plans/GOVERNANCE_ACCEL
 
 ### Verification
 
-- 766 pytest tests pass + 1 expected skip (was 440).
-- Built wheel installs cleanly into a fresh venv; `govkit stack list` resolves all 5 stacks from the wheel layout; `govkit apply --stack dotnet-aspnet` produces a complete install with marker, skill_context, baseline header, review file.
+- 785 pytest tests pass + 1 expected skip (was 440).
+- Built wheel installs cleanly into a fresh venv; `govkit stack list` resolves all 6 stacks (5 backend + `python-dbt`) from the wheel layout; `govkit apply --stack dotnet-aspnet` produces a complete install with marker, skill_context, baseline header, review file. `govkit apply --type data` against a dbt fixture detects `dbt` framework + `dbt-shape` architecture and selects the `python-dbt` overlay automatically.
 - Doctor on a fresh L4 install of any agent: zero D007 errors (L5 leakage closed); D001/D003 surfaces real mismatches.
 - Monorepo fixture (apps/api Python + apps/web TypeScript): doctor + calibrate auto-discover both installs; per-install findings are isolated.
 
