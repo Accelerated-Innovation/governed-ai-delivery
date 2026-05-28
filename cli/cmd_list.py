@@ -37,3 +37,9 @@ def cmd_list(_args: argparse.Namespace) -> None:
             else:
                 print(f"  {name:<20} {desc}")
     print()
+
+
+def register(subparsers) -> None:
+    """Register the `list` subcommand."""
+    p = subparsers.add_parser("list", help="List available agents and their options")
+    p.set_defaults(func=cmd_list)

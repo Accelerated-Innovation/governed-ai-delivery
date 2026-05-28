@@ -180,3 +180,32 @@ def cmd_apply(args: argparse.Namespace) -> None:
     print("\nNext step: add your first feature package.")
     print("  govkit init <feature-name> --target <target>   # scaffold from a starter template")
     print("  or drop a feature folder manually into features/")
+
+
+def register(subparsers) -> None:
+    """Register the `apply` subcommand and its arguments."""
+    p = subparsers.add_parser("apply", help="Apply an agent spec kit to a target project")
+    p.add_argument("--agent", required=True, help="Agent name (e.g. claude-code, copilot)")
+    p.add_argument("--target", required=True, help=paths.TARGET_HELP)
+    p.add_argument("--level", choices=["3", "4", "5"], default=None,
+                   help="Maturity level (default: prompted)")
+    p.add_argument("--type", choices=["api", "cli", "ui-react", "ui-angular", "data"], default=None,
+                   help="Project type (default: prompted)")
+    p.add_argument("--ci", choices=["github", "azure"], default=None,
+                   help="CI platform (default: prompted)")
+    p.add_argument(
+        "--stack", default=None,
+        help="Stack overlay id (default: python-fastapi). Run `govkit stack list` "
+             "to see available stacks.",
+    )
+    p.add_argument(
+        "--detect", action="store_true",
+        help="Dry-run: run repo inference, print the proposed config, and exit "
+             "without writing anything to the target",
+    )
+    p.add_argument(
+        "--force", action="store_true",
+        help="Override edit-protection and overwrite user-edited governed/shared "
+             "docs (those carrying a govkit:editable header)",
+    )
+    p.set_defaults(func=cmd_apply)

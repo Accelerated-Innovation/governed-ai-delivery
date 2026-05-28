@@ -815,3 +815,18 @@ def cmd_doctor(args: argparse.Namespace) -> None:
         print("\n  doctor: errors present (see above).")
 
     sys.exit(overall_exit)
+
+
+def register(subparsers) -> None:
+    """Register the `doctor` subcommand and its arguments."""
+    p = subparsers.add_parser(
+        "doctor",
+        help="Read-only governance fit validator. Run in CI to surface "
+             "mismatches between installed governance and the actual repo.",
+    )
+    p.add_argument(
+        "--target", default=None,
+        help="Path to the install root (defaults to scanning cwd for .govkit/ "
+             "markers; finds nested installs in monorepos)",
+    )
+    p.set_defaults(func=cmd_doctor)

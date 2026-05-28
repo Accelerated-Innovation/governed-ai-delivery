@@ -301,3 +301,22 @@ def _migrate_l3_interactive(
 
     print(f"\n  Invalid choice: {choice!r}. Aborting without changes.")
     return 1
+
+
+def register(subparsers) -> None:
+    """Register the `upgrade` subcommand and its arguments."""
+    p = subparsers.add_parser(
+        "upgrade",
+        help="Refresh agent config and governed contracts to the current govkit version",
+    )
+    p.add_argument("--target", required=True, help=paths.TARGET_HELP)
+    p.add_argument(
+        "--force", action="store_true",
+        help="Re-apply even when the project is already at the current govkit version",
+    )
+    p.add_argument(
+        "--migrate-levels", action="store_true", dest="migrate_levels",
+        help="Run the v0.6.x → v0.7.0 maturity-model migration "
+             "(L3/L4 swap; interactive for legacy L3 projects)",
+    )
+    p.set_defaults(func=cmd_upgrade)

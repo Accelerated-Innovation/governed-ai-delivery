@@ -109,3 +109,16 @@ def cmd_init(args: argparse.Namespace) -> None:
     else:  # L4
         print(f"  3. Run /architecture-preflight {feature_name}")
         print(f"  4. Run /spec-planning {feature_name}")
+
+
+def register(subparsers) -> None:
+    """Register the `init` subcommand and its arguments."""
+    p = subparsers.add_parser("init", help="Create a new feature folder from a starter template")
+    p.add_argument("feature", help="Feature name (e.g. user-auth, schema-publish)")
+    p.add_argument("--target", default=".",
+                   help="Path to the target project root (default: current directory)")
+    p.add_argument("--starter", choices=["backend", "cli", "ui-react", "ui-angular", "data"], default=None,
+                   help="Starter template type (default: prompted)")
+    p.add_argument("--level", choices=["3", "4", "5"], default=None,
+                   help="Maturity level (default: read from .govkit or 4)")
+    p.set_defaults(func=cmd_init)

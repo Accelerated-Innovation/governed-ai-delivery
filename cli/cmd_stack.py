@@ -118,3 +118,33 @@ def cmd_stack_apply(args: argparse.Namespace) -> None:
         print_review_checklist(target, new_marker)
 
     print(f"\nDone. Stack '{overlay.id}' applied to {target}")
+
+
+def register(subparsers) -> None:
+    """Register the `stack` subcommand tree (`stack list`, `stack apply`)."""
+    stack_parser = subparsers.add_parser(
+        "stack",
+        help="List or apply bundled stack overlays",
+    )
+    stack_sub = stack_parser.add_subparsers(dest="stack_command", required=True)
+
+    list_parser = stack_sub.add_parser("list", help="List bundled stack overlays")
+    list_parser.set_defaults(func=cmd_stack_list)
+
+    apply_parser = stack_sub.add_parser(
+        "apply",
+        help="Re-apply a stack overlay over an existing install",
+    )
+    apply_parser.add_argument(
+        "stack_id",
+        help="Stack overlay id (e.g. dotnet-aspnet). See `govkit stack list`.",
+    )
+    apply_parser.add_argument(
+        "--target", required=True,
+        help="Path to the target project root (must contain a .govkit marker)",
+    )
+    apply_parser.add_argument(
+        "--force", action="store_true",
+        help="Override edit-protection and overwrite user-edited stack docs",
+    )
+    apply_parser.set_defaults(func=cmd_stack_apply)

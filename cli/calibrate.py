@@ -464,6 +464,32 @@ def cmd_calibrate(args: argparse.Namespace) -> None:
         _calibrate_one(target, args, multi)
 
 
+def register(subparsers) -> None:
+    """Register the `calibrate` subcommand and its arguments."""
+    p = subparsers.add_parser(
+        "calibrate",
+        help="Guided review of installed governance. Walks the team "
+             "through the 9-step checklist from plan Section 7.",
+    )
+    p.add_argument(
+        "--target", default=None,
+        help="Path to the install root (defaults to scanning cwd for .govkit/ "
+             "markers; finds nested installs in monorepos)",
+    )
+    p.add_argument(
+        "--non-interactive", action="store_true", dest="non_interactive",
+        help="Skip prompts and write GOVKIT_CALIBRATION_CHECKLIST.md as a "
+             "todo file. Useful in CI bootstraps and for new repos the team "
+             "will calibrate later.",
+    )
+    p.add_argument(
+        "--only", default=None,
+        help="Run only the named step (e.g. 'tech_stack', 'rules'). Useful "
+             "for revisiting a single decision without walking the whole list.",
+    )
+    p.set_defaults(func=cmd_calibrate)
+
+
 def _run_non_interactive(target: Path, steps: list[CalibrationStep]) -> None:
     """Write the checklist as a markdown todo file at the target root."""
     body = render_checklist_markdown(steps)
