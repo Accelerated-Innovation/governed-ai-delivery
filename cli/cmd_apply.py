@@ -36,14 +36,22 @@ def _cmd_apply_detect_dry_run(target: Path, args: argparse.Namespace) -> None:
     govkit would do without committing to a write.
     """
     from .detect import build_profile, infer_stack
+    from .manifest import load_manifest
 
     profile = build_profile(target)
     inferred_stack, inferred_confidence = infer_stack(profile)
 
-    # Delegate to resolve_stack_choice so the dry-run reports the same stack
-    # real apply would pick — including the type-compatibility check that
-    # rejects e.g. python-fastapi inference when --type data is requested.
-    type_value = getattr(args, "type", None) or "api"
+    # The per-type stack default differs (e.g. data -> python-dbt), so resolving
+    # the stack requires a concrete type. When --type isn't given, real apply
+    # prompts and pressing Enter yields the manifest default — use that same
+    # default here so the reported stack matches the reported type instead of a
+    # hardcoded 'api'.
+    cli_type = getattr(args, "type", None)
+    manifest = load_manifest(args.agent)
+    default_type = manifest.get("options", {}).get("type", {}).get("default", "api")
+    type_value = cli_type or default_type
+    type_display = cli_type or f"{default_type} (default)"
+
     chosen_stack, stack_source, _, _ = resolve_stack_choice(
         getattr(args, "stack", None), type_value,
         profile, inferred_stack, inferred_confidence, target,
@@ -55,10 +63,10 @@ def _cmd_apply_detect_dry_run(target: Path, args: argparse.Namespace) -> None:
         chosen_stack, stack_source,
     )
     print("\nProposed configuration:")
-    print(f"  agent:  {getattr(args, 'agent', '(none)')}")
-    print(f"  level:  {getattr(args, 'level', '(prompted)')}")
-    print(f"  type:   {getattr(args, 'type', '(prompted)')}")
-    print(f"  ci:     {getattr(args, 'ci', '(prompted)')}")
+    print(f"  agent:  {getattr(args, 'agent', None) or '(none)'}")
+    print(f"  level:  {getattr(args, 'level', None) or '(prompted)'}")
+    print(f"  type:   {type_display}")
+    print(f"  ci:     {getattr(args, 'ci', None) or '(prompted)'}")
     print(f"  stack:  {chosen_stack}  (source: {stack_source})")
     print("\nNo files written. Re-run without --detect to apply.")
 

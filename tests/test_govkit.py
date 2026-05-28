@@ -2633,6 +2633,31 @@ class TestCmdApplyDetectFlag:
         ))
         assert not (target / ".govkit").exists()
 
+    def test_detect_flag_no_type_reports_manifest_default(self, tmp_path, monkeypatch, capsys):
+        """With no --type, real apply prompts and pressing Enter yields the
+        manifest's type default. The dry-run must report that default — and the
+        stack it implies — rather than a contradictory '(prompted)'/None type
+        while computing the stack from a hardcoded 'api'."""
+        repo = self._agent(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr("cli.paths.AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level=None, type=None, ci=None, stack=None, force=False,
+            detect=True,
+        ))
+
+        out = capsys.readouterr().out
+        # Type reported as the manifest default (the press-Enter outcome),
+        # marked so it's clear it wasn't explicitly chosen.
+        assert "(default)" in out
+        # Stack shown is the one that default type implies — consistent, not
+        # a value the displayed type wouldn't pick.
+        assert "python-fastapi" in out
+
     def test_detect_flag_with_type_data_ignores_ambient_fastapi(self, tmp_path, monkeypatch, capsys):
         """Mirror of TestResolveStackChoiceTypeCompatibility, applied to the
         --detect dry-run path. The reported stack must match what real apply
