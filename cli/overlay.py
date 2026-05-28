@@ -16,6 +16,7 @@ from pathlib import Path
 
 import yaml
 
+from .fs import copy_entry
 
 # STACKS_DIR resolves to the bundled cli/stacks/ directory, mirroring how
 # AGENTS_DIR resolves AGENTS in cli/govkit.py. The repo-checkout vs
@@ -126,8 +127,6 @@ def apply_overlay(
 
     Returns the list of destination paths that were copied.
     """
-    from .govkit import copy_entry  # local import to avoid cycle
-
     baseline = f"{overlay.id}@{overlay.version}"
     copied: list[Path] = []
     for doc in overlay.docs:

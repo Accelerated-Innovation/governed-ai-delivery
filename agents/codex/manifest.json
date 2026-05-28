@@ -9,7 +9,7 @@
     },
     "type": {
       "prompt": "Project type?",
-      "choices": ["api", "cli", "ui-react", "ui-angular"],
+      "choices": ["api", "cli", "ui-react", "ui-angular", "data"],
       "default": "api"
     },
     "ci": {
@@ -24,6 +24,34 @@
   },
   "variants": {
     "type": {
+      "data": {
+        "files": [
+          { "src": "agents-md/data.md", "dest": "AGENTS.md" },
+          { "src": "rules/data/staging.md", "dest": "models/staging/AGENTS.md" },
+          { "src": "rules/data/intermediate.md", "dest": "models/intermediate/AGENTS.md" },
+          { "src": "rules/data/marts.md", "dest": "models/marts/AGENTS.md" },
+          { "src": "rules/data/data-quality.md", "dest": ".agents/rules/data-quality.md" },
+          { "src": "rules/data/pii.md", "dest": ".agents/rules/pii.md" },
+          { "src": "rules/generic/repo-scope-backend.md", "dest": ".agents/rules/repo-scope.md" },
+          { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" }
+        ],
+        "shared": [],
+        "governed": [
+          "docs/data/architecture/"
+        ],
+        "level_4": {
+          "mode": "merge",
+          "files": [
+            { "src": "agents-md/l4-data.md", "dest": "AGENTS.md" },
+            { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
+            { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" }
+          ],
+          "shared": [
+            "features/starter_data/"
+          ],
+          "governed": []
+        }
+      },
       "api": {
         "files": [
           { "src": "agents-md/backend-api.md", "dest": "AGENTS.md" },

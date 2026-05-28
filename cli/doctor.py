@@ -22,13 +22,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-
 # ---------------------------------------------------------------------------
 # Finding model
 # ---------------------------------------------------------------------------
-
-
-from .govkit import MARKER_DIRNAME, MARKER_FILENAME, STACK_ID_ASSUMPTION
+from .marker import MARKER_DIRNAME, MARKER_FILENAME, read_govkit_marker
 
 Severity = Literal["error", "warning", "info"]
 
@@ -546,7 +543,7 @@ def _check_stale_review_required_assumptions(target: Path, marker: dict) -> list
     `govkit calibrate` (PR 5) — or to manually flip review_required after
     confirming the assumption is correct.
     """
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta, timezone
 
     applied_at = marker.get("applied_at")
     if not applied_at:
@@ -713,8 +710,6 @@ def run_doctor(target: Path) -> list[ValidationFinding]:
     Always includes at minimum a marker-missing error if .govkit isn't
     present, so callers know the install can't be validated.
     """
-    from .govkit import read_govkit_marker
-
     findings: list[ValidationFinding] = []
 
     marker = read_govkit_marker(target)
@@ -820,3 +815,18 @@ def cmd_doctor(args: argparse.Namespace) -> None:
         print("\n  doctor: errors present (see above).")
 
     sys.exit(overall_exit)
+
+
+def register(subparsers) -> None:
+    """Register the `doctor` subcommand and its arguments."""
+    p = subparsers.add_parser(
+        "doctor",
+        help="Read-only governance fit validator. Run in CI to surface "
+             "mismatches between installed governance and the actual repo.",
+    )
+    p.add_argument(
+        "--target", default=None,
+        help="Path to the install root (defaults to scanning cwd for .govkit/ "
+             "markers; finds nested installs in monorepos)",
+    )
+    p.set_defaults(func=cmd_doctor)

@@ -44,6 +44,7 @@ class TestWriteSkillContext:
 
     def test_file_is_valid_yaml_with_expected_top_level_keys(self, tmp_path):
         import yaml
+
         from cli.skill_context import write_skill_context
 
         marker = _write_marker(tmp_path)
@@ -60,6 +61,7 @@ class TestWriteSkillContext:
 
     def test_stack_section_pulls_from_marker_and_overlay(self, tmp_path):
         import yaml
+
         from cli.skill_context import write_skill_context
 
         marker = _write_marker(tmp_path)
@@ -75,6 +77,7 @@ class TestWriteSkillContext:
 
     def test_architecture_style_is_unknown_when_no_signals(self, tmp_path):
         import yaml
+
         from cli.skill_context import write_skill_context
 
         marker = _write_marker(tmp_path)
@@ -85,6 +88,7 @@ class TestWriteSkillContext:
 
     def test_architecture_style_reflects_detected_signals(self, tmp_path):
         import yaml
+
         from cli.skill_context import write_skill_context
 
         marker = _write_marker(tmp_path)
@@ -98,6 +102,7 @@ class TestWriteSkillContext:
 
     def test_ci_pulled_from_marker_options(self, tmp_path):
         import yaml
+
         from cli.skill_context import write_skill_context
 
         marker = _write_marker(tmp_path, options={"type": "api", "ci": "azure", "stack": "python-fastapi"})
@@ -107,6 +112,7 @@ class TestWriteSkillContext:
 
     def test_llm_true_at_l5(self, tmp_path):
         import yaml
+
         from cli.skill_context import write_skill_context
 
         marker = _write_marker(tmp_path, level="5")
@@ -116,6 +122,7 @@ class TestWriteSkillContext:
 
     def test_llm_false_at_l4(self, tmp_path):
         import yaml
+
         from cli.skill_context import write_skill_context
 
         marker = _write_marker(tmp_path, level="4")
@@ -125,6 +132,7 @@ class TestWriteSkillContext:
 
     def test_extensions_block_populated_when_extensions_present(self, tmp_path):
         import yaml
+
         from cli.skill_context import write_skill_context
 
         marker = _write_marker(tmp_path)
@@ -149,6 +157,7 @@ class TestWriteSkillContext:
 
     def test_extensions_block_empty_when_none_present(self, tmp_path):
         import yaml
+
         from cli.skill_context import write_skill_context
 
         marker = _write_marker(tmp_path)
@@ -164,7 +173,7 @@ class TestWriteSkillContext:
 
 class TestLoadSkillContext:
     def test_returns_skill_context_dataclass(self, tmp_path):
-        from cli.skill_context import write_skill_context, load_skill_context, SkillContext
+        from cli.skill_context import SkillContext, load_skill_context, write_skill_context
 
         marker = _write_marker(tmp_path)
         write_skill_context(tmp_path, marker)
@@ -195,7 +204,7 @@ class TestLoadSkillContext:
         assert load_skill_context(tmp_path) is None
 
     def test_typed_fields_match_yaml_payload(self, tmp_path):
-        from cli.skill_context import write_skill_context, load_skill_context
+        from cli.skill_context import load_skill_context, write_skill_context
 
         marker = _write_marker(tmp_path)
         write_skill_context(tmp_path, marker)
@@ -213,7 +222,7 @@ class TestLoadSkillContext:
     def test_layers_reflects_architecture_style(self, tmp_path):
         """The loader exposes a `layers` dict mapping inbound/outbound/domain
         to folder hints. Hexagonal repos get hexagonal layer names."""
-        from cli.skill_context import write_skill_context, load_skill_context
+        from cli.skill_context import load_skill_context, write_skill_context
 
         marker = _write_marker(tmp_path)
         # Hexagonal signals
@@ -234,7 +243,8 @@ class TestLoadSkillContext:
         """PR 6a: cmd_apply must call write_skill_context so the file exists
         from day one — skills shouldn't have to wait for calibrate to run."""
         import argparse
-        from cli.govkit import cmd_apply, AGENTS_DIR
+
+        from cli.cmd_apply import cmd_apply
         from cli.skill_context import load_skill_context
 
         target = tmp_path / "project"
@@ -254,7 +264,9 @@ class TestLoadSkillContext:
         """PR 6a: cmd_stack_apply must rewrite skill_context.yaml so the
         stack swap is reflected immediately for any skill that consults it."""
         import argparse
-        from cli.govkit import cmd_apply, cmd_stack_apply
+
+        from cli.cmd_apply import cmd_apply
+        from cli.cmd_stack import cmd_stack_apply
         from cli.skill_context import load_skill_context
 
         target = tmp_path / "project"
@@ -278,7 +290,7 @@ class TestLoadSkillContext:
         assert after.api_framework == "aspnet-core"
 
     def test_extensions_carry_capability_lists(self, tmp_path):
-        from cli.skill_context import write_skill_context, load_skill_context
+        from cli.skill_context import load_skill_context, write_skill_context
 
         marker = _write_marker(tmp_path)
         ext_dir = tmp_path / "extensions" / "test-ext"

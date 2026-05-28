@@ -26,7 +26,6 @@ import pytest
 jsonschema = pytest.importorskip("jsonschema")
 from jsonschema import Draft202012Validator  # noqa: E402
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = REPO_ROOT / "governance" / "schemas" / "agent-manifest.schema.json"
 AGENTS_DIR = REPO_ROOT / "agents"
@@ -767,7 +766,7 @@ class TestMarkerSchemaAcceptsFreshlyWrittenMarkers:
     shipped schema. Otherwise the schema and the writer have drifted."""
 
     def test_minimal_apply_marker_validates(self, tmp_path):
-        from cli.govkit import write_govkit_marker
+        from cli.marker import write_govkit_marker
 
         write_govkit_marker(tmp_path, "claude-code", "4", {"type": "api", "ci": "github", "level": "4"})
         marker = json.loads((tmp_path / ".govkit" / "marker.json").read_text(encoding="utf-8"))
@@ -777,7 +776,7 @@ class TestMarkerSchemaAcceptsFreshlyWrittenMarkers:
         assert not errors, "freshly written marker failed schema validation: " + "; ".join(e.message for e in errors)
 
     def test_marker_with_populated_stack_validates(self, tmp_path):
-        from cli.govkit import write_govkit_marker
+        from cli.marker import write_govkit_marker
 
         stack = {
             "id": "dotnet-aspnet",
@@ -797,7 +796,7 @@ class TestMarkerSchemaAcceptsFreshlyWrittenMarkers:
         assert not errors, "; ".join(e.message for e in errors)
 
     def test_marker_with_assumptions_validates(self, tmp_path):
-        from cli.govkit import write_govkit_marker
+        from cli.marker import write_govkit_marker
 
         assumptions = [{
             "id": "architecture.style",

@@ -27,8 +27,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .govkit import STACK_ID_ASSUMPTION
-
+from .marker import read_govkit_marker, write_govkit_marker
+from .stack_select import STACK_ID_ASSUMPTION
 
 # ---------------------------------------------------------------------------
 # Step + decision model
@@ -421,8 +421,6 @@ def _filter_steps_by_only(
 def _calibrate_one(target: Path, args: argparse.Namespace, multi: bool) -> None:
     """Calibrate a single target. Returns early on missing marker / empty
     --only filter without raising so the monorepo loop can continue."""
-    from .govkit import read_govkit_marker
-
     marker = read_govkit_marker(target)
     if marker is None:
         print(f"Error: no .govkit/marker.json at {target}", file=sys.stderr)
@@ -466,6 +464,32 @@ def cmd_calibrate(args: argparse.Namespace) -> None:
         _calibrate_one(target, args, multi)
 
 
+def register(subparsers) -> None:
+    """Register the `calibrate` subcommand and its arguments."""
+    p = subparsers.add_parser(
+        "calibrate",
+        help="Guided review of installed governance. Walks the team "
+             "through the 9-step checklist from plan Section 7.",
+    )
+    p.add_argument(
+        "--target", default=None,
+        help="Path to the install root (defaults to scanning cwd for .govkit/ "
+             "markers; finds nested installs in monorepos)",
+    )
+    p.add_argument(
+        "--non-interactive", action="store_true", dest="non_interactive",
+        help="Skip prompts and write GOVKIT_CALIBRATION_CHECKLIST.md as a "
+             "todo file. Useful in CI bootstraps and for new repos the team "
+             "will calibrate later.",
+    )
+    p.add_argument(
+        "--only", default=None,
+        help="Run only the named step (e.g. 'tech_stack', 'rules'). Useful "
+             "for revisiting a single decision without walking the whole list.",
+    )
+    p.set_defaults(func=cmd_calibrate)
+
+
 def _run_non_interactive(target: Path, steps: list[CalibrationStep]) -> None:
     """Write the checklist as a markdown todo file at the target root."""
     body = render_checklist_markdown(steps)
@@ -476,7 +500,6 @@ def _run_non_interactive(target: Path, steps: list[CalibrationStep]) -> None:
           ".govkit/marker.json with calibration decisions.")
     # Refresh derived files. No marker mutation in non-interactive mode —
     # these are pure re-derivations from the existing marker + repo state.
-    from .govkit import read_govkit_marker
     from .setup_review import write_setup_review
     from .skill_context import write_skill_context
     refreshed = read_govkit_marker(target)
@@ -617,7 +640,6 @@ def _run_interactive(target: Path, marker: dict, steps: list[CalibrationStep]) -
     steps_by_id = {s.id: s for s in steps}
     updated = _apply_decisions(marker, decisions, steps_by_id, now_iso)
 
-    from .govkit import write_govkit_marker
     write_govkit_marker(
         target,
         agent=updated.get("agent", "claude-code"),

@@ -12,7 +12,6 @@ from pathlib import Path
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -239,7 +238,7 @@ class TestInteractiveMode:
     def test_accepting_all_defaults_completes_all_steps(self, tmp_path, monkeypatch):
         """Pressing enter at every prompt records a 'confirm' decision per step."""
         from cli.calibrate import cmd_calibrate
-        from cli.govkit import read_govkit_marker
+        from cli.marker import read_govkit_marker
 
         _write_marker(tmp_path)
         _queue_inputs(monkeypatch, [""] * 9)  # 9 enters
@@ -256,7 +255,7 @@ class TestInteractiveMode:
 
     def test_n_records_needs_review_decision(self, tmp_path, monkeypatch):
         from cli.calibrate import cmd_calibrate
-        from cli.govkit import read_govkit_marker
+        from cli.marker import read_govkit_marker
 
         _write_marker(tmp_path)
         # Confirm first 8, mark needs-review on step 9.
@@ -272,7 +271,7 @@ class TestInteractiveMode:
 
     def test_s_records_skip_decision(self, tmp_path, monkeypatch):
         from cli.calibrate import cmd_calibrate
-        from cli.govkit import read_govkit_marker
+        from cli.marker import read_govkit_marker
 
         _write_marker(tmp_path)
         _queue_inputs(monkeypatch, ["s"] + [""] * 8)
@@ -287,7 +286,7 @@ class TestInteractiveMode:
 
     def test_q_aborts_without_marker_update(self, tmp_path, monkeypatch):
         from cli.calibrate import cmd_calibrate
-        from cli.govkit import read_govkit_marker
+        from cli.marker import read_govkit_marker
 
         _write_marker(tmp_path)
         # Press q at the very first prompt.
@@ -306,7 +305,7 @@ class TestInteractiveMode:
         """A 'confirm' decision on a step linked to an assumption sets
         review_required=false + stamps calibrated_at on that assumption."""
         from cli.calibrate import cmd_calibrate
-        from cli.govkit import read_govkit_marker
+        from cli.marker import read_govkit_marker
 
         _write_marker(tmp_path, assumptions=[{
             "id": "stack.id",
@@ -335,7 +334,7 @@ class TestInteractiveMode:
     def test_needs_review_keeps_review_required_true(self, tmp_path, monkeypatch):
         """A 'needs-review' decision must NOT mark the assumption resolved."""
         from cli.calibrate import cmd_calibrate
-        from cli.govkit import read_govkit_marker
+        from cli.marker import read_govkit_marker
 
         _write_marker(tmp_path, assumptions=[{
             "id": "stack.id",
@@ -369,7 +368,7 @@ class TestOnlyFlag:
         it on every calibrate would silently un-protect user edits made
         before calibration."""
         from cli.calibrate import cmd_calibrate
-        from cli.govkit import read_govkit_marker
+        from cli.marker import read_govkit_marker
 
         original_applied_at = "2026-01-15T12:00:00+00:00"
         _write_marker(tmp_path, applied_at=original_applied_at)
@@ -389,7 +388,7 @@ class TestOnlyFlag:
     def test_only_runs_a_single_step(self, tmp_path, monkeypatch):
         """--only tech_stack walks just that step."""
         from cli.calibrate import cmd_calibrate
-        from cli.govkit import read_govkit_marker
+        from cli.marker import read_govkit_marker
 
         _write_marker(tmp_path)
         _queue_inputs(monkeypatch, [""])  # one confirmation
