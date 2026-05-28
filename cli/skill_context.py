@@ -214,12 +214,56 @@ def write_skill_context(target: Path, marker: dict, profile: RepoProfile | None 
     return out_path
 
 
+def _safe_dict(value: object) -> dict:
+    """Return value if it's a dict, else an empty dict. Used so a hand-edit
+    that accidentally flattens `architecture:` or `stack:` to a scalar
+    doesn't crash the loader on a downstream `.get(...)` call."""
+    return value if isinstance(value, dict) else {}
+
+
+def _safe_str_list(value: object) -> list[str]:
+    """Coerce value to a list[str] without splatting a scalar string into
+    characters. `list("hexagonal-shape")` would give `['h','e','x',...]` —
+    almost never what the user meant. Scalars become empty lists; only
+    iterables-of-strings are preserved."""
+    if isinstance(value, list):
+        return [v for v in value if isinstance(v, str)]
+    return []
+
+
+def _safe_layers(value: object) -> dict[str, list[str]]:
+    """Normalize layers to dict[str, list[str]] so downstream consumers
+    (rule_templating) can iterate hints without worrying about scalar
+    values being splatted into characters.
+
+    Fallback: the unknown-style skeleton (empty list per inbound/outbound/domain)
+    so consumers always see the expected keys."""
+    if not isinstance(value, dict):
+        return dict(_STYLE_LAYERS["unknown"])
+    normalized: dict[str, list[str]] = {}
+    for key, hints in value.items():
+        if not isinstance(key, str):
+            continue
+        if isinstance(hints, list):
+            normalized[key] = [h for h in hints if isinstance(h, str)]
+        elif isinstance(hints, str):
+            # `inbound: api/` (forgot the list dashes) → `["api/"]`.
+            normalized[key] = [hints]
+        else:
+            normalized[key] = []
+    return normalized
+
+
 def load_skill_context(target: Path) -> SkillContext | None:
     """Read .govkit/skill_context.yaml and return a typed SkillContext.
 
     Returns None when the file is missing or unparseable so skills can
     degrade gracefully at agent runtime (no exceptions propagating into
     user-facing skill output).
+
+    Hand-edits that flatten `architecture:` / `stack:` / `layers:` to a
+    scalar or wrong-typed value are absorbed silently — the loader returns
+    a SkillContext with safe defaults rather than crashing _post_install_finalize.
     """
     path = target / ".govkit" / "skill_context.yaml"
     if not path.is_file():
@@ -232,20 +276,21 @@ def load_skill_context(target: Path) -> SkillContext | None:
     if not isinstance(data, dict):
         return None
 
-    arch = data.get("architecture") or {}
-    stack = data.get("stack") or {}
+    arch = _safe_dict(data.get("architecture"))
+    stack = _safe_dict(data.get("stack"))
+    extensions = data.get("extensions")
     return SkillContext(
-        architecture_style=arch.get("style", "unknown"),
-        source_root=arch.get("source_root", "src/"),
-        detected_signals=list(arch.get("detected_signals") or []),
-        layers=dict(arch.get("layers") or _STYLE_LAYERS["unknown"]),
-        stack_id=stack.get("id"),
-        stack_version=stack.get("version"),
-        language=stack.get("language"),
-        api_framework=stack.get("api_framework"),
-        unit_test=stack.get("unit_test"),
-        bdd_test=stack.get("bdd_test"),
-        ci=data.get("ci"),
+        architecture_style=arch.get("style", "unknown") if isinstance(arch.get("style"), str) else "unknown",
+        source_root=arch.get("source_root", "src/") if isinstance(arch.get("source_root"), str) else "src/",
+        detected_signals=_safe_str_list(arch.get("detected_signals")),
+        layers=_safe_layers(arch.get("layers")),
+        stack_id=stack.get("id") if isinstance(stack.get("id"), str) else None,
+        stack_version=stack.get("version") if isinstance(stack.get("version"), str) else None,
+        language=stack.get("language") if isinstance(stack.get("language"), str) else None,
+        api_framework=stack.get("api_framework") if isinstance(stack.get("api_framework"), str) else None,
+        unit_test=stack.get("unit_test") if isinstance(stack.get("unit_test"), str) else None,
+        bdd_test=stack.get("bdd_test") if isinstance(stack.get("bdd_test"), str) else None,
+        ci=data.get("ci") if isinstance(data.get("ci"), str) else None,
         llm=bool(data.get("llm")),
-        extensions=list(data.get("extensions") or []),
+        extensions=[e for e in extensions if isinstance(e, dict)] if isinstance(extensions, list) else [],
     )

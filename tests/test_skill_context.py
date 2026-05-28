@@ -299,3 +299,88 @@ class TestLoadSkillContext:
         assert ext["version"] == "0.2.0"
         assert "agent-runtime" in ext["capabilities"]
         assert "human-approval" in ext["capabilities"]
+
+
+class TestLoadSkillContextMalformedBlocks:
+    """The loader's contract is 'return None when missing or unparseable'
+    so skills (and _post_install_finalize) never see propagating exceptions.
+    Hand-edited skill_context.yaml can introduce shape mismatches the loader
+    must absorb without crashing:
+      - architecture/stack flattened to a scalar
+      - layers swapped for a string or list
+      - individual layer values written as a string instead of a list
+      - detected_signals / extensions written as a scalar
+    """
+
+    def _write(self, tmp_path, body: str) -> None:
+        (tmp_path / ".govkit").mkdir()
+        (tmp_path / ".govkit" / "skill_context.yaml").write_text(body, encoding="utf-8")
+
+    def test_architecture_as_scalar_does_not_crash(self, tmp_path):
+        from cli.skill_context import load_skill_context
+        self._write(tmp_path, "architecture: hexagonal\nstack:\n  id: python-fastapi\n")
+        # Must not raise AttributeError on `arch.get(...)`.
+        ctx = load_skill_context(tmp_path)
+        # Loader may return None or a context with default architecture; either
+        # is acceptable, but it must not propagate an exception.
+        if ctx is not None:
+            assert ctx.architecture_style == "unknown"
+            assert isinstance(ctx.layers, dict)
+
+    def test_stack_as_scalar_does_not_crash(self, tmp_path):
+        from cli.skill_context import load_skill_context
+        self._write(tmp_path, "architecture:\n  style: hexagonal\nstack: python-fastapi\n")
+        ctx = load_skill_context(tmp_path)
+        if ctx is not None:
+            assert ctx.stack_id is None  # scalar stack can't be unpacked
+
+    def test_layers_as_string_falls_back_to_unknown(self, tmp_path):
+        """Hand-edit fat-fingered `layers: api/` instead of a mapping.
+        Must not raise ValueError on `dict('api/')`."""
+        from cli.skill_context import load_skill_context
+        self._write(tmp_path, "architecture:\n  style: hexagonal\n  layers: api/\nstack: {}\n")
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None, "loader must absorb malformed layers, not return None"
+        assert isinstance(ctx.layers, dict)
+        # Falls back to the unknown-style layer skeleton (empty lists per key).
+        assert ctx.layers == {"inbound": [], "outbound": [], "domain": []}
+
+    def test_layers_as_list_falls_back_to_unknown(self, tmp_path):
+        from cli.skill_context import load_skill_context
+        self._write(tmp_path, "architecture:\n  style: hexagonal\n  layers:\n    - api/\n    - ports/\nstack: {}\n")
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert isinstance(ctx.layers, dict)
+        assert ctx.layers == {"inbound": [], "outbound": [], "domain": []}
+
+    def test_layer_value_as_string_is_normalized_to_list(self, tmp_path):
+        """`inbound: api/` (scalar) becomes `inbound: ["api/"]` so the
+        rule_templating consumer's `for h in hints` loop iterates folder
+        names instead of characters."""
+        from cli.skill_context import load_skill_context
+        self._write(tmp_path, "architecture:\n  style: hexagonal\n  layers:\n    inbound: api/\n    outbound: adapters/\n    domain: services/\nstack: {}\n")
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.layers["inbound"] == ["api/"]
+        assert ctx.layers["outbound"] == ["adapters/"]
+        assert ctx.layers["domain"] == ["services/"]
+
+    def test_detected_signals_as_scalar_does_not_crash(self, tmp_path):
+        from cli.skill_context import load_skill_context
+        self._write(tmp_path, "architecture:\n  style: hexagonal\n  detected_signals: hexagonal-shape\nstack: {}\n")
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        # Must not splat the string into characters: `list("hexagonal-shape")`
+        # would give ['h','e','x',...]. Either keep it as a one-item list or
+        # drop to an empty list — both are correct; characters are not.
+        assert isinstance(ctx.detected_signals, list)
+        assert ctx.detected_signals in ([], ["hexagonal-shape"])
+
+    def test_extensions_as_scalar_does_not_crash(self, tmp_path):
+        from cli.skill_context import load_skill_context
+        self._write(tmp_path, "architecture:\n  style: hexagonal\nstack: {}\nextensions: agentic-skills\n")
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert isinstance(ctx.extensions, list)
+        # Same anti-splat rule: characters are not extensions.
+        assert all(isinstance(e, dict) for e in ctx.extensions)
