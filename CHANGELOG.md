@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.10.1] — 2026-05-27
+
+### Fixed — `--type data` stack selection
+
+Patch release fixing two stack-selection bugs and one missing data artifact, all found while preparing a dbt demo against v0.10.0.
+
+- **`--type data` no longer adopts an incompatible inferred stack.** When a repo had an ambient framework signal from a *different* shape — e.g. `fastapi` mentioned in `pyproject.toml` of a dbt project — `govkit apply --type data` would select the `python-fastapi` stack (high-confidence framework inference) and install its `docs/backend/architecture/` overlay docs, contradicting the requested data shape. `_resolve_stack_choice` now checks a new `_STACK_SUPPORTED_TYPES` map and rejects an inferred stack that doesn't support the requested `--type`. Precedence is now: explicit `--stack` flag → type-compatible high-confidence inference → per-type default. The user's explicit `--type` intent outranks an incidental framework signal. The same guard protects the inverse case (an ambient `dbt_project.yml` no longer hijacks a `--type api` install).
+- **`govkit apply --detect` now reports the stack real apply would pick.** The dry-run path had its own inlined copy of the stack-resolution logic with the same bug. It now delegates to `_resolve_stack_choice`, so the proposed config can't drift from actual apply behavior.
+- **Data installs now ship `docs/data/architecture/ADR/TEMPLATE.md`.** `l4-data.md` advertises `/adr-author` and the shared `adr-author` skill references `ADR/TEMPLATE.md`, but no ADR template was installed for data projects — the skill pointed at a missing file. Added a data-adapted ADR template (layer-boundary, data-contract, and PII/compliance impact sections instead of the backend HTTP-route framing). It ships via the existing `docs/data/architecture/` folder copy — no manifest change.
+
+### Verification
+
+- 805 pytest tests pass + 1 expected skip (was 798). New tests: `TestResolveStackChoiceTypeCompatibility` (5), `TestCmdApplyDetectFlag::test_detect_flag_with_type_data_ignores_ambient_fastapi`, `TestDbtProjectFixture::test_data_adr_template_installed`.
+- Built wheel confirms `cli/docs/data/architecture/ADR/TEMPLATE.md` ships.
+
+---
+
 ## [0.10.0] — 2026-05-27
 
 ### Added — Governance Accelerator

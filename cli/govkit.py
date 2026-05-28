@@ -289,7 +289,7 @@ def copy_entry(
 ) -> None:
     """Copy a file or directory tree.
 
-    Edit-protection (A2): when `applied_at` is supplied, files at `dest` that
+    Edit-protection: when `applied_at` is supplied, files at `dest` that
     carry a govkit:editable header and were modified after `applied_at` are
     skipped with a warning unless `force=True`. Pass `applied_at=None` (the
     default) to preserve pre-PR-1 behavior for callers that don't manage
@@ -743,17 +743,13 @@ def _cmd_apply_detect_dry_run(target: Path, args: argparse.Namespace) -> None:
     profile = build_profile(target)
     inferred_stack, inferred_confidence = infer_stack(profile)
 
-    cli_stack = getattr(args, "stack", None)
-    if cli_stack:
-        chosen_stack = cli_stack
-        stack_source = "flag"
-    elif inferred_stack and inferred_confidence == "high":
-        chosen_stack = inferred_stack
-        stack_source = "detected"
-    else:
-        type_value = getattr(args, "type", None) or "api"
-        chosen_stack = _DEFAULT_STACK_BY_TYPE.get(type_value, "python-fastapi")
-        stack_source = "default"
+    # Delegate to _resolve_stack_choice so the dry-run reports the same stack
+    # real apply would pick — including the type-compatibility check that
+    # rejects e.g. python-fastapi inference when --type data is requested.
+    options = {"type": getattr(args, "type", None) or "api"}
+    chosen_stack, stack_source, _, _ = _resolve_stack_choice(
+        args, options, profile, inferred_stack, inferred_confidence, target,
+    )
 
     print(f"\n[dry-run --detect] govkit apply would target: {target}\n")
     _print_detection_summary(
@@ -867,6 +863,32 @@ _DEFAULT_STACK_BY_TYPE = {
     "data": "python-dbt",
 }
 
+# Which `--type` shapes each stack supports. An inferred stack that doesn't
+# support the user's chosen --type is treated as an ambient signal from a
+# different shape (e.g. fastapi in pyproject.toml of a dbt workshop dir) and
+# does NOT override the type-default. The user's explicit --type intent wins.
+_STACK_SUPPORTED_TYPES = {
+    "python-fastapi":    frozenset({"api", "cli"}),
+    "dotnet-aspnet":     frozenset({"api", "cli"}),
+    "java-spring-boot":  frozenset({"api", "cli"}),
+    "nodejs-fastify":    frozenset({"api", "cli"}),
+    "go-gin":            frozenset({"api", "cli"}),
+    "python-dbt":        frozenset({"data"}),
+}
+
+
+def _stack_supports_type(stack_id: str | None, type_value: str) -> bool:
+    """True when `stack_id` is a sensible overlay for `type_value`.
+
+    Unknown stack_ids return True so future-added stacks aren't accidentally
+    rejected by an out-of-date map — the type-default is a safety net, not a
+    gatekeeper.
+    """
+    if not stack_id:
+        return False
+    supported = _STACK_SUPPORTED_TYPES.get(stack_id)
+    return True if supported is None else type_value in supported
+
 
 def _resolve_stack_choice(
     args: argparse.Namespace, options: dict, profile, inferred_stack: str | None,
@@ -874,18 +896,23 @@ def _resolve_stack_choice(
 ) -> tuple[str, str, str, list[str]]:
     """Return (requested_stack, source, confidence, evidence).
 
-    Precedence: explicit --stack > high-confidence inference > per-type default.
+    Precedence: explicit --stack > type-compatible high-confidence inference >
+    per-type default. An inferred stack that does not match the requested
+    --type is ignored — the user's explicit shape intent (--type data) outranks
+    an incidental framework signal from a different shape (fastapi pyproject).
     """
     cli_stack = getattr(args, "stack", None)
     if cli_stack:
         return cli_stack, "flag", "high", []
-    if inferred_stack and inferred_confidence == "high":
+    type_value = options.get("type", "api")
+    if (inferred_stack
+            and inferred_confidence == "high"
+            and _stack_supports_type(inferred_stack, type_value)):
         evidence = list(
             profile.detected_frameworks
             + [str(p.relative_to(target)) for p in profile.detected_project_paths[:3]]
         )
         return inferred_stack, "detected", "high", evidence
-    type_value = options.get("type", "api")
     default_stack = _DEFAULT_STACK_BY_TYPE.get(type_value, "python-fastapi")
     return options.get("stack") or default_stack, "default", "low", []
 
