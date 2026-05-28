@@ -98,7 +98,7 @@ jobs:
           set -euxo pipefail
           out="$(/tmp/wheel-smoke-venv/bin/govkit stack list)"
           echo "$out"
-          for expected in python-fastapi dotnet-aspnet java-spring-boot nodejs-fastify go-gin; do
+          for expected in python-fastapi dotnet-aspnet java-spring-boot nodejs-fastify go-gin python-dbt; do
             echo "$out" | grep -q "$expected" || { echo "MISSING: $expected"; exit 1; }
           done
 
