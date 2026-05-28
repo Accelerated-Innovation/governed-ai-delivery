@@ -38,6 +38,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .detect import RepoProfile
 
+from .stack_select import (
+    STACK_ID_ASSUMPTION,
+    apply_stack_overlay,
+    print_detection_summary,
+    resolve_stack_choice,
+)
+
 try:
     from importlib.metadata import version as _pkg_version
     _GOVKIT_VERSION = _pkg_version("govkit")
@@ -183,7 +190,6 @@ REPO_ROOT = AGENTS_DIR.parent
 
 MARKER_DIRNAME = ".govkit"
 MARKER_FILENAME = "marker.json"
-STACK_ID_ASSUMPTION = "stack.id"
 _FEATURES_PREFIX = "features/"
 _TARGET_HELP = "Path to the target project root"
 
@@ -743,16 +749,17 @@ def _cmd_apply_detect_dry_run(target: Path, args: argparse.Namespace) -> None:
     profile = build_profile(target)
     inferred_stack, inferred_confidence = infer_stack(profile)
 
-    # Delegate to _resolve_stack_choice so the dry-run reports the same stack
+    # Delegate to resolve_stack_choice so the dry-run reports the same stack
     # real apply would pick — including the type-compatibility check that
     # rejects e.g. python-fastapi inference when --type data is requested.
-    options = {"type": getattr(args, "type", None) or "api"}
-    chosen_stack, stack_source, _, _ = _resolve_stack_choice(
-        args, options, profile, inferred_stack, inferred_confidence, target,
+    type_value = getattr(args, "type", None) or "api"
+    chosen_stack, stack_source, _, _ = resolve_stack_choice(
+        getattr(args, "stack", None), type_value,
+        profile, inferred_stack, inferred_confidence, target,
     )
 
     print(f"\n[dry-run --detect] govkit apply would target: {target}\n")
-    _print_detection_summary(
+    print_detection_summary(
         profile, inferred_stack, inferred_confidence,
         chosen_stack, stack_source,
     )
@@ -763,55 +770,6 @@ def _cmd_apply_detect_dry_run(target: Path, args: argparse.Namespace) -> None:
     print(f"  ci:     {getattr(args, 'ci', '(prompted)')}")
     print(f"  stack:  {chosen_stack}  (source: {stack_source})")
     print("\nNo files written. Re-run without --detect to apply.")
-
-
-def _print_detected_signals(profile) -> None:
-    """Emit the per-category `[confidence] kind value` lines."""
-    for lang in profile.detected_languages:
-        conf = profile.language_confidence(lang)
-        print(f"  [{conf:6s}] language       {lang}")
-    for fw in profile.detected_frameworks:
-        print(f"  [high  ] framework      {fw}")
-    for ci_name in profile.detected_ci:
-        print(f"  [high  ] ci             {ci_name}")
-    for sig in profile.detected_architecture_signals:
-        print(f"  [medium] architecture   {sig}")
-    if profile.detected_llm_signals:
-        print(f"  [high  ] llm            {', '.join(profile.detected_llm_signals)}")
-
-
-def _print_chosen_stack_line(
-    inferred_stack: str | None, inferred_confidence: str,
-    chosen_stack: str, stack_source: str,
-) -> None:
-    """Trailing one-liner that names the stack the install will use."""
-    if inferred_stack and stack_source == "detected":
-        print(f"\n  → using detected stack: {chosen_stack} (confidence: {inferred_confidence})")
-    elif stack_source == "flag":
-        print(f"\n  → using explicit --stack: {chosen_stack}")
-    else:
-        print(f"\n  → using default stack: {chosen_stack} (no high-confidence match)")
-
-
-def _print_detection_summary(
-    profile,
-    inferred_stack: str | None,
-    inferred_confidence: str,
-    chosen_stack: str,
-    stack_source: str,
-) -> None:
-    """Print a one-block detection summary before installing.
-
-    Format mirrors the plan's Section 5 example: a 'detecting repo profile'
-    header with [confidence] tagged lines per category. Skipped quietly for
-    repos with no detectable signals.
-    """
-    if not (profile.detected_languages or profile.detected_frameworks
-            or profile.detected_ci or profile.detected_architecture_signals):
-        return
-    print("\nDetecting repo profile...")
-    _print_detected_signals(profile)
-    _print_chosen_stack_line(inferred_stack, inferred_confidence, chosen_stack, stack_source)
 
 
 def _copy_governed_or_shared(
@@ -855,142 +813,6 @@ def _ensure_features_dir(target: Path, level: str) -> None:
     _create_features_dir_if_missing(target)
 
 
-# Per-type default stack when nothing is detected and no --stack is passed.
-# Picked to match the most common starting point for that shape.
-_DEFAULT_STACK_BY_TYPE = {
-    "api":  "python-fastapi",
-    "cli":  "python-fastapi",
-    "data": "python-dbt",
-}
-
-# Which `--type` shapes each stack supports. An inferred stack that doesn't
-# support the user's chosen --type is treated as an ambient signal from a
-# different shape (e.g. fastapi in pyproject.toml of a dbt workshop dir) and
-# does NOT override the type-default. The user's explicit --type intent wins.
-_STACK_SUPPORTED_TYPES = {
-    "python-fastapi":    frozenset({"api", "cli"}),
-    "dotnet-aspnet":     frozenset({"api", "cli"}),
-    "java-spring-boot":  frozenset({"api", "cli"}),
-    "nodejs-fastify":    frozenset({"api", "cli"}),
-    "go-gin":            frozenset({"api", "cli"}),
-    "python-dbt":        frozenset({"data"}),
-}
-
-
-def _stack_supports_type(stack_id: str | None, type_value: str) -> bool:
-    """True when `stack_id` is a sensible overlay for `type_value`.
-
-    Unknown stack_ids return True so future-added stacks aren't accidentally
-    rejected by an out-of-date map — the type-default is a safety net, not a
-    gatekeeper.
-    """
-    if not stack_id:
-        return False
-    supported = _STACK_SUPPORTED_TYPES.get(stack_id)
-    return True if supported is None else type_value in supported
-
-
-def _resolve_stack_choice(
-    args: argparse.Namespace, options: dict, profile, inferred_stack: str | None,
-    inferred_confidence: str, target: Path,
-) -> tuple[str, str, str, list[str]]:
-    """Return (requested_stack, source, confidence, evidence).
-
-    Precedence: explicit --stack > type-compatible high-confidence inference >
-    per-type default. An inferred stack that does not match the requested
-    --type is ignored — the user's explicit shape intent (--type data) outranks
-    an incidental framework signal from a different shape (fastapi pyproject).
-    """
-    cli_stack = getattr(args, "stack", None)
-    if cli_stack:
-        return cli_stack, "flag", "high", []
-    type_value = options.get("type", "api")
-    if (inferred_stack
-            and inferred_confidence == "high"
-            and _stack_supports_type(inferred_stack, type_value)):
-        evidence = list(
-            profile.detected_frameworks
-            + [str(p.relative_to(target)) for p in profile.detected_project_paths[:3]]
-        )
-        return inferred_stack, "detected", "high", evidence
-    default_stack = _DEFAULT_STACK_BY_TYPE.get(type_value, "python-fastapi")
-    return options.get("stack") or default_stack, "default", "low", []
-
-
-def _build_stack_assumption(
-    overlay, source: str, confidence: str, evidence: list[str],
-) -> dict:
-    """Construct the `stack.id` assumption block to write into the marker."""
-    return {
-        "id": STACK_ID_ASSUMPTION,
-        "value": overlay.id,
-        "source": source,
-        "confidence": confidence,
-        "evidence": evidence,
-        "files_affected": [d["dest"] for d in overlay.docs],
-        "review_required": source == "default",
-        "warning_message": (
-            f"Defaulted to {overlay.id}. If your repo uses a different stack, "
-            f"re-run `govkit stack apply <id>` or pass `--stack <id>` to apply."
-        ) if source == "default" else None,
-        "calibrated_at": None,
-        "calibrated_against_overlay_version": None,
-    }
-
-
-def _apply_stack_overlay_block(
-    target: Path, args: argparse.Namespace, options: dict,
-    prior_applied_at: str | None, force: bool,
-) -> tuple[dict | None, dict | None, dict, RepoProfile | None]:
-    """Run detection, apply the chosen stack overlay, return
-    (stack_meta, stack_assumption, updated_options, profile).
-
-    `profile` is threaded back to the caller so `_post_install_finalize` can
-    pass it to `write_skill_context` without re-walking the target tree.
-
-    No-op for UI types (returns Nones + original options + None profile).
-    """
-    type_value = options.get("type", "")
-    if type_value not in ("api", "cli", "data"):
-        return None, None, options, None
-
-    from .overlay import load_overlay, apply_overlay
-    from .detect import build_profile, infer_stack
-    from datetime import datetime, timezone
-
-    profile = build_profile(target)
-    inferred_stack, inferred_confidence = infer_stack(profile)
-    requested_stack, source, confidence, evidence = _resolve_stack_choice(
-        args, options, profile, inferred_stack, inferred_confidence, target,
-    )
-
-    _print_detection_summary(
-        profile, inferred_stack, inferred_confidence, requested_stack, source,
-    )
-
-    overlay = load_overlay(requested_stack)
-    if overlay is None:
-        print(
-            f"Error: stack '{requested_stack}' not found. "
-            f"Run `govkit stack list` to see available stacks.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-    print(f"\nStack overlay: {overlay.id} ({overlay.display_name})")
-    apply_overlay(overlay, target, applied_at=prior_applied_at, force=force)
-
-    stack_meta = {
-        "id": overlay.id,
-        "version": overlay.version,
-        "display_name": overlay.display_name,
-        "applied_at": datetime.now(timezone.utc).isoformat(),
-    }
-    stack_assumption = _build_stack_assumption(overlay, source, confidence, evidence)
-    # Persist the chosen stack in marker.options so future commands
-    # (upgrade, stack apply, doctor) know what was selected.
-    return stack_meta, stack_assumption, {**options, "stack": overlay.id}, profile
-
-
 def _apply_variant_install(
     target: Path, args: argparse.Namespace, manifest: dict, agent_dir: Path,
     prior_applied_at: str | None, force: bool, baseline: str,
@@ -1018,8 +840,8 @@ def _apply_variant_install(
 
     _ensure_features_dir(target, level)
 
-    stack_meta, stack_assumption, options, profile = _apply_stack_overlay_block(
-        target, args, options, prior_applied_at, force,
+    stack_meta, stack_assumption, options, profile = apply_stack_overlay(
+        target, getattr(args, "stack", None), options, prior_applied_at, force,
     )
 
     marker = write_govkit_marker(
@@ -1073,9 +895,9 @@ def _post_install_finalize(
         marker = read_govkit_marker(target)
     if marker is None:
         return
-    from .setup_review import write_setup_review, print_review_checklist
-    from .skill_context import write_skill_context, load_skill_context
     from .rule_templating import template_installed_rules
+    from .setup_review import print_review_checklist, write_setup_review
+    from .skill_context import load_skill_context, write_skill_context
     write_setup_review(target, marker)
     write_skill_context(target, marker, profile=profile)
     sc = load_skill_context(target)
@@ -1157,7 +979,8 @@ def cmd_stack_apply(args: argparse.Namespace) -> None:
     rewrites GOVKIT_SETUP_REVIEW.md.
     """
     from datetime import datetime, timezone
-    from .overlay import load_overlay, apply_overlay
+
+    from .overlay import apply_overlay, load_overlay
 
     target = Path(args.target).resolve()
     if not target.exists():
@@ -1222,7 +1045,7 @@ def cmd_stack_apply(args: argparse.Namespace) -> None:
 
     new_marker = read_govkit_marker(target)
     if new_marker is not None:
-        from .setup_review import write_setup_review, print_review_checklist
+        from .setup_review import print_review_checklist, write_setup_review
         from .skill_context import write_skill_context
         write_setup_review(target, new_marker)
         write_skill_context(target, new_marker)
@@ -1679,7 +1502,7 @@ def main() -> None:
     # --- stack ---
     stack_parser = subparsers.add_parser(
         "stack",
-        help="List or apply bundled stack overlays (PR 2)",
+        help="List or apply bundled stack overlays",
     )
     stack_sub = stack_parser.add_subparsers(dest="stack_command", required=True)
     stack_sub.add_parser("list", help="List bundled stack overlays")
@@ -1712,7 +1535,7 @@ def main() -> None:
     # --- doctor ---
     doctor_parser = subparsers.add_parser(
         "doctor",
-        help="Read-only governance fit validator (PR 4). Run in CI to surface "
+        help="Read-only governance fit validator. Run in CI to surface "
              "mismatches between installed governance and the actual repo.",
     )
     doctor_parser.add_argument(
@@ -1724,7 +1547,7 @@ def main() -> None:
     # --- calibrate ---
     calibrate_parser = subparsers.add_parser(
         "calibrate",
-        help="Guided review of installed governance (PR 5). Walks the team "
+        help="Guided review of installed governance. Walks the team "
              "through the 9-step checklist from plan Section 7.",
     )
     calibrate_parser.add_argument(

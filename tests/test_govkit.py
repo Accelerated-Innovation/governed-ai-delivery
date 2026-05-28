@@ -1368,6 +1368,33 @@ class TestL5OnlyGovernedExclusion:
         assert (arch / "GUARDRAILS_CONTRACT.md").is_file()
 
 
+class TestApplyTypeDataStackDefault:
+    """Real apply --type data (no --stack) must select python-dbt, not the
+    manifest's python-fastapi default.
+
+    Regression: resolve_options silently fills options['stack'] from the
+    manifest default ('python-fastapi', no prompt). The stack-choice fallback
+    used that value, shadowing the per-type default (data -> python-dbt). The
+    --detect dry-run dodged it by building options by hand, so the bug only
+    showed on real installs.
+    """
+
+    def test_apply_type_data_defaults_to_dbt_stack(self, tmp_path):
+        import argparse
+        from cli.govkit import cmd_apply, read_govkit_marker
+
+        target = tmp_path / "project"
+        target.mkdir()
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target),
+            level="3", type="data", ci="github",
+            stack=None, force=False, detect=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "python-dbt"
+
+
 class TestCopyEntryHeaderInjection:
     """copy_entry with header_baseline prepends the govkit:editable header
     after each successful .md copy. Used by governed/shared paths in apply
@@ -3221,97 +3248,3 @@ class TestUpgradeMigrateLevels:
         assert "maturity model" not in err, (
             "After --migrate-levels rewrites marker to 0.7.0, the warning must not fire"
         )
-
-
-class TestResolveStackChoiceTypeCompatibility:
-    """The user's explicit --type flag must outrank an ambient framework
-    signal from a different shape. Example: a workshop demo dir with
-    `fastapi` in pyproject.toml + `--type data` must select python-dbt,
-    not python-fastapi.
-    """
-
-    def _profile(self, tmp_path, frameworks=None, languages=None, signals=None):
-        from cli.detect import RepoProfile
-        return RepoProfile(
-            target=tmp_path,
-            detected_languages=list(languages or []),
-            detected_frameworks=list(frameworks or []),
-            detected_ci=[],
-            detected_test_packages=[],
-            detected_project_paths=[],
-            detected_api_style=None,
-            detected_llm_signals=[],
-            detected_architecture_signals=list(signals or []),
-        )
-
-    def _args(self, stack=None):
-        return argparse.Namespace(stack=stack)
-
-    def test_explicit_stack_flag_always_wins(self, tmp_path):
-        from cli.govkit import _resolve_stack_choice
-        chosen, source, _, _ = _resolve_stack_choice(
-            self._args(stack="java-spring-boot"),
-            {"type": "data"},
-            self._profile(tmp_path, frameworks=["fastapi"], languages=["python"]),
-            inferred_stack="python-fastapi", inferred_confidence="high",
-            target=tmp_path,
-        )
-        assert (chosen, source) == ("java-spring-boot", "flag")
-
-    def test_type_data_overrides_fastapi_inference(self, tmp_path):
-        """The reported bug: workshop dir has fastapi in pyproject, user passes
-        --type data, govkit picks python-fastapi instead of python-dbt."""
-        from cli.govkit import _resolve_stack_choice
-        chosen, source, _, _ = _resolve_stack_choice(
-            self._args(),
-            {"type": "data"},
-            self._profile(tmp_path, frameworks=["fastapi"], languages=["python"]),
-            inferred_stack="python-fastapi", inferred_confidence="high",
-            target=tmp_path,
-        )
-        assert chosen == "python-dbt", (
-            f"--type data with ambient fastapi signal must default to python-dbt, "
-            f"not honor the incompatible inferred stack; got {chosen}"
-        )
-        assert source == "default"
-
-    def test_type_data_honors_dbt_inference(self, tmp_path):
-        """When the inferred stack IS compatible with --type data (dbt),
-        we should still honor the high-confidence inference."""
-        from cli.govkit import _resolve_stack_choice
-        chosen, source, _, _ = _resolve_stack_choice(
-            self._args(),
-            {"type": "data"},
-            self._profile(tmp_path, frameworks=["dbt"], languages=["python"], signals=["dbt-shape"]),
-            inferred_stack="python-dbt", inferred_confidence="high",
-            target=tmp_path,
-        )
-        assert chosen == "python-dbt"
-        assert source == "detected"
-
-    def test_type_api_overrides_dbt_inference(self, tmp_path):
-        """Inverse: --type api with an ambient dbt_project.yml laying around
-        must default to python-fastapi, not honor the incompatible dbt match."""
-        from cli.govkit import _resolve_stack_choice
-        chosen, source, _, _ = _resolve_stack_choice(
-            self._args(),
-            {"type": "api"},
-            self._profile(tmp_path, frameworks=["dbt"], languages=["python"], signals=["dbt-shape"]),
-            inferred_stack="python-dbt", inferred_confidence="high",
-            target=tmp_path,
-        )
-        assert chosen == "python-fastapi"
-        assert source == "default"
-
-    def test_type_api_honors_compatible_backend_inference(self, tmp_path):
-        """Sanity: --type api with detected csharp/aspnet still works."""
-        from cli.govkit import _resolve_stack_choice
-        chosen, source, _, _ = _resolve_stack_choice(
-            self._args(),
-            {"type": "api"},
-            self._profile(tmp_path, frameworks=["aspnet-core"], languages=["csharp"]),
-            inferred_stack="dotnet-aspnet", inferred_confidence="high",
-            target=tmp_path,
-        )
-        assert chosen == "dotnet-aspnet"
-        assert source == "detected"
