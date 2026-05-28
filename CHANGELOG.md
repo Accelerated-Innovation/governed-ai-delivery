@@ -6,6 +6,36 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.11.0] — 2026-05-28
+
+### Added — `--type data` parity for codex + copilot
+
+`govkit apply --type data` (dbt/data projects) was claude-code-only. Codex and copilot now ship the same dbt data shape, bringing all three production agents to parity.
+
+- Each agent's manifest gains `data` in `options.type.choices` and a `variants.type.data` block (L3 baseline + L4 spec-driven add-on; data has no L5 GenAI-ops tier).
+- **Codex** installs `agents-md/data.md` + `agents-md/l4-data.md` (nested-`AGENTS.md` voice) and `rules/data/{staging,intermediate,marts,data-quality,pii}.md`. The dbt layers map to nested `models/<layer>/AGENTS.md`; the cross-cutting quality/PII rules land in `.agents/rules/`.
+- **Copilot** installs `copilot-instructions/data.md` + `copilot-instructions/l4-data.md` and `instructions/data/*.instructions.md` with `applyTo` frontmatter (`**/models/staging/**`, etc.).
+- The dbt-layer rule **bodies are identical to claude-code's** — codex strips the glob frontmatter (it scopes by nested placement); copilot uses `applyTo`. The governed `docs/data/architecture/` contracts and the `python-dbt` stack overlay are agent-agnostic and were already shared, so no new governed content was needed.
+
+### Fixed — real `apply --type data` now selects `python-dbt`
+
+0.10.1 fixed the `--detect` dry-run, but the **real install path still picked `python-fastapi`**: `resolve_options` silently fills `options["stack"]` from the manifest's `stack` default (`python-fastapi`, no prompt), and the stack-choice fallback consulted that value, shadowing the per-type default (`data → python-dbt`). Stack selection is now decoupled from `options["stack"]` — it reads the raw `--stack` flag (or falls through to the per-type default), so the installed marker and overlay match the requested shape. Covered by a real-`cmd_apply` regression test.
+
+### Changed — `cli/govkit.py` decomposed (internal; no CLI behavior change)
+
+The 1797-line `cli/govkit.py` was split into a focused module set with a strict inward dependency graph (commands → domain → kernel) and no import cycles. `govkit.py` is now ~68 lines: argparse wiring + a registrar table that dispatches via `set_defaults(func=...)`.
+
+- New kernel modules: `cli/paths.py`, `cli/version.py`, `cli/marker.py`, `cli/fs.py`, `cli/manifest.py`, `cli/install_common.py`.
+- New command modules: `cli/cmd_apply.py`, `cli/cmd_upgrade.py`, `cli/cmd_init.py`, `cli/cmd_stack.py`, `cli/cmd_list.py`, `cli/cmd_validate.py` — each owns its argparse surface via a `register(subparsers)` function. Adding a command is now a new module + one line in `_REGISTRARS` (OCP).
+- **Internal import surface moved.** Code that imported helpers from `cli.govkit` (e.g. `from cli.govkit import read_govkit_marker`) must import from the owning module (`cli.marker`, `cli.fs`, `cli.manifest`, `cli.cmd_*`). The public surface — the `govkit` CLI — is unchanged. `cli.*` is not a documented API; this is flagged as the reason for the minor bump.
+
+### Verification
+
+- 822 pytest tests pass + 1 expected skip. New: `test_data_type_parity_across_agents` (3, parametrized over the agents), `TestApplyTypeDataStackDefault`, `tests/test_main_dispatch.py` (registry dispatch), `tests/test_stack_select.py`.
+- `smoke.ps1` agent×level matrix green (L4/L5 validate-fails are by design); data-apply smoke verified for codex + copilot (correct `python-dbt` stack, files land, governed docs install).
+
+---
+
 ## [0.10.1] — 2026-05-27
 
 ### Fixed — `--type data` stack selection
