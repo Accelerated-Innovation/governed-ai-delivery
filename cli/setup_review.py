@@ -44,6 +44,8 @@ def _architecture_root(type_value: str) -> str:
     """Map project type to its docs architecture root."""
     if type_value in ("ui-react", "ui-angular"):
         return "docs/ui/architecture"
+    if type_value == "data":
+        return "docs/data/architecture"
     return "docs/backend/architecture"
 
 

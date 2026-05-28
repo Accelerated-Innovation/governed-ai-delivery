@@ -704,7 +704,8 @@ def _cmd_apply_detect_dry_run(target: Path, args: argparse.Namespace) -> None:
         chosen_stack = inferred_stack
         stack_source = "detected"
     else:
-        chosen_stack = "python-fastapi"
+        type_value = getattr(args, "type", None) or "api"
+        chosen_stack = _DEFAULT_STACK_BY_TYPE.get(type_value, "python-fastapi")
         stack_source = "default"
 
     print(f"\n[dry-run --detect] govkit apply would target: {target}\n")
@@ -811,13 +812,22 @@ def _ensure_features_dir(target: Path, level: str) -> None:
     _create_features_dir_if_missing(target)
 
 
+# Per-type default stack when nothing is detected and no --stack is passed.
+# Picked to match the most common starting point for that shape.
+_DEFAULT_STACK_BY_TYPE = {
+    "api":  "python-fastapi",
+    "cli":  "python-fastapi",
+    "data": "python-dbt",
+}
+
+
 def _resolve_stack_choice(
     args: argparse.Namespace, options: dict, profile, inferred_stack: str | None,
     inferred_confidence: str, target: Path,
 ) -> tuple[str, str, str, list[str]]:
     """Return (requested_stack, source, confidence, evidence).
 
-    Precedence: explicit --stack > high-confidence inference > python-fastapi default.
+    Precedence: explicit --stack > high-confidence inference > per-type default.
     """
     cli_stack = getattr(args, "stack", None)
     if cli_stack:
@@ -828,7 +838,9 @@ def _resolve_stack_choice(
             + [str(p.relative_to(target)) for p in profile.detected_project_paths[:3]]
         )
         return inferred_stack, "detected", "high", evidence
-    return options.get("stack") or "python-fastapi", "default", "low", []
+    type_value = options.get("type", "api")
+    default_stack = _DEFAULT_STACK_BY_TYPE.get(type_value, "python-fastapi")
+    return options.get("stack") or default_stack, "default", "low", []
 
 
 def _build_stack_assumption(
@@ -865,7 +877,7 @@ def _apply_stack_overlay_block(
     No-op for UI types (returns Nones + original options + None profile).
     """
     type_value = options.get("type", "")
-    if type_value not in ("api", "cli"):
+    if type_value not in ("api", "cli", "data"):
         return None, None, options, None
 
     from .overlay import load_overlay, apply_overlay
@@ -1173,7 +1185,7 @@ def cmd_list(_args: argparse.Namespace) -> None:
 
 def _prompt_starter_type() -> str:
     """Interactively prompt for the starter template type."""
-    choices = ["backend", "cli", "ui-react", "ui-angular"]
+    choices = ["backend", "cli", "ui-react", "ui-angular", "data"]
     prompt_text = f"  Feature type? [{' / '.join(choices)}] (default: backend): "
     answer = input(prompt_text).strip().lower()
     if answer == "":
@@ -1567,7 +1579,7 @@ def main() -> None:
     apply_parser.add_argument("--target", required=True, help=_TARGET_HELP)
     apply_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                               help="Maturity level (default: prompted)")
-    apply_parser.add_argument("--type", choices=["api", "cli", "ui-react", "ui-angular"], default=None,
+    apply_parser.add_argument("--type", choices=["api", "cli", "ui-react", "ui-angular", "data"], default=None,
                               help="Project type (default: prompted)")
     apply_parser.add_argument("--ci", choices=["github", "azure"], default=None,
                               help="CI platform (default: prompted)")
@@ -1618,7 +1630,7 @@ def main() -> None:
     init_parser = subparsers.add_parser("init", help="Create a new feature folder from a starter template")
     init_parser.add_argument("feature", help="Feature name (e.g. user-auth, schema-publish)")
     init_parser.add_argument("--target", default=".", help="Path to the target project root (default: current directory)")
-    init_parser.add_argument("--starter", choices=["backend", "cli", "ui-react", "ui-angular"], default=None,
+    init_parser.add_argument("--starter", choices=["backend", "cli", "ui-react", "ui-angular", "data"], default=None,
                              help="Starter template type (default: prompted)")
     init_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                              help="Maturity level (default: read from .govkit or 4)")

@@ -1,0 +1,15 @@
+name: 'demo_dbt'
+version: '1.0.0'
+config-version: 2
+profile: 'demo_dbt'
+model-paths: ["models"]
+target-path: "target"
+
+models:
+  demo_dbt:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: ephemeral
+    marts:
+      +materialized: table

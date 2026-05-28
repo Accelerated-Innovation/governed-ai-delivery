@@ -5,6 +5,7 @@ PR 7. Three fixture repos under tests/fixtures/ exercise the whole apply
 
   - dotnet-aspnet-azure/      — *.csproj + global.json + clean layout + azure-pipelines.yml
   - python-fastapi-github/    — pyproject.toml + fastapi + hexagonal layout + .github/workflows
+  - dbt-project/              — dbt_project.yml + models/{staging,intermediate,marts}
   - empty/                    — no signals at all (worst-case fallback path)
 
 Each test class copies the fixture into a tmp_path so the source tree is
@@ -203,6 +204,91 @@ class TestPythonFastapiGithubFixture:
         # Acceptable for this fixture: ≤ 5 D001 findings (security + a
         # couple of layer subfolder gaps); zero is the ideal.
         assert len(d001) <= 5, f"too many D001 findings: {[f.message for f in d001]}"
+
+
+class TestDbtProjectFixture:
+    """A dbt project with dbt_project.yml + models/{staging,intermediate,marts}
+    should:
+      - infer python-dbt stack (via dbt framework signal)
+      - record architecture_style == dbt-layered (staging+marts present)
+      - install data rules whose paths_template expands to models/staging/, etc.
+      - have no D001 errors against rule globs that target dbt layers
+    """
+
+    def _apply(self, fixture: Path) -> None:
+        from cli.govkit import cmd_apply
+
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(fixture),
+            level="4", type="data", ci="github", stack=None,
+            force=False, detect=False,
+        ))
+
+    def test_apply_picks_python_dbt_stack(self, tmp_path):
+        from cli.govkit import read_govkit_marker
+
+        target = _copy_fixture("dbt-project", tmp_path)
+        self._apply(target)
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "python-dbt"
+
+    def test_skill_context_picks_dbt_layered(self, tmp_path):
+        from cli.skill_context import load_skill_context
+
+        target = _copy_fixture("dbt-project", tmp_path)
+        self._apply(target)
+
+        ctx = load_skill_context(target)
+        assert ctx is not None
+        assert ctx.architecture_style == "dbt-layered"
+        assert ctx.stack_id == "python-dbt"
+        assert "models/staging/" in ctx.layers["inbound"]
+        assert "models/marts/" in ctx.layers["outbound"]
+        assert "models/intermediate/" in ctx.layers["domain"]
+
+    def test_staging_rule_globs_expand_to_dbt_layers(self, tmp_path):
+        target = _copy_fixture("dbt-project", tmp_path)
+        self._apply(target)
+
+        text = (target / ".claude" / "rules" / "staging.md").read_text(encoding="utf-8")
+        fm = yaml.safe_load(text.split("---", 2)[1])
+        paths = fm.get("paths") or []
+        assert "**/models/staging/**" in paths
+
+    def test_marts_rule_globs_expand_to_dbt_layers(self, tmp_path):
+        target = _copy_fixture("dbt-project", tmp_path)
+        self._apply(target)
+
+        text = (target / ".claude" / "rules" / "marts.md").read_text(encoding="utf-8")
+        fm = yaml.safe_load(text.split("---", 2)[1])
+        paths = fm.get("paths") or []
+        assert "**/models/marts/**" in paths
+
+    def test_data_baseline_contracts_installed(self, tmp_path):
+        target = _copy_fixture("dbt-project", tmp_path)
+        self._apply(target)
+
+        arch_dir = target / "docs" / "data" / "architecture"
+        assert (arch_dir / "BOUNDARIES.md").is_file()
+        assert (arch_dir / "DATA_QUALITY_CONTRACT.md").is_file()
+        assert (arch_dir / "PII_HANDLING_CONTRACT.md").is_file()
+
+    def test_doctor_d001_quiet_on_dbt_layered_rules(self, tmp_path):
+        """The dbt-layered rules (staging.md, intermediate.md, marts.md)
+        should expand to globs that resolve in this fixture."""
+        from cli.doctor import run_doctor
+
+        target = _copy_fixture("dbt-project", tmp_path)
+        self._apply(target)
+
+        d001 = [f for f in run_doctor(target) if f.id == "D001"]
+        layer_rules = {"staging.md", "intermediate.md", "marts.md"}
+        offenders = [f for f in d001 if f.file and Path(f.file).name in layer_rules]
+        assert offenders == [], (
+            f"layer rule globs failed to match dbt-project fixture: "
+            f"{[(f.file, f.message) for f in offenders]}"
+        )
 
 
 class TestEmptyFixture:

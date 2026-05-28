@@ -93,6 +93,8 @@ def _agent_paths(agent: str) -> dict[str, str]:
 def _architecture_root(type_value: str) -> str:
     if type_value in ("ui-react", "ui-angular"):
         return "docs/ui/architecture"
+    if type_value == "data":
+        return "docs/data/architecture"
     return "docs/backend/architecture"
 
 
@@ -168,41 +170,81 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
     ))
 
     # 3. BOUNDARIES.md
+    if type_value == "data":
+        boundaries_suggestion = (
+            "Confirm the layering matches your dbt project. The dbt-layered "
+            "default is staging → intermediate → marts. Teams using medallion "
+            "(bronze/silver/gold) edit layer names in BOUNDARIES.md and "
+            "skill_context.yaml. Source freshness contracts live in "
+            "PIPELINE_CONTRACT.md."
+        )
+    else:
+        boundaries_suggestion = (
+            "Confirm the architecture style matches your folder layout. "
+            "If your repo uses clean (Application/Domain/Infrastructure) or "
+            "layered (Controllers/Services/Repositories), update layer names "
+            "and folder mappings in BOUNDARIES.md."
+        )
     steps.append(CalibrationStep(
         id="step.boundaries",
         title="Architecture boundaries",
-        description="Architecture style (hexagonal/clean/layered/...) and folder mappings.",
+        description="Architecture style (hexagonal/clean/layered/dbt-layered/...) and folder mappings.",
         file_path=f"{arch}/BOUNDARIES.md",
         installed_summary="hexagonal (default for the python-fastapi baseline)",
         detected_value=(
             ", ".join(profile.detected_architecture_signals) or None
         ),
-        suggestion=(
-            "Confirm the architecture style matches your folder layout. "
-            "If your repo uses clean (Application/Domain/Infrastructure) or "
-            "layered (Controllers/Services/Repositories), update layer names "
-            "and folder mappings in BOUNDARIES.md."
-        ),
+        suggestion=boundaries_suggestion,
         assumption_id="architecture.style",
     ))
 
-    # 4. API_CONVENTIONS.md
-    steps.append(CalibrationStep(
-        id="step.api_conventions",
-        title="API conventions",
-        description="Route style (REST/GraphQL/gRPC), versioning, error envelope.",
-        file_path=f"{arch}/API_CONVENTIONS.md",
-        installed_summary="REST + JSON (baseline default)",
-        detected_value=profile.detected_api_style,
-        suggestion=(
-            "Confirm route style, versioning policy (URI vs header), and "
-            "error envelope format. Adjust API_CONVENTIONS.md if your repo "
-            "differs from the baseline."
-        ),
-        assumption_id=None,
-    ))
+    # 4. API / query conventions
+    if type_value == "data":
+        steps.append(CalibrationStep(
+            id="step.query_conventions",
+            title="Query conventions",
+            description="SQL style, CTE skeleton, model naming, source freshness policy.",
+            file_path=f"{arch}/QUERY_CONVENTIONS.md",
+            installed_summary="dbt CTE skeleton + `stg_<source>__<table>` naming (overlay default)",
+            detected_value=None,
+            suggestion=(
+                "Confirm SQL style (CTE skeleton vs flat), naming pattern, "
+                "source freshness thresholds, and incremental materialization "
+                "policy. Edit QUERY_CONVENTIONS.md to match the team's house style."
+            ),
+            assumption_id=None,
+        ))
+    else:
+        steps.append(CalibrationStep(
+            id="step.api_conventions",
+            title="API conventions",
+            description="Route style (REST/GraphQL/gRPC), versioning, error envelope.",
+            file_path=f"{arch}/API_CONVENTIONS.md",
+            installed_summary="REST + JSON (baseline default)",
+            detected_value=profile.detected_api_style,
+            suggestion=(
+                "Confirm route style, versioning policy (URI vs header), and "
+                "error envelope format. Adjust API_CONVENTIONS.md if your repo "
+                "differs from the baseline."
+            ),
+            assumption_id=None,
+        ))
 
     # 5. TESTING.md
+    if type_value == "data":
+        testing_suggestion = (
+            "Confirm dbt schema tests (unique / not_null / relationships), "
+            "custom singular tests, and source freshness thresholds. If your "
+            "team does not write BDD scenarios for data freshness/quality, set "
+            "the BDD policy to 'none' in TESTING.md."
+        )
+    else:
+        testing_suggestion = (
+            "Confirm unit / mocking / BDD frameworks. If your team does not "
+            "practise BDD, set the BDD framework to 'none' in TESTING.md "
+            "and add `bdd: none` to .govkit/marker.json's options when "
+            "L4 validation arrives."
+        )
     steps.append(CalibrationStep(
         id="step.testing",
         title="Testing framework + BDD policy",
@@ -214,12 +256,7 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
         detected_value=(
             ", ".join(profile.detected_test_packages) or None
         ),
-        suggestion=(
-            "Confirm unit / mocking / BDD frameworks. If your team does not "
-            "practise BDD, set the BDD framework to 'none' in TESTING.md "
-            "and add `bdd: none` to .govkit/marker.json's options when "
-            "L4 validation arrives."
-        ),
+        suggestion=testing_suggestion,
         assumption_id="testing.bdd",
     ))
 

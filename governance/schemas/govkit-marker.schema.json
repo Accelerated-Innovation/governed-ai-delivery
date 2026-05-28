@@ -28,7 +28,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["api", "cli", "ui-react", "ui-angular"]
+          "enum": ["api", "cli", "ui-react", "ui-angular", "data"]
         },
         "ci": {
           "type": "string",

@@ -50,6 +50,7 @@ _LLM_MARKERS = ("langchain", "litellm", "openai", "anthropic", "semantic-kernel"
 _HEXAGONAL_FOLDERS = {"ports", "adapters"}
 _LAYERED_FOLDERS = {"Controllers", "Services", "Repositories"}
 _CLEAN_FOLDERS = {"Application", "Domain", "Infrastructure", "Presentation"}
+_DBT_FOLDERS = {"staging", "intermediate", "marts"}
 
 
 # ---------------------------------------------------------------------------
@@ -237,6 +238,11 @@ def _detect_gin(target: Path) -> bool:
     return "github.com/gin-gonic/gin" in _read_text(go_mod)
 
 
+def _detect_dbt(target: Path) -> bool:
+    """Presence of dbt_project.yml at any depth indicates a dbt project."""
+    return bool(_find_recursive(target, "dbt_project.yml"))
+
+
 def _detect_frameworks(target: Path, prof: RepoProfile) -> None:
     """Detect frameworks from manifest contents directly. We don't gate on
     language detection because framework presence is the more specific
@@ -254,6 +260,8 @@ def _detect_frameworks(target: Path, prof: RepoProfile) -> None:
         detected.append("spring-boot")
     if _detect_gin(target):
         detected.append("gin")
+    if _detect_dbt(target):
+        detected.append("dbt")
     prof.detected_frameworks = detected
 
 
@@ -264,12 +272,17 @@ def _detect_frameworks(target: Path, prof: RepoProfile) -> None:
 def _detect_ci(target: Path, prof: RepoProfile) -> None:
     detected: list[str] = []
     gh_workflows = target / ".github" / "workflows"
-    if gh_workflows.is_dir() and any(gh_workflows.glob("*.yml")) or any(gh_workflows.glob("*.yaml")) if gh_workflows.is_dir() else False:
+    if gh_workflows.is_dir() and (
+        any(gh_workflows.glob("*.yml")) or any(gh_workflows.glob("*.yaml"))
+    ):
         detected.append("github-actions")
     # azure-pipelines.yml at root, or .azure/ dir, or pipelines/*.yml at root.
-    if (target / "azure-pipelines.yml").is_file() or (target / ".azure").is_dir():
-        detected.append("azure-pipelines")
-    elif (target / "pipelines").is_dir() and any((target / "pipelines").glob("*.yml")):
+    pipelines_dir = target / "pipelines"
+    if (
+        (target / "azure-pipelines.yml").is_file()
+        or (target / ".azure").is_dir()
+        or (pipelines_dir.is_dir() and any(pipelines_dir.glob("*.yml")))
+    ):
         detected.append("azure-pipelines")
     prof.detected_ci = detected
 
@@ -278,31 +291,36 @@ def _detect_ci(target: Path, prof: RepoProfile) -> None:
 # Architecture signals
 # ---------------------------------------------------------------------------
 
-def _detect_architecture(target: Path, prof: RepoProfile) -> None:
-    """Walk one level under common source roots looking for layer folder names.
-
-    We deliberately don't go deep — architecture shape lives at the top of
-    src/, not nested inside features.
+def _top_level_folder_names(target: Path) -> set[str]:
+    """Collect the immediate-child folder names under each known source root
+    (target, src/, Source/, models/). dbt's layers live under models/; the
+    others live at target root or src/.
     """
-    found_folder_names: set[str] = set()
-    roots_to_check = [target, target / "src", target / "Source"]
-    for root in roots_to_check:
+    names: set[str] = set()
+    for root in (target, target / "src", target / "Source", target / "models"):
         if not root.is_dir():
             continue
         try:
             for entry in root.iterdir():
                 if entry.is_dir() and not entry.name.startswith("."):
-                    found_folder_names.add(entry.name)
+                    names.add(entry.name)
         except OSError:
             continue
+    return names
 
+
+def _detect_architecture(target: Path, prof: RepoProfile) -> None:
+    """Match top-level folder names against known style fingerprints."""
+    folders = _top_level_folder_names(target)
     signals: list[str] = []
-    if _HEXAGONAL_FOLDERS.issubset(found_folder_names) or len(_HEXAGONAL_FOLDERS & found_folder_names) >= 2:
+    if _HEXAGONAL_FOLDERS.issubset(folders) or len(_HEXAGONAL_FOLDERS & folders) >= 2:
         signals.append("hexagonal-shape")
-    if len(_LAYERED_FOLDERS & found_folder_names) >= 2:
+    if len(_LAYERED_FOLDERS & folders) >= 2:
         signals.append("layered-shape")
-    if len(_CLEAN_FOLDERS & found_folder_names) >= 2:
+    if len(_CLEAN_FOLDERS & folders) >= 2:
         signals.append("clean-shape")
+    if len(_DBT_FOLDERS & folders) >= 2:
+        signals.append("dbt-shape")
     prof.detected_architecture_signals = signals
 
 
@@ -342,6 +360,7 @@ _FRAMEWORK_TO_STACK = {
     "fastify":      "nodejs-fastify",
     "spring-boot":  "java-spring-boot",
     "gin":          "go-gin",
+    "dbt":          "python-dbt",
 }
 
 # Language → default stack id for that language. Used when no framework is

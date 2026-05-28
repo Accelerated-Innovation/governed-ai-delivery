@@ -24,16 +24,25 @@ if TYPE_CHECKING:
     from .detect import RepoProfile
 
 
-# Architecture-signal → style id mapping.
-_STYLE_PRIORITY = ("hexagonal-shape", "clean-shape", "layered-shape")
+# Architecture-signal → style id mapping. Order matters when multiple signals
+# fire (a mixed repo); first match wins.
+_STYLE_PRIORITY = ("dbt-shape", "hexagonal-shape", "clean-shape", "layered-shape")
 _STYLE_NAME = {
     "hexagonal-shape": "hexagonal",
     "clean-shape": "clean",
     "layered-shape": "layered",
+    "dbt-shape": "dbt-layered",
 }
 
 # Default layer-name hints per style. Skills read this to scope guidance to
 # the right folders without hardcoding architecture vocabulary themselves.
+#
+# For data types (dbt-layered), the inbound/outbound/domain mapping is:
+#   inbound  = source-shaped layer (staging — where data enters cleaned)
+#   domain   = business-logic layer (intermediate — transformations live here)
+#   outbound = serving layer        (marts — what downstream consumers read)
+# Teams using medallion (bronze/silver/gold) edit `architecture.layers` in
+# skill_context.yaml directly during calibrate.
 _STYLE_LAYERS = {
     "hexagonal": {
         "inbound":  ["api/", "ports/inbound/"],
@@ -49,6 +58,11 @@ _STYLE_LAYERS = {
         "inbound":  ["Controllers/"],
         "outbound": ["Repositories/"],
         "domain":   ["Services/"],
+    },
+    "dbt-layered": {
+        "inbound":  ["models/staging/", "staging/"],
+        "outbound": ["models/marts/", "marts/"],
+        "domain":   ["models/intermediate/", "intermediate/"],
     },
     "unknown": {"inbound": [], "outbound": [], "domain": []},
 }
