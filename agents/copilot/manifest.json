@@ -9,7 +9,7 @@
     },
     "type": {
       "prompt": "Project type?",
-      "choices": ["api", "cli", "ui-react", "ui-angular"],
+      "choices": ["api", "cli", "ui-react", "ui-angular", "data"],
       "default": "api"
     },
     "ci": {
@@ -24,6 +24,34 @@
   },
   "variants": {
     "type": {
+      "data": {
+        "files": [
+          { "src": "copilot-instructions/data.md", "dest": ".github/copilot-instructions.md" },
+          { "src": "instructions/data/staging.instructions.md", "dest": ".github/instructions/staging.instructions.md" },
+          { "src": "instructions/data/intermediate.instructions.md", "dest": ".github/instructions/intermediate.instructions.md" },
+          { "src": "instructions/data/marts.instructions.md", "dest": ".github/instructions/marts.instructions.md" },
+          { "src": "instructions/data/data-quality.instructions.md", "dest": ".github/instructions/data-quality.instructions.md" },
+          { "src": "instructions/data/pii.instructions.md", "dest": ".github/instructions/pii.instructions.md" },
+          { "src": "instructions/generic/repo-scope-backend.instructions.md", "dest": ".github/instructions/repo-scope.instructions.md" },
+          { "src": "skills/backend/adr-author/", "dest": ".github/skills/adr-author/" }
+        ],
+        "shared": [],
+        "governed": [
+          "docs/data/architecture/"
+        ],
+        "level_4": {
+          "mode": "merge",
+          "files": [
+            { "src": "copilot-instructions/l4-data.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
+            { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" }
+          ],
+          "shared": [
+            "features/starter_data/"
+          ],
+          "governed": []
+        }
+      },
       "api": {
         "files": [
           { "src": "copilot-instructions/backend-api.md", "dest": ".github/copilot-instructions.md" },

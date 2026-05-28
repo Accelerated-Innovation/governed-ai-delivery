@@ -2992,6 +2992,25 @@ class TestNoUiDimensionInManifests:
                 f"{agent}: options.type.choices must include '{expected}'"
             )
 
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    def test_data_type_parity_across_agents(self, agent):
+        """Every production agent ships the dbt `--type data` shape: `data` in
+        options.type.choices and a variants.type.data block declaring agent
+        files + the governed docs/data/architecture/ contracts."""
+        from cli.paths import AGENTS_DIR
+        manifest = json.loads((AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8"))
+        assert "data" in manifest["options"]["type"]["choices"], (
+            f"{agent}: options.type.choices must include 'data'"
+        )
+        data = manifest["variants"]["type"].get("data")
+        assert data is not None, f"{agent}: variants.type.data block is missing"
+        assert data.get("files"), f"{agent}: data block must declare agent files"
+        assert "docs/data/architecture/" in data.get("governed", []), (
+            f"{agent}: data block must install the governed docs/data/architecture/ contracts"
+        )
+        # data is an L3/L4 shape (dbt has no L5 GenAI-ops tier).
+        assert "level_4" in data, f"{agent}: data block must declare a level_4 add-on"
+
 
 class TestShapeMigrationWarning:
     """read_govkit_marker emits a one-time warning when marker carries legacy `ui` option."""
