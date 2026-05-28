@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import sys
 from datetime import datetime, timezone
@@ -38,6 +37,23 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .detect import RepoProfile
 
+from . import paths, version
+from .headers import has_editable_header, prepend_header_to_file
+from .marker import (
+    _compare_version,
+    read_govkit_level,
+    read_govkit_marker,
+    write_govkit_marker,
+)
+from .marker import (
+    _reset_directory_migration_warning as _reset_directory_migration_warning,
+)
+from .marker import (
+    _reset_migration_warning as _reset_migration_warning,
+)
+from .marker import (
+    _reset_shape_migration_warning as _reset_shape_migration_warning,
+)
 from .stack_select import (
     STACK_ID_ASSUMPTION,
     apply_stack_overlay,
@@ -45,157 +61,9 @@ from .stack_select import (
     resolve_stack_choice,
 )
 
-try:
-    from importlib.metadata import version as _pkg_version
-    _GOVKIT_VERSION = _pkg_version("govkit")
-except Exception:
-    _GOVKIT_VERSION = "dev"
-
-
-# ---------------------------------------------------------------------------
-# Version comparison + one-time migration warning (Increment 9 — v0.7.0 swap)
-# ---------------------------------------------------------------------------
-
-# Set once per process. Reset by tests via _reset_migration_warning().
-_MIGRATION_WARNING_PRINTED = False
-
-
-def _compare_version(v1: str, v2: str) -> int:
-    """Compare dotted version strings. Returns -1, 0, or 1.
-
-    Non-parseable versions (e.g. 'dev', 'unknown') compare equal to anything,
-    so development builds and corrupt markers don't trigger the migration
-    warning.
-    """
-    try:
-        t1 = tuple(int(p) for p in v1.split("."))
-        t2 = tuple(int(p) for p in v2.split("."))
-    except (ValueError, AttributeError):
-        return 0
-    if t1 < t2:
-        return -1
-    if t1 > t2:
-        return 1
-    return 0
-
-
-def _maybe_warn_migration(stored_version: str | None) -> None:
-    """Print one-time migration warning if marker version is pre-0.7.0.
-
-    Suppressed by env var GOVKIT_NO_MIGRATION_WARNING=1 (for CI / scripts).
-    Auto-suppressed once the marker is rewritten with version >= 0.7.0
-    (because the version comparison stops triggering).
-    """
-    global _MIGRATION_WARNING_PRINTED
-    if _MIGRATION_WARNING_PRINTED:
-        return
-    if not stored_version:
-        return
-    if os.environ.get("GOVKIT_NO_MIGRATION_WARNING") == "1":
-        return
-    if _compare_version(stored_version, "0.7.0") < 0:
-        print(
-            f"warning: .govkit marker version {stored_version} detected. "
-            "The L3/L4 maturity model changed in 0.7.0. "
-            "Run 'govkit upgrade --migrate-levels' to migrate. "
-            "(Set GOVKIT_NO_MIGRATION_WARNING=1 to suppress.)",
-            file=sys.stderr,
-        )
-        _MIGRATION_WARNING_PRINTED = True
-
-
-def _reset_migration_warning() -> None:
-    """Test helper: reset the one-time warning flag between test cases."""
-    global _MIGRATION_WARNING_PRINTED
-    _MIGRATION_WARNING_PRINTED = False
-
-
-_SHAPE_MIGRATION_WARNING_PRINTED = False
-
-
-def _maybe_warn_shape_migration(options: dict | None) -> None:
-    """Print one-time warning when the marker carries the dropped `ui` option.
-
-    The 0.7→0.8 project-shape refactor removed the `ui` dimension; the marker
-    is read tolerantly so existing installs keep working, but the user is
-    informed once per process. Suppressible via
-    GOVKIT_NO_SHAPE_MIGRATION_WARNING=1.
-    """
-    global _SHAPE_MIGRATION_WARNING_PRINTED
-    if _SHAPE_MIGRATION_WARNING_PRINTED:
-        return
-    if not options or "ui" not in options:
-        return
-    if os.environ.get("GOVKIT_NO_SHAPE_MIGRATION_WARNING") == "1":
-        return
-    print(
-        "warning: .govkit marker carries the legacy 'ui' option. "
-        "The project-shape model changed in 0.8.0. The `ui` option is no "
-        "longer supported. Re-run 'govkit apply --type ui-react' (or "
-        "'ui-angular') to switch to a UI shape, or 'govkit apply --type api' "
-        "to keep the current backend shape. "
-        "(Set GOVKIT_NO_SHAPE_MIGRATION_WARNING=1 to suppress.)",
-        file=sys.stderr,
-    )
-    _SHAPE_MIGRATION_WARNING_PRINTED = True
-
-
-def _reset_shape_migration_warning() -> None:
-    """Test helper: reset the one-time shape-migration warning flag."""
-    global _SHAPE_MIGRATION_WARNING_PRINTED
-    _SHAPE_MIGRATION_WARNING_PRINTED = False
-
-
-_DIRECTORY_MIGRATION_WARNING_PRINTED = False
-
-
-def _maybe_warn_directory_migration() -> None:
-    """Print one-time warning when a legacy single-file .govkit marker is
-    detected and auto-migrated to the new .govkit/ directory layout.
-
-    The 0.9→0.10 layout refactor turns .govkit (file) into .govkit/
-    (directory) holding marker.json + skill_context.yaml. Legacy markers
-    are read tolerantly and migrated on first read. Suppressible via
-    GOVKIT_NO_DIRECTORY_MIGRATION_WARNING=1.
-    """
-    global _DIRECTORY_MIGRATION_WARNING_PRINTED
-    if _DIRECTORY_MIGRATION_WARNING_PRINTED:
-        return
-    if os.environ.get("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING") == "1":
-        return
-    print(
-        "warning: legacy single-file .govkit marker detected — "
-        "the layout changed in 0.10.0 and is now .govkit/ (directory) "
-        "containing marker.json. Govkit auto-migrated this marker; no "
-        "action required. "
-        "(Set GOVKIT_NO_DIRECTORY_MIGRATION_WARNING=1 to suppress.)",
-        file=sys.stderr,
-    )
-    _DIRECTORY_MIGRATION_WARNING_PRINTED = True
-
-
-def _reset_directory_migration_warning() -> None:
-    """Test helper: reset the one-time directory-migration warning flag."""
-    global _DIRECTORY_MIGRATION_WARNING_PRINTED
-    _DIRECTORY_MIGRATION_WARNING_PRINTED = False
-
-
-from .headers import has_editable_header, prepend_header_to_file
-
-_HERE = Path(__file__).parent
-# When installed via pip, agents/ is bundled inside the cli package.
-# When running from the repo directly, fall back to the repo root.
-AGENTS_DIR = _HERE / "agents" if (_HERE / "agents").exists() else _HERE.parent / "agents"
-REPO_ROOT = AGENTS_DIR.parent
-
-MARKER_DIRNAME = ".govkit"
-MARKER_FILENAME = "marker.json"
-_FEATURES_PREFIX = "features/"
-_TARGET_HELP = "Path to the target project root"
-
 
 def load_manifest(agent: str) -> dict:
-    manifest_path = AGENTS_DIR / agent / "manifest.json"
+    manifest_path = paths.AGENTS_DIR / agent / "manifest.json"
     if not manifest_path.exists():
         print(f"Error: no agent '{agent}' found. Run 'govkit list' to see available agents.")
         sys.exit(1)
@@ -355,175 +223,6 @@ def _exclude_for_level(level: str) -> set[str] | None:
     if level == "5":
         return None
     return _L5_ONLY_GOVERNED_BASENAMES
-
-
-# ---------------------------------------------------------------------------
-# .govkit marker
-# ---------------------------------------------------------------------------
-
-def read_govkit_level(target: Path) -> str | None:
-    """Read the maturity level from the .govkit marker file, or None if not found.
-
-    Delegates to read_govkit_marker so the one-time migration warning fires
-    from any command that reads the level (cmd_init, cmd_validate, etc.).
-    """
-    data = read_govkit_marker(target)
-    return data.get("level") if data else None
-
-
-def read_govkit_marker(target: Path) -> dict | None:
-    """Read the full .govkit marker dict, or None if missing or unreadable.
-
-    Layout: .govkit/marker.json (current) OR a legacy single .govkit file
-    (pre-0.10). Legacy files are read tolerantly and migrated to the new
-    directory layout in-place on first read.
-
-    Side effects: emits one-time stderr warnings for
-      - pre-0.10 layout (file → directory migration)
-      - pre-0.7 maturity-model marker (L3/L4 swap)
-      - legacy `ui` option (0.7 → 0.8 shape refactor)
-    Each warning is independently suppressible via env var.
-    """
-    marker_node = target / MARKER_DIRNAME
-    # Recovery: if a prior migration crashed after backing up the legacy file
-    # but before renaming the new dir into place, restore the backup as the
-    # legacy file so the normal legacy-read branch below picks it up.
-    backup_node = target / ".govkit.legacy.bak"
-    if backup_node.is_file() and not marker_node.exists():
-        try:
-            backup_node.rename(marker_node)
-        except OSError:
-            pass
-
-    if not marker_node.exists():
-        return None
-
-    # New layout: .govkit/ directory containing marker.json
-    if marker_node.is_dir():
-        marker_path = marker_node / MARKER_FILENAME
-        if not marker_path.is_file():
-            return None
-        try:
-            data = json.loads(marker_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            return None
-        _maybe_warn_migration(data.get("version"))
-        _maybe_warn_shape_migration(data.get("options"))
-        return data
-
-    # Legacy layout: .govkit is a single file. Read, then migrate.
-    if marker_node.is_file():
-        try:
-            data = json.loads(marker_node.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            return None
-        _maybe_warn_directory_migration()
-        _migrate_legacy_marker_to_directory(target, marker_node, data)
-        _maybe_warn_migration(data.get("version"))
-        _maybe_warn_shape_migration(data.get("options"))
-        return data
-
-    return None
-
-
-def _migrate_legacy_marker_to_directory(target: Path, marker_node: Path, data: dict) -> None:
-    """Best-effort, durable migration from legacy single-file .govkit to
-    .govkit/marker.json. Sequence is ordered so a crash at any step leaves
-    the repo with a recoverable marker (legacy file OR backup), never nothing.
-
-    Sequence:
-      1. Remove any stale .govkit.migrate.tmp/ from a prior failed attempt.
-      2. Write new marker.json into .govkit.migrate.tmp/.
-      3. Move the legacy file to .govkit.legacy.bak (atomic on POSIX/NTFS).
-      4. Move .govkit.migrate.tmp/ into .govkit/ (the now-vacant slot).
-      5. Delete .govkit.legacy.bak (best-effort; harmless leftover if it stays).
-
-    A failure between (3) and (4) leaves the backup on disk; the recovery
-    branch at the top of read_govkit_marker restores it on the next read.
-    Failures elsewhere leave the legacy file intact.
-    """
-    tmp_dir = target / ".govkit.migrate.tmp"
-    backup = target / ".govkit.legacy.bak"
-    try:
-        if tmp_dir.exists():
-            shutil.rmtree(tmp_dir)
-        tmp_dir.mkdir(parents=True)
-        (tmp_dir / MARKER_FILENAME).write_text(
-            json.dumps(data, indent=2) + "\n", encoding="utf-8",
-        )
-        # Drop any orphan backup from a prior crash before we create a new one.
-        if backup.exists():
-            try:
-                backup.unlink()
-            except OSError:
-                pass
-        marker_node.rename(backup)        # legacy file → backup
-        tmp_dir.rename(marker_node)       # tmp dir   → final .govkit/
-        try:
-            backup.unlink()               # cleanup; safe to leave if this fails
-        except OSError:
-            pass
-    except OSError:
-        # Best-effort cleanup so we don't accrue migrate.tmp dirs on retry.
-        if tmp_dir.exists():
-            try:
-                shutil.rmtree(tmp_dir)
-            except OSError:
-                pass
-        return
-
-
-def write_govkit_marker(
-    target: Path,
-    agent: str,
-    level: str,
-    options: dict,
-    stack: dict | None = None,
-    assumptions: list | None = None,
-    calibration: dict | None = None,
-    applied_at: str | None = None,
-) -> dict:
-    """Write the .govkit/marker.json file to track the applied configuration.
-
-    The marker is the source of truth for `agent`, `level`, `options`, the
-    selected `stack`, declared `assumptions`, and `calibration` state.
-    PR 1 exposes the slots; PR 2 (stack), PR 3 (assumptions), and PR 5
-    (calibration) populate them.
-
-    `applied_at` defaults to now — that's what `apply`, `upgrade`, and
-    `stack apply` want. Calibrate (PR 5) passes the original applied_at so
-    edit-protection isn't silently weakened by every calibration pass.
-
-    If a legacy single-file .govkit marker exists at the target, it is
-    removed first so the directory can take its place.
-
-    Returns the marker dict that was just written so callers can hand it to
-    `_post_install_finalize` instead of re-reading + re-parsing it from disk.
-    """
-    marker_dir = target / MARKER_DIRNAME
-    # Replace any legacy single-file marker.
-    if marker_dir.is_file():
-        marker_dir.unlink()
-    marker_dir.mkdir(parents=True, exist_ok=True)
-
-    data = {
-        "version": _GOVKIT_VERSION,
-        "level": level,
-        "agent": agent,
-        "options": {k: v for k, v in options.items() if k != "level"},
-        "applied_at": applied_at or datetime.now(timezone.utc).isoformat(),
-        "stack": stack,
-        "assumptions": assumptions if assumptions is not None else [],
-        "calibration": calibration if calibration is not None else {
-            "completed_at": None,
-            "decisions": [],
-        },
-    }
-    (marker_dir / MARKER_FILENAME).write_text(
-        json.dumps(data, indent=2) + "\n", encoding="utf-8"
-    )
-    print(f"\n  .govkit/marker.json written (level {level}, govkit {_GOVKIT_VERSION})")
-    return data
 
 
 # ---------------------------------------------------------------------------
@@ -773,22 +472,22 @@ def _cmd_apply_detect_dry_run(target: Path, args: argparse.Namespace) -> None:
 
 
 def _copy_governed_or_shared(
-    paths: list, target: Path, prior_applied_at: str | None,
+    rel_paths: list, target: Path, prior_applied_at: str | None,
     force: bool, baseline: str, exclude: set[str] | None,
     skip_existing: bool = True,
 ) -> None:
-    """Copy each governed/shared dir from REPO_ROOT to target.
+    """Copy each governed/shared dir from the bundle (REPO_ROOT) to target.
 
     `features/` entries are deferred — those land via `govkit init`, not
     apply/upgrade. `skip_existing=True` (the default) is correct for `apply`
     governed/shared and for `upgrade` shared. `upgrade` governed passes
     `skip_existing=False` because upgrade re-installs governed contracts.
     """
-    for rel in paths:
-        if rel.startswith(_FEATURES_PREFIX):
+    for rel in rel_paths:
+        if rel.startswith(paths.FEATURES_PREFIX):
             continue
         copy_entry(
-            REPO_ROOT / rel, target / rel,
+            paths.REPO_ROOT / rel, target / rel,
             skip_existing=skip_existing,
             applied_at=prior_applied_at,
             force=force,
@@ -918,14 +617,14 @@ def cmd_apply(args: argparse.Namespace) -> None:
         return
 
     manifest = load_manifest(args.agent)
-    agent_dir = AGENTS_DIR / args.agent
+    agent_dir = paths.AGENTS_DIR / args.agent
 
     # Edit-protection (A2): consult any prior marker for applied_at so
     # governed/shared docs the user has edited since last apply are protected.
     prior_marker = read_govkit_marker(target)
     prior_applied_at = prior_marker.get("applied_at") if prior_marker else None
     force = bool(getattr(args, "force", False))
-    baseline = f"govkit@{_GOVKIT_VERSION}"
+    baseline = f"govkit@{version.GOVKIT_VERSION}"
 
     # Variant manifests are the post-v0.6 format used by all 3 production
     # agents; the flat path is retained for custom agents on the old layout.
@@ -1056,7 +755,7 @@ def cmd_stack_apply(args: argparse.Namespace) -> None:
 
 def cmd_list(_args: argparse.Namespace) -> None:
     print("\nAvailable agents:\n")
-    for agent_dir in sorted(AGENTS_DIR.iterdir()):
+    for agent_dir in sorted(paths.AGENTS_DIR.iterdir()):
         if not agent_dir.is_dir():
             continue
         manifest_path = agent_dir / "manifest.json"
@@ -1117,7 +816,7 @@ def _resolve_starter_dir(starter_type: str, level: str) -> Path:
             "L3 (Governed AI Delivery — Foundations) has no feature starter. "
             "Run 'govkit apply --level 4' first to enable the spec-driven feature workflow."
         )
-    bundled = REPO_ROOT / "features"
+    bundled = paths.REPO_ROOT / "features"
     slug = _starter_dir_slug(starter_type)
     if level == "5":
         level_dir = bundled / f"starter_{slug}_l5"
@@ -1211,16 +910,16 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     if getattr(args, "migrate_levels", False):
         sys.exit(_cmd_upgrade_migrate_levels(target, stored_version, stored_level, agent, stored_options))
 
-    if stored_version == _GOVKIT_VERSION and not args.force:
-        print(f"\nAlready at govkit {_GOVKIT_VERSION}. Nothing to upgrade.")
+    if stored_version == version.GOVKIT_VERSION and not args.force:
+        print(f"\nAlready at govkit {version.GOVKIT_VERSION}. Nothing to upgrade.")
         print("Use --force to re-apply even when the version is current.")
         return
 
-    print(f"\nUpgrading govkit {stored_version} → {_GOVKIT_VERSION}")
+    print(f"\nUpgrading govkit {stored_version} → {version.GOVKIT_VERSION}")
     print(f"  Agent: {agent}  Level: {stored_level}\n")
 
     manifest = load_manifest(agent)
-    agent_dir = AGENTS_DIR / agent
+    agent_dir = paths.AGENTS_DIR / agent
     options = {**stored_options, "level": stored_level}
     files, shared, governed = resolve_variant_files(manifest, options)
 
@@ -1229,7 +928,7 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     # refreshed because they are govkit-managed and don't carry editable
     # headers.
     prior_applied_at = stored.get("applied_at")
-    baseline = f"govkit@{_GOVKIT_VERSION}"
+    baseline = f"govkit@{version.GOVKIT_VERSION}"
 
     print("Agent files (refreshed):")
     for entry in files:
@@ -1253,7 +952,7 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     marker = write_govkit_marker(target, agent, stored_level, options)
     _post_install_finalize(target, agent, marker=marker)
 
-    print(f"\nDone. '{agent}' upgraded to govkit {_GOVKIT_VERSION} at {target}")
+    print(f"\nDone. '{agent}' upgraded to govkit {version.GOVKIT_VERSION} at {target}")
     print("\nReview changes with: git diff")
 
 
@@ -1377,13 +1076,13 @@ def _print_l3_migration_menu(stored_version: str, feature_dirs: list) -> None:
     print("How would you like to migrate?")
     print("  [1] Migrate to L4 — generate stub eval_criteria.yaml and")
     print("      architecture_preflight.md in each feature dir (you fill them in later).")
-    print(f"      Marker becomes level=4, version={_GOVKIT_VERSION}.")
+    print(f"      Marker becomes level=4, version={version.GOVKIT_VERSION}.")
     print("  [2] Migrate to L4 — do NOT generate stubs. You will author the two new")
     print("      artifacts per feature manually. Validation will fail until you do.")
-    print(f"      Marker becomes level=4, version={_GOVKIT_VERSION}.")
+    print(f"      Marker becomes level=4, version={version.GOVKIT_VERSION}.")
     print("  [3] Adopt new-L3 (Foundations) — you confirm we should DELETE features/")
     print("      and switch to architecture-only governance.")
-    print(f"      Marker becomes level=3, version={_GOVKIT_VERSION}.")
+    print(f"      Marker becomes level=3, version={version.GOVKIT_VERSION}.")
     print("  [4] Abort — make no changes. Pin govkit==0.6.* in your project.\n")
 
 
@@ -1473,7 +1172,7 @@ def main() -> None:
     # --- apply ---
     apply_parser = subparsers.add_parser("apply", help="Apply an agent spec kit to a target project")
     apply_parser.add_argument("--agent", required=True, help="Agent name (e.g. claude-code, copilot)")
-    apply_parser.add_argument("--target", required=True, help=_TARGET_HELP)
+    apply_parser.add_argument("--target", required=True, help=paths.TARGET_HELP)
     apply_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                               help="Maturity level (default: prompted)")
     apply_parser.add_argument("--type", choices=["api", "cli", "ui-react", "ui-angular", "data"], default=None,
@@ -1569,7 +1268,7 @@ def main() -> None:
 
     # --- validate ---
     validate_parser = subparsers.add_parser("validate", help="Check governance compliance in a project")
-    validate_parser.add_argument("--target", required=True, help=_TARGET_HELP)
+    validate_parser.add_argument("--target", required=True, help=paths.TARGET_HELP)
     validate_parser.add_argument("--level", choices=["3", "4", "5"], default=None,
                                  help="Maturity level (default: read from .govkit or 4)")
     validate_parser.add_argument("--strict", action="store_true",
@@ -1580,7 +1279,7 @@ def main() -> None:
         "upgrade",
         help="Refresh agent config and governed contracts to the current govkit version",
     )
-    upgrade_parser.add_argument("--target", required=True, help=_TARGET_HELP)
+    upgrade_parser.add_argument("--target", required=True, help=paths.TARGET_HELP)
     upgrade_parser.add_argument(
         "--force", action="store_true",
         help="Re-apply even when the project is already at the current govkit version",

@@ -25,11 +25,11 @@ Uses only the Python standard library. Full JSON Schema validation of
 eval_criteria.yaml is deferred to CI or `check-jsonschema` if installed.
 """
 
-import json
 import re
 import subprocess
 from pathlib import Path
 
+from .marker import read_govkit_marker
 
 # ---------------------------------------------------------------------------
 # Artifact file name constants
@@ -384,10 +384,9 @@ def check_l5_preflight_sections(feature_dir: Path) -> tuple[bool, str]:
 def _read_govkit_level(target: Path) -> str | None:
     """Read the maturity level from the .govkit marker file.
 
-    Delegates to govkit.read_govkit_marker so the one-time v0.6→v0.7
+    Delegates to read_govkit_marker so the one-time v0.6→v0.7
     migration warning fires from `govkit validate` too.
     """
-    from .govkit import read_govkit_marker
     data = read_govkit_marker(target)
     return data.get("level") if data else None
 

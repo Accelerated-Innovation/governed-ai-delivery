@@ -21,8 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from cli import govkit, validate
-
+from cli import govkit, paths, validate
 
 # ---------------------------------------------------------------------------
 # Fixtures and helpers
@@ -155,7 +154,7 @@ class TestDefaultLevelIsThree:
 
     @pytest.mark.parametrize("agent", ["claude-code", "copilot", "codex"])
     def test_manifest_default_level_is_3(self, agent):
-        manifest_path = govkit.AGENTS_DIR / agent / "manifest.json"
+        manifest_path = paths.AGENTS_DIR / agent / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         assert manifest["options"]["level"]["default"] == "3", (
             f"{agent} manifest options.level.default must be '3'; "
@@ -203,8 +202,8 @@ class TestApplyFeaturesDirBehavior:
         repo = self._minimal_repo(tmp_path)
         target = tmp_path / "target"
         target.mkdir()
-        monkeypatch.setattr(govkit, "AGENTS_DIR", repo / "agents")
-        monkeypatch.setattr(govkit, "REPO_ROOT", repo)
+        monkeypatch.setattr(paths, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(paths, "REPO_ROOT", repo)
 
         govkit.cmd_apply(_apply_args(target, level="3"))
 
@@ -217,8 +216,8 @@ class TestApplyFeaturesDirBehavior:
         repo = self._minimal_repo(tmp_path)
         target = tmp_path / "target"
         target.mkdir()
-        monkeypatch.setattr(govkit, "AGENTS_DIR", repo / "agents")
-        monkeypatch.setattr(govkit, "REPO_ROOT", repo)
+        monkeypatch.setattr(paths, "AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr(paths, "REPO_ROOT", repo)
 
         govkit.cmd_apply(_apply_args(target, level="4"))
 

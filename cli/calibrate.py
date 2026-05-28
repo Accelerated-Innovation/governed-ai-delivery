@@ -27,8 +27,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .govkit import STACK_ID_ASSUMPTION
-
+from .marker import read_govkit_marker, write_govkit_marker
+from .stack_select import STACK_ID_ASSUMPTION
 
 # ---------------------------------------------------------------------------
 # Step + decision model
@@ -421,8 +421,6 @@ def _filter_steps_by_only(
 def _calibrate_one(target: Path, args: argparse.Namespace, multi: bool) -> None:
     """Calibrate a single target. Returns early on missing marker / empty
     --only filter without raising so the monorepo loop can continue."""
-    from .govkit import read_govkit_marker
-
     marker = read_govkit_marker(target)
     if marker is None:
         print(f"Error: no .govkit/marker.json at {target}", file=sys.stderr)
@@ -476,7 +474,6 @@ def _run_non_interactive(target: Path, steps: list[CalibrationStep]) -> None:
           ".govkit/marker.json with calibration decisions.")
     # Refresh derived files. No marker mutation in non-interactive mode —
     # these are pure re-derivations from the existing marker + repo state.
-    from .govkit import read_govkit_marker
     from .setup_review import write_setup_review
     from .skill_context import write_skill_context
     refreshed = read_govkit_marker(target)
@@ -617,7 +614,6 @@ def _run_interactive(target: Path, marker: dict, steps: list[CalibrationStep]) -
     steps_by_id = {s.id: s for s in steps}
     updated = _apply_decisions(marker, decisions, steps_by_id, now_iso)
 
-    from .govkit import write_govkit_marker
     write_govkit_marker(
         target,
         agent=updated.get("agent", "claude-code"),

@@ -22,13 +22,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-
 # ---------------------------------------------------------------------------
 # Finding model
 # ---------------------------------------------------------------------------
-
-
-from .govkit import MARKER_DIRNAME, MARKER_FILENAME, STACK_ID_ASSUMPTION
+from .marker import MARKER_DIRNAME, MARKER_FILENAME, read_govkit_marker
 
 Severity = Literal["error", "warning", "info"]
 
@@ -546,7 +543,7 @@ def _check_stale_review_required_assumptions(target: Path, marker: dict) -> list
     `govkit calibrate` (PR 5) — or to manually flip review_required after
     confirming the assumption is correct.
     """
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta, timezone
 
     applied_at = marker.get("applied_at")
     if not applied_at:
@@ -713,8 +710,6 @@ def run_doctor(target: Path) -> list[ValidationFinding]:
     Always includes at minimum a marker-missing error if .govkit isn't
     present, so callers know the install can't be validated.
     """
-    from .govkit import read_govkit_marker
-
     findings: list[ValidationFinding] = []
 
     marker = read_govkit_marker(target)
