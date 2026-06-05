@@ -23,6 +23,7 @@ from .extensions import (
     EXTENSIONS_DIR,
     discover_extensions,
     discover_in,
+    is_valid_extension_id,
     validate_extension,
 )
 from .marker import read_govkit_marker
@@ -89,6 +90,47 @@ def cmd_extension_list(_args: argparse.Namespace) -> None:
     )
 
 
+def _resolve_dest(target: Path, pack) -> Path:
+    """Return the safe install destination for a pack, or exit non-zero.
+
+    Guards against a malformed manifest id (path separators, '..') escaping
+    <target>/extensions/ before any rmtree/copytree.
+    """
+    if not is_valid_extension_id(pack.id):
+        print(
+            f"Error: extension id {pack.id!r} is not a valid identifier "
+            "(must match ^[a-z0-9][a-z0-9-]*$); refusing to install.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    ext_root = (target / EXTENSIONS_DIR).resolve()
+    dest = target / EXTENSIONS_DIR / pack.id
+    if not dest.resolve().is_relative_to(ext_root):
+        print(
+            f"Error: destination for '{pack.id}' resolves outside {ext_root}; refusing.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return dest
+
+
+def _print_validation_notes(target: Path, ext_id: str) -> None:
+    """Validate the just-installed pack in place; print any issues as non-fatal
+    notes (warn and proceed)."""
+    added = next((e for e in discover_extensions(target) if e.id == ext_id), None)
+    if added is None:
+        return
+    issues = validate_extension(added, target)
+    if not issues:
+        return
+    print(
+        f"\nValidation notes ({len(issues)}) — "
+        f"run `govkit doctor --target {target}` for detail:"
+    )
+    for issue in issues:
+        print(f"  - {issue}")
+
+
 def cmd_extension_add(args: argparse.Namespace) -> None:
     """Copy a bundled extension pack into <target>/extensions/<id>/.
 
@@ -111,7 +153,8 @@ def cmd_extension_add(args: argparse.Namespace) -> None:
         )
         sys.exit(1)
 
-    dest = target / EXTENSIONS_DIR / pack.id
+    dest = _resolve_dest(target, pack)
+
     if dest.exists() and not args.force:
         print(
             f"Error: '{dest}' already exists. Re-run with --force to overwrite.",
@@ -135,17 +178,7 @@ def cmd_extension_add(args: argparse.Namespace) -> None:
             print(f"  WARN: {warning}")
 
     print(f"Done. Extension '{pack.id}' added to {dest}")
-
-    added = next((e for e in discover_extensions(target) if e.id == pack.id), None)
-    if added is not None:
-        issues = validate_extension(added, target)
-        if issues:
-            print(
-                f"\nValidation notes ({len(issues)}) — "
-                f"run `govkit doctor --target {target}` for detail:"
-            )
-            for issue in issues:
-                print(f"  - {issue}")
+    _print_validation_notes(target, pack.id)
 
 
 def register(subparsers) -> None:

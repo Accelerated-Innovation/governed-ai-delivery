@@ -115,3 +115,45 @@ class TestExtensionAddCompat:
         out = capsys.readouterr().out
         assert "supported_levels" not in out
         assert "supported_project_types" not in out
+
+
+class TestExtensionAddSafety:
+    """`add` must not let a malicious manifest id traverse outside
+    <target>/extensions/ before the rmtree/copytree filesystem ops."""
+
+    @staticmethod
+    def _bundle_pack_with_id(packs_dir, folder, manifest_id):
+        pack = packs_dir / folder
+        pack.mkdir(parents=True)
+        (pack / "manifest.yaml").write_text(
+            f"id: {manifest_id}\n"
+            "name: Crafted\nversion: 0.1.0\nextension_type: architecture\n"
+            "contract_sets: []\n",
+            encoding="utf-8",
+        )
+        return pack
+
+    def test_rejects_unsafe_manifest_id_before_touching_fs(self, tmp_path, monkeypatch):
+        packs = tmp_path / "packs"
+        self._bundle_pack_with_id(packs, "evil", "../../escape")
+        monkeypatch.setattr(paths, "EXTENSION_PACKS_DIR", packs)
+        target = tmp_path / "proj"
+        target.mkdir()
+
+        with pytest.raises(SystemExit):
+            cmd_extension_add(_add_args("../../escape", target))
+
+        # nothing was created/deleted outside target/extensions/
+        assert not (tmp_path / "escape").exists()
+        assert not (target.parent / "escape").exists()
+
+    def test_safe_id_from_fake_bundle_still_installs(self, tmp_path, monkeypatch):
+        # control: a well-formed id from a fake bundle installs normally
+        packs = tmp_path / "packs"
+        self._bundle_pack_with_id(packs, "okay-ext", "okay-ext")
+        monkeypatch.setattr(paths, "EXTENSION_PACKS_DIR", packs)
+        target = tmp_path / "proj"
+        target.mkdir()
+
+        cmd_extension_add(_add_args("okay-ext", target))
+        assert (target / "extensions" / "okay-ext" / "manifest.yaml").exists()

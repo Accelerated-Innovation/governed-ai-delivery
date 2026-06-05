@@ -38,6 +38,16 @@ _REQUIRED_FIELDS = ("id", "name", "version", "extension_type", "contract_sets")
 _ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
+def is_valid_extension_id(ext_id: object) -> bool:
+    """True when ext_id is a safe extension identifier (^[a-z0-9][a-z0-9-]*$).
+
+    Rejects path separators, '..', uppercase, and empty/non-string values. Any
+    caller that builds a filesystem path from an id (e.g. `govkit extension add`)
+    must gate on this before touching the filesystem.
+    """
+    return isinstance(ext_id, str) and _ID_PATTERN.match(ext_id) is not None
+
+
 @dataclass
 class Extension:
     """A discovered extension. Errors collected during discovery/parse are
@@ -148,7 +158,7 @@ def _check_id(manifest: dict, ext: Extension) -> list[str]:
     if not isinstance(ext_id, str):
         return []
     issues: list[str] = []
-    if not _ID_PATTERN.match(ext_id):
+    if not is_valid_extension_id(ext_id):
         issues.append(f"invalid id format: {ext_id!r} (must match ^[a-z0-9][a-z0-9-]*$)")
     if ext_id != ext.root.name:
         issues.append(f"id {ext_id!r} does not match folder name {ext.root.name!r}")
