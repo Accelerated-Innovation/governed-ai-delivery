@@ -6,19 +6,16 @@ Validation, --strict, and overlap detection are added in later increments.
 import textwrap
 from pathlib import Path
 
-import pytest
-
 from cli.extensions import (
     EXTENSIONS_DIR,
     MANIFEST_FILE,
-    Extension,
     discover_extensions,
+    discover_in,
     load_manifest,
     report_extensions,
     validate_extension,
 )
 from cli.validate import run_validation
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -126,6 +123,42 @@ class TestDiscoverExtensions:
         _write_extension(tmp_path, "folder-id", body)
         results = discover_extensions(tmp_path)
         assert results[0].id == "folder-id"
+
+
+class TestDiscoverTolerance:
+    """Discovery must never raise. An unreadable extensions dir is treated like
+    a missing one ([]); an unreadable single extension folder surfaces as an
+    .errors entry rather than crashing validate / doctor / apply."""
+
+    def test_unreadable_root_returns_empty(self, tmp_path, monkeypatch):
+        def boom(self):
+            raise PermissionError("denied")
+
+        monkeypatch.setattr(Path, "iterdir", boom)
+        assert discover_in(tmp_path) == []
+
+    def test_unreadable_root_via_discover_extensions_returns_empty(self, tmp_path, monkeypatch):
+        (tmp_path / EXTENSIONS_DIR).mkdir()
+
+        def boom(self):
+            raise OSError("io error")
+
+        monkeypatch.setattr(Path, "iterdir", boom)
+        assert discover_extensions(tmp_path) == []
+
+    def test_unreadable_entry_surfaces_as_error(self, tmp_path, monkeypatch):
+        (tmp_path / "good").mkdir()
+        (tmp_path / "bad").mkdir()
+        orig_is_dir = Path.is_dir
+
+        def flaky(self):
+            if self.name == "bad":
+                raise PermissionError("denied")
+            return orig_is_dir(self)
+
+        monkeypatch.setattr(Path, "is_dir", flaky)
+        results = {e.id: e for e in discover_in(tmp_path)}
+        assert "bad" in results and results["bad"].errors, "unreadable entry must surface, not crash"
 
 
 # ---------------------------------------------------------------------------

@@ -31,12 +31,21 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import yaml
 
-
 EXTENSIONS_DIR = "extensions"
 MANIFEST_FILE = "manifest.yaml"
 
 _REQUIRED_FIELDS = ("id", "name", "version", "extension_type", "contract_sets")
 _ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def is_valid_extension_id(ext_id: object) -> bool:
+    """True when ext_id is a safe extension identifier (^[a-z0-9][a-z0-9-]*$).
+
+    Rejects path separators, '..', uppercase, and empty/non-string values. Any
+    caller that builds a filesystem path from an id (e.g. `govkit extension add`)
+    must gate on this before touching the filesystem.
+    """
+    return isinstance(ext_id, str) and _ID_PATTERN.match(ext_id) is not None
 
 
 @dataclass
@@ -86,16 +95,41 @@ def discover_extensions(target: Path) -> list[Extension]:
     Extension carries an error in .errors and a minimal id derived from
     the folder name. Discovery never raises.
     """
-    ext_root = target / EXTENSIONS_DIR
-    if not ext_root.is_dir():
+    return discover_in(target / EXTENSIONS_DIR)
+
+
+def discover_in(ext_root: Path) -> list[Extension]:
+    """Scan a directory of extension folders (<ext_root>/<id>/manifest.yaml).
+
+    The lower-level scanner behind discover_extensions. Used directly to
+    enumerate bundled extension packs (paths.EXTENSION_PACKS_DIR), whose layout
+    is the same <root>/<id>/manifest.yaml but not under an `extensions/` parent.
+    Returns [] when ext_root does not exist or is unreadable. Never raises.
+    """
+    try:
+        if not ext_root.is_dir():
+            return []
+        entries = sorted(ext_root.iterdir())
+    except OSError:
+        # Unreadable directory (permissions, I/O) — be tolerant, like a missing
+        # one. Discovery must never raise into apply / validate / doctor.
         return []
 
     results: list[Extension] = []
-    for entry in sorted(ext_root.iterdir()):
-        if not entry.is_dir() or entry.name.startswith("."):
+    for entry in entries:
+        try:
+            if not entry.is_dir() or entry.name.startswith("."):
+                continue
+            manifest_path = entry / MANIFEST_FILE
+            manifest_exists = manifest_path.exists()
+        except OSError as exc:
+            results.append(Extension(
+                id=entry.name,
+                root=entry,
+                errors=[f"could not read extension folder: {exc}"],
+            ))
             continue
-        manifest_path = entry / MANIFEST_FILE
-        if not manifest_path.exists():
+        if not manifest_exists:
             results.append(Extension(
                 id=entry.name,
                 root=entry,
@@ -124,7 +158,7 @@ def _check_id(manifest: dict, ext: Extension) -> list[str]:
     if not isinstance(ext_id, str):
         return []
     issues: list[str] = []
-    if not _ID_PATTERN.match(ext_id):
+    if not is_valid_extension_id(ext_id):
         issues.append(f"invalid id format: {ext_id!r} (must match ^[a-z0-9][a-z0-9-]*$)")
     if ext_id != ext.root.name:
         issues.append(f"id {ext_id!r} does not match folder name {ext.root.name!r}")

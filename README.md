@@ -172,6 +172,7 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 | `govkit validate` | Level-aware **per-feature** compliance check (artifact existence, Gherkin structure, NFR coverage, eval-criteria schema, prediction thresholds). No-op at L3. |
 | `govkit init <feature>` | Scaffold a new feature folder from the appropriate starter (L4+). |
 | `govkit stack` | `stack list` shows bundled tech-stack overlays; `stack apply <id>` swaps the stack on an existing install. |
+| `govkit extension` | `extension list` shows bundled extension packs; `extension add <id> --target <path>` copies one into your project's `extensions/<id>/`. |
 | `govkit upgrade` | Refresh the files govkit owns (contracts, CI gates, templates) to a new version without touching the files you own. |
 | `govkit list` | List available agents and starter templates. |
 
@@ -491,11 +492,22 @@ See [`cli/stacks/README.md`](cli/stacks/README.md) for the complete guide, inclu
 
 ## Extensions
 
-Govkit supports **optional extension packs** that layer additional architecture contracts and governance templates on top of the core kit. They're a drop-in mechanism: there is no `govkit extension add` command — the folder under `extensions/<id>/` in your project *is* the install.
+Govkit ships **optional extension packs** that layer additional architecture contracts on top of the core kit — currently `agentic-skills` and `vision-inference`. Add one with `govkit extension add`, or drop the folder in by hand; either way the folder under `extensions/<id>/` in your project *is* the install.
 
 ### How to add an extension
 
-1. **Create the folder.** Extensions live at the root-level `extensions/` directory of your project — a sibling of `docs/`, `governance/`, and `features/`:
+The quickest path is the bundled-pack command:
+
+```bash
+govkit extension list                              # see what's bundled
+govkit extension add vision-inference --target .   # copy it into extensions/vision-inference/
+```
+
+`add` copies the pack into your project's `extensions/<id>/` and validates it in place. It **warns but proceeds** if the pack's `supported_levels` / `supported_project_types` don't match your `.govkit` marker, or if a core contract it `extends` isn't installed yet (e.g. a generative pack's L5 contracts in a non-L5 project). Pass `--force` to overwrite an existing folder.
+
+**Or add one by hand** — the folder *is* the install, so you can vendor any extension, including ones not bundled with govkit:
+
+1. **Create the folder** at your project root — a sibling of `docs/`, `governance/`, and `features/`:
 
    ```text
    <project>/
@@ -511,15 +523,15 @@ Govkit supports **optional extension packs** that layer additional architecture 
    └── .govkit
    ```
 
-2. **Drop in the extension's files.** Clone the extension repo, copy its folder, or vendor it into `extensions/<id>/`. Everything the extension ships (its `manifest.yaml`, `docs/`, and `governance/`) lives in-place under that folder — all manifest paths are relative to it.
+2. **Drop in the extension's files.** Copy or vendor the folder into `extensions/<id>/`; all manifest paths are relative to it.
 
-3. **Re-run `govkit apply`.** It scans `extensions/*/manifest.yaml` and prints each extension it discovers, so you get confirmation it was picked up.
+3. **Re-run `govkit apply`** (or `govkit doctor`). It scans `extensions/*/manifest.yaml` and reports each extension it discovers.
 
 4. **Validate it.** `govkit validate` and `govkit doctor` (checks D013/D014) verify the manifest and flag any undeclared overlap with core contracts (see below).
 
 When `extensions/` is absent, govkit behaves exactly as it does without extensions — they are entirely optional.
 
-See `extensions/agentic-skills/` in this repository for a complete reference example.
+See `extensions/agentic-skills/` and `extensions/vision-inference/` in this repository for complete reference examples.
 
 ### Authoring an extension
 
