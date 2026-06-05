@@ -1,0 +1,71 @@
+id: vision-inference
+name: Vision Inference Extension
+version: 0.1.0
+description: Governed architecture contracts for applications that CONSUME pretrained or hosted vision models (discriminative and, later, generative/VLM) behind a port — versioning, biometric data handling, black-box acceptance eval, and prediction logging.
+govkit_min_version: 0.0.0
+extension_type: architecture
+supported_levels:
+  - 4
+  - 5
+supported_project_types:
+  - api
+  - cli
+
+contract_sets:
+  - id: vision_inference
+    description: Discriminative vision consumption — the model lives behind an adapter/port, with version pinning + drift detection, biometric data handling, black-box acceptance eval on a held-out set, and PII-safe prediction logging.
+    paths:
+      - docs/backend/architecture/VISION_MODEL_ADAPTER_CONTRACT.md
+      - docs/backend/architecture/MODEL_VERSIONING_CONTRACT.md
+      - docs/backend/architecture/INFERENCE_ACCEPTANCE_CONTRACT.md
+      - docs/backend/architecture/BIOMETRIC_DATA_HANDLING_CONTRACT.md
+      - docs/backend/architecture/PREDICTION_LOGGING_CONTRACT.md
+    applies_to:
+      - "**/*vision*"
+      - "**/*ocr*"
+      - "**/*detect*"
+      - "**/*classify*"
+      - "**/*predict*"
+      - "**/*inference*"
+    capabilities:
+      - vision-model-adapter
+      - external-model-versioning
+      - biometric-data-handling
+      - black-box-acceptance-eval
+      - prediction-observability
+
+  - id: vision_generative
+    description: Generative / vision-language consumption (VLMs such as Claude vision or GPT-4V, and image generation / diffusion). Adds multimodal input governance and REUSES the L5 GenAI-Ops contracts (guardrails, eval-as-judge, LLM observability, gateway) via relates_to.extends rather than reinventing them.
+    paths:
+      - docs/backend/architecture/MULTIMODAL_INPUT_CONTRACT.md
+    applies_to:
+      - "**/*vlm*"
+      - "**/*caption*"
+      - "**/*multimodal*"
+      - "**/*generate*"
+      - "**/*diffusion*"
+    capabilities:
+      - multimodal-input
+      - prompt-injection-via-image-defense
+      - generative-output-validation
+    relates_to:
+      extends:
+        - docs/backend/architecture/GUARDRAILS_CONTRACT.md
+        - docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
+        - docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md
+        - docs/backend/architecture/LLM_GATEWAY_CONTRACT.md
+
+agent_guidance:
+  architecture_preflight:
+    - Read this extension manifest when present under extensions/*/manifest.yaml.
+    - Load the vision_inference contract set when a feature consumes a pretrained or hosted vision model (classification, detection, OCR, or a hosted vision API).
+    - List applicable extension contracts in architecture_preflight.md.
+    - Require an ADR for any override or violation of these contracts.
+  implementation_plan:
+    - Confine the vendor/model SDK to a single adapter behind a port; keep services and domain free of provider types.
+    - Pin the consumed model id + version and record it with every prediction.
+    - For any image leaving the trust boundary, satisfy the biometric data-handling contract before sending.
+  validation:
+    - Validate that declared contract files exist after apply.
+    - Validate that architecture_preflight.md cites applicable extension contracts.
+    - Validate that ADRs exist for approved contract exceptions.
