@@ -94,17 +94,32 @@ def discover_in(ext_root: Path) -> list[Extension]:
     The lower-level scanner behind discover_extensions. Used directly to
     enumerate bundled extension packs (paths.EXTENSION_PACKS_DIR), whose layout
     is the same <root>/<id>/manifest.yaml but not under an `extensions/` parent.
-    Returns [] when ext_root does not exist. Never raises.
+    Returns [] when ext_root does not exist or is unreadable. Never raises.
     """
-    if not ext_root.is_dir():
+    try:
+        if not ext_root.is_dir():
+            return []
+        entries = sorted(ext_root.iterdir())
+    except OSError:
+        # Unreadable directory (permissions, I/O) — be tolerant, like a missing
+        # one. Discovery must never raise into apply / validate / doctor.
         return []
 
     results: list[Extension] = []
-    for entry in sorted(ext_root.iterdir()):
-        if not entry.is_dir() or entry.name.startswith("."):
+    for entry in entries:
+        try:
+            if not entry.is_dir() or entry.name.startswith("."):
+                continue
+            manifest_path = entry / MANIFEST_FILE
+            manifest_exists = manifest_path.exists()
+        except OSError as exc:
+            results.append(Extension(
+                id=entry.name,
+                root=entry,
+                errors=[f"could not read extension folder: {exc}"],
+            ))
             continue
-        manifest_path = entry / MANIFEST_FILE
-        if not manifest_path.exists():
+        if not manifest_exists:
             results.append(Extension(
                 id=entry.name,
                 root=entry,
