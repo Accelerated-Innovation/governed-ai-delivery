@@ -10,9 +10,10 @@ AI coding agents are powerful — but without constraints, they drift. They inve
 ```bash
 pip install govkit
 govkit apply --agent claude-code --target .
+govkit calibrate
 ```
 
-One command installs govkit. One more applies it to your project. The governance workflow your team follows from that point on is what keeps the agent aligned, every feature, every time.
+Install govkit, apply it to your project, then calibrate the defaults to match your repo. From there the governance workflow your team follows is what keeps the agent aligned — every feature, every time.
 
 > govkit works with any project language — Python, C#, Java, Go, TypeScript, or anything else. It copies Markdown specs, YAML configs, and Gherkin feature files into your project directory. Python is a dev-machine tool requirement only; it is not added as a project dependency.
 
@@ -20,39 +21,11 @@ One command installs govkit. One more applies it to your project. The governance
 
 ---
 
-## Table of Contents
+## Get started in 4 steps
 
-- [Prerequisites](#prerequisites)
-- [Quickstart](#quickstart)
-- [Maturity Levels](#maturity-levels)
-- [Supported Agents](#supported-agents)
-- [Key Concepts](#key-concepts)
-- [Extensions](#extensions)
-- [Working With the Agent](#working-with-the-agent)
-- [Project Type Details](#project-type-details)
-- [Monorepo (Fullstack) Pattern](#monorepo-fullstack-pattern)
-- [Switching Tech Stacks](#switching-tech-stacks)
-- [Interpreting Validation Failures](#interpreting-validation-failures)
-- [Troubleshooting & FAQ](#troubleshooting--faq)
-- [Multi-Repository Features](#multi-repository-features)
-- [Architecture Reference](#architecture-reference)
-- [Evaluation Reference](#evaluation-reference)
-- [Getting Help](#getting-help)
-- [License](#license)
-- [Glossary](#glossary)
-- [Resources](#resources)
+You need **Python 3.11+** on your machine (govkit is a dev tool, never a project dependency) and **an AI coding agent** — Claude Code, GitHub Copilot, or OpenAI Codex. govkit ships the governance configuration; you bring the agent.
 
----
-
-## Prerequisites
-
-- **Python 3.11+** — required to install and run govkit (does not need to be added to your project)
-- **pip** — for installation (`pip install govkit`)
-- **An AI coding agent** — Claude Code, GitHub Copilot, or OpenAI Codex (govkit provides the configuration, not the agent itself)
-
----
-
-## Quickstart
+Work top to bottom. Steps 1–2 install governance; steps 3–4 make it govern *your* project, not a generic one.
 
 ### 1. Install govkit
 
@@ -60,21 +33,58 @@ One command installs govkit. One more applies it to your project. The governance
 pip install govkit
 ```
 
-### 2. List available agents
+### 2. Apply it to your project
 
-```bash
-govkit list
-```
-
-### 3. Apply to your project
-
-From your project root, run `govkit apply` and answer the prompts:
+From your project root:
 
 ```bash
 govkit apply --agent claude-code --target .
 ```
 
-Or specify all options explicitly. Each `govkit apply` configures **one project shape**: backend (`api` / `cli`), UI (`ui-react` / `ui-angular`), or data (`data`, dbt-layered, claude-code only for now). Fullstack-in-one-repo is supported via the [monorepo pattern](docs/MONOREPO_PATTERN.md) — one `govkit apply` per subdirectory.
+govkit detects your stack (language, framework, CI), scaffolds the agent rules + architecture contracts, and writes a `.govkit/` marker recording your configuration. Prefer to set everything explicitly, or use a different agent/type/level? See [Choose your options](#choose-your-options).
+
+### 3. Calibrate the defaults to your repo
+
+> [!IMPORTANT]
+> **This step is not optional.** The files govkit installs are sound *generic* defaults — and your agent treats them as law. If you skip calibration, the agent governs your project against someone else's architecture decisions.
+
+```bash
+govkit calibrate
+```
+
+`govkit calibrate` walks you through a **9-step review** — installed configuration, tech stack, architecture boundaries, API/query conventions, testing + BDD policy, agent guidance, rules, CI gates, and skill context. For each step it shows the installed default *next to what it detected in your repo*, then you confirm or modify. Prefer to review with the team first? `govkit calibrate --non-interactive` writes a `GOVKIT_CALIBRATION_CHECKLIST.md` todo file instead.
+
+> 💡 **Let the agent help — but you decide.** You can ask the agent to draft edits — *"update `TECH_STACK.md` to match our `pyproject.toml`"* or *"align `BOUNDARIES.md` with our actual folder layout"* — pointing it at evidence you already have (dependency manifests, existing code). **You confirm every change.** These files are the source of truth that governs the agent; don't let it invent its own guardrails from its training data — that's the exact drift govkit exists to prevent.
+
+### 4. Commit your governance baseline
+
+```bash
+git add .govkit CLAUDE.md docs/ governance/ ci/
+git commit -m "chore: add govkit governance baseline"
+```
+
+You're ready to build. See [The feature lifecycle](#the-feature-lifecycle) for how you drive the agent through a feature, and run [`govkit doctor`](#commands) once you have source code (and in CI) to catch governance that has drifted out of sync with your repo.
+
+> **Upgrading later?** `pip install --upgrade govkit && govkit upgrade --target .` refreshes the files govkit owns without touching the contracts you've customized. See [Keeping contracts up to date](#keeping-contracts-up-to-date).
+
+---
+
+## Choose your options
+
+Each `govkit apply` configures **one project shape**. Pick one value per flag:
+
+| Flag | Options | Pick this if… |
+|---|---|---|
+| `--agent` | `claude-code` · `copilot` · `codex` | …matches the AI tool your team uses |
+| `--type` | `api` · `cli` · `ui-react` · `ui-angular` · `data` | …describes this repo (or subdir) — backend service, CLI, React/Angular UI, or dbt data project |
+| `--level` | `3` · `4` · `5` | …`3` governed foundations (default) · `4` spec-driven delivery · `5` GenAI operations — see [Maturity Levels](#maturity-levels) |
+| `--ci` | `github` · `azure` | …your CI platform |
+| `--stack` | `python-fastapi` · `dotnet-aspnet` · `java-spring-boot` · `nodejs-fastify` · `go-gin` · `python-dbt` | …backend/data only; auto-detected, defaults to `python-fastapi`. See [Switching Tech Stacks](#switching-tech-stacks) |
+
+Running `govkit apply` with no `--type`/`--ci`/`--stack` flags prompts interactively and auto-detects sensible defaults from your repo. A `.govkit` marker records every choice so later commands (`calibrate`, `validate`, `upgrade`, `doctor`) need no re-specification.
+
+<details>
+<summary><b>Full example commands for every combination</b></summary>
 
 ```bash
 # Level 3: Governed AI Delivery (Foundations) — agent rules + architecture docs only (default)
@@ -97,32 +107,18 @@ govkit apply --agent codex --level 4 --type ui-angular --ci github --target .
 
 # Data project (L4) — dbt-layered, python-dbt stack inferred from dbt_project.yml
 govkit apply --agent claude-code --level 4 --type data --ci github --target .
+
+# Pick a non-default backend stack
+govkit apply --agent claude-code --level 4 --type api --ci github --stack dotnet-aspnet --target .
 ```
 
-A `.govkit` marker file is written to your project root, tracking the agent, level, options, and govkit version. This enables `govkit init`, `govkit validate`, and `govkit upgrade` to auto-detect your configuration without re-specifying flags.
+Fullstack-in-one-repo is supported via the [monorepo pattern](docs/MONOREPO_PATTERN.md) — one `govkit apply` per subdirectory. There is no `--type fullstack`.
 
-When using interactive mode (no `--type`, `--ci` flags), you'll see prompts like:
+</details>
 
-```
-$ govkit apply --agent claude-code --target .
+### What gets installed
 
-Applying govkit agent 'claude-code' to /path/to/your/project
-
-  Project type? [api / cli / ui-react / ui-angular / data] (default: api): ui-react
-  CI platform? [github / azure] (default: github): github
-
-  Configuration: {'type': 'ui-react', 'ci': 'github'}
-
-Agent files:
-  copied  /path/to/your/project/CLAUDE.md
-  copied  /path/to/your/project/src/CLAUDE.md
-  copied  /path/to/your/project/.claude/rules/repo-scope.md
-  ...
-```
-
-### 4. Verify installation
-
-After applying, your project will contain artifacts appropriate to the shape you picked.
+After applying, your project contains artifacts appropriate to the shape you picked.
 
 **Backend shape** (`--type api` or `--type cli`):
 
@@ -164,74 +160,22 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 
 > **Starter templates and worked examples** are bundled inside the govkit package, not copied into your project by `govkit apply`. Use `govkit init <feature-name>` to scaffold a new feature from the appropriate starter, or run `govkit list` to see what is available.
 
-### 5. Customize your governance artifacts
+---
 
-> [!WARNING]
-> **This step is not optional.** The installed `docs/` files are authoritative starting points — they reflect sound defaults, but they are written for a generic project. Your agent will treat them as law. If you skip this step, the agent will govern your project against someone else's architecture decisions.
+## Commands
 
-Before writing a single line of feature code, review and update the following to match your project:
+| Command | What it does |
+|---|---|
+| `govkit apply` | Install / scaffold governance into your project. Detects your stack, writes the `.govkit` marker. |
+| `govkit calibrate` | Guided 9-step review to make the installed generic defaults match your repo. `--non-interactive` writes a checklist file; `--only <step>` revisits one decision. |
+| `govkit doctor` | Read-only **governance-fit** checks (rule globs resolve, CI/stack/language match, stale baselines, extension manifests). Run once you have source code, and in CI. Monorepo-aware. |
+| `govkit validate` | Level-aware **per-feature** compliance check (artifact existence, Gherkin structure, NFR coverage, eval-criteria schema, prediction thresholds). No-op at L3. |
+| `govkit init <feature>` | Scaffold a new feature folder from the appropriate starter (L4+). |
+| `govkit stack` | `stack list` shows bundled tech-stack overlays; `stack apply <id>` swaps the stack on an existing install. |
+| `govkit upgrade` | Refresh the files govkit owns (contracts, CI gates, templates) to a new version without touching the files you own. |
+| `govkit list` | List available agents and starter templates. |
 
-**Backend projects (API or CLI):**
-- `docs/backend/architecture/TECH_STACK.md` — replace with your actual approved libraries, frameworks, and versions
-- `docs/backend/architecture/ARCH_CONTRACT.md` — confirm the hexagonal layer names and boundaries match your codebase structure
-- `docs/backend/architecture/API_CONVENTIONS.md` (API) or `docs/backend/architecture/CLI_CONVENTIONS.md` (CLI) — update conventions to match your project standards
-- `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md` — replace with your actual auth provider, token pattern, and scope conventions
-- `docs/backend/evaluation/eval_criteria.md` — confirm FIRST and 7 Virtue thresholds are appropriate for your team's standards
-
-**React UI projects:**
-- `docs/ui/architecture/react/TECH_STACK.md` — confirm your React version, state management libraries, and testing stack
-- `docs/ui/architecture/react/COMPONENT_CONVENTIONS.md` — update to reflect your project's folder structure and naming conventions
-- `docs/ui/evaluation/eval_criteria.md` — confirm accessibility standard and FIRST thresholds
-
-**Angular UI projects:**
-- `docs/ui/architecture/angular/TECH_STACK.md` — confirm your Angular version, TanStack Query setup, and testing stack
-- `docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md` — update to reflect your project's folder structure and naming conventions
-- `docs/ui/evaluation/eval_criteria.md` — confirm accessibility standard and FIRST thresholds
-
-These files are the source of truth for your AI agent. The agent reads them before every planning and implementation step. Keep them accurate and up to date as your project evolves.
-
-### 6. Keep governance contracts up to date
-
-When you upgrade govkit, run `govkit upgrade` to refresh the files that govkit owns — architecture contracts, CI gate pipelines, plan templates — without touching the files your team owns.
-
-```bash
-pip install --upgrade govkit
-govkit upgrade --target .
-```
-
-govkit distinguishes three categories of files:
-
-| Category | Examples | `apply` | `upgrade` |
-|---|---|---|---|
-| **Agent config** | `CLAUDE.md`, `.claude/rules/`, `.agents/skills/` | Always overwrite | Always overwrite |
-| **Governed contracts** | `docs/backend/architecture/`, `governance/backend/templates/`, `ci/github/` | Write once (skip if present) | **Overwrite** |
-| **Project artifacts** | `features/starter_*/`, your ADRs, filled-in feature files | Write once (skip if present) | Skip |
-
-After upgrading, review the diff and commit:
-
-```bash
-git diff
-git add -p
-git commit -m "chore: upgrade govkit governance contracts to vX.Y.Z"
-```
-
-Use `--force` to re-apply even when the version is already current — useful for resetting a contract file to govkit defaults after an accidental edit:
-
-```bash
-govkit upgrade --target . --force
-```
-
-### 7. Validate governance compliance
-
-```bash
-govkit validate --target .
-```
-
-Validation is level-aware. **Level 3** is a no-op (Foundations ships agent rules + architecture docs only — there are no per-feature artifacts to check; the CI quality-gate is the L3 compliance surface). **Level 4** runs the full 5-artifact governed contract check (existence + Gherkin structure + NFR completeness + tag coverage + eval_criteria.yaml schema + evaluation prediction thresholds). **Level 5** adds LLM-specific NFR + DeepEval/Promptfoo checks. The level is auto-detected from `.govkit` or can be overridden:
-
-```bash
-govkit validate --level 4 --target .
-```
+> `govkit doctor` and `govkit validate` cover different surfaces: **doctor** checks whether the installed governance still *fits the repo*; **validate** checks whether your *features* meet the governed contract. Both are designed to run in CI.
 
 ---
 
@@ -298,117 +242,11 @@ You'll be prompted to choose: migrate your existing 3-artifact features to the n
 
 ---
 
-## Supported Agents
+## The feature lifecycle
 
-govkit installs agent-specific configuration files into your target project at the paths shown below. Three agents are supported, each with the same variant options:
+Once govkit is installed and calibrated, here is how you interact with the agent to deliver a feature. This lifecycle applies to **every feature**, regardless of project type. The commands below use Claude Code; see [Agent command equivalents](#agent-command-equivalents) for Copilot and Codex.
 
-| Agent | AI Tool | Files installed into your project |
-|---|---|---|
-| `claude-code` | Claude Code | `CLAUDE.md`, `.claude/rules/`, `.claude/skills/` |
-| `copilot` | GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/`, `.github/skills/` |
-| `codex` | OpenAI Codex | `AGENTS.md` (root + nested per layer), `.agents/skills/` |
-
-All agents support the same variant options:
-
-| Option | Choices | Default |
-|---|---|---|
-| `--level` | `3`, `4`, `5` | `3` |
-| `--type` | `api`, `cli`, `ui-react`, `ui-angular` | `api` |
-| `--ci` | `github`, `azure` | `github` |
-
-The `--type` choices are flat — one install configures one project shape. The legacy `--ui` cross-product was removed in v0.8. For fullstack monorepos see the [monorepo pattern](docs/MONOREPO_PATTERN.md).
-
----
-
-## Key Concepts
-
-**Hexagonal Architecture (Ports & Adapters)** — Your domain logic lives at the center, isolated from infrastructure. Inbound adapters (API routes, CLI commands) call inbound ports. Outbound ports define contracts that adapters (databases, APIs, message queues) implement. Domain code never imports infrastructure libraries.
-
-**MVVM (UI projects)** — Model-View-ViewModel. Components (View) render UI. Hooks or inject functions (ViewModel) provide data and actions. API functions (Model) call the backend. Components never call APIs directly.
-
-**dbt-layered (Data projects)** — Staging → Intermediate → Marts. Staging models present source data with light cleanup (one source each). Intermediate models hold business logic and cross-source joins. Marts are the downstream-facing contracts that BI tools, reverse-ETL, and consumers read. Each layer's allowed reads + materialization rules are enforced via per-layer agent rules. Teams using medallion (bronze/silver/gold) edit the layer names in `skill_context.yaml` once; the rules and skills follow.
-
-**FIRST Principles** — Test quality framework. Tests must be **F**ast, **I**solated, **R**epeatable, **S**elf-verifying, and **T**imely. Each principle is scored 1–5 with a minimum average of 4.0.
-
-**7 Code Virtues** — Implementation quality framework. Code must be **Working**, **Unique**, **Simple**, **Clear**, **Easy** to maintain, **Developed** (tested and clean), and **Brief**. Each virtue is scored 1–5 with a minimum average of 4.0.
-
-**Gherkin Acceptance Criteria** — Features are specified using Given/When/Then scenarios. Scenarios are tagged with NFR categories (`@nfr-performance`, `@nfr-security`) to ensure non-functional requirements have test coverage.
-
-**Governed Development** — The agent reads architecture contracts, evaluation criteria, and feature specs before generating code. CI gates enforce compliance. The agent proposes; your governance artifacts decide.
-
----
-
-## Extensions
-
-Govkit supports **optional, self-describing extension packs** that layer additional architecture contracts and governance templates on top of the core kit. Extensions are discovered at the root-level `extensions/` folder of your project — a sibling of `docs/`, `governance/`, and `features/`:
-
-```text
-<project>/
-├── docs/
-├── governance/
-├── features/
-├── extensions/
-│   └── <extension-id>/
-│       ├── manifest.yaml
-│       ├── README.md
-│       ├── docs/
-│       └── governance/
-└── .govkit
-```
-
-**Discovery contract:**
-- **Scan** — `govkit apply` and `govkit validate` scan `extensions/*/manifest.yaml`.
-- **Self-describing** — each extension declares its own `id`, `version`, `contract_sets`, `capabilities`, and agent guidance in its manifest. Govkit needs no per-extension code.
-- **In-place** — extensions are not installed by the CLI. The folder under `extensions/<id>/` *is* the install. All paths in the manifest are relative to that folder.
-- **No-extension behavior** — when `extensions/` is absent, govkit behaves exactly as it does today. Extensions are entirely optional.
-
-**Minimal manifest (`extensions/<id>/manifest.yaml`):**
-
-```yaml
-id: my-extension
-name: My Extension
-version: 0.1.0
-extension_type: architecture
-contract_sets:
-  - id: my_contracts
-    description: ...
-    paths:
-      - docs/backend/architecture/MY_CONTRACT.md
-    capabilities:
-      - my-capability
-```
-
-### Resolving overlap with core contracts
-
-When an extension contract covers the same topic as a core govkit contract (e.g. an `AGENT_EVALUATION_CONTRACT.md` extension alongside core `EVALUATION_LLM_CONTRACT.md`), the manifest declares the relationship explicitly via `relates_to`:
-
-```yaml
-contract_sets:
-  - id: my_contracts
-    paths: [docs/backend/architecture/AGENT_EVALUATION_CONTRACT.md]
-    relates_to:
-      extends:    [docs/backend/architecture/EVALUATION_LLM_CONTRACT.md]   # both apply; stricter rule wins
-      supersedes: []                                                        # extension replaces core (requires ADR)
-```
-
-- `relates_to.extends` — the extension layers additional constraints on top of the core contract. The agent reads both and applies whichever is stricter on any specific point.
-- `relates_to.supersedes` — the extension replaces the listed core contract for rules in its scope. Requires an ADR in the consuming project.
-
-**Undeclared overlap is detected.** `govkit validate` runs a filename-token heuristic: if an extension contract shares a topic token with a core contract under `docs/backend/architecture/` and `relates_to` does not declare the relationship, the validator emits a WARN (or FAIL under `--strict`) asking the extension author to declare the intent. This prevents silent drift when extension authors and core authors update the same topic area independently.
-
-**Agent reading order at preflight time.** The architecture-preflight skill reads core contracts first, then extension contracts; it prefers extensions only when `supersedes` is declared. If an applicable extension and a core contract conflict and `relates_to` does not declare the relationship, the agent halts and requests either a manifest update or an ADR rather than silently picking one.
-
-See `extensions/agentic-skills/` in this repository for a complete reference example.
-
----
-
-## Working With the Agent
-
-Once govkit is installed, here is how you interact with the agent to deliver a feature. This lifecycle applies to **every feature**, regardless of project type or agent.
-
-### Step 1: Create a Feature Folder
-
-Use `govkit init` to create a feature from the appropriate starter:
+### Step 1: Create a feature folder
 
 ```bash
 govkit init my_feature --target .
@@ -424,7 +262,7 @@ The command auto-detects your maturity level from `.govkit`. **`govkit init` req
 
 For Level 4 projects, each starter's `eval_criteria.yaml` includes mode selection instructions at the top. Set the `mode` field to match your feature type: `llm` (LLM generation/retrieval), `deterministic` (pure logic), or `none` (configuration artifacts). If the mode is `deterministic` or `none`, delete the `llm_evaluation` section.
 
-### Step 2: Write Your Acceptance Criteria
+### Step 2: Write your acceptance criteria
 
 Edit `features/my_feature/acceptance.feature` with your Gherkin scenarios:
 
@@ -433,58 +271,29 @@ Edit `features/my_feature/acceptance.feature` with your Gherkin scenarios:
 - Tag E2E scenarios with `@e2e` (UI projects)
 - Add `@contract` scenarios if the feature produces shared artifacts
 
-### Step 3: Complete Your NFRs
+### Step 3: Complete your NFRs
 
 Edit `features/my_feature/nfrs.md` — replace every TBD entry with concrete requirements. The agent will refuse to proceed if any TBD entries remain.
 
-### Step 4: Run Architecture Preflight
+### Step 4: Run architecture preflight
 
-Ask the agent to validate your feature against the architecture contracts:
+Ask the agent to validate your feature against the architecture contracts with `/architecture-preflight my_feature`. The agent produces `architecture_preflight.md` covering boundary analysis, security impact, evaluation impact, and whether an ADR is needed. If an ADR is required, create it next with `/adr-author my_feature`.
 
-| Agent | Command |
-|---|---|
-| Claude Code | `/architecture-preflight my_feature` |
-| Copilot | `/architecture-preflight` (with feature context) |
-| Codex | `$architecture-preflight my_feature` |
+### Step 5: Generate the plan
 
-The agent produces `architecture_preflight.md` covering boundary analysis, security impact, evaluation impact, and whether an ADR is needed. If an ADR is required, create it next:
+Ask the agent to create the implementation plan with `/spec-planning my_feature`. The agent generates `plan.md` and `eval_criteria.yaml`. The plan includes:
 
-| Agent | Command |
-|---|---|
-| Claude Code | `/adr-author my_feature` |
-| Copilot | `/adr-author` |
-| Codex | `$adr-author my_feature` |
-
-### Step 5: Generate the Plan
-
-Ask the agent to create the implementation plan:
-
-| Agent | Command |
-|---|---|
-| Claude Code | `/spec-planning my_feature` |
-| Copilot | `/spec-planning` |
-| Codex | `$spec-planning my_feature` |
-
-The agent generates `plan.md` and `eval_criteria.yaml`. The plan includes:
 - Increments with deliverables and tests
 - An **Evaluation Compliance Summary** predicting FIRST and 7 Virtue scores
 - Each increment sized as a single committable unit (~300 lines)
 
 **The agent will not proceed if predicted averages are below 4.0.**
 
-### Step 6: Review the Implementation Plan
+### Step 6: Review the implementation plan
 
-Ask the agent to break the plan into a detailed task checklist:
+Ask the agent to break the plan into a detailed task checklist with `/implementation-plan my_feature`. Review and approve before implementation begins.
 
-| Agent | Command |
-|---|---|
-| Claude Code | `/implementation-plan my_feature` |
-| Copilot | `/implementation-plan` |
-| Codex | `$implementation-plan my_feature` |
-
-Review and approve before implementation begins.
-
-### Step 7: Implement Incrementally
+### Step 7: Implement incrementally
 
 Work through the plan one increment at a time. For each increment:
 
@@ -495,7 +304,7 @@ Work through the plan one increment at a time. For each increment:
 
 **Do not skip increments or combine multiple increments into one commit.**
 
-### Step 8: Push and Merge
+### Step 8: Push and merge
 
 Open a PR. CI gates automatically run:
 
@@ -508,11 +317,24 @@ Open a PR. CI gates automatically run:
 
 All gates must pass before merge.
 
+### Agent command equivalents
+
+The lifecycle is identical across agents; only the invocation syntax differs.
+
+| Step | Claude Code | Copilot | Codex |
+|---|---|---|---|
+| Architecture preflight | `/architecture-preflight my_feature` | `/architecture-preflight` | `$architecture-preflight my_feature` |
+| Author ADR | `/adr-author my_feature` | `/adr-author` | `$adr-author my_feature` |
+| Spec planning | `/spec-planning my_feature` | `/spec-planning` | `$spec-planning my_feature` |
+| Implementation plan | `/implementation-plan my_feature` | `/implementation-plan` | `$implementation-plan my_feature` |
+
+Copilot infers the feature from context rather than taking it as an argument; Codex invokes skills with a `$` prefix.
+
 ---
 
 ## Project Type Details
 
-The 8-step workflow above applies to all project types. Key differences by type:
+The 8-step lifecycle above applies to all project types. Key differences by type:
 
 ### Backend API
 
@@ -597,6 +419,8 @@ Each subdir becomes a self-contained govkit install — separate `.govkit` marke
 - **Codex** — directory-walk loader concatenates `AGENTS.md` from leaf to root
 - **Copilot** — `applyTo:` globs in each instructions file (one small post-install adjustment to prefix the app path so globs don't cross app boundaries)
 
+`govkit calibrate` and `govkit doctor` are monorepo-aware: run them with no `--target` from the repo root and they discover every `.govkit/` install under the tree and process each app in turn.
+
 For the complete setup — directory layout, CI workflow examples, the Copilot `applyTo:` prefix tweak, feature governance per app, upgrade flow, and gotchas — see [docs/MONOREPO_PATTERN.md](docs/MONOREPO_PATTERN.md).
 
 If your backend and UI live in **separate repositories** instead of subdirectories of a monorepo, see [Multi-Repository Features](#multi-repository-features) below — different coordination problem.
@@ -625,7 +449,7 @@ govkit apply --agent claude-code --target . --level 4 --type api --ci github \
              --stack dotnet-aspnet
 ```
 
-If you omit `--stack`, the default `python-fastapi` overlay is applied and recorded as a "default-source" assumption in `.govkit/marker.json` so `govkit doctor` (future release) can warn if the default doesn't fit your repo.
+If you omit `--stack`, govkit detects your stack from the repo and falls back to the `python-fastapi` overlay, recording the choice as an assumption in `.govkit/marker.json` so `govkit doctor` can warn if it doesn't fit your repo.
 
 ### Swap stacks on an existing install
 
@@ -659,60 +483,85 @@ The agent rules and most architecture docs (DESIGN_PRINCIPLES, ARCH_CONTRACT, BO
 | `go-gin` | backend | Go 1.22+ / Gin / standard library testing + testify |
 | `python-dbt` | data | Python 3.11+ / dbt-core (staging → intermediate → marts) / Snowflake \| BigQuery \| Redshift \| Postgres adapter / SQLfluff / dbt schema tests (default for `data`) |
 
-After applying a stack, review the installed files and adapt anything specific to your repo (approved library versions, internal service names, etc.). `GOVKIT_SETUP_REVIEW.md` at the target root lists each stack doc with a one-line review prompt. Consider raising an ADR to document the stack decision.
+After applying a stack, review the installed files and adapt anything specific to your repo (approved library versions, internal service names, etc.) — `govkit calibrate` walks you through this. `GOVKIT_SETUP_REVIEW.md` at the target root lists each stack doc with a one-line review prompt. Consider raising an ADR to document the stack decision.
 
 See [`cli/stacks/README.md`](cli/stacks/README.md) for the complete guide, including how to add new stacks.
 
 ---
 
-## Interpreting Validation Failures
+## Extensions
 
-When `govkit validate --target .` reports failures, here's what they mean and how to fix them:
+Govkit supports **optional extension packs** that layer additional architecture contracts and governance templates on top of the core kit. They're a drop-in mechanism: there is no `govkit extension add` command — the folder under `extensions/<id>/` in your project *is* the install.
 
-| Failure | Meaning | Fix |
-|---|---|---|
-| `acceptance.feature not found` | Feature folder is missing its Gherkin spec | Copy from starter and write scenarios |
-| `no Feature: keyword` or `no Scenario: keyword` | Gherkin file exists but is malformed | Add `Feature:` header and at least one `Scenario:` with Given/When/Then |
-| `nfrs.md contains TBD entries` | NFR categories have placeholder values | Replace every TBD with a concrete, measurable requirement |
-| `eval_criteria.yaml missing or invalid` | Eval config doesn't match the JSON Schema | Check `governance/*/schemas/eval_criteria.schema.json` for required fields |
-| `plan.md missing evaluation_prediction` | Plan exists but has no prediction block | Add the `evaluation_prediction` YAML block (see worked examples) |
-| `predicted FIRST average below 4.0` | Predicted test quality is below threshold | Revise the plan — improve test strategy or split complex increments |
-| `predicted Virtue average below 4.0` | Predicted code quality is below threshold | Revise the plan — simplify design, reduce complexity, improve separation |
-| `NFR tag coverage incomplete` | Some NFR categories lack corresponding Gherkin tags | Add `@nfr-<category>` tags to relevant scenarios in acceptance.feature |
+### How to add an extension
 
----
+1. **Create the folder.** Extensions live at the root-level `extensions/` directory of your project — a sibling of `docs/`, `governance/`, and `features/`:
 
-## Troubleshooting & FAQ
+   ```text
+   <project>/
+   ├── docs/
+   ├── governance/
+   ├── features/
+   ├── extensions/
+   │   └── <extension-id>/
+   │       ├── manifest.yaml
+   │       ├── README.md
+   │       ├── docs/
+   │       └── governance/
+   └── .govkit
+   ```
 
-**Q: `govkit: command not found` after installation**
-A: Ensure your Python scripts directory is on your PATH. Try `python -m cli.govkit` as a fallback, or reinstall with `pip install --user govkit`.
+2. **Drop in the extension's files.** Clone the extension repo, copy its folder, or vendor it into `extensions/<id>/`. Everything the extension ships (its `manifest.yaml`, `docs/`, and `governance/`) lives in-place under that folder — all manifest paths are relative to it.
 
-**Q: `govkit apply` fails with "no agent found"**
-A: Check that you're using a valid agent name (`claude-code`, `copilot`, or `codex`). Run `govkit list` to see available agents.
+3. **Re-run `govkit apply`.** It scans `extensions/*/manifest.yaml` and prints each extension it discovers, so you get confirmation it was picked up.
 
-**Q: The agent ignores my architecture rules**
-A: Verify the rules files were copied to the correct location (`.claude/rules/`, `.github/instructions/`, or the nested `AGENTS.md` files for Codex). Check that file paths match what the agent expects — Claude Code loads rules based on the file path you're editing, Codex walks the directory tree from repo root down to the current working directory and concatenates each `AGENTS.md` it finds.
+4. **Validate it.** `govkit validate` and `govkit doctor` (checks D013/D014) verify the manifest and flag any undeclared overlap with core contracts (see below).
 
-**Q: How do I update to a newer version of govkit?**
-A: Run `pip install --upgrade govkit`. Then re-run `govkit apply` — it will skip files that already exist. To force update a specific file, delete it first.
+When `extensions/` is absent, govkit behaves exactly as it does without extensions — they are entirely optional.
 
-**Q: Can I use govkit on an existing project with existing code?**
-A: Yes. `govkit apply` copies governance artifacts into your project without modifying existing code. You may need to adjust `docs/backend/architecture/ARCH_CONTRACT.md` and other docs to reflect your existing architecture rather than the defaults.
+See `extensions/agentic-skills/` in this repository for a complete reference example.
 
-**Q: What if my architecture doesn't match the Hexagonal defaults?**
-A: Customize the architecture docs after install. The agent follows whatever `ARCH_CONTRACT.md` says — if your project uses a different pattern, document it there. Consider creating an ADR explaining the architectural choice.
+### Authoring an extension
 
-**Q: Can I use multiple agents in the same project?**
-A: Yes. Run `govkit apply` once for each agent. They install to different paths (`.claude/`, `.github/`, and `AGENTS.md` + `.agents/` for Codex) and share the same `docs/`, `governance/`, and `features/` artifacts. All agents read the same architecture contracts.
+Each extension is self-describing: it declares its own `id`, `version`, `contract_sets`, `capabilities`, and agent guidance in its manifest. Govkit needs no per-extension code.
 
-**Q: How do I add a new NFR category?**
-A: Add the category as a `## Heading` in your feature's `nfrs.md`, add corresponding `@nfr-<category>` tags to acceptance scenarios, and update `cli/validate.py`'s `category_to_tag` mapping if you want automated tag coverage validation.
+**Minimal manifest (`extensions/<id>/manifest.yaml`):**
 
-**Q: The CI pipeline fails because SonarQube/Snyk isn't configured**
-A: These tools are optional. If your team doesn't use them, remove or comment out those jobs from the CI pipeline files. See `ci/README.md` for details on required secrets.
+```yaml
+id: my-extension
+name: My Extension
+version: 0.1.0
+extension_type: architecture
+contract_sets:
+  - id: my_contracts
+    description: ...
+    paths:
+      - docs/backend/architecture/MY_CONTRACT.md
+    capabilities:
+      - my-capability
+```
 
-**Q: What does "thresholds_met: false" mean in my plan?**
-A: Your predicted FIRST or Virtue average is below 4.0, or a predicted accessibility violation count is above zero. Revise the plan — simplify the design, improve test strategy, or split large increments before proceeding.
+The extension `id` must match its folder name and the pattern `^[a-z0-9][a-z0-9-]*$`. Every path listed in `contract_sets[].paths` (and `templates[].path`) must exist as a file under the extension folder — `govkit validate` reports missing or out-of-bounds paths.
+
+#### Resolving overlap with core contracts
+
+When an extension contract covers the same topic as a core govkit contract (e.g. an `AGENT_EVALUATION_CONTRACT.md` extension alongside core `EVALUATION_LLM_CONTRACT.md`), the manifest declares the relationship explicitly via `relates_to`:
+
+```yaml
+contract_sets:
+  - id: my_contracts
+    paths: [docs/backend/architecture/AGENT_EVALUATION_CONTRACT.md]
+    relates_to:
+      extends:    [docs/backend/architecture/EVALUATION_LLM_CONTRACT.md]   # both apply; stricter rule wins
+      supersedes: []                                                        # extension replaces core (requires ADR)
+```
+
+- `relates_to.extends` — the extension layers additional constraints on top of the core contract. The agent reads both and applies whichever is stricter on any specific point.
+- `relates_to.supersedes` — the extension replaces the listed core contract for rules in its scope. Requires an ADR in the consuming project.
+
+**Undeclared overlap is detected.** `govkit validate` and `govkit doctor` run a filename-token heuristic: if an extension contract shares a topic token with a core contract under `docs/backend/architecture/` and `relates_to` does not declare the relationship, the validator emits a WARN (or FAIL under `--strict`) asking the extension author to declare the intent. This prevents silent drift when extension authors and core authors update the same topic area independently.
+
+**Agent reading order at preflight time.** The architecture-preflight skill reads core contracts first, then extension contracts; it prefers extensions only when `supersedes` is declared. If an applicable extension and a core contract conflict and `relates_to` does not declare the relationship, the agent halts and requests either a manifest update or an ADR rather than silently picking one.
 
 ---
 
@@ -742,6 +591,92 @@ A: Each repo has unit tests (mocking externals) and contract tests (verifying it
 
 **Q: What if the repos have deployment dependencies (one must be live before the other)?**
 A: Document the order in your `nfrs.md` "Key Cross-Repo Contracts" section. Ideally, design contracts to be backward-compatible so deployment order is flexible. See [CROSS_REPO_FEATURES.md#integration-stage-sequential](docs/CROSS_REPO_FEATURES.md#integration-stage-sequential).
+
+---
+
+## Keeping contracts up to date
+
+When you upgrade govkit, run `govkit upgrade` to refresh the files that govkit owns — architecture contracts, CI gate pipelines, plan templates — without touching the files your team owns.
+
+```bash
+pip install --upgrade govkit
+govkit upgrade --target .
+```
+
+govkit distinguishes three categories of files:
+
+| Category | Examples | `apply` | `upgrade` |
+|---|---|---|---|
+| **Agent config** | `CLAUDE.md`, `.claude/rules/`, `.agents/skills/` | Always overwrite | Always overwrite |
+| **Governed contracts** | `docs/backend/architecture/`, `governance/backend/templates/`, `ci/github/` | Write once (skip if present) | **Overwrite** |
+| **Project artifacts** | `features/starter_*/`, your ADRs, filled-in feature files | Write once (skip if present) | Skip |
+
+After upgrading, review the diff and commit:
+
+```bash
+git diff
+git add -p
+git commit -m "chore: upgrade govkit governance contracts to vX.Y.Z"
+```
+
+Use `--force` to re-apply even when the version is already current — useful for resetting a contract file to govkit defaults after an accidental edit:
+
+```bash
+govkit upgrade --target . --force
+```
+
+---
+
+## Interpreting Validation Failures
+
+When `govkit validate --target .` reports failures, here's what they mean and how to fix them:
+
+| Failure | Meaning | Fix |
+|---|---|---|
+| `acceptance.feature not found` | Feature folder is missing its Gherkin spec | Copy from starter and write scenarios |
+| `no Feature: keyword` or `no Scenario: keyword` | Gherkin file exists but is malformed | Add `Feature:` header and at least one `Scenario:` with Given/When/Then |
+| `nfrs.md contains TBD entries` | NFR categories have placeholder values | Replace every TBD with a concrete, measurable requirement |
+| `eval_criteria.yaml missing or invalid` | Eval config doesn't match the JSON Schema | Check `governance/*/schemas/eval_criteria.schema.json` for required fields |
+| `plan.md missing evaluation_prediction` | Plan exists but has no prediction block | Add the `evaluation_prediction` YAML block (see worked examples) |
+| `predicted FIRST average below 4.0` | Predicted test quality is below threshold | Revise the plan — improve test strategy or split complex increments |
+| `predicted Virtue average below 4.0` | Predicted code quality is below threshold | Revise the plan — simplify design, reduce complexity, improve separation |
+| `NFR tag coverage incomplete` | Some NFR categories lack corresponding Gherkin tags | Add `@nfr-<category>` tags to relevant scenarios in acceptance.feature |
+
+For governance that has drifted out of sync with your repo (rule globs matching nothing, CI/stack mismatches, stale baselines), run `govkit doctor` — it covers a different surface than `validate`.
+
+---
+
+## Troubleshooting & FAQ
+
+**Q: `govkit: command not found` after installation**
+A: Ensure your Python scripts directory is on your PATH. Try `python -m cli.govkit` as a fallback, or reinstall with `pip install --user govkit`.
+
+**Q: `govkit apply` fails with "no agent found"**
+A: Check that you're using a valid agent name (`claude-code`, `copilot`, or `codex`). Run `govkit list` to see available agents.
+
+**Q: The agent ignores my architecture rules**
+A: Verify the rules files were copied to the correct location (`.claude/rules/`, `.github/instructions/`, or the nested `AGENTS.md` files for Codex). Run `govkit doctor` — its D001 check flags any rule whose path globs resolve to zero files in your repo, which is the most common cause. Claude Code loads rules based on the file path you're editing; Codex walks the directory tree from repo root down to the current working directory and concatenates each `AGENTS.md` it finds.
+
+**Q: How do I update to a newer version of govkit?**
+A: Run `pip install --upgrade govkit`, then `govkit upgrade --target .` to refresh govkit-owned files without touching your customized contracts. See [Keeping contracts up to date](#keeping-contracts-up-to-date).
+
+**Q: Can I use govkit on an existing project with existing code?**
+A: Yes. `govkit apply` copies governance artifacts into your project without modifying existing code. Then run `govkit calibrate` to align `ARCH_CONTRACT.md` and the other contracts with your existing architecture rather than the defaults.
+
+**Q: What if my architecture doesn't match the Hexagonal defaults?**
+A: Customize the architecture docs after install (calibrate's "Architecture boundaries" step walks you through it). The agent follows whatever `BOUNDARIES.md` / `ARCH_CONTRACT.md` say — if your project uses clean or layered architecture, document it there. Consider creating an ADR explaining the architectural choice.
+
+**Q: Can I use multiple agents in the same project?**
+A: Yes. Run `govkit apply` once for each agent. They install to different paths (`.claude/`, `.github/`, and `AGENTS.md` + `.agents/` for Codex) and share the same `docs/`, `governance/`, and `features/` artifacts. All agents read the same architecture contracts.
+
+**Q: How do I add a new NFR category?**
+A: Add the category as a `## Heading` in your feature's `nfrs.md`, add corresponding `@nfr-<category>` tags to acceptance scenarios, and update `cli/validate.py`'s `category_to_tag` mapping if you want automated tag coverage validation.
+
+**Q: The CI pipeline fails because SonarQube/Snyk isn't configured**
+A: These tools are optional. If your team doesn't use them, remove or comment out those jobs from the CI pipeline files. See `ci/README.md` for details on required secrets.
+
+**Q: What does "thresholds_met: false" mean in my plan?**
+A: Your predicted FIRST or Virtue average is below 4.0, or a predicted accessibility violation count is above zero. Revise the plan — simplify the design, improve test strategy, or split large increments before proceeding.
 
 ---
 
@@ -884,6 +819,10 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 | **Skill** (Copilot) | A reusable task in `.github/skills/` invoked via slash command — open agent skills standard |
 | **AGENTS.md** (Codex) | A markdown instructions file read by Codex. A root `AGENTS.md` applies globally; nested `AGENTS.md` files at layer directories scope rules to that subtree via directory walk |
 | **Skill** (Codex) | A `SKILL.md` under `.agents/skills/<name>/` invoked via `$skill-name` |
+| **Marker** (`.govkit`) | The marker directory/file written by `govkit apply` recording agent, level, type, stack, CI, assumptions, and calibration decisions so later commands auto-detect your configuration |
+| `govkit calibrate` | Guided 9-step review that aligns the installed generic defaults with your actual repo and records the decisions in the marker |
+| `govkit doctor` | Read-only governance-fit validator (rule globs, CI/stack/language match, stale baselines, extension manifests); complements `govkit validate` |
+| `govkit validate` | CLI command that checks all features for governance compliance (artifact completeness, thresholds) |
 | **Port** | An interface defining a contract between layers (inbound ports for API entry, outbound ports for infrastructure) |
 | **Adapter** | An implementation of a port that connects to infrastructure (database, external API, message queue) |
 | **Domain** | Business logic that has no dependencies on frameworks or infrastructure |
@@ -892,7 +831,7 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 | **ADR** | Architecture Decision Record — documents and gates architectural changes |
 | **NFR** | Non-Functional Requirement — performance, security, availability, etc. |
 | **Evaluation Prediction** | Predicted FIRST and Virtue scores in `plan.md` — must average >= 4.0 before implementation |
-| `govkit validate` | CLI command that checks all features for governance compliance (artifact completeness, thresholds) |
+| **Extension** | An optional, self-describing pack under `extensions/<id>/` that layers extra contracts/templates onto the core kit (drop-in; not CLI-installed) |
 | `/architecture-preflight` | Agent skill that validates a feature against architecture contracts before planning (`$architecture-preflight` in Codex) |
 | `/genai-preflight` | L5 agent skill that validates LLM gateway, observability, guardrails, and evaluation decisions (`$genai-preflight` in Codex) |
 | `/eval-suite-planning` | L5 agent skill that plans DeepEval, Promptfoo, and RAGAS test suites (`$eval-suite-planning` in Codex) |
@@ -904,11 +843,3 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 | **RAGAS** | L5 retrieval-specific evaluation — context recall, precision (RAG pipelines only) |
 | **NeMo Guardrails** | L5 conversational safety — dialog flow control, topic boundaries, jailbreak prevention |
 | **Guardrails AI** | L5 structured output validation — JSON schema enforcement on LLM responses |
-
----
-
-## Resources
-
-### Video Demo (COMING SOON)
-
-[Watch govkit apply on a FastAPI project — GitHub Copilot Prompts Explained]()
