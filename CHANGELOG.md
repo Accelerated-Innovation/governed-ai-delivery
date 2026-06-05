@@ -6,6 +6,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.11.1] — 2026-06-05
+
+### Fixed — `govkit calibrate` leaked internal PR references
+
+The skill-context calibration step (step 9) printed internal roadmap language — `"generated at end of calibrate (PR 5+)"` and `"PR 6a wires the consumers"` — into the interactive prompt and the generated `GOVKIT_CALIBRATION_CHECKLIST.md`. Reworded to user-facing text, with a regression test asserting no calibration step exposes a `PR <n>` reference.
+
+### Changed — README rewritten story-first
+
+The README was reorganized so the install/customize path leads and reference material follows, addressing feedback that the getting-started flow was buried.
+
+- New 4-step **Get started** checklist (install → apply → `govkit calibrate` → commit) with `govkit calibrate` as the canonical customize step.
+- Agent/type/level/ci/stack options collapsed into one table; the full command matrix moved into a `<details>` block.
+- Feature lifecycle written once (Claude Code) with a single agent-equivalents table instead of per-step 3-agent tables.
+- New **Commands** table documenting all 8 subcommands; **Extensions** restructured ("how to add" before "authoring").
+- Corrected stale content: `govkit doctor` and `govkit calibrate` are documented as shipped (not "future"); `doctor` positioned as a code/CI fit-check.
+
+### Verification
+
+- pytest green on 3.11 + 3.12 (new `test_no_internal_pr_references_in_user_facing_text`); wheel-smoke green.
+
+---
+
 ## [0.11.0] — 2026-05-28
 
 ### Added — `--type data` parity for codex + copilot
