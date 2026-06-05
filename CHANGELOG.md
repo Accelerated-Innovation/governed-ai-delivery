@@ -6,6 +6,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.12.0] — 2026-06-05
+
+### Added — extension packs ship with the wheel + `govkit extension` command
+
+Extension packs were repo-reference only and never distributed via PyPI. They now ship inside the wheel (`cli/extension_packs/`, force-included from `extensions/`), installable via a new command:
+
+- `govkit extension list` — enumerate bundled packs (id, name, supported levels/types).
+- `govkit extension add <id> --target <path> [--force]` — copy a pack into the target's `extensions/<id>/`, validate it in place, and **warn-and-proceed** on a level/type mismatch against the `.govkit` marker or a missing `relates_to.extends` core contract. `--force` overwrites an existing folder.
+
+This makes `supported_levels` / `supported_project_types` non-inert — `extension add` now surfaces them as install-time warnings.
+
+### Added — `vision-inference` extension pack
+
+Governs applications that **consume** pretrained or hosted vision models (rather than train them), layered on `--type api` / `--type cli`. Two contract sets: discriminative (model-as-adapter, version pinning + drift, black-box acceptance eval, biometric data handling, PII-safe prediction logging) and generative/VLM (multimodal input, reusing the L5 GenAI-Ops contracts via `relates_to.extends`).
+
+### Verification
+
+- New `tests/test_cmd_extension.py` (list, add, overwrite guard, compat warnings) and `tests/test_vision_inference.py`. Full suite green on 3.11 + 3.12; wheel build confirmed to bundle `cli/extension_packs/` for both packs.
+
+---
+
 ## [0.11.1] — 2026-06-05
 
 ### Fixed — `govkit calibrate` leaked internal PR references
