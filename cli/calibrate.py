@@ -319,12 +319,12 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
         title="Skill context",
         description="Facts skills will read (architecture style, stack, layer mappings).",
         file_path=".govkit/skill_context.yaml",
-        installed_summary="generated at end of calibrate (PR 5+)",
+        installed_summary="regenerated when calibration completes",
         detected_value=None,
         suggestion=(
             "Final review — these are the facts skills (architecture-preflight, "
-            "spec-planning, implementation-plan) will consult when generating "
-            "guidance. PR 6a wires the consumers."
+            "spec-planning, implementation-plan) consult when generating "
+            "guidance. Confirm they reflect the decisions you made above."
         ),
         assumption_id=None,
     ))

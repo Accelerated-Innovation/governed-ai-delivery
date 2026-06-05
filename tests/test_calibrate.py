@@ -108,6 +108,22 @@ class TestBuildChecklist:
         assert any("docs/ui/architecture" in p for p in paths)
         assert not any("docs/backend/architecture" in p for p in paths)
 
+    def test_no_internal_pr_references_in_user_facing_text(self, tmp_path):
+        """Calibration steps are user-facing; they must not leak internal
+        roadmap/PR references (e.g. "PR 5+", "PR 6a wires the consumers")."""
+        import re
+
+        from cli.calibrate import build_checklist
+
+        marker = _write_marker(tmp_path)
+        steps = build_checklist(tmp_path, marker)
+        pr_ref = re.compile(r"\bPR\s*\d", re.IGNORECASE)
+        for step in steps:
+            for field_name in ("title", "description", "installed_summary", "suggestion"):
+                value = getattr(step, field_name) or ""
+                assert not pr_ref.search(value), \
+                    f"{step.id}.{field_name} leaks an internal PR reference: {value!r}"
+
     def test_agent_step_path_matches_agent(self, tmp_path):
         """The agent-instruction step uses the correct path per agent."""
         from cli.calibrate import build_checklist
