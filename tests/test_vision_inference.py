@@ -140,6 +140,7 @@ class TestGenerativeLayer:
         "docs/backend/architecture/GUARDRAILS_CONTRACT.md",
         "docs/backend/architecture/EVALUATION_LLM_CONTRACT.md",
         "docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md",
+        "docs/backend/architecture/LLM_GATEWAY_CONTRACT.md",
     }
 
     @staticmethod
