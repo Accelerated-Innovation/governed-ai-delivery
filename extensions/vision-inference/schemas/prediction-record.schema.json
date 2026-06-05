@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Vision Inference Prediction Record",
-  "description": "Per-prediction provenance record emitted by a vision-model adapter. The object the acceptance-eval gate and prediction logging both consume. Records model identity + version, the (referenced, never raw) input, the preprocessing applied, outputs with confidence, the decision taken, and slice tags for disaggregated evaluation.",
+  "description": "Per-prediction provenance record emitted by a vision-model adapter. The object the acceptance-eval gate and prediction logging both consume. Records model identity + version, the (referenced, never raw) input, the preprocessing applied, outputs with confidence, the decision taken, and slice tags for disaggregated evaluation. additionalProperties is false so a raw payload (e.g. raw_image / image_base64) cannot be smuggled into the record; team-specific metadata belongs in slice_tags.",
   "type": "object",
-  "required": ["model_id", "model_version", "outputs"],
-  "additionalProperties": true,
+  "required": ["model_id", "model_version", "input_ref", "outputs"],
+  "additionalProperties": false,
   "properties": {
     "prediction_id": {
       "type": "string",

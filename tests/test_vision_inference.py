@@ -91,6 +91,46 @@ def test_prediction_record_schema_pins_provenance_fields():
     )
 
 
+class TestPredictionRecordSchemaEnforcesNoRawPayload:
+    """The schema must back the contracts' invariant: a prediction record
+    references the input by id/hash (`input_ref`) and CANNOT carry raw image
+    bytes (no unexpected top-level fields like raw_image/image_base64)."""
+
+    @staticmethod
+    def _schema() -> dict:
+        return json.loads(PREDICTION_RECORD_SCHEMA.read_text(encoding="utf-8"))
+
+    @staticmethod
+    def _valid_record() -> dict:
+        return {
+            "model_id": "vision-detector",
+            "model_version": "2024-01",
+            "input_ref": "sha256:deadbeef",
+            "outputs": [{"label": "cat", "confidence": 0.91}],
+        }
+
+    def test_input_ref_is_required(self):
+        assert "input_ref" in self._schema().get("required", []), (
+            "input_ref must be required so a record always references the input"
+        )
+
+    def test_valid_record_passes(self):
+        errors = list(Draft202012Validator(self._schema()).iter_errors(self._valid_record()))
+        assert errors == [], f"a well-formed record must validate; got {errors}"
+
+    def test_missing_input_ref_rejected(self):
+        rec = self._valid_record()
+        del rec["input_ref"]
+        errors = list(Draft202012Validator(self._schema()).iter_errors(rec))
+        assert errors, "a record without input_ref must be rejected"
+
+    def test_raw_image_field_rejected(self):
+        rec = self._valid_record()
+        rec["image_base64"] = "iVBORw0KGgoAAAANSUhEUg=="  # smuggled raw payload
+        errors = list(Draft202012Validator(self._schema()).iter_errors(rec))
+        assert errors, "a record with a raw-image field must be rejected (additionalProperties)"
+
+
 class TestGenerativeLayer:
     """PR 2 — generative / VLM contract set. Adds MULTIMODAL_INPUT and REUSES the
     L5 GenAI-Ops contracts via relates_to.extends rather than reinventing them."""
