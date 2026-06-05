@@ -58,6 +58,9 @@ packages = ["cli"]
 "features" = "cli/features"
 "governance" = "cli/governance"
 "ci" = "cli/ci"
+# Bundled extension packs. Destination is cli/extension_packs (NOT cli/extensions —
+# that is the discovery module cli/extensions.py). Read via paths.EXTENSION_PACKS_DIR.
+"extensions" = "cli/extension_packs"
 # Note: cli/stacks/ is inside the cli package and ships automatically with
 # the wheel. An earlier `"cli/stacks" = "cli/stacks"` force-include here
 # caused hatch to bundle the directory twice (producing zipfile duplicate

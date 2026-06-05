@@ -26,5 +26,15 @@ _HERE = Path(__file__).parent
 AGENTS_DIR = _HERE / "agents" if (_HERE / "agents").exists() else _HERE.parent / "agents"
 REPO_ROOT = AGENTS_DIR.parent
 
+# Bundled extension packs. In the wheel these ship at cli/extension_packs/
+# (force-included from the repo's extensions/); running from the repo we read
+# extensions/ directly. The destination is NOT cli/extensions/ — that name is
+# the discovery module (cli/extensions.py).
+EXTENSION_PACKS_DIR = (
+    _HERE / "extension_packs"
+    if (_HERE / "extension_packs").exists()
+    else _HERE.parent / "extensions"
+)
+
 FEATURES_PREFIX = "features/"
 TARGET_HELP = "Path to the target project root"

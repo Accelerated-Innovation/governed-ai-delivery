@@ -31,7 +31,6 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import yaml
 
-
 EXTENSIONS_DIR = "extensions"
 MANIFEST_FILE = "manifest.yaml"
 
@@ -86,7 +85,17 @@ def discover_extensions(target: Path) -> list[Extension]:
     Extension carries an error in .errors and a minimal id derived from
     the folder name. Discovery never raises.
     """
-    ext_root = target / EXTENSIONS_DIR
+    return discover_in(target / EXTENSIONS_DIR)
+
+
+def discover_in(ext_root: Path) -> list[Extension]:
+    """Scan a directory of extension folders (<ext_root>/<id>/manifest.yaml).
+
+    The lower-level scanner behind discover_extensions. Used directly to
+    enumerate bundled extension packs (paths.EXTENSION_PACKS_DIR), whose layout
+    is the same <root>/<id>/manifest.yaml but not under an `extensions/` parent.
+    Returns [] when ext_root does not exist. Never raises.
+    """
     if not ext_root.is_dir():
         return []
 
