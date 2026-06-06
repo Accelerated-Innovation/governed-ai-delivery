@@ -7,9 +7,10 @@
 
 Loads agents/<agent>/manifest.json and resolves the effective install set
 (files / shared / governed) for a chosen set of options (level, type, ci, ...).
-The merge/replace and by_type dispatch rules that turn the manifest's variant
-declarations into a concrete file list live here. Depends only on the path
-kernel (cli/paths.py), so commands import it inward without a cycle.
+The merge/replace, by_type, and by_stack dispatch rules that turn the
+manifest's variant declarations into a concrete file list live here. Depends
+only on the path kernel (cli/paths.py), so commands import it inward without a
+cycle.
 """
 
 from __future__ import annotations
@@ -104,16 +105,37 @@ def _select_variant(
     return base, None, "merge"
 
 
-def _apply_by_type(block: dict, type_value: str | None) -> dict:
-    """Merge block + block.by_type[type_value] into a single effective block.
+_ENTRY_KEYS = ("files", "shared", "governed")
+
+
+def _merge_dispatch_blocks(block: dict, *dispatch_blocks: dict) -> dict:
+    """Merge a base block with one or more dispatch blocks."""
+    merged: dict = {
+        k: v for k, v in block.items()
+        if k not in (*_ENTRY_KEYS, "by_type", "by_stack")
+    }
+    for key in _ENTRY_KEYS:
+        entries = list(block.get(key, []))
+        for dispatch_block in dispatch_blocks:
+            entries.extend(dispatch_block.get(key, []))
+        merged[key] = entries
+    return merged
+
+
+def _apply_by_type(block: dict, type_value: str | None, stack_value: str | None) -> dict:
+    """Merge block + type/stack dispatch entries into one effective block.
 
     The `by_type` sub-block was added in v0.8 to let one dimension (currently `ci`)
     dispatch its entries based on another dimension's value (currently `type`).
     Example: ci.github.by_type["ui-react"] yields UI-specific CI gates; the
     backend types fall through to ci.github's own files/shared/governed.
 
+    The optional `by_stack` sub-block, nested inside a `by_type` entry, lets data
+    CI dispatch stack-specific static gates after `type=data` is selected.
+
     If the block has no `by_type` key, or no entry for type_value, the block
-    is returned unchanged. Non-list keys (like `mode`) are preserved.
+    is returned unchanged. If `by_stack` has no entry for stack_value, only the
+    parent type entry is folded in. Non-list keys (like `mode`) are preserved.
     """
     if not block:
         return {}
@@ -121,15 +143,15 @@ def _apply_by_type(block: dict, type_value: str | None) -> dict:
     type_block = by_type.get(type_value, {}) if type_value else {}
     if not type_block:
         return block
-    merged: dict = {k: v for k, v in block.items() if k not in ("files", "shared", "governed", "by_type")}
-    merged["files"]    = list(block.get("files", []))    + list(type_block.get("files", []))
-    merged["shared"]   = list(block.get("shared", []))   + list(type_block.get("shared", []))
-    merged["governed"] = list(block.get("governed", [])) + list(type_block.get("governed", []))
-    return merged
+    by_stack = type_block.get("by_stack") or {}
+    stack_block = by_stack.get(stack_value, {}) if stack_value else {}
+    dispatch_blocks = (type_block, stack_block) if stack_block else (type_block,)
+    return _merge_dispatch_blocks(block, *dispatch_blocks)
 
 
 def _dimension_entries(
-    base: dict, override: dict | None, mode: str, type_value: str | None = None,
+    base: dict, override: dict | None, mode: str,
+    type_value: str | None = None, stack_value: str | None = None,
 ) -> tuple[list, list, list]:
     """Compute one dimension's effective (files, shared, governed) after applying override.
 
@@ -144,12 +166,14 @@ def _dimension_entries(
     The optional `type_value` enables `by_type` dispatch (v0.8): each block's
     `by_type[type_value]` entries are folded into the block before the merge/
     replace logic runs. Used by the `ci` dimension to ship type-specific gates.
+    The optional `stack_value` enables nested `by_stack` dispatch (v0.12+) under
+    those type entries for data-stack-specific CI gates.
 
     Cross-dimension accumulation (e.g. type.api + ci.github both contributing to
     .github/instructions/) is handled by `_collect_entries`, not here.
     """
-    eff_base = _apply_by_type(base, type_value)
-    eff_override = _apply_by_type(override, type_value) if override else None
+    eff_base = _apply_by_type(base, type_value, stack_value)
+    eff_override = _apply_by_type(override, type_value, stack_value) if override else None
 
     if eff_override is None:
         return (
@@ -232,11 +256,15 @@ def resolve_variant_files(manifest: dict, options: dict) -> tuple[list, list, li
     variants = manifest.get("variants", {})
     level = options.get("level", "3")
     type_value = options.get("type")
+    stack_value = options.get("stack")
     for dimension, value in options.items():
         if dimension == "level":
             continue
         base, override, mode = _select_variant(variants, dimension, value, level)
-        files, shared, governed = _dimension_entries(base, override, mode, type_value=type_value)
+        files, shared, governed = _dimension_entries(
+            base, override, mode,
+            type_value=type_value, stack_value=stack_value,
+        )
         _collect_entries(
             files, shared, governed,
             all_files, seen_files,

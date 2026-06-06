@@ -16,6 +16,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - `govkit upgrade` now validates marker options against the current manifest
   before resolving variants, so malformed markers fail fast instead of silently
   omitting governed CI gates.
+- Manifest resolution now supports optional `by_stack` entries nested under
+  `by_type`, enabling stack-aware data CI gates while preserving common CI for
+  unmapped future stacks.
 - README data-stack guidance now describes the conservative CI model: common
   governance is installed by default, while stack-specific execution gates
   remain opt-in until configured.
