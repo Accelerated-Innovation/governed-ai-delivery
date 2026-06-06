@@ -401,6 +401,8 @@ The following layer rules apply to dbt-style repos (`python-dbt`). For Databrick
 - `python-dbt` (dbt-core + Snowflake / BigQuery / Redshift / Postgres adapter, SQLfluff, dbt schema tests, optional `dbt-expectations` for L4).
 - `databricks-lakehouse` (Unity Catalog, Delta tables, Databricks Asset Bundles, Jobs, Lakeflow Pipelines, PySpark, SQL, notebooks, and optional Databricks bundle validation).
 
+If both `dbt_project.yml` and `databricks.yml` are present, GovKit treats the repo as `python-dbt` by default because dbt is the project shape. Pass `--stack databricks-lakehouse` when the repo should use the native Databricks overlay instead.
+
 **Databricks skills integration:** GovKit governs repo delivery: contracts, acceptance criteria, architecture boundaries, PII handling, lineage expectations, CI gates, ADRs, and human approvals remain the source of truth. Databricks skills provide platform-specific assistant guidance for workspace, CLI, bundle, Unity Catalog, Jobs, Lakeflow, serving, vector search, and notebook workflows. For Databricks-native repos, install those optional skills with:
 
 ```bash

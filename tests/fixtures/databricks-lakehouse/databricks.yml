@@ -1,0 +1,28 @@
+bundle:
+  name: customer_lakehouse
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    default: dev_catalog
+  schema:
+    default: customer_analytics
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: ${DATABRICKS_HOST}
+    variables:
+      catalog: dev_catalog
+      schema: customer_analytics_dev
+  prod:
+    mode: production
+    workspace:
+      host: ${DATABRICKS_HOST}
+    variables:
+      catalog: prod_catalog
+      schema: customer_analytics

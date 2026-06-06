@@ -1,0 +1,11 @@
+resources:
+  pipelines:
+    customer_quality:
+      name: customer_quality
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      libraries:
+        - file:
+            path: ../src/silver/customer_quality.py
+      configuration:
+        bundle.sourcePath: /Workspace/${workspace.file_path}/src

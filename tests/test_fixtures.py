@@ -6,6 +6,7 @@ PR 7. Three fixture repos under tests/fixtures/ exercise the whole apply
   - dotnet-aspnet-azure/      — *.csproj + global.json + clean layout + azure-pipelines.yml
   - python-fastapi-github/    — pyproject.toml + fastapi + hexagonal layout + .github/workflows
   - dbt-project/              — dbt_project.yml + models/{staging,intermediate,marts}
+  - databricks-lakehouse/     — databricks.yml + resources/ + src/{bronze,silver,gold}
   - empty/                    — no signals at all (worst-case fallback path)
 
 Each test class copies the fixture into a tmp_path so the source tree is
@@ -15,6 +16,7 @@ than byte-exact so timestamps and govkit version don't make tests flaky.
 """
 
 import argparse
+import ast
 import shutil
 from pathlib import Path
 
@@ -315,25 +317,34 @@ class TestDatabricksLakehouseGuidance:
             stack=stack, force=False, detect=False,
         ))
 
-    def _write_bundle(self, target: Path) -> None:
-        (target / "resources").mkdir()
-        (target / "src").mkdir()
-        (target / "databricks.yml").write_text(
-            "bundle:\n  name: customer_analytics\ninclude:\n  - resources/*.yml\n",
-            encoding="utf-8",
-        )
-        (target / "resources" / "pipelines.yml").write_text(
-            "resources:\n  pipelines:\n    customer_quality:\n      name: customer_quality\n",
-            encoding="utf-8",
-        )
+    def test_fixture_contains_representative_databricks_native_files(self):
+        target = FIXTURES / "databricks-lakehouse"
+
+        assert (target / "databricks.yml").is_file()
+        assert (target / "resources" / "jobs.yml").is_file()
+        assert (target / "resources" / "pipelines.yml").is_file()
+        assert (target / "src" / "bronze" / "customers.py").is_file()
+        assert (target / "src" / "silver" / "customer_quality.py").is_file()
+        assert (target / "src" / "gold" / "customer_marts.py").is_file()
+        assert (target / "notebooks" / "customer_quality.py").is_file()
+        assert not (target / "dbt_project.yml").exists()
+
+    def test_databricks_job_entry_point_exists_in_fixture_source(self):
+        target = FIXTURES / "databricks-lakehouse"
+        jobs = yaml.safe_load((target / "resources" / "jobs.yml").read_text(encoding="utf-8"))
+        task = jobs["resources"]["jobs"]["refresh_customer_gold"]["tasks"][0]
+        entry_point = task["python_wheel_task"]["entry_point"]
+
+        module = ast.parse((target / "src" / "gold" / "customer_marts.py").read_text(encoding="utf-8"))
+        functions = {node.name for node in module.body if isinstance(node, ast.FunctionDef)}
+
+        assert task["task_key"] == entry_point
+        assert entry_point in functions
 
     def test_apply_type_data_detects_databricks_lakehouse_stack(self, tmp_path):
         from cli.marker import read_govkit_marker
 
-        target = tmp_path / "databricks-project"
-        target.mkdir()
-        self._write_bundle(target)
-
+        target = _copy_fixture("databricks-lakehouse", tmp_path)
         self._apply(target, stack=None)
 
         marker = read_govkit_marker(target)
@@ -345,9 +356,50 @@ class TestDatabricksLakehouseGuidance:
         assert (target / "ci" / "github" / "databricks-gate.yml").is_file()
         assert not (target / "ci" / "github" / "dbt-gate.yml").exists()
 
+    def test_explicit_python_dbt_stack_wins_over_databricks_inference(self, tmp_path):
+        from cli.marker import read_govkit_marker
+
+        target = _copy_fixture("databricks-lakehouse", tmp_path)
+        self._apply(target, stack="python-dbt")
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "python-dbt"
+        assert marker["options"]["stack"] == "python-dbt"
+        stack_assumption = next(a for a in marker["assumptions"] if a["id"] == "stack.id")
+        assert stack_assumption["source"] == "flag"
+        assert (target / "ci" / "github" / "dbt-gate.yml").is_file()
+        assert not (target / "ci" / "github" / "databricks-gate.yml").exists()
+
+    def test_type_data_rejects_incompatible_backend_stack_inference(self, tmp_path):
+        from cli.marker import read_govkit_marker
+
+        target = _copy_fixture("python-fastapi-github", tmp_path)
+        self._apply(target, stack=None)
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "python-dbt"
+        stack_assumption = next(a for a in marker["assumptions"] if a["id"] == "stack.id")
+        assert stack_assumption["source"] == "default"
+
+    def test_mixed_dbt_databricks_signals_prefer_dbt_project_shape(self, tmp_path):
+        from cli.marker import read_govkit_marker
+
+        target = _copy_fixture("databricks-lakehouse", tmp_path)
+        (target / "models" / "staging").mkdir(parents=True)
+        (target / "models" / "intermediate").mkdir(parents=True)
+        (target / "models" / "marts").mkdir(parents=True)
+        (target / "dbt_project.yml").write_text("name: customer_analytics\n", encoding="utf-8")
+
+        self._apply(target, stack=None)
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "python-dbt"
+        assert marker["options"]["stack"] == "python-dbt"
+        assert (target / "ci" / "github" / "dbt-gate.yml").is_file()
+        assert not (target / "ci" / "github" / "databricks-gate.yml").exists()
+
     def test_generated_tech_stack_mentions_databricks_agent_skills_boundary(self, tmp_path):
-        target = tmp_path / "databricks-project"
-        target.mkdir()
+        target = _copy_fixture("databricks-lakehouse", tmp_path)
         self._apply(target)
 
         text = (target / "docs" / "data" / "architecture" / "TECH_STACK.md").read_text(encoding="utf-8")
@@ -360,8 +412,7 @@ class TestDatabricksLakehouseGuidance:
         assert "approvals" in text
 
     def test_databricks_skills_are_guidance_only_not_required(self, tmp_path):
-        target = tmp_path / "databricks-project"
-        target.mkdir()
+        target = _copy_fixture("databricks-lakehouse", tmp_path)
         self._apply(target)
 
         marker = target / ".govkit" / "marker.json"

@@ -419,6 +419,21 @@ class TestInferStack:
         stack_id, _ = infer_stack(prof)
         assert stack_id == "java-spring-boot"
 
+    def test_dbt_project_repo_infers_python_dbt(self, tmp_path):
+        from cli.detect import build_profile, infer_stack
+
+        (tmp_path / "models" / "staging").mkdir(parents=True)
+        (tmp_path / "models" / "intermediate").mkdir(parents=True)
+        (tmp_path / "models" / "marts").mkdir(parents=True)
+        (tmp_path / "dbt_project.yml").write_text("name: customer_analytics\n", encoding="utf-8")
+
+        prof = build_profile(tmp_path)
+        stack_id, confidence = infer_stack(prof)
+
+        assert "dbt" in prof.detected_frameworks
+        assert stack_id == "python-dbt"
+        assert confidence == "high"
+
     def test_databricks_bundle_repo_infers_databricks_lakehouse(self, tmp_path):
         from cli.detect import build_profile, infer_stack
 
@@ -439,6 +454,29 @@ class TestInferStack:
 
         assert "databricks-lakehouse" in prof.detected_frameworks
         assert stack_id == "databricks-lakehouse"
+        assert confidence == "high"
+
+    def test_mixed_dbt_and_databricks_signals_prefer_python_dbt(self, tmp_path):
+        """dbt-on-Databricks is still a dbt project shape by default."""
+        from cli.detect import build_profile, infer_stack
+
+        (tmp_path / "resources").mkdir()
+        (tmp_path / "models" / "staging").mkdir(parents=True)
+        (tmp_path / "models" / "intermediate").mkdir(parents=True)
+        (tmp_path / "models" / "marts").mkdir(parents=True)
+        (tmp_path / "databricks.yml").write_text(
+            "bundle:\n  name: customer_analytics\ninclude:\n  - resources/*.yml\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "resources" / "jobs.yml").write_text("resources:\n  jobs: {}\n", encoding="utf-8")
+        (tmp_path / "dbt_project.yml").write_text("name: customer_analytics\n", encoding="utf-8")
+
+        prof = build_profile(tmp_path)
+        stack_id, confidence = infer_stack(prof)
+
+        assert "dbt" in prof.detected_frameworks
+        assert "databricks-lakehouse" in prof.detected_frameworks
+        assert stack_id == "python-dbt"
         assert confidence == "high"
 
     def test_empty_repo_returns_none(self, tmp_path):
