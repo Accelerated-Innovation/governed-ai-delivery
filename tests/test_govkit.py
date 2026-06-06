@@ -2948,7 +2948,8 @@ class TestCmdStackList:
         out = capsys.readouterr().out
 
         for stack_id in ("python-fastapi", "dotnet-aspnet", "java-spring-boot",
-                         "nodejs-fastify", "go-gin"):
+                         "nodejs-fastify", "go-gin", "python-dbt",
+                         "databricks-lakehouse"):
             assert stack_id in out
 
     def test_includes_display_name_and_summary(self, capsys):
@@ -3311,6 +3312,17 @@ class TestNoUiDimensionInManifests:
             f"{agent}: options.stack.choices must include python-dbt"
         )
 
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    def test_databricks_lakehouse_is_advertised_as_stack_choice(self, agent):
+        """Databricks-native data repos must be discoverable without knowing
+        the stack id ahead of time."""
+        from cli.paths import AGENTS_DIR
+
+        manifest = json.loads((AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8"))
+        assert "databricks-lakehouse" in manifest["options"]["stack"]["choices"], (
+            f"{agent}: options.stack.choices must include databricks-lakehouse"
+        )
+
     def test_govkit_list_prints_python_dbt_stack(self, capsys):
         from cli.cmd_list import cmd_list
 
@@ -3318,6 +3330,14 @@ class TestNoUiDimensionInManifests:
 
         out = capsys.readouterr().out
         assert "python-dbt" in out
+
+    def test_govkit_list_prints_databricks_lakehouse_stack(self, capsys):
+        from cli.cmd_list import cmd_list
+
+        cmd_list(argparse.Namespace())
+
+        out = capsys.readouterr().out
+        assert "databricks-lakehouse" in out
 
 
 class TestDataCiContract:
@@ -3560,6 +3580,51 @@ class TestPythonDbtCiGate:
             "disabled until configured",
         ]:
             assert opt_in in text
+
+
+class TestDatabricksLakehouseStack:
+    """Databricks-native data repos can opt into a separate stack overlay."""
+
+    def test_apply_type_data_explicit_databricks_stack_installs_overlay(self, tmp_path):
+        import argparse
+
+        from cli.cmd_apply import cmd_apply
+        from cli.marker import read_govkit_marker
+        from cli.skill_context import load_skill_context
+
+        target = tmp_path / "project"
+        target.mkdir()
+
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target),
+            level="4", type="data", ci="github",
+            stack="databricks-lakehouse", force=False, detect=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "databricks-lakehouse"
+        assert marker["options"]["stack"] == "databricks-lakehouse"
+
+        arch_dir = target / "docs" / "data" / "architecture"
+        for filename in [
+            "TECH_STACK.md",
+            "TESTING.md",
+            "MODEL_LAYERING.md",
+            "PIPELINE_CONTRACT.md",
+            "PII_HANDLING.md",
+            "LINEAGE_OBSERVABILITY.md",
+        ]:
+            path = arch_dir / filename
+            assert path.is_file(), f"{filename} must be installed"
+            assert "baseline: databricks-lakehouse@" in path.read_text(encoding="utf-8")
+
+        ctx = load_skill_context(target)
+        assert ctx is not None
+        assert ctx.stack_id == "databricks-lakehouse"
+        assert ctx.language == "python"
+        assert ctx.framework == "databricks-lakehouse"
+        assert ctx.deployment == "databricks-asset-bundles"
+        assert ctx.orchestration == "databricks-jobs-lakeflow"
 
 
 class TestShapeMigrationWarning:

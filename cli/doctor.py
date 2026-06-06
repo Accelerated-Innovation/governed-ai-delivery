@@ -264,6 +264,8 @@ _STACK_PRIMARY_LANGUAGE = {
     "java-spring-boot": "java",
     "nodejs-fastify":   "typescript",
     "go-gin":           "go",
+    "python-dbt":       "python",
+    "databricks-lakehouse": "python",
 }
 
 

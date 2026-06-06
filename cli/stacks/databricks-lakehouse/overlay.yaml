@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=../../../governance/schemas/stack-overlay.schema.json
+id: databricks-lakehouse
+version: "0.10.0"
+display_name: "Databricks Lakehouse (Unity Catalog / Delta / Asset Bundles)"
+summary: "Databricks-native data delivery with Unity Catalog, Delta tables, Asset Bundles, Jobs, Lakeflow Pipelines, PySpark, SQL, and notebooks"
+default_assumptions:
+  - id: stack.language
+    value: python
+  - id: stack.framework
+    value: databricks-lakehouse
+  - id: databricks.unity_catalog
+    value: required
+    review_required: true
+  - id: databricks.asset_bundles
+    value: preferred
+    review_required: true
+  - id: databricks.ci_workspace_auth
+    value: not-assumed
+    review_required: true
+docs:
+  - src: TECH_STACK.md
+    dest: docs/data/architecture/TECH_STACK.md
+    editable: true
+  - src: TESTING.md
+    dest: docs/data/architecture/TESTING.md
+    editable: true
+  - src: MODEL_LAYERING.md
+    dest: docs/data/architecture/MODEL_LAYERING.md
+    editable: true
+  - src: PIPELINE_CONTRACT.md
+    dest: docs/data/architecture/PIPELINE_CONTRACT.md
+    editable: true
+  - src: PII_HANDLING.md
+    dest: docs/data/architecture/PII_HANDLING.md
+    editable: true
+  - src: LINEAGE_OBSERVABILITY.md
+    dest: docs/data/architecture/LINEAGE_OBSERVABILITY.md
+    editable: true
+skill_context:
+  language: python
+  framework: databricks-lakehouse
+  deployment: databricks-asset-bundles
+  orchestration: databricks-jobs-lakeflow
+  unit_test: pytest
+  package_files: ["pyproject.toml", "requirements.txt", "databricks.yml"]
+  source_folder_hint: ["src/", "notebooks/", "resources/", "pipelines/"]
+review_checklist:
+  - "Confirm Unity Catalog is enabled and name the dev/ci/staging/prod catalogs and schemas."
+  - "Confirm whether Databricks Asset Bundles are the deployment contract for this repo."
+  - "Confirm whether notebooks are source-controlled, generated from modules, or limited to exploration."
+  - "Confirm whether CI can authenticate to a Databricks workspace; workspace execution is opt-in until approved."
+  - "Confirm compute policies, serverless/runtime defaults, and cost controls for Jobs and Lakeflow Pipelines."
+  - "Confirm PII tagging, masking, and non-prod data handling expectations."

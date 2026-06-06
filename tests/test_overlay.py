@@ -23,9 +23,10 @@ class TestListOverlays:
         from cli.overlay import list_overlays
 
         ids = {o.id for o in list_overlays()}
-        # The five stacks shipped in PR 2:
+        # The original API/CLI stacks plus data stacks.
         assert {"python-fastapi", "dotnet-aspnet", "java-spring-boot",
-                "nodejs-fastify", "go-gin"}.issubset(ids)
+                "nodejs-fastify", "go-gin", "python-dbt",
+                "databricks-lakehouse"}.issubset(ids)
 
     def test_each_overlay_has_minimum_metadata(self):
         from cli.overlay import list_overlays
@@ -79,7 +80,8 @@ class TestLoadOverlay:
         from cli.overlay import load_overlay
 
         for stack_id in ("python-fastapi", "dotnet-aspnet", "java-spring-boot",
-                         "nodejs-fastify", "go-gin"):
+                         "nodejs-fastify", "go-gin", "python-dbt",
+                         "databricks-lakehouse"):
             ov = load_overlay(stack_id)
             assert ov is not None, f"{stack_id} should load"
             for doc in ov.docs:
@@ -96,6 +98,25 @@ class TestLoadOverlay:
         assert ov is not None
         assert ov.skill_context.get("language") == "python"
         assert ov.skill_context.get("api_framework") == "fastapi"
+
+    def test_databricks_lakehouse_overlay_metadata(self):
+        from cli.overlay import load_overlay
+
+        ov = load_overlay("databricks-lakehouse")
+        assert ov is not None
+        assert "Databricks" in ov.display_name
+        assert ov.skill_context.get("language") == "python"
+        assert ov.skill_context.get("framework") == "databricks-lakehouse"
+        assert ov.skill_context.get("deployment") == "databricks-asset-bundles"
+        dests = {doc["dest"] for doc in ov.docs}
+        assert {
+            "docs/data/architecture/TECH_STACK.md",
+            "docs/data/architecture/TESTING.md",
+            "docs/data/architecture/MODEL_LAYERING.md",
+            "docs/data/architecture/PIPELINE_CONTRACT.md",
+            "docs/data/architecture/PII_HANDLING.md",
+            "docs/data/architecture/LINEAGE_OBSERVABILITY.md",
+        }.issubset(dests)
 
 
 class TestApplyOverlay:

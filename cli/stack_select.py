@@ -47,6 +47,7 @@ _STACK_SUPPORTED_TYPES = {
     "nodejs-fastify":    frozenset({"api", "cli"}),
     "go-gin":            frozenset({"api", "cli"}),
     "python-dbt":        frozenset({"data"}),
+    "databricks-lakehouse": frozenset({"data"}),
 }
 
 

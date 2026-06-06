@@ -385,6 +385,27 @@ class TestMonorepoDiscovery:
         findings = run_doctor(tmp_path)
         assert not any(f.id == "D005" for f in findings)
 
+    def test_d005_recognizes_databricks_lakehouse_as_python_stack(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path, stack={
+            "id": "databricks-lakehouse", "version": "0.10.0",
+            "display_name": "Databricks Lakehouse",
+            "applied_at": "2026-05-27T10:00:00+00:00",
+        })
+        (tmp_path / "package.json").write_text(
+            '{"devDependencies":{"typescript":"^5.0.0"}}\n',
+            encoding="utf-8",
+        )
+        (tmp_path / "tsconfig.json").write_text('{}\n', encoding="utf-8")
+
+        findings = run_doctor(tmp_path)
+        d005s = [f for f in findings if f.id == "D005"]
+        assert len(d005s) == 1
+        assert d005s[0].severity == "warning"
+        assert "databricks-lakehouse" in d005s[0].message
+        assert "typescript" in d005s[0].message
+
     def test_d005_does_not_fire_when_no_language_detected(self, tmp_path):
         """Empty repo has nothing to disagree with — D005 silent."""
         from cli.doctor import run_doctor
