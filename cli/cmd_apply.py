@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from . import paths, version
+from .compat import validate_level_type
 from .fs import copy_entry
 from .install_common import (
     copy_governed_or_shared,
@@ -51,6 +52,7 @@ def _cmd_apply_detect_dry_run(target: Path, args: argparse.Namespace) -> None:
     default_type = manifest.get("options", {}).get("type", {}).get("default", "api")
     type_value = cli_type or default_type
     type_display = cli_type or f"{default_type} (default)"
+    validate_level_type(getattr(args, "level", None), type_value)
 
     chosen_stack, stack_source, _, _ = resolve_stack_choice(
         getattr(args, "stack", None), type_value,
@@ -98,6 +100,7 @@ def _apply_variant_install(
     """
     print(f"\nApplying govkit agent '{args.agent}' to {target}\n")
     options = resolve_options(manifest, args)
+    validate_level_type(options.get("level"), options.get("type"))
     level = options.get("level", "3")
     print(f"\n  Configuration: {options}\n")
     files, shared, governed = resolve_variant_files(manifest, options)
@@ -203,8 +206,8 @@ def register(subparsers) -> None:
                    help="CI platform (default: prompted)")
     p.add_argument(
         "--stack", default=None,
-        help="Stack overlay id (default: python-fastapi). Run `govkit stack list` "
-             "to see available stacks.",
+        help="Stack overlay id (default depends on --type: python-fastapi for api/cli, "
+             "python-dbt for data). Run `govkit stack list` to see available stacks.",
     )
     p.add_argument(
         "--detect", action="store_true",

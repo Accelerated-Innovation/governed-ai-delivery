@@ -18,7 +18,7 @@
       "default": "github"
     },
     "stack": {
-      "choices": ["python-fastapi", "dotnet-aspnet", "java-spring-boot", "nodejs-fastify", "go-gin"],
+      "choices": ["python-fastapi", "dotnet-aspnet", "java-spring-boot", "nodejs-fastify", "go-gin", "python-dbt"],
       "default": "python-fastapi"
     }
   },

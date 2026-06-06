@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 from . import paths
+from .compat import validate_level_type
 from .fs import copy_entry
 from .marker import read_govkit_level
 
@@ -96,6 +97,9 @@ def cmd_init(args: argparse.Namespace) -> None:
     if not starter_dir.exists():
         print(f"Error: starter template not found at {starter_dir}")
         sys.exit(1)
+
+    if starter_type == "data":
+        validate_level_type(level, "data", context_flag="--starter")
 
     copy_entry(starter_dir, feature_dir)
     print(f"\nCreated feature '{feature_name}' from {starter_dir.name} (level {level})")
