@@ -23,6 +23,45 @@ from .manifest import load_manifest, resolve_variant_files
 from .marker import _compare_version, read_govkit_marker, write_govkit_marker
 
 
+def _validate_stored_options(manifest: dict, stored_options: dict) -> None:
+    """Fail fast when marker options cannot safely resolve manifest variants."""
+    if not isinstance(stored_options, dict):
+        print(
+            "Error: .govkit marker 'options' must be an object. "
+            "Re-run `govkit apply` to refresh the marker before upgrading.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    options_spec = manifest.get("options", {})
+    variants = manifest.get("variants", {})
+    required_dimensions = [
+        key for key in options_spec
+        if key != "level" and key in variants
+    ]
+
+    for key in required_dimensions:
+        spec = options_spec.get(key, {})
+        choices = spec.get("choices") or []
+        if key not in stored_options or stored_options.get(key) in (None, ""):
+            print(
+                f"Error: .govkit marker missing required option '{key}'. "
+                "Re-run `govkit apply` to refresh the marker before upgrading.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        value = stored_options[key]
+        if choices and value not in choices:
+            print(
+                f"Error: .govkit marker has invalid value {value!r} for option "
+                f"'{key}'. Expected one of: {', '.join(choices)}. "
+                "Re-run `govkit apply` to refresh the marker before upgrading.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+
 def cmd_upgrade(args: argparse.Namespace) -> None:
     """Refresh agent config and governed contracts to the current govkit version.
 
@@ -60,6 +99,7 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     print(f"  Agent: {agent}  Level: {stored_level}\n")
 
     manifest = load_manifest(agent)
+    _validate_stored_options(manifest, stored_options)
     agent_dir = paths.AGENTS_DIR / agent
     options = {**stored_options, "level": stored_level}
     files, shared, governed = resolve_variant_files(manifest, options)

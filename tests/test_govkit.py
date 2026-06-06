@@ -1982,12 +1982,27 @@ def _make_upgrade_repo(tmp_path: Path, agent: str = "test-agent") -> Path:
                     "shared": [],
                     "governed": ["docs/"],
                 }
+            },
+            "ci": {
+                "github": {
+                    "files": [],
+                    "shared": [],
+                    "governed": [],
+                    "by_type": {
+                        "api": {
+                            "governed": ["ci/github/repo-scope-check.yml"],
+                        }
+                    },
+                }
             }
         },
         "base_files": [],
     }
     (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     (agents / "CLAUDE.md").write_text("# Agent instructions v2", encoding="utf-8")
+    ci_gate = tmp_path / "ci" / "github" / "repo-scope-check.yml"
+    ci_gate.parent.mkdir(parents=True)
+    ci_gate.write_text("name: repo scope\n", encoding="utf-8")
     return tmp_path
 
 
@@ -2099,6 +2114,39 @@ class TestCmdUpgrade:
 
         with pytest.raises(SystemExit):
             cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+    @pytest.mark.parametrize(
+        "stored_options, expected",
+        [
+            ({"ci": "github"}, "missing required option 'type'"),
+            ({"type": "bogus", "ci": "github"}, "invalid value 'bogus' for option 'type'"),
+            ({"type": "api", "ci": "azure"}, "invalid value 'azure' for option 'ci'"),
+        ],
+    )
+    def test_upgrade_validates_marker_options_before_variant_resolution(
+        self, tmp_path, monkeypatch, capsys, stored_options, expected,
+    ):
+        """Malformed marker options fail fast instead of resolving empty governed CI."""
+
+        repo = _make_upgrade_repo(tmp_path)
+        target = self._target_with_marker(tmp_path, repo, version="0.11.0")
+        marker_path = target / ".govkit"
+        marker = json.loads(marker_path.read_text(encoding="utf-8"))
+        marker["options"] = stored_options
+        marker_path.write_text(json.dumps(marker), encoding="utf-8")
+
+        monkeypatch.setattr("cli.paths.AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", repo)
+        monkeypatch.setattr("cli.version.GOVKIT_VERSION", "0.12.0")
+
+        with pytest.raises(SystemExit) as exc:
+            cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+        assert exc.value.code == 1
+        err = capsys.readouterr().err
+        assert expected in err
+        assert "govkit apply" in err
+        assert not (target / "ci" / "github" / "repo-scope-check.yml").exists()
 
 
 class TestCmdUpgradeEditProtection:
