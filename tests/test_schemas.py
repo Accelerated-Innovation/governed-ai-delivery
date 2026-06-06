@@ -354,6 +354,54 @@ class TestSchemaAcceptsNewShapes:
         errors = list(validator.iter_errors(manifest))
         assert not errors, f"Schema must accept by_type sub-block; got: {errors}"
 
+    def test_accepts_by_stack_inside_by_type_entries(self):
+        # Data CI can dispatch first by type, then by stack, so stack-specific
+        # gates stay scoped to data stacks.
+        schema = _load_schema()
+        manifest = {
+            "agent": "x",
+            "description": "y",
+            "options": {
+                "type": {"prompt": "Type?", "choices": ["data"]},
+                "ci": {"prompt": "CI?", "choices": ["github"]},
+                "stack": {
+                    "choices": ["python-dbt", "databricks-lakehouse"],
+                    "default": "python-dbt",
+                },
+            },
+            "variants": {
+                "ci": {
+                    "github": {
+                        "governed": [],
+                        "by_type": {
+                            "data": {
+                                "governed": ["ci/github/data-common-gate.yml"],
+                                "by_stack": {
+                                    "python-dbt": {"governed": ["ci/github/dbt-gate.yml"]},
+                                    "databricks-lakehouse": {
+                                        "governed": ["ci/github/databricks-gate.yml"],
+                                    },
+                                },
+                            }
+                        },
+                        "level_4": {
+                            "mode": "merge",
+                            "by_type": {
+                                "data": {
+                                    "by_stack": {
+                                        "python-dbt": {"governed": ["ci/github/dbt-gate.yml"]},
+                                    }
+                                }
+                            },
+                        },
+                    }
+                }
+            },
+        }
+        validator = Draft202012Validator(schema)
+        errors = list(validator.iter_errors(manifest))
+        assert not errors, f"Schema must accept by_stack under by_type; got: {errors}"
+
     def test_rejects_unknown_key_in_by_type_entry(self):
         # by_type_entry has additionalProperties: false; rogue keys must error.
         schema = _load_schema()
@@ -373,6 +421,32 @@ class TestSchemaAcceptsNewShapes:
         validator = Draft202012Validator(schema)
         errors = list(validator.iter_errors(manifest))
         assert errors, "Unknown keys inside by_type_entry must be rejected"
+
+    def test_rejects_unknown_key_in_by_stack_entry(self):
+        schema = _load_schema()
+        manifest = {
+            "agent": "x",
+            "description": "y",
+            "variants": {
+                "ci": {
+                    "github": {
+                        "by_type": {
+                            "data": {
+                                "by_stack": {
+                                    "python-dbt": {
+                                        "governed": [],
+                                        "rogue_field": True,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+        }
+        validator = Draft202012Validator(schema)
+        errors = list(validator.iter_errors(manifest))
+        assert errors, "Unknown keys inside by_stack_entry must be rejected"
 
     @pytest.mark.parametrize("ui_type", ["ui-react", "ui-angular"])
     def test_accepts_new_ui_type_in_choices_and_variants(self, ui_type):

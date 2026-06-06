@@ -639,6 +639,138 @@ class TestMergeMode:
             f"Missing by_type[api] entry must fall through to base only; got {governed}"
         )
 
+    def test_by_stack_dispatch_adds_stack_specific_data_ci(self):
+        """by_type[data].by_stack routes to stack-specific governed entries."""
+        manifest = {
+            "variants": {
+                "type": {"data": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": [],
+                        "by_type": {
+                            "data": {
+                                "governed": ["ci/github/data-common-gate.yml"],
+                                "by_stack": {
+                                    "python-dbt": {
+                                        "governed": ["ci/github/dbt-gate.yml"],
+                                    },
+                                    "databricks-lakehouse": {
+                                        "governed": ["ci/github/databricks-gate.yml"],
+                                    },
+                                },
+                            }
+                        },
+                    }
+                },
+            }
+        }
+
+        _, _, governed = resolve_variant_files(
+            manifest,
+            {"type": "data", "stack": "python-dbt", "ci": "github", "level": "4"},
+        )
+
+        assert governed == ["ci/github/data-common-gate.yml", "ci/github/dbt-gate.yml"]
+
+    def test_by_stack_unknown_stack_falls_through_to_type_entries(self):
+        """Future/unmapped stacks keep common data CI without stack-specific gates."""
+        manifest = {
+            "variants": {
+                "type": {"data": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": [],
+                        "by_type": {
+                            "data": {
+                                "governed": ["ci/github/data-common-gate.yml"],
+                                "by_stack": {
+                                    "python-dbt": {
+                                        "governed": ["ci/github/dbt-gate.yml"],
+                                    },
+                                },
+                            }
+                        },
+                    }
+                },
+            }
+        }
+
+        _, _, governed = resolve_variant_files(
+            manifest,
+            {"type": "data", "stack": "future-data-stack", "ci": "github"},
+        )
+
+        assert governed == ["ci/github/data-common-gate.yml"]
+
+    def test_by_stack_dispatch_at_level_4_merge(self):
+        """by_stack works in both base and level_4 override blocks."""
+        manifest = {
+            "variants": {
+                "type": {"data": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": [],
+                        "by_type": {
+                            "data": {
+                                "governed": ["base-common.yml"],
+                                "by_stack": {
+                                    "python-dbt": {"governed": ["base-dbt.yml"]},
+                                },
+                            }
+                        },
+                        "level_4": {
+                            "mode": "merge",
+                            "governed": [],
+                            "by_type": {
+                                "data": {
+                                    "governed": ["l4-common.yml"],
+                                    "by_stack": {
+                                        "python-dbt": {"governed": ["l4-dbt.yml"]},
+                                    },
+                                }
+                            },
+                        },
+                    }
+                },
+            }
+        }
+
+        _, _, governed = resolve_variant_files(
+            manifest,
+            {"type": "data", "stack": "python-dbt", "ci": "github", "level": "4"},
+        )
+
+        assert governed == ["base-common.yml", "base-dbt.yml", "l4-common.yml", "l4-dbt.yml"]
+
+    def test_by_stack_does_not_affect_non_data_types_without_mapping(self):
+        """Non-data types keep their by_type behavior when no by_stack is declared."""
+        manifest = {
+            "variants": {
+                "type": {"api": {"files": []}},
+                "ci": {
+                    "github": {
+                        "governed": ["ci/github/repo-scope-check.yml"],
+                        "by_type": {
+                            "api": {"governed": ["ci/github/l3-quality-gate.yml"]},
+                            "data": {
+                                "governed": ["ci/github/data-common-gate.yml"],
+                                "by_stack": {
+                                    "python-dbt": {"governed": ["ci/github/dbt-gate.yml"]},
+                                },
+                            },
+                        },
+                    }
+                },
+            }
+        }
+
+        _, _, governed = resolve_variant_files(
+            manifest,
+            {"type": "api", "stack": "python-dbt", "ci": "github"},
+        )
+
+        assert governed == ["ci/github/repo-scope-check.yml", "ci/github/l3-quality-gate.yml"]
+
     def test_cross_dimension_dest_collision_preserved(self):
         # Synthetic guard for the cross-dimension `(src, dest)` dedup mechanism
         # in `_collect_entries`. Two distinct dimensions contributing different

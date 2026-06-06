@@ -98,7 +98,7 @@
         "by_type": {
           "type": "object",
           "additionalProperties": { "$ref": "#/$defs/by_type_entry" },
-          "description": "v0.8 type-dispatched entries. Keys are values of the `type` option (e.g. 'api', 'ui-react'); each maps to a partial block whose files/shared/governed are folded into the parent block at resolve time. Currently used by the ci dimension to ship type-specific gates."
+          "description": "v0.8 type-dispatched entries. Keys are values of the `type` option (e.g. 'api', 'ui-react'); each maps to a partial block whose files/shared/governed are folded into the parent block at resolve time. Currently used by the ci dimension to ship type-specific gates. Entries may carry `by_stack` for a second dispatch by selected stack."
         },
         "level_4": {
           "$ref": "#/$defs/level_override",
@@ -142,6 +142,29 @@
       }
     },
     "by_type_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/file_entry" }
+        },
+        "shared": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "governed": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "by_stack": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/by_stack_entry" },
+          "description": "Optional stack-dispatched entries nested under a by_type entry. Keys are values of the `stack` option, used for data-stack-specific CI gates."
+        }
+      }
+    },
+    "by_stack_entry": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
