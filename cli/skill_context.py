@@ -86,7 +86,10 @@ class SkillContext:
     stack_id: str | None
     stack_version: str | None
     language: str | None
+    framework: str | None
     api_framework: str | None
+    deployment: str | None
+    orchestration: str | None
     unit_test: str | None
     bdd_test: str | None
     ci: str | None
@@ -287,7 +290,10 @@ def load_skill_context(target: Path) -> SkillContext | None:
         stack_id=stack.get("id") if isinstance(stack.get("id"), str) else None,
         stack_version=stack.get("version") if isinstance(stack.get("version"), str) else None,
         language=stack.get("language") if isinstance(stack.get("language"), str) else None,
+        framework=stack.get("framework") if isinstance(stack.get("framework"), str) else None,
         api_framework=stack.get("api_framework") if isinstance(stack.get("api_framework"), str) else None,
+        deployment=stack.get("deployment") if isinstance(stack.get("deployment"), str) else None,
+        orchestration=stack.get("orchestration") if isinstance(stack.get("orchestration"), str) else None,
         unit_test=stack.get("unit_test") if isinstance(stack.get("unit_test"), str) else None,
         bdd_test=stack.get("bdd_test") if isinstance(stack.get("bdd_test"), str) else None,
         ci=data.get("ci") if isinstance(data.get("ci"), str) else None,

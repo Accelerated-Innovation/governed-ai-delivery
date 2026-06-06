@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "GovKit Stack Overlay Schema",
-  "description": "Schema for cli/stacks/<id>/overlay.yaml — the metadata file shipped alongside the 6 stack-specific architecture docs (TECH_STACK, API_CONVENTIONS, TESTING, LAYER_IMPLEMENTATION, SECURITY_AUTH_PATTERNS, OBSERVABILITY_PORT_CONTRACT). Loaded by cli/overlay.py.",
+  "description": "Schema for cli/stacks/<id>/overlay.yaml - the metadata file shipped alongside stack-specific architecture docs. Loaded by cli/overlay.py.",
   "type": "object",
   "required": ["id", "version", "display_name", "summary", "docs"],
   "additionalProperties": false,
