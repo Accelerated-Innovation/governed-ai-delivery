@@ -28,6 +28,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added a `databricks-lakehouse` data stack overlay for Databricks-native repos
   using Unity Catalog, Delta tables, Asset Bundles, Jobs, Lakeflow Pipelines,
   PySpark, SQL, and notebooks.
+- `databricks-lakehouse` data installs now include a conservative
+  `databricks-gate.yml` for GitHub or Azure. The gate runs static Databricks
+  configuration checks and optional bundle validation only when CLI auth is
+  configured; workspace-backed execution remains opt-in.
 - README data-stack guidance now describes the conservative CI model: common
   governance is installed by default, while stack-specific execution gates
   remain opt-in until configured.

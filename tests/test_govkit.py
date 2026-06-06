@@ -3627,6 +3627,173 @@ class TestDatabricksLakehouseStack:
         assert ctx.orchestration == "databricks-jobs-lakeflow"
 
 
+class TestDatabricksCiGate:
+    """databricks-lakehouse data installs add conservative Databricks static gates."""
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    @pytest.mark.parametrize(
+        "platform, repo_scope, data_common, databricks_gate",
+        [
+            (
+                "github",
+                "ci/github/repo-scope-check.yml",
+                "ci/github/data-common-gate.yml",
+                "ci/github/databricks-gate.yml",
+            ),
+            (
+                "azure",
+                "ci/azure/repo-scope-check.yml",
+                "ci/azure/data-common-gate.yml",
+                "ci/azure/databricks-gate.yml",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("level", ["3", "4"])
+    def test_databricks_data_ci_resolves_common_plus_databricks_gate(
+        self, agent, platform, repo_scope, data_common, databricks_gate, level,
+    ):
+        from cli.paths import AGENTS_DIR
+
+        manifest = json.loads((AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8"))
+
+        _, _, governed = resolve_variant_files(
+            manifest,
+            {"type": "data", "stack": "databricks-lakehouse", "ci": platform, "level": level},
+        )
+
+        ci_governed = [path for path in governed if path.startswith(f"ci/{platform}/")]
+        assert ci_governed == [repo_scope, data_common, databricks_gate]
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    @pytest.mark.parametrize(
+        "platform, databricks_gate",
+        [
+            ("github", "ci/github/databricks-gate.yml"),
+            ("azure", "ci/azure/databricks-gate.yml"),
+        ],
+    )
+    def test_python_dbt_stack_does_not_resolve_databricks_gate(self, agent, platform, databricks_gate):
+        from cli.paths import AGENTS_DIR
+
+        manifest = json.loads((AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8"))
+
+        _, _, governed = resolve_variant_files(
+            manifest,
+            {"type": "data", "stack": "python-dbt", "ci": platform, "level": "4"},
+        )
+
+        assert databricks_gate not in governed
+
+    def test_apply_type_data_explicit_databricks_stack_installs_ci_gate(self, tmp_path):
+        import argparse
+
+        from cli.cmd_apply import cmd_apply
+
+        target = tmp_path / "project"
+        target.mkdir()
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target),
+            level="4", type="data", ci="github",
+            stack="databricks-lakehouse", force=False, detect=False,
+        ))
+
+        assert (target / "ci" / "github" / "repo-scope-check.yml").is_file()
+        assert (target / "ci" / "github" / "data-common-gate.yml").is_file()
+        assert (target / "ci" / "github" / "databricks-gate.yml").is_file()
+        assert not (target / "ci" / "github" / "dbt-gate.yml").exists()
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "ci/github/databricks-gate.yml",
+            "ci/azure/databricks-gate.yml",
+        ],
+    )
+    def test_databricks_gate_file_exists(self, path):
+        from cli.paths import REPO_ROOT
+
+        assert (REPO_ROOT / path).is_file()
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "ci/github/databricks-gate.yml",
+            "ci/azure/databricks-gate.yml",
+        ],
+    )
+    def test_databricks_gate_pins_conservative_blocking_checks(self, path):
+        from cli.paths import REPO_ROOT
+
+        text = (REPO_ROOT / path).read_text(encoding="utf-8")
+
+        for required in [
+            "databricks.yml",
+            "databricks bundle validate",
+            "DATABRICKS_HOST",
+            "DATABRICKS_TOKEN",
+            "hardcoded workspace URL",
+            "personal workspace path",
+            "catalog/schema",
+            "contains_pii",
+            "pytest",
+        ]:
+            assert required in text
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "ci/github/databricks-gate.yml",
+            "ci/azure/databricks-gate.yml",
+        ],
+    )
+    def test_databricks_gate_uses_bounded_pii_name_heuristic(self, path):
+        from cli.paths import REPO_ROOT
+
+        text = (REPO_ROOT / path).read_text(encoding="utf-8")
+
+        assert "birth|address|name" not in text
+        assert r"\b(email|phone|ssn|dob|birth|address|first_name|last_name|full_name)\b" in text
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "ci/github/databricks-gate.yml",
+            "ci/azure/databricks-gate.yml",
+        ],
+    )
+    def test_databricks_gate_runs_pytest_only_when_declared(self, path):
+        from cli.paths import REPO_ROOT
+
+        text = (REPO_ROOT / path).read_text(encoding="utf-8")
+
+        assert "ls tests/test_*.py" not in text
+        assert "requirements*.txt" in text
+        assert "grep -Eqi '(^|[^A-Za-z0-9_-])pytest([^A-Za-z0-9_-]|$)'" in text
+        assert "python -m pip install pytest" in text
+        assert "python -m pytest" in text
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "ci/github/databricks-gate.yml",
+            "ci/azure/databricks-gate.yml",
+        ],
+    )
+    def test_databricks_gate_marks_workspace_execution_opt_in(self, path):
+        from cli.paths import REPO_ROOT
+
+        text = (REPO_ROOT / path).read_text(encoding="utf-8")
+
+        for opt_in in [
+            "databricks bundle deploy --target dev",
+            "databricks jobs run-now",
+            "databricks pipelines start-update",
+            "Databricks SQL warehouse",
+            "disabled until configured",
+        ]:
+            assert opt_in in text
+
+
 class TestShapeMigrationWarning:
     """read_govkit_marker emits a one-time warning when marker carries legacy `ui` option."""
 

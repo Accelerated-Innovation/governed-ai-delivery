@@ -326,7 +326,8 @@
           "data":       {
             "governed": ["ci/github/repo-scope-check.yml", "ci/github/data-common-gate.yml"],
             "by_stack": {
-              "python-dbt": { "governed": ["ci/github/dbt-gate.yml"] }
+              "python-dbt": { "governed": ["ci/github/dbt-gate.yml"] },
+              "databricks-lakehouse": { "governed": ["ci/github/databricks-gate.yml"] }
             }
           }
         },
@@ -343,7 +344,8 @@
             "data":       {
               "governed": ["ci/github/repo-scope-check.yml", "ci/github/data-common-gate.yml"],
               "by_stack": {
-                "python-dbt": { "governed": ["ci/github/dbt-gate.yml"] }
+                "python-dbt": { "governed": ["ci/github/dbt-gate.yml"] },
+                "databricks-lakehouse": { "governed": ["ci/github/databricks-gate.yml"] }
               }
             }
           }
@@ -405,7 +407,8 @@
           "data":       {
             "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/data-common-gate.yml"],
             "by_stack": {
-              "python-dbt": { "governed": ["ci/azure/dbt-gate.yml"] }
+              "python-dbt": { "governed": ["ci/azure/dbt-gate.yml"] },
+              "databricks-lakehouse": { "governed": ["ci/azure/databricks-gate.yml"] }
             }
           }
         },
@@ -422,7 +425,8 @@
             "data":       {
               "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/data-common-gate.yml"],
               "by_stack": {
-                "python-dbt": { "governed": ["ci/azure/dbt-gate.yml"] }
+                "python-dbt": { "governed": ["ci/azure/dbt-gate.yml"] },
+                "databricks-lakehouse": { "governed": ["ci/azure/databricks-gate.yml"] }
               }
             }
           }

@@ -36,6 +36,7 @@ Copy the relevant templates for your project type:
 | `ui-eval-gate.yml` (L4+) | — | — | ✓ | — |
 | `data-common-gate.yml` | — | — | — | ✓ |
 | `dbt-gate.yml` | — | — | — | `python-dbt` |
+| `databricks-gate.yml` | — | — | — | `databricks-lakehouse` |
 
 ### Quick Checklist
 
@@ -58,6 +59,7 @@ Copy the relevant templates for your project type:
 | `ui-eval-gate.yml` | — | FIRST/Virtue prediction, Playwright E2E, axe scans |
 | `data-common-gate.yml` | Static governance artifact, PII policy, and `govkit validate` checks | Static governance artifact, PII policy, and `govkit validate` checks |
 | `dbt-gate.yml` | dbt dependency install, `dbt deps`, `dbt parse`, `dbt compile`, SQLFluff when configured, static model YAML checks | Same conservative checks; warehouse-backed test/source freshness execution remains opt-in |
+| `databricks-gate.yml` | Databricks bundle/config static checks, optional `databricks bundle validate` when CLI auth exists, secret/path/PII scans, pytest when configured | Same conservative checks; deploys, jobs, pipelines, and warehouse-backed data-quality checks remain opt-in |
 
 Level 3 projects receive only `l3-quality-gate.yml`. Level 4 projects receive the full set. Level 5 projects receive L4 gates plus 3 additional GenAI gates.
 
@@ -190,6 +192,27 @@ Those checks belong in opt-in stack-specific gates.
 state:modified+`, `dbt source freshness`, warehouse-backed model builds, or
 warehouse-backed data-quality execution. Enable those only after CI profiles,
 secrets, isolated schemas, and cost controls are configured.
+
+---
+
+## Databricks Gate
+
+**File:** `databricks-gate.yml` (GitHub: `ci/github/databricks-gate.yml`, Azure: `ci/azure/databricks-gate.yml`)
+
+**Purpose:** Runs conservative `databricks-lakehouse` stack checks:
+
+- detect Databricks Asset Bundle files such as `databricks.yml`
+- run `databricks bundle validate` only when the Databricks CLI and auth are configured
+- scan Databricks configs, notebooks, pipelines, and source for hardcoded
+  workspace URLs, tokens, secrets, and personal workspace paths
+- warn on missing catalog/schema placeholders and PII metadata gaps
+- run `pytest` for pure transformation modules when tests are configured
+
+**Boundary:** This gate documents but does not enable `databricks bundle deploy
+--target dev`, `databricks jobs run-now`, `databricks pipelines start-update`,
+or Databricks SQL warehouse data-quality checks. Enable those only after CI has
+a safe workspace identity, target catalog/schema, secret management, compute
+policy, and cost controls.
 
 ---
 
