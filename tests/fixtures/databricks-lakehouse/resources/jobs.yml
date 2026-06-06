@@ -1,0 +1,16 @@
+resources:
+  jobs:
+    refresh_customer_gold:
+      name: refresh_customer_gold
+      tasks:
+        - task_key: build_customer_marts
+          python_wheel_task:
+            package_name: customer_lakehouse
+            entry_point: build_customer_marts
+          job_cluster_key: shared_job_cluster
+      job_clusters:
+        - job_cluster_key: shared_job_cluster
+          new_cluster:
+            spark_version: 15.4.x-scala2.12
+            node_type_id: Standard_DS3_v2
+            num_workers: 1

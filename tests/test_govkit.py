@@ -3810,6 +3810,7 @@ class TestDatabricksAgentSkillsGuidance:
         assert "The following layer rules apply to dbt-style repos (`python-dbt`)" in text
         assert "MODEL_LAYERING.md" in text
         assert "src/bronze|silver|gold" in text
+        assert "If both `dbt_project.yml` and `databricks.yml` are present" in text
 
 
 class TestShapeMigrationWarning:

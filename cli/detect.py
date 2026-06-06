@@ -283,10 +283,12 @@ def _detect_frameworks(target: Path, prof: RepoProfile) -> None:
         detected.append("spring-boot")
     if _detect_gin(target):
         detected.append("gin")
-    if _detect_databricks_lakehouse(target):
-        detected.append("databricks-lakehouse")
     if _detect_dbt(target):
         detected.append("dbt")
+    # dbt-on-Databricks remains a dbt project shape by default. Users can still
+    # opt into the native Databricks overlay with --stack databricks-lakehouse.
+    if _detect_databricks_lakehouse(target):
+        detected.append("databricks-lakehouse")
     prof.detected_frameworks = detected
 
 

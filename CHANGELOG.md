@@ -42,6 +42,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Databricks Asset Bundle repos with `databricks.yml` / `databricks.yaml` now
   auto-detect the `databricks-lakehouse` stack instead of falling back to the
   `python-dbt` data default.
+- Added Databricks-native demo fixtures and documented mixed-signal precedence:
+  when `dbt_project.yml` and Databricks bundle config are both present, GovKit
+  treats the repo as `python-dbt` by default unless `--stack
+  databricks-lakehouse` is passed explicitly.
 
 ### Fixed — data stack boundary and discoverability
 
