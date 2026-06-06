@@ -1,0 +1,193 @@
+# databricks-gate.yml
+#
+# PURPOSE: Conservative Databricks static/config checks for
+# databricks-lakehouse data projects.
+# Copy this file to .github/workflows/databricks-gate.yml.
+#
+# Blocking by default:
+# - detect Databricks Asset Bundle files such as databricks.yml
+# - run databricks bundle validate only when the Databricks CLI and auth are configured
+# - static checks for hardcoded workspace URLs, tokens, personal workspace paths,
+#   catalog/schema placeholders, notebook/job/pipeline secrets, and PII metadata
+# - run Python unit tests for pure transformation modules when pytest is configured
+#
+# Opt-in only:
+# - databricks bundle deploy --target dev
+# - databricks jobs run-now
+# - databricks pipelines start-update
+# - Databricks SQL warehouse data-quality checks
+
+name: Databricks Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'databricks.yml'
+      - 'resources/**'
+      - 'pipelines/**'
+      - 'src/**'
+      - 'notebooks/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'requirements*.txt'
+      - 'ci/github/databricks-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'databricks.yml'
+      - 'resources/**'
+      - 'pipelines/**'
+      - 'src/**'
+      - 'notebooks/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'requirements*.txt'
+      - 'ci/github/databricks-gate.yml'
+
+jobs:
+  databricks-gate:
+    name: Databricks static and bundle checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run conservative Databricks checks
+        run: |
+          set -euo pipefail
+
+          if [ -f databricks.yml ]; then
+            echo "Databricks Asset Bundle detected: databricks.yml"
+            if command -v databricks >/dev/null 2>&1 && [ -n "${DATABRICKS_HOST:-}" ] && { [ -n "${DATABRICKS_TOKEN:-}" ] || [ -n "${DATABRICKS_CLIENT_ID:-}" ] || [ -n "${DATABRICKS_CONFIG_PROFILE:-}" ]; }; then
+              databricks bundle validate
+            else
+              echo "Databricks CLI/auth not configured; skipping databricks bundle validate."
+              echo "Set DATABRICKS_HOST plus DATABRICKS_TOKEN, OAuth env vars, or DATABRICKS_CONFIG_PROFILE before enabling workspace-backed validation."
+            fi
+          else
+            echo "No databricks.yml found; bundle validation has nothing to check."
+          fi
+
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import pathlib
+          import re
+          import sys
+
+          roots = [
+              pathlib.Path("databricks.yml"),
+              pathlib.Path("resources"),
+              pathlib.Path("pipelines"),
+              pathlib.Path("src"),
+              pathlib.Path("notebooks"),
+          ]
+          suffixes = {".py", ".sql", ".yml", ".yaml", ".json", ".ipynb"}
+          files: list[pathlib.Path] = []
+          for root in roots:
+              if root.is_file() and root.suffix.lower() in suffixes:
+                  files.append(root)
+              elif root.is_dir():
+                  files.extend(
+                      path for path in root.rglob("*")
+                      if path.is_file() and path.suffix.lower() in suffixes
+                  )
+
+          workspace_url = re.compile(r"https://[A-Za-z0-9.-]+(?:azuredatabricks\.net|cloud\.databricks\.com)")
+          token_value = re.compile(r"\bdapi[a-f0-9]{20,}\b", re.I)
+          token_assignment = re.compile(r"\b(DATABRICKS_TOKEN|token|pat|password)\s*[:=]\s*['\"]?[^'\"\s{}$]+", re.I)
+          personal_path = re.compile(r"(/Workspace)?/Users/[^/\s]+@[^/\s]+", re.I)
+          catalog_schema_placeholder = re.compile(r"\$\{(?:var\.)?(catalog|schema)\}|{{\s*(catalog|schema)\s*}}", re.I)
+          pii_name = re.compile(r"\b(email|phone|ssn|dob|birth|address|first_name|last_name|full_name)\b", re.I)
+          pii_marker = re.compile(r"(contains_pii|pii_category|pii|sensitive|mask)", re.I)
+
+          errors: list[str] = []
+          warnings: list[str] = []
+
+          for path in sorted(files):
+              try:
+                  text = path.read_text(encoding="utf-8")
+              except UnicodeDecodeError:
+                  continue
+
+              if workspace_url.search(text):
+                  errors.append(f"{path}: hardcoded workspace URL found; use DATABRICKS_HOST or bundle variables")
+              if token_value.search(text) or token_assignment.search(text):
+                  errors.append(f"{path}: possible Databricks token/secret committed")
+              if personal_path.search(text):
+                  errors.append(f"{path}: personal workspace path found; use bundle variables or shared paths")
+
+              if path.name == "databricks.yml" and not catalog_schema_placeholder.search(text):
+                  warnings.append(f"{path}: no catalog/schema placeholder found; confirm environment separation")
+
+              if path.suffix.lower() in {".yml", ".yaml", ".json"}:
+                  for match in pii_name.finditer(text):
+                      window = text[max(0, match.start() - 120): match.end() + 120]
+                      if not pii_marker.search(window):
+                          warnings.append(
+                              f"{path}: {match.group(0)!r} looks sensitive; add contains_pii, pii_category, tag, mask, or documented exception"
+                          )
+                          break
+
+              if path.suffix.lower() == ".ipynb":
+                  try:
+                      notebook = json.loads(text)
+                  except json.JSONDecodeError:
+                      errors.append(f"{path}: notebook JSON is invalid")
+                      continue
+                  cells = notebook.get("cells") if isinstance(notebook, dict) else None
+                  if not isinstance(cells, list):
+                      errors.append(f"{path}: notebook has no cells list")
+
+          if warnings:
+              print("Databricks static warnings:")
+              for warning in warnings:
+                  print(f"  - {warning}")
+
+          if errors:
+              print("Databricks static checks failed:")
+              for error in errors:
+                  print(f"  - {error}")
+              sys.exit(1)
+
+          print("Databricks static checks passed.")
+          PY
+
+          pytest_configured=false
+          if [ -f pyproject.toml ] && grep -Eqi '(^|[^A-Za-z0-9_-])pytest([^A-Za-z0-9_-]|$)' pyproject.toml; then
+            pytest_configured=true
+          fi
+          for req in requirements*.txt; do
+            if [ -f "$req" ] && grep -Eqi '(^|[^A-Za-z0-9_-])pytest([^A-Za-z0-9_-]|$)' "$req"; then
+              pytest_configured=true
+            fi
+          done
+
+          if [ "$pytest_configured" = "true" ]; then
+            python -m pip install --upgrade pip
+            if [ -f requirements.txt ]; then
+              python -m pip install -r requirements.txt
+            elif [ -f pyproject.toml ]; then
+              python -m pip install -e '.[dev]' || python -m pip install -e .
+            fi
+            python -m pip install pytest
+            python -m pytest
+          else
+            echo "pytest not configured; skipping pure transformation unit tests."
+          fi
+
+      - name: Document opt-in workspace checks
+        run: |
+          cat <<'MSG'
+          Optional checks are disabled until configured:
+          - databricks bundle deploy --target dev
+          - databricks jobs run-now
+          - databricks pipelines start-update
+          - Databricks SQL warehouse data-quality checks
+
+          Enable these only after CI has a safe workspace identity, target
+          catalog/schema, secret management, compute policy, and cost controls.
+          MSG
