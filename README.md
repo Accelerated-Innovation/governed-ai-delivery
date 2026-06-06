@@ -79,7 +79,7 @@ Each `govkit apply` configures **one project shape**. Pick one value per flag:
 | `--type` | `api` · `cli` · `ui-react` · `ui-angular` · `data` | …describes this repo (or subdir) — backend service, CLI, React/Angular UI, or dbt data project |
 | `--level` | `3` · `4` · `5` | …`3` governed foundations (default) · `4` spec-driven delivery · `5` GenAI operations — see [Maturity Levels](#maturity-levels) |
 | `--ci` | `github` · `azure` | …your CI platform |
-| `--stack` | `python-fastapi` · `dotnet-aspnet` · `java-spring-boot` · `nodejs-fastify` · `go-gin` · `python-dbt` | …backend/data only; auto-detected, defaults to `python-fastapi`. See [Switching Tech Stacks](#switching-tech-stacks) |
+| `--stack` | `python-fastapi` · `dotnet-aspnet` · `java-spring-boot` · `nodejs-fastify` · `go-gin` · `python-dbt` | …backend/data only; auto-detected, defaults by type (`python-fastapi` for `api` / `cli`, `python-dbt` for `data`). See [Switching Tech Stacks](#switching-tech-stacks) |
 
 Running `govkit apply` with no `--type`/`--ci`/`--stack` flags prompts interactively and auto-detects sensible defaults from your repo. A `.govkit` marker records every choice so later commands (`calibrate`, `validate`, `upgrade`, `doctor`) need no re-specification.
 
@@ -401,7 +401,9 @@ The 8-step lifecycle above applies to all project types. Key differences by type
 
 **CI gates:** intentionally empty in this release — gate selection (source freshness, dbt test, SQLfluff) is the kind of thing data teams want to shape themselves. Wire your own in `ci/github/` or `ci/azure/` for now; opinionated defaults arrive in a future release.
 
-**Agent support:** claude-code only for now. copilot and codex variants follow once the shape is validated against real dbt teams.
+**Maturity levels:** data projects support Level 3 and Level 4. Level 5 is GenAI Operations for LLM application delivery and does not apply to dbt/data project installs.
+
+**Agent support:** claude-code, copilot, and codex.
 
 ---
 
@@ -450,7 +452,7 @@ govkit apply --agent claude-code --target . --level 4 --type api --ci github \
              --stack dotnet-aspnet
 ```
 
-If you omit `--stack`, govkit detects your stack from the repo and falls back to the `python-fastapi` overlay, recording the choice as an assumption in `.govkit/marker.json` so `govkit doctor` can warn if it doesn't fit your repo.
+If you omit `--stack`, govkit detects your stack from the repo and falls back to the type default (`python-fastapi` for `api` / `cli`, `python-dbt` for `data`), recording the choice as an assumption in `.govkit/marker.json` so `govkit doctor` can warn if it doesn't fit your repo.
 
 ### Swap stacks on an existing install
 

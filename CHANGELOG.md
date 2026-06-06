@@ -6,6 +6,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [Unreleased]
+
+### Fixed — data stack boundary and discoverability
+
+- `govkit apply --type data --level 5` now fails fast with a clear message. Data
+  projects support L3/L4 only; L5 remains the GenAI Operations tier for LLM
+  application delivery.
+- `govkit init --starter data --level 5` is also rejected instead of silently
+  scaffolding the L4 data starter under an L5 request.
+- `python-dbt` is now advertised in every production agent manifest's stack
+  choices, so `govkit list` reflects the actual data default stack.
+- `apply --stack` help and README stack-default wording now describe type-aware
+  defaults (`python-fastapi` for `api` / `cli`, `python-dbt` for `data`).
+
+---
+
 ## [0.12.0] — 2026-06-05
 
 ### Added — extension packs ship with the wheel + `govkit extension` command

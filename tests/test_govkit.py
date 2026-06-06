@@ -1474,6 +1474,57 @@ class TestApplyTypeDataStackDefault:
         marker = read_govkit_marker(target)
         assert marker["stack"]["id"] == "python-dbt"
 
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    def test_apply_type_data_rejects_l5(self, tmp_path, agent, capsys):
+        """Data is an L3/L4 shape. L5 is GenAI-Ops for LLM app delivery and
+        must not silently fall back to the base data install while writing an
+        L5 marker."""
+        import argparse
+
+        from cli.cmd_apply import cmd_apply
+
+        target = tmp_path / "project"
+        target.mkdir()
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_apply(argparse.Namespace(
+                agent=agent, target=str(target),
+                level="5", type="data", ci="github",
+                stack=None, force=False, detect=False,
+            ))
+
+        assert exc_info.value.code != 0
+        captured = capsys.readouterr()
+        out = captured.out + captured.err
+        assert "--type data" in out
+        assert "requested level: 5" in out
+        assert "Level 3" in out
+        assert "Level 4" in out
+
+    def test_init_starter_data_rejects_l5(self, tmp_path, capsys):
+        from cli.cmd_init import cmd_init
+
+        target = tmp_path / "project"
+        features = target / "features"
+        features.mkdir(parents=True)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_init(argparse.Namespace(
+                feature="customer-dim",
+                target=str(target),
+                level="5",
+                starter="data",
+            ))
+
+        assert exc_info.value.code != 0
+        captured = capsys.readouterr()
+        out = captured.out + captured.err
+        assert "--starter data" in out
+        assert "--type data" not in out
+        assert "requested level: 5" in out
+        assert "Level 3" in out
+        assert "Level 4" in out
+
 
 class TestCopyEntryHeaderInjection:
     """copy_entry with header_baseline prepends the govkit:editable header
@@ -3051,6 +3102,25 @@ class TestNoUiDimensionInManifests:
         )
         # data is an L3/L4 shape (dbt has no L5 GenAI-ops tier).
         assert "level_4" in data, f"{agent}: data block must declare a level_4 add-on"
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    def test_python_dbt_is_advertised_as_stack_choice(self, agent):
+        """`govkit list` is sourced from manifest stack choices, so the data
+        default stack must be advertised there too."""
+        from cli.paths import AGENTS_DIR
+
+        manifest = json.loads((AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8"))
+        assert "python-dbt" in manifest["options"]["stack"]["choices"], (
+            f"{agent}: options.stack.choices must include python-dbt"
+        )
+
+    def test_govkit_list_prints_python_dbt_stack(self, capsys):
+        from cli.cmd_list import cmd_list
+
+        cmd_list(argparse.Namespace())
+
+        out = capsys.readouterr().out
+        assert "python-dbt" in out
 
 
 class TestShapeMigrationWarning:
