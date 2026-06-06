@@ -1,0 +1,122 @@
+# data-common-gate.yml
+#
+# PURPOSE: Conservative static governance checks for data projects.
+# Copy this file to .github/workflows/data-common-gate.yml.
+#
+# This gate is intentionally cloud-free:
+# - no warehouse queries
+# - no Databricks workspace calls
+# - no pipeline or job execution
+# - no cloud credentials required
+#
+# It complements repo-scope-check.yml, which should remain enabled for data
+# projects to validate cross-repository ownership in features/*/nfrs.md.
+
+name: Data Common Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'features/**'
+      - 'docs/data/**'
+      - 'governance/**'
+      - 'ci/github/data-common-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'features/**'
+      - 'docs/data/**'
+      - 'governance/**'
+      - 'ci/github/data-common-gate.yml'
+
+jobs:
+  data-common-gate:
+    name: Static data governance checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install GovKit
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          if ! command -v govkit >/dev/null 2>&1; then
+            python -m pip install govkit
+          fi
+
+      - name: Run GovKit validation
+        run: |
+          set -euo pipefail
+          govkit validate --target .
+
+      - name: Validate data feature governance artifacts
+        run: |
+          set -euo pipefail
+
+          errors=0
+          for feature_dir in features/*; do
+            [ -d "$feature_dir" ] || continue
+            feature=$(basename "$feature_dir")
+            case "$feature" in starter_*) continue;; esac
+
+            if [ -f "$feature_dir/plan.md" ] && [ ! -f "$feature_dir/architecture_preflight.md" ]; then
+              echo "FAIL: $feature has plan.md but no architecture_preflight.md"
+              errors=$((errors + 1))
+            fi
+
+            if [ ! -f "$feature_dir/acceptance.feature" ]; then
+              echo "FAIL: $feature missing acceptance.feature"
+              errors=$((errors + 1))
+            elif ! grep -Eq "^[[:space:]]*(Scenario|Scenario Outline):" "$feature_dir/acceptance.feature"; then
+              echo "FAIL: $feature acceptance.feature has no Scenario"
+              errors=$((errors + 1))
+            fi
+
+            if [ -f "$feature_dir/nfrs.md" ] && grep -nE '(^|[^[:alnum:]_])TBD([^[:alnum:]_]|$)' "$feature_dir/nfrs.md"; then
+              echo "FAIL: $feature nfrs.md contains TBD"
+              errors=$((errors + 1))
+            fi
+
+            if [ -f "$feature_dir/architecture_preflight.md" ] \
+              && grep -qi "ADR.*required" "$feature_dir/architecture_preflight.md"; then
+              if ! grep -qi "ADR/" "$feature_dir/architecture_preflight.md"; then
+                echo "WARN: $feature architecture_preflight.md says ADR required but no ADR/ link was found"
+              fi
+            fi
+          done
+
+          if [ "$errors" -gt 0 ]; then
+            echo "$errors data governance issue(s) found"
+            exit 1
+          fi
+
+      - name: Validate data PII policy artifacts
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for path in \
+            docs/data/architecture/PII_HANDLING_CONTRACT.md \
+            docs/data/architecture/PII_HANDLING.md
+          do
+            if [ ! -f "$path" ]; then
+              echo "FAIL: missing $path"
+              missing=$((missing + 1))
+            fi
+          done
+
+          if [ "$missing" -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Confirm static-only operating model
+        run: |
+          cat <<'MSG'
+          Data Common Gate complete.
+
+          This workflow intentionally performs static governance checks only.
+          Warehouse-backed dbt execution, source freshness, Databricks workspace
+          validation, job execution, and pipeline execution are opt-in gates for
+          stack-specific workflows.
+          MSG

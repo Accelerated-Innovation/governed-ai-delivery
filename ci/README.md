@@ -27,13 +27,14 @@ Commit and push. The job runs automatically on every PR that modifies `features/
 
 Copy the relevant templates for your project type:
 
-| Workflow | Backend | CLI | UI |
-|---|:---:|:---:|:---:|
-| `quality-gate.yml` | ✓ | ✓ | optional |
-| `eval-gate.yml` (L4+) | ✓ | ✓ | — |
-| `l3-quality-gate.yml` (L3 only) | ✓ | ✓ | — |
-| `ui-quality-gate.yml` | — | — | ✓ |
-| `ui-eval-gate.yml` (L4+) | — | — | ✓ |
+| Workflow | Backend | CLI | UI | Data |
+|---|:---:|:---:|:---:|:---:|
+| `quality-gate.yml` | ✓ | ✓ | optional | — |
+| `eval-gate.yml` (L4+) | ✓ | ✓ | — | — |
+| `l3-quality-gate.yml` (L3 only) | ✓ | ✓ | — | — |
+| `ui-quality-gate.yml` | — | — | ✓ | — |
+| `ui-eval-gate.yml` (L4+) | — | — | ✓ | — |
+| `data-common-gate.yml` | — | — | — | ✓ |
 
 ### Quick Checklist
 
@@ -54,6 +55,7 @@ Copy the relevant templates for your project type:
 | `eval-gate.yml` | — | FIRST/Virtue prediction thresholds, LLM eval |
 | `ui-quality-gate.yml` | — | Type check, ESLint, component tests, bundle size |
 | `ui-eval-gate.yml` | — | FIRST/Virtue prediction, Playwright E2E, axe scans |
+| `data-common-gate.yml` | Static governance artifact, PII policy, and `govkit validate` checks | Static governance artifact, PII policy, and `govkit validate` checks |
 
 Level 3 projects receive only `l3-quality-gate.yml`. Level 4 projects receive the full set. Level 5 projects receive L4 gates plus 3 additional GenAI gates.
 
@@ -145,6 +147,26 @@ These governance rules are communicated to agents via CLAUDE.md / copilot-instru
 | "Multi-repo but does not list <repo> as owner" | Add your repo to the ownership table |
 
 See: `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md` for complete repo scope semantics.
+
+---
+
+## Data Common Gate
+
+**File:** `data-common-gate.yml` (GitHub: `ci/github/data-common-gate.yml`, Azure: `ci/azure/data-common-gate.yml`)
+
+**Purpose:** Runs conservative static governance checks for data projects:
+
+- `govkit validate --target .`
+- `architecture_preflight.md` exists before `plan.md`
+- non-starter features have `acceptance.feature` scenarios
+- `features/*/nfrs.md` has no `TBD`
+- PII policy artifacts exist:
+  - `docs/data/architecture/PII_HANDLING_CONTRACT.md`
+  - `docs/data/architecture/PII_HANDLING.md`
+
+**Boundary:** This gate does not query warehouses, call Databricks workspaces,
+deploy bundles, run jobs, execute pipelines, or require cloud credentials.
+Those checks belong in opt-in stack-specific gates.
 
 ---
 

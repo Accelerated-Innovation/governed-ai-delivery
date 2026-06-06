@@ -19,6 +19,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Manifest resolution now supports optional `by_stack` entries nested under
   `by_type`, enabling stack-aware data CI gates while preserving common CI for
   unmapped future stacks.
+- Data installs now include a conservative `data-common-gate.yml` for GitHub
+  or Azure. The gate runs static governance checks only and leaves warehouse,
+  workspace, source freshness, and pipeline execution to opt-in stack gates.
 - README data-stack guidance now describes the conservative CI model: common
   governance is installed by default, while stack-specific execution gates
   remain opt-in until configured.
