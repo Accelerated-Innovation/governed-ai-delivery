@@ -92,7 +92,7 @@ stages:
                     errors=$((errors + 1))
                   fi
 
-                  if [ -f "$feature_dir/nfrs.md" ] && grep -nE "\bTBD\b" "$feature_dir/nfrs.md"; then
+                  if [ -f "$feature_dir/nfrs.md" ] && grep -nE '(^|[^[:alnum:]_])TBD([^[:alnum:]_]|$)' "$feature_dir/nfrs.md"; then
                     echo "FAIL: $feature nfrs.md contains TBD"
                     errors=$((errors + 1))
                   fi

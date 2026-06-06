@@ -3398,6 +3398,21 @@ class TestDataCommonCiGate:
             "ci/azure/data-common-gate.yml",
         ],
     )
+    def test_data_common_gate_uses_portable_tbd_word_boundary(self, path):
+        from cli.paths import REPO_ROOT
+
+        text = (REPO_ROOT / path).read_text(encoding="utf-8")
+
+        assert r'grep -nE "\bTBD\b"' not in text
+        assert "grep -nE '(^|[^[:alnum:]_])TBD([^[:alnum:]_]|$)'" in text
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "ci/github/data-common-gate.yml",
+            "ci/azure/data-common-gate.yml",
+        ],
+    )
     def test_data_common_gate_does_not_run_cloud_or_warehouse_commands(self, path):
         from cli.paths import REPO_ROOT
 
