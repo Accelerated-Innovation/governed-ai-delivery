@@ -388,6 +388,8 @@ The 8-step lifecycle above applies to all project types. Key differences by type
 
 **Architecture:** governed data delivery — Staging → Intermediate → Marts for dbt projects, or Bronze → Silver → Gold / curated Delta layers for Databricks lakehouse projects. Staging/Bronze cleans source data, Intermediate/Silver holds joins and business logic, and Marts/Gold are the downstream contracts. See `docs/data/architecture/BOUNDARIES.md` plus the selected stack overlay's layering guidance.
 
+The following layer rules apply to dbt-style repos (`python-dbt`). For Databricks lakehouse repos, follow the `databricks-lakehouse` overlay's `MODEL_LAYERING.md` (Bronze/Silver/Gold) and adjust rule globs if your repo uses `src/bronze|silver|gold`.
+
 **Layer rules** (load automatically):
 - `staging.md` for `**/models/staging/**`
 - `intermediate.md` for `**/models/intermediate/**`

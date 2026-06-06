@@ -3807,6 +3807,9 @@ class TestDatabricksAgentSkillsGuidance:
         assert "databricks aitools install" in text
         assert "Databricks skills provide platform-specific assistant guidance" in text
         assert "GovKit governs repo delivery" in text
+        assert "The following layer rules apply to dbt-style repos (`python-dbt`)" in text
+        assert "MODEL_LAYERING.md" in text
+        assert "src/bronze|silver|gold" in text
 
 
 class TestShapeMigrationWarning:
