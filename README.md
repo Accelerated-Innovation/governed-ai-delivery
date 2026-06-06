@@ -76,12 +76,12 @@ Each `govkit apply` configures **one project shape**. Pick one value per flag:
 | Flag | Options | Pick this if… |
 |---|---|---|
 | `--agent` | `claude-code` · `copilot` · `codex` | …matches the AI tool your team uses |
-| `--type` | `api` · `cli` · `ui-react` · `ui-angular` · `data` | …describes this repo (or subdir) — backend service, CLI, React/Angular UI, or dbt data project |
+| `--type` | `api` · `cli` · `ui-react` · `ui-angular` · `data` | …describes this repo (or subdir) — backend service, CLI, React/Angular UI, or governed data project |
 | `--level` | `3` · `4` · `5` | …`3` governed foundations (default) · `4` spec-driven delivery · `5` GenAI operations — see [Maturity Levels](#maturity-levels) |
 | `--ci` | `github` · `azure` | …your CI platform |
 | `--stack` | `python-fastapi` · `dotnet-aspnet` · `java-spring-boot` · `nodejs-fastify` · `go-gin` · `python-dbt` · `databricks-lakehouse` | …backend/data only; auto-detected, defaults by type (`python-fastapi` for `api` / `cli`, `python-dbt` for `data`). See [Switching Tech Stacks](#switching-tech-stacks) |
 
-Running `govkit apply` with no `--type`/`--ci`/`--stack` flags prompts interactively and auto-detects sensible defaults from your repo. A `.govkit` marker records every choice so later commands (`calibrate`, `validate`, `upgrade`, `doctor`) need no re-specification.
+Running `govkit apply` with no `--type`/`--ci`/`--stack` flags prompts interactively and auto-detects sensible defaults from your repo, including `python-dbt` from `dbt_project.yml` and `databricks-lakehouse` from `databricks.yml` / `databricks.yaml`. A `.govkit` marker records every choice so later commands (`calibrate`, `validate`, `upgrade`, `doctor`) need no re-specification.
 
 <details>
 <summary><b>Full example commands for every combination</b></summary>

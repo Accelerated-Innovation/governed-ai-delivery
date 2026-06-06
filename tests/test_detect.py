@@ -419,6 +419,28 @@ class TestInferStack:
         stack_id, _ = infer_stack(prof)
         assert stack_id == "java-spring-boot"
 
+    def test_databricks_bundle_repo_infers_databricks_lakehouse(self, tmp_path):
+        from cli.detect import build_profile, infer_stack
+
+        (tmp_path / "resources").mkdir()
+        (tmp_path / "src").mkdir()
+        (tmp_path / "databricks.yml").write_text(
+            "bundle:\n  name: customer_analytics\ninclude:\n  - resources/*.yml\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "resources" / "jobs.yml").write_text(
+            "resources:\n  jobs:\n    refresh_customer_dim:\n      name: refresh_customer_dim\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "pyproject.toml").write_text('[project]\nname="x"\n', encoding="utf-8")
+
+        prof = build_profile(tmp_path)
+        stack_id, confidence = infer_stack(prof)
+
+        assert "databricks-lakehouse" in prof.detected_frameworks
+        assert stack_id == "databricks-lakehouse"
+        assert confidence == "high"
+
     def test_empty_repo_returns_none(self, tmp_path):
         from cli.detect import build_profile, infer_stack
 

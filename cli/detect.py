@@ -261,6 +261,11 @@ def _detect_dbt(target: Path) -> bool:
     return bool(_find_recursive(target, "dbt_project.yml"))
 
 
+def _detect_databricks_lakehouse(target: Path) -> bool:
+    """Presence of Databricks Asset Bundle config indicates a Databricks repo."""
+    return bool(_find_recursive(target, "databricks.yml") or _find_recursive(target, "databricks.yaml"))
+
+
 def _detect_frameworks(target: Path, prof: RepoProfile) -> None:
     """Detect frameworks from manifest contents directly. We don't gate on
     language detection because framework presence is the more specific
@@ -278,6 +283,8 @@ def _detect_frameworks(target: Path, prof: RepoProfile) -> None:
         detected.append("spring-boot")
     if _detect_gin(target):
         detected.append("gin")
+    if _detect_databricks_lakehouse(target):
+        detected.append("databricks-lakehouse")
     if _detect_dbt(target):
         detected.append("dbt")
     prof.detected_frameworks = detected
@@ -378,6 +385,7 @@ _FRAMEWORK_TO_STACK = {
     "fastify":      "nodejs-fastify",
     "spring-boot":  "java-spring-boot",
     "gin":          "go-gin",
+    "databricks-lakehouse": "databricks-lakehouse",
     "dbt":          "python-dbt",
 }
 

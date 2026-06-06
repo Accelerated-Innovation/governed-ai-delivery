@@ -306,14 +306,44 @@ class TestDbtProjectFixture:
 class TestDatabricksLakehouseGuidance:
     """Databricks stack docs explain how GovKit and Databricks agent skills coexist."""
 
-    def _apply(self, target: Path) -> None:
+    def _apply(self, target: Path, stack: str | None = "databricks-lakehouse") -> None:
         from cli.cmd_apply import cmd_apply
 
         cmd_apply(argparse.Namespace(
             agent="claude-code", target=str(target),
             level="4", type="data", ci="github",
-            stack="databricks-lakehouse", force=False, detect=False,
+            stack=stack, force=False, detect=False,
         ))
+
+    def _write_bundle(self, target: Path) -> None:
+        (target / "resources").mkdir()
+        (target / "src").mkdir()
+        (target / "databricks.yml").write_text(
+            "bundle:\n  name: customer_analytics\ninclude:\n  - resources/*.yml\n",
+            encoding="utf-8",
+        )
+        (target / "resources" / "pipelines.yml").write_text(
+            "resources:\n  pipelines:\n    customer_quality:\n      name: customer_quality\n",
+            encoding="utf-8",
+        )
+
+    def test_apply_type_data_detects_databricks_lakehouse_stack(self, tmp_path):
+        from cli.marker import read_govkit_marker
+
+        target = tmp_path / "databricks-project"
+        target.mkdir()
+        self._write_bundle(target)
+
+        self._apply(target, stack=None)
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"]["id"] == "databricks-lakehouse"
+        assert marker["options"]["stack"] == "databricks-lakehouse"
+        stack_assumption = next(a for a in marker["assumptions"] if a["id"] == "stack.id")
+        assert stack_assumption["source"] == "detected"
+        assert stack_assumption["confidence"] == "high"
+        assert (target / "ci" / "github" / "databricks-gate.yml").is_file()
+        assert not (target / "ci" / "github" / "dbt-gate.yml").exists()
 
     def test_generated_tech_stack_mentions_databricks_agent_skills_boundary(self, tmp_path):
         target = tmp_path / "databricks-project"

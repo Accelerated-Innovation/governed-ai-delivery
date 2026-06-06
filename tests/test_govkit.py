@@ -3803,6 +3803,7 @@ class TestDatabricksAgentSkillsGuidance:
         text = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
 
         assert "databricks-lakehouse" in text
+        assert "databricks.yml" in text
         assert "databricks aitools install" in text
         assert "Databricks skills provide platform-specific assistant guidance" in text
         assert "GovKit governs repo delivery" in text
