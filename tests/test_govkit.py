@@ -3308,15 +3308,15 @@ class TestDataCiContract:
 
     @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
     @pytest.mark.parametrize(
-        "platform, repo_scope",
+        "platform, repo_scope, data_common",
         [
-            ("github", "ci/github/repo-scope-check.yml"),
-            ("azure", "ci/azure/repo-scope-check.yml"),
+            ("github", "ci/github/repo-scope-check.yml", "ci/github/data-common-gate.yml"),
+            ("azure", "ci/azure/repo-scope-check.yml", "ci/azure/data-common-gate.yml"),
         ],
     )
     @pytest.mark.parametrize("level", ["3", "4"])
     def test_data_ci_resolves_common_repo_scope_gate(
-        self, agent, platform, repo_scope, level,
+        self, agent, platform, repo_scope, data_common, level,
     ):
         from cli.paths import AGENTS_DIR
 
@@ -3327,26 +3327,92 @@ class TestDataCiContract:
         )
 
         ci_governed = [path for path in governed if path.startswith(f"ci/{platform}/")]
-        assert ci_governed == [repo_scope]
+        assert ci_governed == [repo_scope, data_common]
 
     @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
     @pytest.mark.parametrize(
-        "platform, repo_scope",
+        "platform, repo_scope, data_common",
         [
-            ("github", "ci/github/repo-scope-check.yml"),
-            ("azure", "ci/azure/repo-scope-check.yml"),
+            ("github", "ci/github/repo-scope-check.yml", "ci/github/data-common-gate.yml"),
+            ("azure", "ci/azure/repo-scope-check.yml", "ci/azure/data-common-gate.yml"),
         ],
     )
-    def test_data_ci_contract_is_explicit_in_manifest(self, agent, platform, repo_scope):
+    def test_data_ci_contract_is_explicit_in_manifest(
+        self, agent, platform, repo_scope, data_common,
+    ):
         from cli.paths import AGENTS_DIR
 
         manifest = json.loads((AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8"))
         ci_block = manifest["variants"]["ci"][platform]
+        expected = [repo_scope, data_common]
 
         assert ci_block.get("governed", []) == []
-        assert ci_block["by_type"]["data"]["governed"] == [repo_scope]
+        assert ci_block["by_type"]["data"]["governed"] == expected
         assert ci_block["level_4"].get("governed", []) == []
-        assert ci_block["level_4"]["by_type"]["data"]["governed"] == [repo_scope]
+        assert ci_block["level_4"]["by_type"]["data"]["governed"] == expected
+
+
+class TestDataCommonCiGate:
+    """Conservative static data CI gates avoid warehouse/workspace execution."""
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "ci/github/data-common-gate.yml",
+            "ci/azure/data-common-gate.yml",
+        ],
+    )
+    def test_data_common_gate_file_exists(self, path):
+        from cli.paths import REPO_ROOT
+
+        assert (REPO_ROOT / path).is_file()
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "ci/github/data-common-gate.yml",
+            "ci/azure/data-common-gate.yml",
+        ],
+    )
+    def test_data_common_gate_pins_conservative_static_checks(self, path):
+        from cli.paths import REPO_ROOT
+
+        text = (REPO_ROOT / path).read_text(encoding="utf-8")
+
+        for required in [
+            "govkit validate --target .",
+            "architecture_preflight.md",
+            "plan.md",
+            "acceptance.feature",
+            "TBD",
+            "PII_HANDLING_CONTRACT.md",
+            "PII_HANDLING.md",
+            "repo-scope-check.yml",
+        ]:
+            assert required in text
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "ci/github/data-common-gate.yml",
+            "ci/azure/data-common-gate.yml",
+        ],
+    )
+    def test_data_common_gate_does_not_run_cloud_or_warehouse_commands(self, path):
+        from cli.paths import REPO_ROOT
+
+        text = (REPO_ROOT / path).read_text(encoding="utf-8")
+
+        forbidden = [
+            "dbt test",
+            "dbt build",
+            "dbt source freshness",
+            "databricks bundle deploy",
+            "databricks jobs run-now",
+            "databricks pipelines start-update",
+        ]
+        for command in forbidden:
+            assert command not in text
 
 
 class TestShapeMigrationWarning:

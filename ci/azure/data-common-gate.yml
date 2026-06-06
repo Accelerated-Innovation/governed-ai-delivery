@@ -1,0 +1,147 @@
+# data-common-gate.yml
+#
+# PURPOSE: Conservative static governance checks for data projects.
+# Reference this file from azure-pipelines.yml or copy its stages into your
+# project pipeline.
+#
+# This gate is intentionally cloud-free:
+# - no warehouse queries
+# - no Databricks workspace calls
+# - no pipeline or job execution
+# - no cloud credentials required
+#
+# It complements repo-scope-check.yml, which should remain enabled for data
+# projects to validate cross-repository ownership in features/*/nfrs.md.
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - features/**
+      - docs/data/**
+      - governance/**
+      - ci/azure/data-common-gate.yml
+
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - features/**
+      - docs/data/**
+      - governance/**
+      - ci/azure/data-common-gate.yml
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: DataCommonGate
+    displayName: Static data governance checks
+    jobs:
+      - job: DataCommonGate
+        displayName: Static data governance checks
+        steps:
+          - checkout: self
+
+          - task: Bash@3
+            displayName: Install GovKit
+            inputs:
+              targetType: 'inline'
+              script: |
+                set -euo pipefail
+                python -m pip install --upgrade pip
+                if ! command -v govkit >/dev/null 2>&1; then
+                  python -m pip install govkit
+                fi
+
+          - task: Bash@3
+            displayName: Run GovKit validation
+            inputs:
+              targetType: 'inline'
+              script: |
+                set -euo pipefail
+                govkit validate --target .
+
+          - task: Bash@3
+            displayName: Validate data feature governance artifacts
+            inputs:
+              targetType: 'inline'
+              script: |
+                set -euo pipefail
+
+                errors=0
+                for feature_dir in features/*; do
+                  [ -d "$feature_dir" ] || continue
+                  feature=$(basename "$feature_dir")
+                  case "$feature" in starter_*) continue;; esac
+
+                  if [ -f "$feature_dir/plan.md" ] && [ ! -f "$feature_dir/architecture_preflight.md" ]; then
+                    echo "FAIL: $feature has plan.md but no architecture_preflight.md"
+                    errors=$((errors + 1))
+                  fi
+
+                  if [ ! -f "$feature_dir/acceptance.feature" ]; then
+                    echo "FAIL: $feature missing acceptance.feature"
+                    errors=$((errors + 1))
+                  elif ! grep -Eq "^[[:space:]]*(Scenario|Scenario Outline):" "$feature_dir/acceptance.feature"; then
+                    echo "FAIL: $feature acceptance.feature has no Scenario"
+                    errors=$((errors + 1))
+                  fi
+
+                  if [ -f "$feature_dir/nfrs.md" ] && grep -nE "\bTBD\b" "$feature_dir/nfrs.md"; then
+                    echo "FAIL: $feature nfrs.md contains TBD"
+                    errors=$((errors + 1))
+                  fi
+
+                  if [ -f "$feature_dir/architecture_preflight.md" ] \
+                    && grep -qi "ADR.*required" "$feature_dir/architecture_preflight.md"; then
+                    if ! grep -qi "ADR/" "$feature_dir/architecture_preflight.md"; then
+                      echo "WARN: $feature architecture_preflight.md says ADR required but no ADR/ link was found"
+                    fi
+                  fi
+                done
+
+                if [ "$errors" -gt 0 ]; then
+                  echo "$errors data governance issue(s) found"
+                  exit 1
+                fi
+
+          - task: Bash@3
+            displayName: Validate data PII policy artifacts
+            inputs:
+              targetType: 'inline'
+              script: |
+                set -euo pipefail
+
+                missing=0
+                for path in \
+                  docs/data/architecture/PII_HANDLING_CONTRACT.md \
+                  docs/data/architecture/PII_HANDLING.md
+                do
+                  if [ ! -f "$path" ]; then
+                    echo "FAIL: missing $path"
+                    missing=$((missing + 1))
+                  fi
+                done
+
+                if [ "$missing" -gt 0 ]; then
+                  exit 1
+                fi
+
+          - task: Bash@3
+            displayName: Confirm static-only operating model
+            inputs:
+              targetType: 'inline'
+              script: |
+                cat <<'MSG'
+                Data Common Gate complete.
+
+                This pipeline intentionally performs static governance checks only.
+                Warehouse-backed dbt execution, source freshness, Databricks workspace
+                validation, job execution, and pipeline execution are opt-in gates for
+                stack-specific pipelines.
+                MSG
