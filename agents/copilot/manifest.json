@@ -317,12 +317,13 @@
       "github": {
         "files": [],
         "shared": [],
-        "governed": ["ci/github/repo-scope-check.yml"],
+        "governed": [],
         "by_type": {
-          "api":        { "governed": ["ci/github/l3-quality-gate.yml"] },
-          "cli":        { "governed": ["ci/github/l3-quality-gate.yml"] },
-          "ui-react":   { "governed": ["ci/github/l3-ui-quality-gate.yml"] },
-          "ui-angular": { "governed": ["ci/github/l3-ui-quality-gate.yml"] }
+          "api":        { "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-quality-gate.yml"] },
+          "cli":        { "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-quality-gate.yml"] },
+          "ui-react":   { "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-ui-quality-gate.yml"] },
+          "ui-angular": { "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-ui-quality-gate.yml"] },
+          "data":       { "governed": ["ci/github/repo-scope-check.yml"] }
         },
         "level_4": {
           "mode": "merge",
@@ -333,7 +334,8 @@
             "api":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml"] },
             "cli":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml"] },
             "ui-react":   { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml"] },
-            "ui-angular": { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml"] }
+            "ui-angular": { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml"] },
+            "data":       { "governed": ["ci/github/repo-scope-check.yml"] }
           }
         },
         "level_5": {
@@ -384,12 +386,13 @@
       "azure": {
         "files": [],
         "shared": [],
-        "governed": ["ci/azure/repo-scope-check.yml"],
+        "governed": [],
         "by_type": {
-          "api":        { "governed": ["ci/azure/l3-quality-gate.yml"] },
-          "cli":        { "governed": ["ci/azure/l3-quality-gate.yml"] },
-          "ui-react":   { "governed": ["ci/azure/l3-ui-quality-gate.yml"] },
-          "ui-angular": { "governed": ["ci/azure/l3-ui-quality-gate.yml"] }
+          "api":        { "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-quality-gate.yml"] },
+          "cli":        { "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-quality-gate.yml"] },
+          "ui-react":   { "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-ui-quality-gate.yml"] },
+          "ui-angular": { "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-ui-quality-gate.yml"] },
+          "data":       { "governed": ["ci/azure/repo-scope-check.yml"] }
         },
         "level_4": {
           "mode": "merge",
@@ -400,7 +403,8 @@
             "api":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml"] },
             "cli":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml"] },
             "ui-react":   { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml"] },
-            "ui-angular": { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml"] }
+            "ui-angular": { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml"] },
+            "data":       { "governed": ["ci/azure/repo-scope-check.yml"] }
           }
         },
         "level_5": {

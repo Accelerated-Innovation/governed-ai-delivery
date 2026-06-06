@@ -8,6 +8,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed — explicit conservative data CI contract
+
+- Data CI behavior is now explicit in all production agent manifests: `--type
+  data` installs the common repo-scope governance gate for GitHub or Azure at
+  L3/L4 instead of inheriting it accidentally from the base CI block.
+- `govkit upgrade` now validates marker options against the current manifest
+  before resolving variants, so malformed markers fail fast instead of silently
+  omitting governed CI gates.
+- README data-stack guidance now describes the conservative CI model: common
+  governance is installed by default, while stack-specific execution gates
+  remain opt-in until configured.
+
 ### Fixed — data stack boundary and discoverability
 
 - `govkit apply --type data --level 5` now fails fast with a clear message. Data
