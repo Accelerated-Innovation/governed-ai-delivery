@@ -3123,6 +3123,52 @@ class TestNoUiDimensionInManifests:
         assert "python-dbt" in out
 
 
+class TestDataCiContract:
+    """Production data manifests make the conservative common CI gate explicit."""
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    @pytest.mark.parametrize(
+        "platform, repo_scope",
+        [
+            ("github", "ci/github/repo-scope-check.yml"),
+            ("azure", "ci/azure/repo-scope-check.yml"),
+        ],
+    )
+    @pytest.mark.parametrize("level", ["3", "4"])
+    def test_data_ci_resolves_common_repo_scope_gate(
+        self, agent, platform, repo_scope, level,
+    ):
+        from cli.paths import AGENTS_DIR
+
+        manifest = json.loads((AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8"))
+
+        _, _, governed = resolve_variant_files(
+            manifest, {"type": "data", "ci": platform, "level": level}
+        )
+
+        ci_governed = [path for path in governed if path.startswith(f"ci/{platform}/")]
+        assert ci_governed == [repo_scope]
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    @pytest.mark.parametrize(
+        "platform, repo_scope",
+        [
+            ("github", "ci/github/repo-scope-check.yml"),
+            ("azure", "ci/azure/repo-scope-check.yml"),
+        ],
+    )
+    def test_data_ci_contract_is_explicit_in_manifest(self, agent, platform, repo_scope):
+        from cli.paths import AGENTS_DIR
+
+        manifest = json.loads((AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8"))
+        ci_block = manifest["variants"]["ci"][platform]
+
+        assert ci_block.get("governed", []) == []
+        assert ci_block["by_type"]["data"]["governed"] == [repo_scope]
+        assert ci_block["level_4"].get("governed", []) == []
+        assert ci_block["level_4"]["by_type"]["data"]["governed"] == [repo_scope]
+
+
 class TestShapeMigrationWarning:
     """read_govkit_marker emits a one-time warning when marker carries legacy `ui` option."""
 

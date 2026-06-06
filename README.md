@@ -399,7 +399,7 @@ The 8-step lifecycle above applies to all project types. Key differences by type
 
 **Worked starter:** `govkit init <feature> --starter data` scaffolds a `customer_dim_freshness` feature with `@nfr-freshness / @nfr-quality / @nfr-pii / @nfr-lineage / @nfr-reliability / @nfr-cost` Gherkin scenarios.
 
-**CI gates:** intentionally empty in this release — gate selection (source freshness, dbt test, SQLfluff) is the kind of thing data teams want to shape themselves. Wire your own in `ci/github/` or `ci/azure/` for now; opinionated defaults arrive in a future release.
+**CI gates:** data installs include the common repo-scope governance gate. Stack-specific execution gates (source freshness, dbt test, SQLfluff, Databricks workspace validation) remain conservative and opt-in until configured by the team.
 
 **Maturity levels:** data projects support Level 3 and Level 4. Level 5 is GenAI Operations for LLM application delivery and does not apply to dbt/data project installs.
 
