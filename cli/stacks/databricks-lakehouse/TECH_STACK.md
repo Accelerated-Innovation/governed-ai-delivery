@@ -76,3 +76,23 @@ Each environment must have an explicit catalog and schema strategy:
 
 CI must not deploy or execute Databricks workloads unless the repo documents
 the target workspace, identity, isolation strategy, and cost guardrails.
+
+---
+
+# 5. Agent Skills Integration
+
+Databricks agent skills are optional platform guidance for assistant workflows.
+Recommended install:
+
+```bash
+databricks aitools install
+```
+
+Use Databricks agent skills for Databricks-specific CLI and platform workflows:
+Asset Bundles, workspace authentication, Jobs, Lakeflow Pipelines, Unity
+Catalog, model serving, vector search, and notebook/platform conventions.
+
+GovKit contracts remain authoritative for repo delivery governance: acceptance criteria,
+architecture boundaries, PII handling, lineage expectations, CI gates, ADR requirements,
+and human approvals. Databricks skills must not override GovKit contracts or approval
+boundaries.

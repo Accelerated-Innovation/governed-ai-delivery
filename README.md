@@ -76,12 +76,12 @@ Each `govkit apply` configures **one project shape**. Pick one value per flag:
 | Flag | Options | Pick this if… |
 |---|---|---|
 | `--agent` | `claude-code` · `copilot` · `codex` | …matches the AI tool your team uses |
-| `--type` | `api` · `cli` · `ui-react` · `ui-angular` · `data` | …describes this repo (or subdir) — backend service, CLI, React/Angular UI, or dbt data project |
+| `--type` | `api` · `cli` · `ui-react` · `ui-angular` · `data` | …describes this repo (or subdir) — backend service, CLI, React/Angular UI, or governed data project |
 | `--level` | `3` · `4` · `5` | …`3` governed foundations (default) · `4` spec-driven delivery · `5` GenAI operations — see [Maturity Levels](#maturity-levels) |
 | `--ci` | `github` · `azure` | …your CI platform |
-| `--stack` | `python-fastapi` · `dotnet-aspnet` · `java-spring-boot` · `nodejs-fastify` · `go-gin` · `python-dbt` | …backend/data only; auto-detected, defaults by type (`python-fastapi` for `api` / `cli`, `python-dbt` for `data`). See [Switching Tech Stacks](#switching-tech-stacks) |
+| `--stack` | `python-fastapi` · `dotnet-aspnet` · `java-spring-boot` · `nodejs-fastify` · `go-gin` · `python-dbt` · `databricks-lakehouse` | …backend/data only; auto-detected, defaults by type (`python-fastapi` for `api` / `cli`, `python-dbt` for `data`). See [Switching Tech Stacks](#switching-tech-stacks) |
 
-Running `govkit apply` with no `--type`/`--ci`/`--stack` flags prompts interactively and auto-detects sensible defaults from your repo. A `.govkit` marker records every choice so later commands (`calibrate`, `validate`, `upgrade`, `doctor`) need no re-specification.
+Running `govkit apply` with no `--type`/`--ci`/`--stack` flags prompts interactively and auto-detects sensible defaults from your repo, including `python-dbt` from `dbt_project.yml` and `databricks-lakehouse` from `databricks.yml` / `databricks.yaml`. A `.govkit` marker records every choice so later commands (`calibrate`, `validate`, `upgrade`, `doctor`) need no re-specification.
 
 <details>
 <summary><b>Full example commands for every combination</b></summary>
@@ -384,9 +384,11 @@ The 8-step lifecycle above applies to all project types. Key differences by type
 
 **CI gates:** `ci/github/ui-quality-gate.yml`, `ci/github/ui-eval-gate.yml`
 
-### Data (dbt)
+### Data
 
-**Architecture:** dbt-layered — Staging → Intermediate → Marts. Staging cleans source data (one source per model), Intermediate holds joins and business logic, Marts are the downstream contracts. See `docs/data/architecture/BOUNDARIES.md` and the `python-dbt` stack overlay's `MODEL_LAYERING.md`.
+**Architecture:** governed data delivery — Staging → Intermediate → Marts for dbt projects, or Bronze → Silver → Gold / curated Delta layers for Databricks lakehouse projects. Staging/Bronze cleans source data, Intermediate/Silver holds joins and business logic, and Marts/Gold are the downstream contracts. See `docs/data/architecture/BOUNDARIES.md` plus the selected stack overlay's layering guidance.
+
+The following layer rules apply to dbt-style repos (`python-dbt`). For Databricks lakehouse repos, follow the `databricks-lakehouse` overlay's `MODEL_LAYERING.md` (Bronze/Silver/Gold) and adjust rule globs if your repo uses `src/bronze|silver|gold`.
 
 **Layer rules** (load automatically):
 - `staging.md` for `**/models/staging/**`
@@ -395,7 +397,15 @@ The 8-step lifecycle above applies to all project types. Key differences by type
 - `data-quality.md` for `**/tests/**` (dbt schema + singular tests)
 - `pii.md` for `**/models/**`, `**/macros/**`, `**/seeds/**` (PII tagging + masking)
 
-**Stack overlay:** `python-dbt` (dbt-core + Snowflake / BigQuery / Redshift / Postgres adapter, SQLfluff, dbt schema tests, optional `dbt-expectations` for L4).
+**Stack overlays:**
+- `python-dbt` (dbt-core + Snowflake / BigQuery / Redshift / Postgres adapter, SQLfluff, dbt schema tests, optional `dbt-expectations` for L4).
+- `databricks-lakehouse` (Unity Catalog, Delta tables, Databricks Asset Bundles, Jobs, Lakeflow Pipelines, PySpark, SQL, notebooks, and optional Databricks bundle validation).
+
+**Databricks skills integration:** GovKit governs repo delivery: contracts, acceptance criteria, architecture boundaries, PII handling, lineage expectations, CI gates, ADRs, and human approvals remain the source of truth. Databricks skills provide platform-specific assistant guidance for workspace, CLI, bundle, Unity Catalog, Jobs, Lakeflow, serving, vector search, and notebook workflows. For Databricks-native repos, install those optional skills with:
+
+```bash
+databricks aitools install
+```
 
 **Worked starter:** `govkit init <feature> --starter data` scaffolds a `customer_dim_freshness` feature with `@nfr-freshness / @nfr-quality / @nfr-pii / @nfr-lineage / @nfr-reliability / @nfr-cost` Gherkin scenarios.
 
@@ -435,7 +445,7 @@ If your backend and UI live in **separate repositories** instead of subdirectori
 GovKit ships **stack overlays** — small bundles of 6 stack-specific architecture docs plus metadata. Pick one at install time with `--stack`, or swap later with `govkit stack apply`. Stack overlays apply to backend types (`api`, `cli`) and the `data` type; UI installs ignore `--stack`. The 6 docs vary per shape:
 
 - **Backend stacks** (`python-fastapi`, `dotnet-aspnet`, `java-spring-boot`, `nodejs-fastify`, `go-gin`): `TECH_STACK.md`, `API_CONVENTIONS.md`, `TESTING.md`, `LAYER_IMPLEMENTATION.md`, `SECURITY_AUTH_PATTERNS.md`, `OBSERVABILITY_PORT_CONTRACT.md`.
-- **Data stacks** (`python-dbt`): `TECH_STACK.md`, `QUERY_CONVENTIONS.md`, `TESTING.md`, `MODEL_LAYERING.md`, `PII_HANDLING.md`, `LINEAGE_OBSERVABILITY.md`.
+- **Data stacks** (`python-dbt`, `databricks-lakehouse`): `TECH_STACK.md`, `TESTING.md`, `MODEL_LAYERING.md`, `PII_HANDLING.md`, `LINEAGE_OBSERVABILITY.md`, plus stack-specific query or pipeline contracts.
 
 ### See what's available
 
@@ -485,6 +495,7 @@ The agent rules and most architecture docs (DESIGN_PRINCIPLES, ARCH_CONTRACT, BO
 | `nodejs-fastify` | backend | Node.js 20 LTS / TypeScript 5 / Fastify 4 / Vitest |
 | `go-gin` | backend | Go 1.22+ / Gin / standard library testing + testify |
 | `python-dbt` | data | Python 3.11+ / dbt-core (staging → intermediate → marts) / Snowflake \| BigQuery \| Redshift \| Postgres adapter / SQLfluff / dbt schema tests (default for `data`) |
+| `databricks-lakehouse` | data | Databricks Lakehouse / Unity Catalog / Delta tables / Asset Bundles / Jobs / Lakeflow Pipelines / PySpark / SQL |
 
 After applying a stack, review the installed files and adapt anything specific to your repo (approved library versions, internal service names, etc.) — `govkit calibrate` walks you through this. `GOVKIT_SETUP_REVIEW.md` at the target root lists each stack doc with a one-line review prompt. Consider raising an ADR to document the stack decision.
 
@@ -770,6 +781,15 @@ A: Your predicted FIRST or Virtue average is below 4.0, or a predicted accessibi
 - [MODEL_LAYERING.md](cli/stacks/python-dbt/MODEL_LAYERING.md) — staging / intermediate / marts materialization defaults
 - [PII_HANDLING.md](cli/stacks/python-dbt/PII_HANDLING.md) — `mask_pii()` macro pattern
 - [LINEAGE_OBSERVABILITY.md](cli/stacks/python-dbt/LINEAGE_OBSERVABILITY.md) — Exposure docs, OpenLineage hooks
+
+### Data (Stack overlay — databricks-lakehouse)
+
+- [TECH_STACK.md](cli/stacks/databricks-lakehouse/TECH_STACK.md) — Databricks Lakehouse platform boundary and agent skills guidance
+- [TESTING.md](cli/stacks/databricks-lakehouse/TESTING.md) — unit, static, bundle, and opt-in workspace validation
+- [MODEL_LAYERING.md](cli/stacks/databricks-lakehouse/MODEL_LAYERING.md) — Bronze / Silver / Gold and curated Delta layering
+- [PIPELINE_CONTRACT.md](cli/stacks/databricks-lakehouse/PIPELINE_CONTRACT.md) — Jobs, Lakeflow Pipelines, bundle resources, and environment targets
+- [PII_HANDLING.md](cli/stacks/databricks-lakehouse/PII_HANDLING.md) — Unity Catalog tags, masking, secrets, and token handling
+- [LINEAGE_OBSERVABILITY.md](cli/stacks/databricks-lakehouse/LINEAGE_OBSERVABILITY.md) — Unity Catalog lineage, run metadata, and observability expectations
 
 ---
 
