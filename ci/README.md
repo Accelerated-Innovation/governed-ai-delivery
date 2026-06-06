@@ -35,6 +35,7 @@ Copy the relevant templates for your project type:
 | `ui-quality-gate.yml` | — | — | ✓ | — |
 | `ui-eval-gate.yml` (L4+) | — | — | ✓ | — |
 | `data-common-gate.yml` | — | — | — | ✓ |
+| `dbt-gate.yml` | — | — | — | `python-dbt` |
 
 ### Quick Checklist
 
@@ -56,6 +57,7 @@ Copy the relevant templates for your project type:
 | `ui-quality-gate.yml` | — | Type check, ESLint, component tests, bundle size |
 | `ui-eval-gate.yml` | — | FIRST/Virtue prediction, Playwright E2E, axe scans |
 | `data-common-gate.yml` | Static governance artifact, PII policy, and `govkit validate` checks | Static governance artifact, PII policy, and `govkit validate` checks |
+| `dbt-gate.yml` | dbt dependency install, `dbt deps`, `dbt parse`, `dbt compile`, SQLFluff when configured, static model YAML checks | Same conservative checks; warehouse-backed test/source freshness execution remains opt-in |
 
 Level 3 projects receive only `l3-quality-gate.yml`. Level 4 projects receive the full set. Level 5 projects receive L4 gates plus 3 additional GenAI gates.
 
@@ -167,6 +169,27 @@ See: `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md` for complete repo scope semantics.
 **Boundary:** This gate does not query warehouses, call Databricks workspaces,
 deploy bundles, run jobs, execute pipelines, or require cloud credentials.
 Those checks belong in opt-in stack-specific gates.
+
+---
+
+## dbt Gate
+
+**File:** `dbt-gate.yml` (GitHub: `ci/github/dbt-gate.yml`, Azure: `ci/azure/dbt-gate.yml`)
+
+**Purpose:** Runs conservative `python-dbt` stack checks:
+
+- install dbt dependencies declared by the project
+- `dbt deps`
+- `dbt parse`
+- `dbt compile`
+- `sqlfluff lint` when SQLFluff is configured
+- static model YAML checks for model descriptions, column descriptions,
+  `unique` + `not_null` primary-key tests, and PII metadata
+
+**Boundary:** This gate documents but does not enable `dbt test --select
+state:modified+`, `dbt source freshness`, warehouse-backed model builds, or
+warehouse-backed data-quality execution. Enable those only after CI profiles,
+secrets, isolated schemas, and cost controls are configured.
 
 ---
 

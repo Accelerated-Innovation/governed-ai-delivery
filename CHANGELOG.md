@@ -22,6 +22,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Data installs now include a conservative `data-common-gate.yml` for GitHub
   or Azure. The gate runs static governance checks only and leaves warehouse,
   workspace, source freshness, and pipeline execution to opt-in stack gates.
+- `python-dbt` data installs now include a conservative `dbt-gate.yml` for
+  GitHub or Azure. The gate runs dbt dependency, parse, compile, SQLFluff, and
+  static model YAML checks while keeping warehouse-backed execution opt-in.
 - README data-stack guidance now describes the conservative CI model: common
   governance is installed by default, while stack-specific execution gates
   remain opt-in until configured.

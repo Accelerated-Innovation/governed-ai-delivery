@@ -1606,6 +1606,23 @@ class TestApplyTypeDataStackDefault:
         marker = read_govkit_marker(target)
         assert marker["stack"]["id"] == "python-dbt"
 
+    def test_apply_type_data_default_stack_installs_dbt_ci_gate(self, tmp_path):
+        import argparse
+
+        from cli.cmd_apply import cmd_apply
+
+        target = tmp_path / "project"
+        target.mkdir()
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target),
+            level="4", type="data", ci="github",
+            stack=None, force=False, detect=False,
+        ))
+
+        assert (target / "ci" / "github" / "repo-scope-check.yml").is_file()
+        assert (target / "ci" / "github" / "data-common-gate.yml").is_file()
+        assert (target / "ci" / "github" / "dbt-gate.yml").is_file()
+
     @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
     def test_apply_type_data_rejects_l5(self, tmp_path, agent, capsys):
         """Data is an L3/L4 shape. L5 is GenAI-Ops for LLM app delivery and
@@ -3428,6 +3445,121 @@ class TestDataCommonCiGate:
         ]
         for command in forbidden:
             assert command not in text
+
+
+class TestPythonDbtCiGate:
+    """python-dbt data installs add conservative dbt static/parse CI gates."""
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    @pytest.mark.parametrize(
+        "platform, repo_scope, data_common, dbt_gate",
+        [
+            (
+                "github",
+                "ci/github/repo-scope-check.yml",
+                "ci/github/data-common-gate.yml",
+                "ci/github/dbt-gate.yml",
+            ),
+            (
+                "azure",
+                "ci/azure/repo-scope-check.yml",
+                "ci/azure/data-common-gate.yml",
+                "ci/azure/dbt-gate.yml",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("level", ["3", "4"])
+    def test_python_dbt_data_ci_resolves_common_plus_dbt_gate(
+        self, agent, platform, repo_scope, data_common, dbt_gate, level,
+    ):
+        from cli.paths import AGENTS_DIR
+
+        manifest = json.loads((AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8"))
+
+        _, _, governed = resolve_variant_files(
+            manifest,
+            {"type": "data", "stack": "python-dbt", "ci": platform, "level": level},
+        )
+
+        ci_governed = [path for path in governed if path.startswith(f"ci/{platform}/")]
+        assert ci_governed == [repo_scope, data_common, dbt_gate]
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    @pytest.mark.parametrize(
+        "platform, dbt_gate",
+        [
+            ("github", "ci/github/dbt-gate.yml"),
+            ("azure", "ci/azure/dbt-gate.yml"),
+        ],
+    )
+    def test_non_dbt_data_stack_does_not_resolve_dbt_gate(self, agent, platform, dbt_gate):
+        from cli.paths import AGENTS_DIR
+
+        manifest = json.loads((AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8"))
+
+        _, _, governed = resolve_variant_files(
+            manifest,
+            {"type": "data", "stack": "databricks-lakehouse", "ci": platform, "level": "4"},
+        )
+
+        assert dbt_gate not in governed
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "ci/github/dbt-gate.yml",
+            "ci/azure/dbt-gate.yml",
+        ],
+    )
+    def test_dbt_gate_file_exists(self, path):
+        from cli.paths import REPO_ROOT
+
+        assert (REPO_ROOT / path).is_file()
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "ci/github/dbt-gate.yml",
+            "ci/azure/dbt-gate.yml",
+        ],
+    )
+    def test_dbt_gate_pins_conservative_blocking_checks(self, path):
+        from cli.paths import REPO_ROOT
+
+        text = (REPO_ROOT / path).read_text(encoding="utf-8")
+
+        for required in [
+            "dbt_project.yml",
+            "dbt deps",
+            "dbt parse",
+            "dbt compile",
+            "sqlfluff lint",
+            "meta.contains_pii",
+            "pii_category",
+            "unique",
+            "not_null",
+        ]:
+            assert required in text
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "ci/github/dbt-gate.yml",
+            "ci/azure/dbt-gate.yml",
+        ],
+    )
+    def test_dbt_gate_marks_warehouse_execution_opt_in(self, path):
+        from cli.paths import REPO_ROOT
+
+        text = (REPO_ROOT / path).read_text(encoding="utf-8")
+
+        for opt_in in [
+            "dbt test --select state:modified+",
+            "dbt source freshness",
+            "warehouse-backed model build",
+            "disabled until configured",
+        ]:
+            assert opt_in in text
 
 
 class TestShapeMigrationWarning:

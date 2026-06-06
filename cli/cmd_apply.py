@@ -102,6 +102,11 @@ def _apply_variant_install(
     options = resolve_options(manifest, args)
     validate_level_type(options.get("level"), options.get("type"))
     level = options.get("level", "3")
+
+    stack_meta, stack_assumption, options, profile = apply_stack_overlay(
+        target, getattr(args, "stack", None), options, prior_applied_at, force,
+    )
+
     print(f"\n  Configuration: {options}\n")
     files, shared, governed = resolve_variant_files(manifest, options)
 
@@ -116,10 +121,6 @@ def _apply_variant_install(
     copy_governed_or_shared(shared, target, prior_applied_at, force, baseline, l5_exclude)
 
     _ensure_features_dir(target, level)
-
-    stack_meta, stack_assumption, options, profile = apply_stack_overlay(
-        target, getattr(args, "stack", None), options, prior_applied_at, force,
-    )
 
     marker = write_govkit_marker(
         target, args.agent, level, options,

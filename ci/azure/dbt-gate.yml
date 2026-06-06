@@ -1,0 +1,202 @@
+# dbt-gate.yml
+#
+# PURPOSE: Conservative dbt checks for python-dbt data projects.
+# Reference this file from azure-pipelines.yml or copy its stage into your
+# project pipeline.
+#
+# Blocking by default:
+# - install dbt dependencies documented by the target project
+# - dbt deps
+# - dbt parse
+# - dbt compile
+# - SQLFluff lint when SQLFluff is configured
+# - static model YAML checks for descriptions, primary-key tests, and PII meta
+#
+# Opt-in only:
+# - dbt test --select state:modified+
+# - dbt source freshness
+# - warehouse-backed model build or data-quality execution
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - dbt_project.yml
+      - packages.yml
+      - models/**
+      - macros/**
+      - tests/**
+      - .sqlfluff
+      - pyproject.toml
+      - requirements*.txt
+      - ci/azure/dbt-gate.yml
+
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - dbt_project.yml
+      - packages.yml
+      - models/**
+      - macros/**
+      - tests/**
+      - .sqlfluff
+      - pyproject.toml
+      - requirements*.txt
+      - ci/azure/dbt-gate.yml
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: DbtGate
+    displayName: dbt static and parse checks
+    jobs:
+      - job: DbtGate
+        displayName: dbt static and parse checks
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - task: Bash@3
+            displayName: Run conservative dbt checks
+            inputs:
+              targetType: 'inline'
+              script: |
+                set -euo pipefail
+
+                if [ ! -f dbt_project.yml ]; then
+                  echo "No dbt_project.yml found; python-dbt gate has nothing to check."
+                  exit 0
+                fi
+
+                python -m pip install --upgrade pip pyyaml
+
+                if [ -f requirements-dbt.txt ]; then
+                  python -m pip install -r requirements-dbt.txt
+                elif [ -f requirements.txt ] && grep -Eq 'dbt-(core|[A-Za-z0-9_-]+)' requirements.txt; then
+                  python -m pip install -r requirements.txt
+                elif [ -f pyproject.toml ] && grep -Eq 'dbt-(core|[A-Za-z0-9_-]+)' pyproject.toml; then
+                  python -m pip install -e '.[dev]' || python -m pip install -e .
+                else
+                  echo "FAIL: dbt_project.yml exists but no dbt dependency declaration was found."
+                  echo "Add dbt-core plus your warehouse adapter to requirements-dbt.txt, requirements.txt, or pyproject.toml."
+                  exit 1
+                fi
+
+                if ! command -v dbt >/dev/null 2>&1; then
+                  echo "FAIL: dbt is not on PATH after dependency installation."
+                  exit 1
+                fi
+
+                dbt deps
+                dbt parse
+                dbt compile
+
+                if [ -f .sqlfluff ] || ([ -f pyproject.toml ] && grep -q '\[tool.sqlfluff\]' pyproject.toml); then
+                  if ! command -v sqlfluff >/dev/null 2>&1; then
+                    python -m pip install 'sqlfluff>=3.0' 'sqlfluff-templater-dbt>=3.0'
+                  fi
+                  changed_sql=$(git diff --name-only origin/main...HEAD -- 'models/**/*.sql' 2>/dev/null || true)
+                  if [ -z "$changed_sql" ]; then
+                    changed_sql=$(find models -name '*.sql' -type f 2>/dev/null || true)
+                  fi
+                  if [ -n "$changed_sql" ]; then
+                    echo "$changed_sql" | xargs sqlfluff lint
+                  fi
+                else
+                  echo "SQLFluff not configured; skipping sqlfluff lint."
+                fi
+
+                python - <<'PY'
+                from __future__ import annotations
+
+                import pathlib
+                import re
+                import sys
+
+                import yaml
+
+                model_files = sorted(pathlib.Path("models").rglob("*.yml")) + sorted(
+                    pathlib.Path("models").rglob("*.yaml")
+                )
+                if not model_files:
+                    print("FAIL: no model YAML files found under models/.")
+                    sys.exit(1)
+
+                pii_name = re.compile(r"(email|phone|ssn|dob|birth|address|name)", re.I)
+                errors: list[str] = []
+
+                def test_names(column: dict) -> set[str]:
+                    names: set[str] = set()
+                    for entry in column.get("tests") or []:
+                        if isinstance(entry, str):
+                            names.add(entry)
+                        elif isinstance(entry, dict):
+                            names.update(str(key) for key in entry)
+                    return names
+
+                for path in model_files:
+                    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+                    for model in data.get("models") or []:
+                        model_name = model.get("name", f"<unnamed:{path}>")
+                        if not str(model.get("description") or "").strip():
+                            errors.append(f"{path}: model {model_name} missing description")
+
+                        columns = model.get("columns") or []
+                        if not columns:
+                            errors.append(f"{path}: model {model_name} has no documented columns")
+
+                        has_primary_key = False
+                        for column in columns:
+                            column_name = str(column.get("name") or "")
+                            if not str(column.get("description") or "").strip():
+                                errors.append(f"{path}: {model_name}.{column_name} missing description")
+
+                            tests = test_names(column)
+                            if {"unique", "not_null"} <= tests:
+                                has_primary_key = True
+
+                            meta = column.get("meta") or {}
+                            contains_pii = bool(meta.get("contains_pii"))
+                            if contains_pii and not meta.get("pii_category"):
+                                errors.append(
+                                    f"{path}: {model_name}.{column_name} has meta.contains_pii without pii_category"
+                                )
+                            if pii_name.search(column_name) and not contains_pii:
+                                errors.append(
+                                    f"{path}: {model_name}.{column_name} looks like PII but lacks meta.contains_pii"
+                                )
+
+                        if not has_primary_key:
+                            errors.append(
+                                f"{path}: model {model_name} needs one primary key column with unique and not_null tests"
+                            )
+
+                if errors:
+                    print("dbt static model checks failed:")
+                    for error in errors:
+                        print(f"  - {error}")
+                    sys.exit(1)
+
+                print("dbt static model checks passed.")
+                PY
+
+          - task: Bash@3
+            displayName: Document opt-in warehouse checks
+            inputs:
+              targetType: 'inline'
+              script: |
+                cat <<'MSG'
+                Optional checks are disabled until configured:
+                - dbt test --select state:modified+
+                - dbt source freshness
+                - warehouse-backed model build and warehouse-backed data-quality checks
+
+                Enable these only after CI has a safe profile, secrets, target schema,
+                cost controls, and warehouse isolation.
+                MSG
