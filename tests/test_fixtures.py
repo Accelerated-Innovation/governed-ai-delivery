@@ -303,6 +303,45 @@ class TestDbtProjectFixture:
         )
 
 
+class TestDatabricksLakehouseGuidance:
+    """Databricks stack docs explain how GovKit and Databricks agent skills coexist."""
+
+    def _apply(self, target: Path) -> None:
+        from cli.cmd_apply import cmd_apply
+
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target),
+            level="4", type="data", ci="github",
+            stack="databricks-lakehouse", force=False, detect=False,
+        ))
+
+    def test_generated_tech_stack_mentions_databricks_agent_skills_boundary(self, tmp_path):
+        target = tmp_path / "databricks-project"
+        target.mkdir()
+        self._apply(target)
+
+        text = (target / "docs" / "data" / "architecture" / "TECH_STACK.md").read_text(encoding="utf-8")
+
+        assert "databricks aitools install" in text
+        assert "Databricks agent skills" in text
+        assert "GovKit contracts remain authoritative" in text
+        assert "acceptance criteria" in text
+        assert "PII" in text
+        assert "approvals" in text
+
+    def test_databricks_skills_are_guidance_only_not_required(self, tmp_path):
+        target = tmp_path / "databricks-project"
+        target.mkdir()
+        self._apply(target)
+
+        marker = target / ".govkit" / "marker.json"
+        tech_stack = target / "docs" / "data" / "architecture" / "TECH_STACK.md"
+
+        assert marker.is_file()
+        assert tech_stack.is_file()
+        assert not (target / ".databricks-agent-skills").exists()
+
+
 class TestEmptyFixture:
     """The empty fixture has no signals — every detection should be 'unknown'
     and the install should still succeed (defaults to python-fastapi)."""

@@ -3794,6 +3794,20 @@ class TestDatabricksCiGate:
             assert opt_in in text
 
 
+class TestDatabricksAgentSkillsGuidance:
+    """Docs clarify that Databricks skills complement GovKit governance."""
+
+    def test_readme_documents_databricks_skills_integration(self):
+        from cli.paths import REPO_ROOT
+
+        text = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+
+        assert "databricks-lakehouse" in text
+        assert "databricks aitools install" in text
+        assert "Databricks skills provide platform-specific assistant guidance" in text
+        assert "GovKit governs repo delivery" in text
+
+
 class TestShapeMigrationWarning:
     """read_govkit_marker emits a one-time warning when marker carries legacy `ui` option."""
 

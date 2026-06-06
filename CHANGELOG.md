@@ -35,6 +35,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - README data-stack guidance now describes the conservative CI model: common
   governance is installed by default, while stack-specific execution gates
   remain opt-in until configured.
+- README and Databricks stack guidance now document how GovKit and Databricks
+  agent skills work together: GovKit remains authoritative for repo delivery
+  governance, while `databricks aitools install` provides optional
+  platform-specific assistant guidance.
 
 ### Fixed — data stack boundary and discoverability
 
