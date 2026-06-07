@@ -8,7 +8,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-### Changed — explicit conservative data CI contract
+---
+
+## [0.13.0] — 2026-06-07
+
+### Added — Databricks and conservative data stack support
+
+- Added a `databricks-lakehouse` data stack overlay for Databricks-native repos
+  using Unity Catalog, Delta tables, Asset Bundles, Jobs, Lakeflow Pipelines,
+  PySpark, SQL, and notebooks.
+- Data installs now include a conservative `data-common-gate.yml` for GitHub
+  or Azure. The gate runs static governance checks only and leaves warehouse,
+  workspace, source freshness, and pipeline execution to opt-in stack gates.
+- `python-dbt` data installs now include a conservative `dbt-gate.yml` for
+  GitHub or Azure. The gate runs dbt dependency, parse, compile, SQLFluff, and
+  static model YAML checks while keeping warehouse-backed execution opt-in.
+- `databricks-lakehouse` data installs now include a conservative
+  `databricks-gate.yml` for GitHub or Azure. The gate runs static Databricks
+  configuration checks and optional bundle validation only when CLI auth is
+  configured; workspace-backed execution remains opt-in.
+- Added Databricks-native demo fixtures and documented mixed-signal precedence:
+  when `dbt_project.yml` and Databricks bundle config are both present, GovKit
+  treats the repo as `python-dbt` by default unless `--stack
+  databricks-lakehouse` is passed explicitly.
+
+### Changed — data stack selection and documentation
 
 - Data CI behavior is now explicit in all production agent manifests: `--type
   data` installs the common repo-scope governance gate for GitHub or Azure at
@@ -19,19 +43,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Manifest resolution now supports optional `by_stack` entries nested under
   `by_type`, enabling stack-aware data CI gates while preserving common CI for
   unmapped future stacks.
-- Data installs now include a conservative `data-common-gate.yml` for GitHub
-  or Azure. The gate runs static governance checks only and leaves warehouse,
-  workspace, source freshness, and pipeline execution to opt-in stack gates.
-- `python-dbt` data installs now include a conservative `dbt-gate.yml` for
-  GitHub or Azure. The gate runs dbt dependency, parse, compile, SQLFluff, and
-  static model YAML checks while keeping warehouse-backed execution opt-in.
-- Added a `databricks-lakehouse` data stack overlay for Databricks-native repos
-  using Unity Catalog, Delta tables, Asset Bundles, Jobs, Lakeflow Pipelines,
-  PySpark, SQL, and notebooks.
-- `databricks-lakehouse` data installs now include a conservative
-  `databricks-gate.yml` for GitHub or Azure. The gate runs static Databricks
-  configuration checks and optional bundle validation only when CLI auth is
-  configured; workspace-backed execution remains opt-in.
 - README data-stack guidance now describes the conservative CI model: common
   governance is installed by default, while stack-specific execution gates
   remain opt-in until configured.
@@ -42,10 +53,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Databricks Asset Bundle repos with `databricks.yml` / `databricks.yaml` now
   auto-detect the `databricks-lakehouse` stack instead of falling back to the
   `python-dbt` data default.
-- Added Databricks-native demo fixtures and documented mixed-signal precedence:
-  when `dbt_project.yml` and Databricks bundle config are both present, GovKit
-  treats the repo as `python-dbt` by default unless `--stack
-  databricks-lakehouse` is passed explicitly.
 
 ### Fixed — data stack boundary and discoverability
 
@@ -58,6 +65,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   choices, so `govkit list` reflects the actual data default stack.
 - `apply --stack` help and README stack-default wording now describe type-aware
   defaults (`python-fastapi` for `api` / `cli`, `python-dbt` for `data`).
+- L4 data installs for Claude Code, Codex, and Copilot now include the
+  `architecture-preflight`, `spec-planning`, and `implementation-plan` skills
+  referenced by the generated data instructions.
+
+### Maintenance
+
+- Bumped the pinned `actions/checkout` workflow action used by CI and publish
+  workflows.
 
 ---
 
