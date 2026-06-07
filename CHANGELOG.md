@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+---
+
+## [0.13.0] — 2026-06-07
+
 ### Changed — explicit conservative data CI contract
 
 - Data CI behavior is now explicit in all production agent manifests: `--type
