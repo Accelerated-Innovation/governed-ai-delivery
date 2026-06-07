@@ -1623,6 +1623,30 @@ class TestApplyTypeDataStackDefault:
         assert (target / "ci" / "github" / "data-common-gate.yml").is_file()
         assert (target / "ci" / "github" / "dbt-gate.yml").is_file()
 
+    @pytest.mark.parametrize(
+        "agent, skills_dir",
+        [
+            ("claude-code", ".claude/skills"),
+            ("codex", ".agents/skills"),
+            ("copilot", ".github/skills"),
+        ],
+    )
+    def test_apply_type_data_l4_installs_planning_skills(self, tmp_path, agent, skills_dir):
+        import argparse
+
+        from cli.cmd_apply import cmd_apply
+
+        target = tmp_path / "project"
+        target.mkdir()
+        cmd_apply(argparse.Namespace(
+            agent=agent, target=str(target),
+            level="4", type="data", ci="github",
+            stack="databricks-lakehouse", force=False, detect=False,
+        ))
+
+        for skill in ("architecture-preflight", "spec-planning", "implementation-plan"):
+            assert (target / skills_dir / skill / "SKILL.md").is_file()
+
     @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
     def test_apply_type_data_rejects_l5(self, tmp_path, agent, capsys):
         """Data is an L3/L4 shape. L5 is GenAI-Ops for LLM app delivery and
@@ -3300,6 +3324,19 @@ class TestNoUiDimensionInManifests:
         )
         # data is an L3/L4 shape (dbt has no L5 GenAI-ops tier).
         assert "level_4" in data, f"{agent}: data block must declare a level_4 add-on"
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    def test_data_level_4_installs_planning_skills(self, agent):
+        """L4 data instructions require the same planning skills they name."""
+        from cli.paths import AGENTS_DIR
+
+        manifest = json.loads((AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8"))
+        files = manifest["variants"]["type"]["data"]["level_4"]["files"]
+        destinations = {entry["dest"] for entry in files}
+        for skill in ("architecture-preflight", "spec-planning", "implementation-plan"):
+            assert any(dest.endswith(f"/{skill}/") for dest in destinations), (
+                f"{agent}: data level_4 must install {skill}"
+            )
 
     @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
     def test_python_dbt_is_advertised_as_stack_choice(self, agent):

@@ -306,7 +306,10 @@
           "files": [
             { "src": "claude-md/l4-data.md", "dest": "CLAUDE.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
-            { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" }
+            { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
+            { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" }
           ],
           "shared": [
             "features/starter_data/"
