@@ -62,6 +62,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   choices, so `govkit list` reflects the actual data default stack.
 - `apply --stack` help and README stack-default wording now describe type-aware
   defaults (`python-fastapi` for `api` / `cli`, `python-dbt` for `data`).
+- L4 data installs for Claude Code, Codex, and Copilot now include the
+  `architecture-preflight`, `spec-planning`, and `implementation-plan` skills
+  referenced by the generated data instructions.
+
+### Maintenance
+
+- Bumped the pinned `actions/checkout` workflow action used by CI and publish
+  workflows.
 
 ---
 
