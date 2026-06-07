@@ -44,7 +44,10 @@
           "files": [
             { "src": "copilot-instructions/l4-data.md", "dest": ".github/copilot-instructions.md" },
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
-            { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" }
+            { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
+            { "src": "skills/backend/spec-planning/", "dest": ".github/skills/spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".github/skills/architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".github/skills/implementation-plan/" }
           ],
           "shared": [
             "features/starter_data/"

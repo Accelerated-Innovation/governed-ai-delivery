@@ -44,7 +44,10 @@
           "files": [
             { "src": "agents-md/l4-data.md", "dest": "AGENTS.md" },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
-            { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" }
+            { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
+            { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/implementation-plan/" }
           ],
           "shared": [
             "features/starter_data/"
