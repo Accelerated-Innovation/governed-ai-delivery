@@ -22,6 +22,16 @@
 
 ---
 
+## Out of scope
+
+<!-- Deferred capabilities — list what a reviewer might expect but that is postponed to a
+     later increment or separate feature. Spec planning carries these into the plan's
+     `### Out of scope`. If left as "none declared yet", the plan's Out-of-scope will be
+     inferred and labelled. -->
+- none declared yet
+
+---
+
 ## Performance
 - TBD
 

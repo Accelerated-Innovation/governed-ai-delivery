@@ -26,6 +26,11 @@ Existing artifacts (read if present, update if needed):
 
 1. Read all inputs listed above.
 2. Summarize the business goal and scope of the feature.
+2a. Populate the plan's `### Out of scope` from `nfrs.md` `## Out of scope`:
+   - If `nfrs.md` has a non-empty `## Out of scope` section, copy its entries into the plan verbatim (author-declared — no marker).
+   - If `## Out of scope` is missing or empty, infer the deferred capabilities from the spec's negative space (domain neighbors with no scenarios), then BOTH:
+     - insert `<!-- INFERRED: not declared in nfrs.md ## Out of scope; confirm with feature owner -->` directly under the plan's `### Out of scope` heading, and
+     - state in the planning summary that Out-of-scope was inferred and should be confirmed.
 3. Identify required design elements aligned to Hexagonal Architecture:
    - Inbound ports (`ports/inbound/`)
    - Domain logic modules (`services/`)

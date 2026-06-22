@@ -70,6 +70,19 @@ Once complete:
 
 ---
 
+## 3.6 Scope Boundary Source Check  (informational — does not block)
+
+Confirm whether the feature's deferred capabilities are author-declared or will be inferred.
+
+- [ ] `nfrs.md` has a `## Out of scope` section: yes/no
+
+If **yes**: note "Out-of-scope is author-declared — spec planning carries it into the plan verbatim."
+If **no**: note "No declared Out-of-scope — spec planning will infer it and label it `<!-- INFERRED -->` in the plan. Recommend the feature owner add `## Out of scope` to nfrs.md."
+
+This is informational and does not block planning.
+
+---
+
 ## 4. ADR Decision
 
 Choose one:

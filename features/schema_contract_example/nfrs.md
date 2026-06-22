@@ -6,6 +6,17 @@
 
 ---
 
+## Out of scope
+
+Capabilities a reviewer might expect but that are intentionally deferred to a later increment
+or a separate feature. Spec planning carries these into the plan's `### Out of scope` verbatim.
+
+- Schema validation tooling for consumers — separate feature
+- Schema deprecation and retirement workflows — future increment
+- Schema search or discovery UI — out of scope
+
+---
+
 ## Performance
 - Schema publication must complete within 500ms under normal load
 - Schema retrieval by downstream consumers must respond within 100ms at p99

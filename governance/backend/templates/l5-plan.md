@@ -25,6 +25,10 @@
 -
 
 ### Out of scope
+<!-- Carry from nfrs.md `## Out of scope` verbatim if present. If absent, infer the deferred
+     capabilities, mark this section with an HTML comment reading
+     "INFERRED: not declared in nfrs.md ## Out of scope; confirm with feature owner", and tell
+     the feature owner it was inferred. -->
 -
 
 ### Assumptions
