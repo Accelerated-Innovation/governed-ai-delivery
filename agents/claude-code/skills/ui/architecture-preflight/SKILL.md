@@ -16,6 +16,7 @@ Feature specs:
 
 Architecture standards:
 - `docs/ui/architecture/MVVM_CONTRACT.md`
+- `docs/ui/architecture/NFRS_CONVENTIONS.md`
 - `docs/ui/architecture/*/COMPONENT_CONVENTIONS.md`
 - `docs/ui/architecture/*/STATE_MANAGEMENT.md`
 - `docs/ui/evaluation/eval_criteria.md`

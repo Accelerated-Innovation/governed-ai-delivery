@@ -22,6 +22,7 @@ For each of the following, state which architectural rules apply (cite file and 
 - Layering (from `docs/backend/architecture/ARCH_CONTRACT.md`)
 - API conventions (from `docs/backend/architecture/API_CONVENTIONS.md`)
 - Auth/security patterns (from `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`)
+- NFR section contract (from `docs/backend/architecture/NFRS_CONVENTIONS.md`)
 - Error model and response shape
 - Logging and observability expectations
 

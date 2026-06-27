@@ -6,6 +6,14 @@
 
 ---
 
+## Out of scope
+
+- Task creation and editing UI — separate feature (this dashboard is read + status-toggle only)
+- Real-time websocket updates — future increment (background polling only for now)
+- Cross-user / team task views — out of scope
+
+---
+
 ## Accessibility
 
 - All interactive elements must be keyboard accessible (WCAG 2.1 AA — 2.1.1 Keyboard)

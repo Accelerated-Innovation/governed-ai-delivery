@@ -23,6 +23,14 @@ This feature spans multiple repositories:
 
 ---
 
+## Out of scope
+
+- Token revocation / blocklist (CRL/OCSP) — separate feature
+- Refresh-token rotation and session management — future increment
+- OAuth2 / OIDC authorization-code flows — out of scope (this feature covers JWT issuance and validation only)
+
+---
+
 ## Performance
 
 - **JWT generation latency:** p95 < 100ms (Auth Service)
