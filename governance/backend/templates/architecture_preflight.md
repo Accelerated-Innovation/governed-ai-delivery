@@ -33,6 +33,7 @@ List specific sections referenced from:
 - `docs/backend/architecture/BOUNDARIES.md`
 - `docs/backend/architecture/API_CONVENTIONS.md`
 - `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`
+- `docs/backend/architecture/NFRS_CONVENTIONS.md`
 - `docs/backend/evaluation/eval_criteria.md`
 
 Cite file names and section headings.

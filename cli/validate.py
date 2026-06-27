@@ -45,6 +45,12 @@ _RE_MODE_LLM = r"^\s*mode:\s*llm\b"
 _RE_MULTI_AGENT = r"^\s*multi_agent:\s*true\b"
 _AGENT_TOPOLOGY_MD = "agent_topology.md"
 
+# nfrs.md section contract — see docs/{backend,ui}/architecture/NFRS_CONVENTIONS.md.
+# Required sections are hard-gated by repo-scope-check CI and the Architecture Preflight,
+# so check_nfrs_sections surfaces deviations as WARN rather than duplicating those gates.
+NFRS_REQUIRED_SECTIONS = ("Repository Scope",)
+NFRS_RECOMMENDED_SECTIONS = ("Out of scope",)
+
 # L3 (Foundations) has no per-feature artifacts; validation short-circuits
 # at L3 in run_validation(). The 5-artifact contract starts at L4.
 L4_REQUIRED_ARTIFACTS = [
@@ -125,6 +131,39 @@ def check_nfrs_no_tbd(feature_dir: Path) -> tuple[bool, str]:
     if tbd_lines:
         return False, f"{_NFRS_MD} contains TBD entries (lines {', '.join(map(str, tbd_lines))})"
     return True, f"{_NFRS_MD} has no TBD entries"
+
+
+def check_nfrs_sections(feature_dir: Path) -> tuple[bool | None, str]:
+    """Advisory check of the nfrs.md section contract (see NFRS_CONVENTIONS.md).
+
+    Required sections (Repository Scope) are hard-gated elsewhere — repo-scope-check CI
+    and the Architecture Preflight — so a deviation surfaces here as WARN rather than FAIL,
+    keeping the local validate run informative without duplicating those gates. Recommended
+    sections (Out of scope) also WARN when absent; spec planning then infers and labels
+    them. Returns True when the full contract is met.
+    """
+    path = feature_dir / _NFRS_MD
+    if not path.exists():
+        return False, f"{_NFRS_MD} not found"
+    text = path.read_text(encoding="utf-8")
+
+    def _has(section: str) -> bool:
+        return bool(re.search(rf"^##\s+{re.escape(section)}\b", text,
+                              re.MULTILINE | re.IGNORECASE))
+
+    missing_required = [s for s in NFRS_REQUIRED_SECTIONS if not _has(s)]
+    if missing_required:
+        sections = ", ".join(f"## {s}" for s in missing_required)
+        return None, (f"{_NFRS_MD} missing required section(s) {sections} "
+                      f"(NFRS_CONVENTIONS.md) — hard-gated by repo-scope-check/preflight")
+
+    missing_recommended = [s for s in NFRS_RECOMMENDED_SECTIONS if not _has(s)]
+    if missing_recommended:
+        sections = ", ".join(f"## {s}" for s in missing_recommended)
+        return None, (f"{_NFRS_MD} no {sections} section — "
+                      f"spec planning will infer deferrals (NFRS_CONVENTIONS.md)")
+
+    return True, f"{_NFRS_MD} section contract OK (Repository Scope + Out of scope present)"
 
 
 def check_eval_criteria(feature_dir: Path) -> tuple[bool | None, str]:
@@ -404,6 +443,7 @@ def _build_checks(level: str) -> tuple[list[str], list]:
             lambda fd: check_completeness(fd, artifacts),
             check_gherkin_syntax,
             check_nfrs_no_tbd,
+            check_nfrs_sections,
             check_eval_criteria,
             check_plan_eval_prediction,
             check_gherkin_nfr_coverage,
@@ -419,6 +459,7 @@ def _build_checks(level: str) -> tuple[list[str], list]:
             lambda fd: check_completeness(fd, artifacts),
             check_gherkin_syntax,
             check_nfrs_no_tbd,
+            check_nfrs_sections,
             check_eval_criteria,
             check_plan_eval_prediction,
             check_gherkin_nfr_coverage,
