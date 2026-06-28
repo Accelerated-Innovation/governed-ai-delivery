@@ -49,8 +49,8 @@ WCAG 2.1 Level AA with zero critical/serious axe-core violations (see
 | `## Out of scope` | Lists capabilities deliberately deferred to a later increment or a separate feature. | Spec planning **infers** the deferrals and labels the plan's `### Out of scope` with `<!-- INFERRED -->`, then asks the feature owner to confirm. |
 
 `## Out of scope` is the canonical home for "we are not building X yet" intent. When
-present, spec planning copies its entries into `plan.md` `### Out of scope` **verbatim**
-(author-declared). When absent, the deferrals are inferred and marked — see the Scope
+present and non-empty, spec planning copies its entries into `plan.md` `### Out of scope`
+**verbatim** (author-declared). When absent or empty, the deferrals are inferred and marked — see the Scope
 Boundary Source Check (§2.7) in the UI Architecture Preflight.
 
 Do **not** encode deferrals as negative Gherkin steps (`And no X is introduced`): those

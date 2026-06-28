@@ -266,6 +266,40 @@ class TestCheckNfrsSections:
         assert "Out of scope" in msg
         assert "infer" in msg
 
+    def test_out_of_scope_present_but_empty_warns(self, tmp_path):
+        # header exists but body is empty -> spec planning still infers, so WARN
+        write(tmp_path / "nfrs.md", """\
+            ## Repository Scope
+
+            **Scope:** `single-repo`
+
+            ## Out of scope
+
+            ## Performance
+            - Response time < 200ms
+        """)
+        result, msg = check_nfrs_sections(tmp_path)
+        assert result is None
+        assert "Out of scope" in msg
+        assert "empty" in msg
+
+    def test_out_of_scope_comment_only_warns(self, tmp_path):
+        # a body of only an HTML comment counts as empty
+        write(tmp_path / "nfrs.md", """\
+            ## Repository Scope
+
+            **Scope:** `single-repo`
+
+            ## Out of scope
+            <!-- none declared yet -->
+
+            ## Performance
+            - Response time < 200ms
+        """)
+        result, msg = check_nfrs_sections(tmp_path)
+        assert result is None
+        assert "Out of scope" in msg
+
     def test_missing_repository_scope_warns(self, tmp_path):
         write(tmp_path / "nfrs.md", """\
             ## Out of scope

@@ -139,31 +139,45 @@ def check_nfrs_sections(feature_dir: Path) -> tuple[bool | None, str]:
     Required sections (Repository Scope) are hard-gated elsewhere — repo-scope-check CI
     and the Architecture Preflight — so a deviation surfaces here as WARN rather than FAIL,
     keeping the local validate run informative without duplicating those gates. Recommended
-    sections (Out of scope) also WARN when absent; spec planning then infers and labels
-    them. Returns True when the full contract is met.
+    sections (Out of scope) also WARN when absent; spec planning then infers and labels them.
+
+    A section counts only when it is *populated*: its body must hold real content after
+    whitespace-only lines and HTML comments are stripped. An empty `## Out of scope` — header
+    only, or header plus a placeholder comment — is treated as missing, matching
+    spec-planning's "missing or empty -> infer and label" behaviour (otherwise the validator
+    would say OK while the plan still inserts an INFERRED marker). Returns True when the full
+    contract is met.
     """
     path = feature_dir / _NFRS_MD
     if not path.exists():
         return False, f"{_NFRS_MD} not found"
     text = path.read_text(encoding="utf-8")
 
-    def _has(section: str) -> bool:
-        return bool(re.search(rf"^##\s+{re.escape(section)}\b", text,
-                              re.MULTILINE | re.IGNORECASE))
+    def _populated(section: str) -> bool:
+        """True only when the section header exists AND its body is non-empty after
+        stripping whitespace-only lines and HTML comments."""
+        header = re.search(rf"^##\s+{re.escape(section)}\b.*$", text,
+                           re.MULTILINE | re.IGNORECASE)
+        if not header:
+            return False
+        nxt = re.search(r"^##\s", text[header.end():], re.MULTILINE)
+        body = text[header.end():header.end() + nxt.start()] if nxt else text[header.end():]
+        body = re.sub(r"<!--.*?-->", "", body, flags=re.DOTALL)
+        return bool(body.strip())
 
-    missing_required = [s for s in NFRS_REQUIRED_SECTIONS if not _has(s)]
+    missing_required = [s for s in NFRS_REQUIRED_SECTIONS if not _populated(s)]
     if missing_required:
         sections = ", ".join(f"## {s}" for s in missing_required)
-        return None, (f"{_NFRS_MD} missing required section(s) {sections} "
+        return None, (f"{_NFRS_MD} missing or empty required section(s) {sections} "
                       f"(NFRS_CONVENTIONS.md) — hard-gated by repo-scope-check/preflight")
 
-    missing_recommended = [s for s in NFRS_RECOMMENDED_SECTIONS if not _has(s)]
+    missing_recommended = [s for s in NFRS_RECOMMENDED_SECTIONS if not _populated(s)]
     if missing_recommended:
         sections = ", ".join(f"## {s}" for s in missing_recommended)
-        return None, (f"{_NFRS_MD} no {sections} section — "
+        return None, (f"{_NFRS_MD} {sections} missing or empty — "
                       f"spec planning will infer deferrals (NFRS_CONVENTIONS.md)")
 
-    return True, f"{_NFRS_MD} section contract OK (Repository Scope + Out of scope present)"
+    return True, f"{_NFRS_MD} section contract OK (Repository Scope + Out of scope populated)"
 
 
 def check_eval_criteria(feature_dir: Path) -> tuple[bool | None, str]:
