@@ -3,6 +3,7 @@ id: go-gin
 version: "0.10.0"
 display_name: "Go 1.22+ / Gin"
 summary: "Gin + standard library testing + testify + optional godog for L4 BDD"
+supported_types: [api, cli]
 default_assumptions:
   - id: stack.language
     value: go

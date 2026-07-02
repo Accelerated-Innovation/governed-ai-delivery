@@ -3,6 +3,7 @@ id: python-dbt
 version: "0.10.0"
 display_name: "Python 3.11+ / dbt-core (staging / intermediate / marts)"
 summary: "dbt-core + a warehouse adapter (Snowflake / BigQuery / Redshift / Postgres); SQLfluff + dbt schema tests + optional dbt-expectations for L4"
+supported_types: [data]
 default_assumptions:
   - id: stack.language
     value: python

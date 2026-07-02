@@ -3,6 +3,7 @@ id: dotnet-aspnet
 version: "0.10.0"
 display_name: "C# 12 / .NET 8 / ASP.NET Core Minimal APIs"
 summary: "ASP.NET Core Minimal APIs, xUnit, Moq, optional SpecFlow/Reqnroll for L4 BDD"
+supported_types: [api, cli]
 default_assumptions:
   - id: stack.language
     value: csharp

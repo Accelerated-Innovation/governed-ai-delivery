@@ -3,6 +3,7 @@ id: java-spring-boot
 version: "0.10.0"
 display_name: "Java 21 / Spring Boot 3 / Spring Web MVC"
 summary: "Spring Boot 3 + JUnit 5 + Mockito + optional Cucumber for L4 BDD"
+supported_types: [api, cli]
 default_assumptions:
   - id: stack.language
     value: java

@@ -39,6 +39,7 @@ class Overlay:
     version: str
     display_name: str
     summary: str
+    supported_types: list = field(default_factory=list)
     default_assumptions: list = field(default_factory=list)
     docs: list = field(default_factory=list)
     skill_context: dict = field(default_factory=dict)
@@ -78,6 +79,7 @@ def _build_overlay(stack_dir: Path) -> Overlay | None:
         version=version,
         display_name=display_name,
         summary=data.get("summary", ""),
+        supported_types=data.get("supported_types") or [],
         default_assumptions=data.get("default_assumptions") or [],
         docs=data.get("docs") or [],
         skill_context=data.get("skill_context") or {},

@@ -5,7 +5,6 @@ describing metadata + docs + default_assumptions + skill_context +
 review_checklist. Loader is the single source of truth for resolving stacks.
 """
 
-import pytest
 
 
 class TestStacksDirResolver:
@@ -44,6 +43,28 @@ class TestListOverlays:
 
         ids = [o.id for o in list_overlays()]
         assert ids == sorted(ids), "list_overlays should return overlays sorted by id"
+
+    def test_every_overlay_declares_supported_types(self):
+        """Guard: type-gating (stack_select) reads supported_types from the
+        overlay. A bundled stack without it would silently permit every
+        --type, so the contract requires a non-empty declaration."""
+        from cli.overlay import list_overlays
+
+        known_types = {"api", "cli", "data", "ui-react", "ui-angular"}
+        for ov in list_overlays():
+            assert ov.supported_types, f"{ov.id} missing supported_types"
+            unknown = set(ov.supported_types) - known_types
+            assert not unknown, f"{ov.id} has unknown supported_types: {unknown}"
+
+    def test_every_overlay_declares_language(self):
+        """Guard: doctor D005 reads skill_context.language from the overlay.
+        A bundled stack without it would silently drop out of D005 coverage."""
+        from cli.overlay import list_overlays
+
+        for ov in list_overlays():
+            assert ov.skill_context.get("language"), (
+                f"{ov.id} missing skill_context.language"
+            )
 
 
 class TestLoadOverlay:
@@ -99,6 +120,38 @@ class TestLoadOverlay:
         assert ov.skill_context.get("language") == "python"
         assert ov.skill_context.get("api_framework") == "fastapi"
 
+    def test_supported_types_for_backend_stack(self):
+        from cli.overlay import load_overlay
+
+        ov = load_overlay("python-fastapi")
+        assert ov is not None
+        assert ov.supported_types == ["api", "cli"]
+
+    def test_supported_types_for_data_stack(self):
+        from cli.overlay import load_overlay
+
+        ov = load_overlay("python-dbt")
+        assert ov is not None
+        assert ov.supported_types == ["data"]
+
+    def test_supported_types_defaults_to_empty_when_absent(self, tmp_path, monkeypatch):
+        """The loader tolerates an overlay without supported_types (empty
+        list, not a crash) — consumers treat empty as 'no restriction'.
+        The schema + guard test keep bundled overlays from actually
+        shipping that way."""
+        stack_dir = tmp_path / "minimal-stack"
+        stack_dir.mkdir()
+        (stack_dir / "overlay.yaml").write_text(
+            'id: minimal-stack\nversion: "0.1.0"\ndisplay_name: "Minimal"\n',
+            encoding="utf-8",
+        )
+        monkeypatch.setattr("cli.overlay.STACKS_DIR", tmp_path)
+        from cli.overlay import load_overlay
+
+        ov = load_overlay("minimal-stack")
+        assert ov is not None
+        assert ov.supported_types == []
+
     def test_databricks_lakehouse_overlay_metadata(self):
         from cli.overlay import load_overlay
 
@@ -153,6 +206,7 @@ class TestApplyOverlay:
         so user-edited stack docs are not silently clobbered."""
         import os
         from datetime import datetime, timezone
+
         from cli.headers import format_editable_header
         from cli.overlay import apply_overlay, load_overlay
 

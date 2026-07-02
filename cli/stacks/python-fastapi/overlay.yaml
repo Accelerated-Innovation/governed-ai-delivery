@@ -3,6 +3,7 @@ id: python-fastapi
 version: "0.10.0"
 display_name: "Python 3.11+ / FastAPI"
 summary: "FastAPI + pydantic + SQLAlchemy + pytest + pytest-bdd"
+supported_types: [api, cli]
 default_assumptions:
   - id: stack.language
     value: python
