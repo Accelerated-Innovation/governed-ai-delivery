@@ -8,6 +8,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed — internal
+
+- Per-agent on-disk layout facts (instruction file, rules dir, rules glob,
+  frontmatter glob key/shape) now have a single owner: `cli/agent_layout.py`.
+  Replaces four private copies in `calibrate`, `setup_review`, `doctor`, and
+  `rule_templating`. No user-facing behavior change; a bundle-parity test
+  keeps the table and `agents/` in sync. See
+  `plans/AGENT_LAYOUT_REFACTOR_PLAN.md`.
+
 ---
 
 ## [0.13.0] — 2026-06-07

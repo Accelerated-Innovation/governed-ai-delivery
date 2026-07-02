@@ -25,6 +25,7 @@ from typing import Literal
 # ---------------------------------------------------------------------------
 # Finding model
 # ---------------------------------------------------------------------------
+from .agent_layout import AGENT_LAYOUTS
 from .marker import MARKER_DIRNAME, MARKER_FILENAME, read_govkit_marker
 
 Severity = Literal["error", "warning", "info"]
@@ -65,21 +66,6 @@ def _register_check(check_id: str):
 # ---------------------------------------------------------------------------
 # Rule-tree resolution (agent-aware)
 # ---------------------------------------------------------------------------
-
-
-def _rules_spec_for_agent(agent: str) -> tuple[Path | None, str] | None:
-    """Return (rules_dir_relative, frontmatter_key) for the active agent.
-
-    Returns None for codex (which uses nested AGENTS.md placement, not
-    globs — D001 doesn't apply).
-    """
-    if agent == "claude-code":
-        return Path(".claude") / "rules", "paths"
-    if agent == "copilot":
-        return Path(".github") / "instructions", "applyTo"
-    if agent == "codex":
-        return None  # path-based, no glob frontmatter
-    return None
 
 
 def _parse_frontmatter(text: str) -> dict | None:
@@ -160,10 +146,11 @@ def _check_rule_globs_resolve(target: Path, marker: dict) -> list[ValidationFind
     strings, codex skips (no glob frontmatter; placement IS the rule scope).
     """
     agent = marker.get("agent", "claude-code")
-    spec = _rules_spec_for_agent(agent)
-    if spec is None:
+    layout = AGENT_LAYOUTS.get(agent)
+    if layout is None or layout.frontmatter_glob_key is None:
         return []
-    rules_dir, key = spec
+    rules_dir = Path(layout.rules_dir)
+    key = layout.frontmatter_glob_key
 
     findings: list[ValidationFinding] = []
     for rule_file in _iter_rule_files(target, rules_dir):

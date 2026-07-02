@@ -27,24 +27,20 @@ from pathlib import Path
 
 import yaml
 
+from .agent_layout import AGENT_LAYOUTS
 
 # Each agent uses its own frontmatter shape:
 #   claude-code → paths_template: layers.<k>  →  paths: [<globs>]      (list)
 #   copilot     → applyTo_template: layers.<k>→  applyTo: "<glob,...>" (string)
-# _TEMPLATE_SCHEMAS encodes the per-key (template_key, output_key, list_vs_string)
-# so the helper can handle both shapes from one entry point.
+# The per-key (template_key, output_key, list_vs_string) schemas derive from
+# AGENT_LAYOUTS; expansion stays agent-agnostic — every schema is tried against
+# every file so the helper handles both shapes from one entry point.
 _TEMPLATE_SCHEMAS: list[tuple[str, str, str]] = [
-    ("paths_template", "paths", "list"),
-    ("applyTo_template", "applyTo", "comma-string"),
+    (f"{layout.frontmatter_glob_key}_template",
+     layout.frontmatter_glob_key, layout.glob_value_shape)
+    for layout in AGENT_LAYOUTS.values()
+    if layout.frontmatter_glob_key
 ]
-
-# Where each agent's rule files land. Codex uses nested AGENTS.md placement —
-# no glob frontmatter, so nothing to template.
-_RULES_DIRS_BY_AGENT: dict[str, list[str]] = {
-    "claude-code": [".claude/rules"],
-    "copilot":     [".github/instructions"],
-    "codex":       [],
-}
 
 
 def expand_rule_template(text: str, layers: dict[str, list[str]]) -> str:
@@ -132,18 +128,20 @@ def template_installed_rules(
     doesn't call this — architecture style is a property of the repo, not
     the stack.
     """
+    layout = AGENT_LAYOUTS.get(agent)
+    if layout is None or layout.rules_dir is None:
+        return 0
+    rules_root = target / layout.rules_dir
+    if not rules_root.is_dir():
+        return 0
     modified = 0
-    for rules_rel in _RULES_DIRS_BY_AGENT.get(agent, []):
-        rules_root = target / rules_rel
-        if not rules_root.is_dir():
+    for md in rules_root.rglob("*.md"):
+        try:
+            text = md.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
             continue
-        for md in rules_root.rglob("*.md"):
-            try:
-                text = md.read_text(encoding="utf-8")
-            except (OSError, UnicodeDecodeError):
-                continue
-            new_text = expand_rule_template(text, layers)
-            if new_text != text:
-                md.write_text(new_text, encoding="utf-8")
-                modified += 1
+        new_text = expand_rule_template(text, layers)
+        if new_text != text:
+            md.write_text(new_text, encoding="utf-8")
+            modified += 1
     return modified

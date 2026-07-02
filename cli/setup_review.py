@@ -13,31 +13,23 @@ shape and a generic checklist so the discipline starts on day one.
 
 from pathlib import Path
 
+from .agent_layout import AGENT_LAYOUTS, AgentLayout
 
-def _agent_doc_paths(agent: str) -> dict[str, str]:
-    """Return the (label, path) pairs an agent installs at the top level.
 
-    Path conventions differ per agent (CLAUDE.md vs .github/copilot-instructions.md
-    vs AGENTS.md). This keeps the review file's references accurate per install.
-    """
-    if agent == "copilot":
-        return {
-            "agent_instruction_file": ".github/copilot-instructions.md",
-            "rules_dir": ".github/instructions/",
-            "rules_glob": ".github/instructions/*.instructions.md",
-        }
-    if agent == "codex":
-        return {
-            "agent_instruction_file": "AGENTS.md",
-            "rules_dir": "(nested AGENTS.md per layer)",
-            "rules_glob": "AGENTS.md",
-        }
-    # claude-code (default)
-    return {
-        "agent_instruction_file": "CLAUDE.md",
-        "rules_dir": ".claude/rules/",
-        "rules_glob": ".claude/rules/*.md",
-    }
+def _layout_for(agent: str) -> AgentLayout:
+    """Layout for `agent`, defaulting to claude-code for unknown names so a
+    hand-edited marker still yields a readable review file."""
+    return AGENT_LAYOUTS.get(agent, AGENT_LAYOUTS["claude-code"])
+
+
+def _rules_display(layout: AgentLayout) -> tuple[str, str]:
+    """Human-readable (rules_dir, rules_glob) for the review file and banner.
+
+    Agents without a glob-scoped rules dir (codex) get descriptive text — a
+    presentation concern, so it lives here rather than in the layout table."""
+    if layout.rules_dir is None:
+        return "(nested AGENTS.md per layer)", layout.instruction_file
+    return f"{layout.rules_dir}/", layout.rules_glob
 
 
 def _architecture_root(type_value: str) -> str:
@@ -90,7 +82,8 @@ def _format_review_checklist(agent: str, type_value: str) -> str:
     """Generic per-install review checklist. Path conventions vary by
     agent/type; the items themselves are stable for PR 1."""
     arch = _architecture_root(type_value)
-    paths = _agent_doc_paths(agent)
+    layout = _layout_for(agent)
+    rules_dir, rules_glob = _rules_display(layout)
     items = [
         (f"{arch}/TECH_STACK.md",
          "Confirm the language, framework, persistence, messaging, observability, "
@@ -103,10 +96,10 @@ def _format_review_checklist(agent: str, type_value: str) -> str:
         (f"{arch}/TESTING.md",
          "Confirm the unit/BDD framework, mocking library, and any framework-as-L4-gate "
          "decisions (set BDD to 'none' if your team does not practise BDD)."),
-        (paths["agent_instruction_file"],
+        (layout.instruction_file,
          "Top-level agent guidance. Confirm references to architecture docs are accurate."),
-        (paths["rules_dir"],
-         f"Agent rules ({paths['rules_glob']}). Confirm globs/applyTo patterns match your "
+        (rules_dir,
+         f"Agent rules ({rules_glob}). Confirm globs/applyTo patterns match your "
          "folder layout — rules that don't match anything provide no guidance."),
     ]
     lines = ["Please read these files before relying on the installed governance:\n"]
@@ -222,7 +215,8 @@ def print_review_checklist(target: Path, marker: dict) -> None:
     agent = marker.get("agent", "claude-code")
     type_value = marker.get("options", {}).get("type", "api")
     arch = _architecture_root(type_value)
-    paths = _agent_doc_paths(agent)
+    layout = _layout_for(agent)
+    rules_dir, _ = _rules_display(layout)
     needs_review_count = sum(
         1 for a in (marker.get("assumptions") or []) if a.get("review_required")
     )
@@ -239,8 +233,8 @@ def print_review_checklist(target: Path, marker: dict) -> None:
         f"    1. {arch}/TECH_STACK.md      — language / framework / libraries",
         f"    2. {arch}/BOUNDARIES.md      — architecture style + folder mappings",
         f"    3. {arch}/TESTING.md         — test framework + BDD policy",
-        f"    4. {paths['agent_instruction_file']:32s} — top-level agent guidance",
-        f"    5. {paths['rules_dir']:32s} — rule globs / applyTo patterns",
+        f"    4. {layout.instruction_file:32s} — top-level agent guidance",
+        f"    5. {rules_dir:32s} — rule globs / applyTo patterns",
     ]
     if needs_review_count:
         lines.append("")

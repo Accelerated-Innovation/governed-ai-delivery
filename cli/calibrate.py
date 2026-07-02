@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .agent_layout import AGENT_LAYOUTS
 from .marker import read_govkit_marker, write_govkit_marker
 from .stack_select import STACK_ID_ASSUMPTION
 
@@ -69,25 +70,8 @@ class CalibrationResult:
 
 
 # ---------------------------------------------------------------------------
-# Agent + type helpers (mirror cli/setup_review.py conventions)
+# Type helpers (mirror cli/setup_review.py conventions)
 # ---------------------------------------------------------------------------
-
-
-def _agent_paths(agent: str) -> dict[str, str]:
-    if agent == "copilot":
-        return {
-            "agent_instruction_file": ".github/copilot-instructions.md",
-            "rules_dir": ".github/instructions",
-        }
-    if agent == "codex":
-        return {
-            "agent_instruction_file": "AGENTS.md",
-            "rules_dir": "AGENTS.md",  # codex uses nested placement, not a dir
-        }
-    return {
-        "agent_instruction_file": "CLAUDE.md",
-        "rules_dir": ".claude/rules",
-    }
 
 
 def _architecture_root(type_value: str) -> str:
@@ -117,7 +101,10 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
     options = marker.get("options", {})
     type_value = options.get("type", "api")
     arch = _architecture_root(type_value)
-    paths = _agent_paths(agent)
+    layout = AGENT_LAYOUTS.get(agent, AGENT_LAYOUTS["claude-code"])
+    # Codex has no glob-scoped rules dir; its nested AGENTS.md files are the
+    # reviewable rules surface, so the step points there instead.
+    rules_path = layout.rules_dir or layout.instruction_file
     stack = marker.get("stack") or {}
 
     profile = build_profile(target)
@@ -263,9 +250,9 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
     # 6. Top-level agent guidance
     steps.append(CalibrationStep(
         id="step.agent_instructions",
-        title=f"Top-level agent guidance ({paths['agent_instruction_file']})",
+        title=f"Top-level agent guidance ({layout.instruction_file})",
         description="Confirm references to architecture docs are accurate.",
-        file_path=paths["agent_instruction_file"],
+        file_path=layout.instruction_file,
         installed_summary=f"agent={agent} baseline govkit@{marker.get('version', '?')}",
         detected_value=None,
         suggestion=(
@@ -279,9 +266,9 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
     # 7. Rules / instructions tree
     steps.append(CalibrationStep(
         id="step.rules",
-        title=f"Agent rules ({paths['rules_dir']})",
+        title=f"Agent rules ({rules_path})",
         description="Per-rule globs/applyTo patterns must match your folder layout.",
-        file_path=paths["rules_dir"],
+        file_path=rules_path,
         installed_summary=(
             f"agent={agent} — rules ship with the baseline; "
             "`govkit doctor` D001 flags rules whose globs resolve to zero files"
