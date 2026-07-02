@@ -3,6 +3,7 @@ id: databricks-lakehouse
 version: "0.10.0"
 display_name: "Databricks Lakehouse (Unity Catalog / Delta / Asset Bundles)"
 summary: "Databricks-native data delivery with Unity Catalog, Delta tables, Asset Bundles, Jobs, Lakeflow Pipelines, PySpark, SQL, and notebooks"
+supported_types: [data]
 default_assumptions:
   - id: stack.language
     value: python

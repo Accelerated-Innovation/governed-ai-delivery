@@ -3,6 +3,7 @@ id: nodejs-fastify
 version: "0.10.0"
 display_name: "Node.js 20 LTS / TypeScript 5 / Fastify 4"
 summary: "Fastify 4 + TypeScript 5 + Vitest + optional Cucumber-JS for L4 BDD"
+supported_types: [api, cli]
 default_assumptions:
   - id: stack.language
     value: typescript

@@ -3,7 +3,7 @@
   "title": "GovKit Stack Overlay Schema",
   "description": "Schema for cli/stacks/<id>/overlay.yaml - the metadata file shipped alongside stack-specific architecture docs. Loaded by cli/overlay.py.",
   "type": "object",
-  "required": ["id", "version", "display_name", "summary", "docs"],
+  "required": ["id", "version", "display_name", "summary", "supported_types", "docs"],
   "additionalProperties": false,
   "properties": {
     "id": {
@@ -25,6 +25,12 @@
       "type": "string",
       "minLength": 1,
       "description": "One-line description of the stack's tooling. Surfaces alongside display_name in `govkit stack list`."
+    },
+    "supported_types": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"enum": ["api", "cli", "data", "ui-react", "ui-angular"]},
+      "description": "Project types (`--type` values) this stack overlay applies to. Consulted by stack selection so an inferred stack that doesn't fit the requested type falls back to the type default instead of overriding it."
     },
     "default_assumptions": {
       "type": "array",
