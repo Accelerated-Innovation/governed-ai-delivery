@@ -10,6 +10,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed — internal
 
+- The three one-time migration warnings in `cli/marker.py` (version, shape,
+  directory) now share a single `_OneTimeWarning` value object instead of
+  three copies of the flag/env-check/reset machinery. Messages, suppression
+  env vars, and test reset helpers are unchanged. See
+  `plans/MARKER_WARNING_CONSOLIDATION_PLAN.md`.
 - Stack overlays are now the single owner of per-stack facts: `overlay.yaml`
   gains a required `supported_types` list (schema-enforced), doctor D005
   reads the expected language from the overlay's `skill_context.language`,

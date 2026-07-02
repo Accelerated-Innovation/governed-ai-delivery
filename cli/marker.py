@@ -19,6 +19,7 @@ import json
 import os
 import shutil
 import sys
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,8 +33,30 @@ MARKER_FILENAME = "marker.json"
 # Version comparison + one-time migration warnings (v0.7.0 swap onward)
 # ---------------------------------------------------------------------------
 
-# Set once per process. Reset by tests via _reset_migration_warning().
-_MIGRATION_WARNING_PRINTED = False
+@dataclass
+class _OneTimeWarning:
+    """A stderr warning that fires at most once per process, suppressible
+    via an env var (checked at warn time, so module-level instances respect
+    env changes made after import). An env-suppressed call leaves the
+    warning armed. Each migration warning declares one instance; tests
+    re-arm between cases via reset().
+    """
+    env_var: str
+    printed: bool = False
+
+    def warn(self, message: str) -> None:
+        if self.printed or os.environ.get(self.env_var) == "1":
+            return
+        print(message, file=sys.stderr)
+        self.printed = True
+
+    def reset(self) -> None:
+        self.printed = False
+
+
+_VERSION_MIGRATION_WARNING = _OneTimeWarning("GOVKIT_NO_MIGRATION_WARNING")
+_SHAPE_MIGRATION_WARNING = _OneTimeWarning("GOVKIT_NO_SHAPE_MIGRATION_WARNING")
+_DIRECTORY_MIGRATION_WARNING = _OneTimeWarning("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING")
 
 
 def _compare_version(v1: str, v2: str) -> int:
@@ -62,31 +85,20 @@ def _maybe_warn_migration(stored_version: str | None) -> None:
     Auto-suppressed once the marker is rewritten with version >= 0.7.0
     (because the version comparison stops triggering).
     """
-    global _MIGRATION_WARNING_PRINTED
-    if _MIGRATION_WARNING_PRINTED:
-        return
     if not stored_version:
         return
-    if os.environ.get("GOVKIT_NO_MIGRATION_WARNING") == "1":
-        return
     if _compare_version(stored_version, "0.7.0") < 0:
-        print(
+        _VERSION_MIGRATION_WARNING.warn(
             f"warning: .govkit marker version {stored_version} detected. "
             "The L3/L4 maturity model changed in 0.7.0. "
             "Run 'govkit upgrade --migrate-levels' to migrate. "
-            "(Set GOVKIT_NO_MIGRATION_WARNING=1 to suppress.)",
-            file=sys.stderr,
+            "(Set GOVKIT_NO_MIGRATION_WARNING=1 to suppress.)"
         )
-        _MIGRATION_WARNING_PRINTED = True
 
 
 def _reset_migration_warning() -> None:
-    """Test helper: reset the one-time warning flag between test cases."""
-    global _MIGRATION_WARNING_PRINTED
-    _MIGRATION_WARNING_PRINTED = False
-
-
-_SHAPE_MIGRATION_WARNING_PRINTED = False
+    """Test helper: re-arm the one-time warning between test cases."""
+    _VERSION_MIGRATION_WARNING.reset()
 
 
 def _maybe_warn_shape_migration(options: dict | None) -> None:
@@ -97,32 +109,21 @@ def _maybe_warn_shape_migration(options: dict | None) -> None:
     informed once per process. Suppressible via
     GOVKIT_NO_SHAPE_MIGRATION_WARNING=1.
     """
-    global _SHAPE_MIGRATION_WARNING_PRINTED
-    if _SHAPE_MIGRATION_WARNING_PRINTED:
-        return
     if not options or "ui" not in options:
         return
-    if os.environ.get("GOVKIT_NO_SHAPE_MIGRATION_WARNING") == "1":
-        return
-    print(
+    _SHAPE_MIGRATION_WARNING.warn(
         "warning: .govkit marker carries the legacy 'ui' option. "
         "The project-shape model changed in 0.8.0. The `ui` option is no "
         "longer supported. Re-run 'govkit apply --type ui-react' (or "
         "'ui-angular') to switch to a UI shape, or 'govkit apply --type api' "
         "to keep the current backend shape. "
-        "(Set GOVKIT_NO_SHAPE_MIGRATION_WARNING=1 to suppress.)",
-        file=sys.stderr,
+        "(Set GOVKIT_NO_SHAPE_MIGRATION_WARNING=1 to suppress.)"
     )
-    _SHAPE_MIGRATION_WARNING_PRINTED = True
 
 
 def _reset_shape_migration_warning() -> None:
-    """Test helper: reset the one-time shape-migration warning flag."""
-    global _SHAPE_MIGRATION_WARNING_PRINTED
-    _SHAPE_MIGRATION_WARNING_PRINTED = False
-
-
-_DIRECTORY_MIGRATION_WARNING_PRINTED = False
+    """Test helper: re-arm the one-time shape-migration warning."""
+    _SHAPE_MIGRATION_WARNING.reset()
 
 
 def _maybe_warn_directory_migration() -> None:
@@ -134,26 +135,18 @@ def _maybe_warn_directory_migration() -> None:
     are read tolerantly and migrated on first read. Suppressible via
     GOVKIT_NO_DIRECTORY_MIGRATION_WARNING=1.
     """
-    global _DIRECTORY_MIGRATION_WARNING_PRINTED
-    if _DIRECTORY_MIGRATION_WARNING_PRINTED:
-        return
-    if os.environ.get("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING") == "1":
-        return
-    print(
+    _DIRECTORY_MIGRATION_WARNING.warn(
         "warning: legacy single-file .govkit marker detected — "
         "the layout changed in 0.10.0 and is now .govkit/ (directory) "
         "containing marker.json. Govkit auto-migrated this marker; no "
         "action required. "
-        "(Set GOVKIT_NO_DIRECTORY_MIGRATION_WARNING=1 to suppress.)",
-        file=sys.stderr,
+        "(Set GOVKIT_NO_DIRECTORY_MIGRATION_WARNING=1 to suppress.)"
     )
-    _DIRECTORY_MIGRATION_WARNING_PRINTED = True
 
 
 def _reset_directory_migration_warning() -> None:
-    """Test helper: reset the one-time directory-migration warning flag."""
-    global _DIRECTORY_MIGRATION_WARNING_PRINTED
-    _DIRECTORY_MIGRATION_WARNING_PRINTED = False
+    """Test helper: re-arm the one-time directory-migration warning."""
+    _DIRECTORY_MIGRATION_WARNING.reset()
 
 
 # ---------------------------------------------------------------------------

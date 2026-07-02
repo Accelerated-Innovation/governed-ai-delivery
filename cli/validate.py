@@ -267,24 +267,17 @@ def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[bool, str]:
 
     tags_found = set(re.findall(r"@nfr-(\w+)", feature_text))
 
-    category_to_tag = {
-        "performance": "performance",
-        "availability": "availability",
-        "security": "security",
-        "compliance": "compliance",
-        "scalability": "scalability",
-        "observability": "observability",
-        "reliability": "reliability",
-        "compatibility": "compatibility",
-    }
+    # NFR categories whose population demands a matching @nfr-<category> tag.
+    known_categories = frozenset({
+        "performance", "availability", "security", "compliance",
+        "scalability", "observability", "reliability", "compatibility",
+    })
 
-    missing_tags = []
-    for category in populated:
-        if category not in category_to_tag:
-            continue
-        expected_tag = category_to_tag[category]
-        if expected_tag not in tags_found:
-            missing_tags.append(f"@nfr-{expected_tag}")
+    missing_tags = [
+        f"@nfr-{category}"
+        for category in populated
+        if category in known_categories and category not in tags_found
+    ]
 
     if missing_tags:
         return False, f"Gherkin missing NFR tags: {', '.join(missing_tags)}"
