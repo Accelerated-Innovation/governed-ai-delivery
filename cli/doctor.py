@@ -244,34 +244,29 @@ def _check_ci_ambiguous(target: Path, marker: dict) -> list[ValidationFinding]:
     return []
 
 
-# stack.id → primary language. Used by D005 to compare against detection.
-_STACK_PRIMARY_LANGUAGE = {
-    "python-fastapi":   "python",
-    "dotnet-aspnet":    "csharp",
-    "java-spring-boot": "java",
-    "nodejs-fastify":   "typescript",
-    "go-gin":           "go",
-    "python-dbt":       "python",
-    "databricks-lakehouse": "python",
-}
-
-
 @_register_check("D005")
 def _check_stack_language_mismatch(target: Path, marker: dict) -> list[ValidationFinding]:
     """D005 — marker.stack.id implies a language; detected languages disagree.
 
+    The expected language comes from the bundled overlay's
+    skill_context.language (the overlay owns per-stack facts; a guard test
+    keeps every bundled overlay declaring one).
+
     Silent when:
       - marker has no stack block (legacy)
-      - stack.id isn't one we know how to map to a language
+      - stack.id doesn't resolve to a bundled overlay declaring a language
       - no language detected in repo (nothing to disagree with)
       - detected languages include the expected one
     """
+    from .overlay import load_overlay
+
     stack = marker.get("stack")
     if not stack:
         return []
     stack_id = stack.get("id")
-    expected_lang = _STACK_PRIMARY_LANGUAGE.get(stack_id)
-    if expected_lang is None:
+    overlay = load_overlay(stack_id) if stack_id else None
+    expected_lang = (overlay.skill_context or {}).get("language") if overlay else None
+    if not expected_lang:
         return []
 
     from .detect import build_profile
