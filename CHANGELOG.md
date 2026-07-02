@@ -10,6 +10,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed — internal
 
+- Stack overlays are now the single owner of per-stack facts: `overlay.yaml`
+  gains a required `supported_types` list (schema-enforced), doctor D005
+  reads the expected language from the overlay's `skill_context.language`,
+  and type-gating in stack selection reads `supported_types`. Deletes the
+  parallel `_STACK_PRIMARY_LANGUAGE` and `_STACK_SUPPORTED_TYPES` code
+  tables — adding a stack is now purely additive. Guard tests keep every
+  bundled overlay declaring both facts. No user-facing behavior change and
+  no overlay version bumps. See `plans/STACK_METADATA_UNIFICATION_PLAN.md`.
 - Per-agent on-disk layout facts (instruction file, rules dir, rules glob,
   frontmatter glob key/shape) now have a single owner: `cli/agent_layout.py`.
   Replaces four private copies in `calibrate`, `setup_review`, `doctor`, and

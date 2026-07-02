@@ -29,7 +29,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from .marker import read_govkit_marker
+from .marker import read_govkit_level
 
 # ---------------------------------------------------------------------------
 # Artifact file name constants
@@ -434,16 +434,6 @@ def check_l5_preflight_sections(feature_dir: Path) -> tuple[bool, str]:
 # Runner
 # ---------------------------------------------------------------------------
 
-def _read_govkit_level(target: Path) -> str | None:
-    """Read the maturity level from the .govkit marker file.
-
-    Delegates to read_govkit_marker so the one-time v0.6→v0.7
-    migration warning fires from `govkit validate` too.
-    """
-    data = read_govkit_marker(target)
-    return data.get("level") if data else None
-
-
 def _build_checks(level: str) -> tuple[list[str], list]:
     """Return the artifact list and check functions for a given level.
 
@@ -531,7 +521,7 @@ def run_validation(target: Path, level: str | None = None, strict: bool = False)
         return 1
 
     if level is None:
-        level = _read_govkit_level(target) or "3"
+        level = read_govkit_level(target) or "3"
 
     ext_exit = _run_extension_checks(target, strict)
 
