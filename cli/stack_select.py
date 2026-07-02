@@ -36,32 +36,27 @@ _DEFAULT_STACK_BY_TYPE = {
     "data": "python-dbt",
 }
 
-# Which `--type` shapes each stack supports. An inferred stack that doesn't
-# support the user's chosen --type is treated as an ambient signal from a
-# different shape (e.g. fastapi in pyproject.toml of a dbt workshop dir) and
-# does NOT override the type-default. The user's explicit --type intent wins.
-_STACK_SUPPORTED_TYPES = {
-    "python-fastapi":    frozenset({"api", "cli"}),
-    "dotnet-aspnet":     frozenset({"api", "cli"}),
-    "java-spring-boot":  frozenset({"api", "cli"}),
-    "nodejs-fastify":    frozenset({"api", "cli"}),
-    "go-gin":            frozenset({"api", "cli"}),
-    "python-dbt":        frozenset({"data"}),
-    "databricks-lakehouse": frozenset({"data"}),
-}
-
-
 def _stack_supports_type(stack_id: str | None, type_value: str) -> bool:
     """True when `stack_id` is a sensible overlay for `type_value`.
 
-    Unknown stack_ids return True so future-added stacks aren't accidentally
-    rejected by an out-of-date map — the type-default is a safety net, not a
+    An inferred stack that doesn't support the user's chosen --type is
+    treated as an ambient signal from a different shape (e.g. fastapi in
+    pyproject.toml of a dbt workshop dir) and does NOT override the
+    type-default. The user's explicit --type intent wins.
+
+    Reads the overlay's declared supported_types. Unknown stack ids and
+    overlays declaring no restriction return True so future-added stacks
+    aren't accidentally rejected — the type-default is a safety net, not a
     gatekeeper.
     """
     if not stack_id:
         return False
-    supported = _STACK_SUPPORTED_TYPES.get(stack_id)
-    return True if supported is None else type_value in supported
+    from .overlay import load_overlay
+
+    overlay = load_overlay(stack_id)
+    if overlay is None or not overlay.supported_types:
+        return True
+    return type_value in overlay.supported_types
 
 
 def resolve_stack_choice(
