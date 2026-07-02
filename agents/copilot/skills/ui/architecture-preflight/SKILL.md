@@ -16,6 +16,7 @@ Feature specs:
 
 Architecture standards:
 - `docs/ui/architecture/MVVM_CONTRACT.md`
+- `docs/ui/architecture/NFRS_CONVENTIONS.md`
 - `docs/ui/architecture/*/COMPONENT_CONVENTIONS.md`
 - `docs/ui/architecture/*/STATE_MANAGEMENT.md`
 - `docs/ui/evaluation/eval_criteria.md`
@@ -76,6 +77,19 @@ Once complete:
    - `relates_to.supersedes: [<core_path>]` — extension **replaces** the listed core contract for rules in the extension's scope. Prefer the extension; treat the core contract as historical context only.
 7. If an applicable extension contract appears to conflict with a core contract and `relates_to` does **not** declare the relationship, **HALT** and request either (a) a manifest update declaring `extends`/`supersedes`, or (b) an ADR documenting the project-local resolution. Do not silently pick one.
 8. Any `supersedes` of a core contract, or any deviation from an applicable extension contract, **requires an ADR**. Cite the manifest path and the superseded/deviated contract path in the ADR.
+
+---
+
+## 2.7 Scope Boundary Source Check  (informational — does not block)
+
+Confirm whether the feature's deferred capabilities are author-declared or will be inferred.
+
+- [ ] `nfrs.md` has a **non-empty** `## Out of scope` section: yes/no
+
+If **yes**: note "Out-of-scope is author-declared — spec planning carries it into the plan verbatim."
+If **no** (missing or empty): note "Spec planning will infer Out-of-scope and label it `<!-- INFERRED -->` in the plan. Recommend the feature owner add a non-empty `## Out of scope` to nfrs.md."
+
+This is informational and does not block planning.
 
 ---
 

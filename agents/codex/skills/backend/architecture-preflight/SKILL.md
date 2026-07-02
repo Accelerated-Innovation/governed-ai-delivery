@@ -22,6 +22,7 @@ For each of the following, state which architectural rules apply (cite file and 
 - Layering (from `docs/backend/architecture/ARCH_CONTRACT.md`)
 - API conventions (from `docs/backend/architecture/API_CONVENTIONS.md`)
 - Auth/security patterns (from `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`)
+- NFR section contract (from `docs/backend/architecture/NFRS_CONVENTIONS.md`)
 - Error model and response shape
 - Logging and observability expectations
 
@@ -67,6 +68,19 @@ Once complete:
 3. Identify module/service impact in THIS repo only — do not implement other repos' portions
 
 **Decision:** Is this a single-repo or multi-repo feature? Proceed with boundary analysis for THIS repo's portion only.
+
+---
+
+## 3.6 Scope Boundary Source Check  (informational — does not block)
+
+Confirm whether the feature's deferred capabilities are author-declared or will be inferred.
+
+- [ ] `nfrs.md` has a **non-empty** `## Out of scope` section: yes/no
+
+If **yes**: note "Out-of-scope is author-declared — spec planning carries it into the plan verbatim."
+If **no** (missing or empty): note "Spec planning will infer Out-of-scope and label it `<!-- INFERRED -->` in the plan. Recommend the feature owner add a non-empty `## Out of scope` to nfrs.md."
+
+This is informational and does not block planning.
 
 ---
 

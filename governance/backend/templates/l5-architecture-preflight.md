@@ -26,6 +26,7 @@ Feature folder: `features/<feature_name>/`
 - plan.md exists: yes/no
 - Gherkin scenarios cover all populated NFR categories per `docs/backend/architecture/GHERKIN_CONVENTIONS.md`: yes/no
 - `@contract` scenario present (if feature produces shared artifact): yes/no/n-a
+- nfrs.md `## Out of scope` present and non-empty (author-declared deferrals): yes/no/n-a — if no, the plan's Out-of-scope will be inferred and labelled `<!-- INFERRED -->`
 
 If any required artifact is missing, stop.
 If nfrs.md contains TBD entries, stop and request completion before proceeding.
@@ -41,6 +42,7 @@ List specific sections referenced from:
 - `docs/backend/architecture/BOUNDARIES.md`
 - `docs/backend/architecture/API_CONVENTIONS.md`
 - `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`
+- `docs/backend/architecture/NFRS_CONVENTIONS.md`
 - `docs/backend/evaluation/eval_criteria.md`
 
 Cite file names and section headings.

@@ -26,6 +26,13 @@ Produce or update `features/<feature_name>/plan.md` and `features/<feature_name>
 ### 1. Feature Summary
 One paragraph describing the feature from the user's perspective.
 
+### 1.5 Scope Boundaries
+Populate the plan's `### Out of scope` from `nfrs.md` `## Out of scope`:
+- If `nfrs.md` has a non-empty `## Out of scope` section, copy its entries into the plan verbatim (author-declared — no marker).
+- If `## Out of scope` is missing or empty, infer the deferred capabilities from the spec's negative space, then BOTH:
+  - insert `<!-- INFERRED: not declared in nfrs.md ## Out of scope; confirm with feature owner -->` directly under the plan's `### Out of scope` heading, and
+  - state in the planning summary that Out-of-scope was inferred and should be confirmed.
+
 ### 2. MVVM Breakdown
 For each layer:
 - Components to create (with props interface summary)

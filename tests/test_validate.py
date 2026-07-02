@@ -1,10 +1,8 @@
-"""Tests for cli/validate.py — all 6 check functions and run_validation."""
+"""Tests for cli/validate.py — all 7 check functions and run_validation."""
 
 import json
 import textwrap
 from pathlib import Path
-
-import pytest
 
 from cli.validate import (
     check_agent_topology_exists,
@@ -14,10 +12,10 @@ from cli.validate import (
     check_gherkin_nfr_coverage,
     check_gherkin_syntax,
     check_nfrs_no_tbd,
+    check_nfrs_sections,
     check_plan_eval_prediction,
     run_validation,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -39,6 +37,13 @@ VALID_FEATURE = """\
 """
 
 VALID_NFRS = """\
+    ## Repository Scope
+
+    **Scope:** `single-repo`
+
+    ## Out of scope
+    - none declared yet
+
     ## Performance
     - Response time < 200ms
 
@@ -223,6 +228,109 @@ class TestCheckNfrsNoTbd:
         """)
         ok, msg = check_nfrs_no_tbd(tmp_path)
         assert ok is True  # \bTBD\b won't match TBDATA
+
+
+# ---------------------------------------------------------------------------
+# check_nfrs_sections
+# ---------------------------------------------------------------------------
+
+
+class TestCheckNfrsSections:
+    def test_full_contract(self, tmp_path):
+        write(tmp_path / "nfrs.md", """\
+            ## Repository Scope
+
+            **Scope:** `single-repo`
+
+            ## Out of scope
+            - none declared yet
+
+            ## Performance
+            - Response time < 200ms
+        """)
+        result, msg = check_nfrs_sections(tmp_path)
+        assert result is True
+        assert "section contract OK" in msg
+
+    def test_missing_out_of_scope_warns(self, tmp_path):
+        write(tmp_path / "nfrs.md", """\
+            ## Repository Scope
+
+            **Scope:** `single-repo`
+
+            ## Performance
+            - Response time < 200ms
+        """)
+        result, msg = check_nfrs_sections(tmp_path)
+        assert result is None  # WARN, not FAIL — plan will infer
+        assert "Out of scope" in msg
+        assert "infer" in msg
+
+    def test_out_of_scope_present_but_empty_warns(self, tmp_path):
+        # header exists but body is empty -> spec planning still infers, so WARN
+        write(tmp_path / "nfrs.md", """\
+            ## Repository Scope
+
+            **Scope:** `single-repo`
+
+            ## Out of scope
+
+            ## Performance
+            - Response time < 200ms
+        """)
+        result, msg = check_nfrs_sections(tmp_path)
+        assert result is None
+        assert "Out of scope" in msg
+        assert "empty" in msg
+
+    def test_out_of_scope_comment_only_warns(self, tmp_path):
+        # a body of only an HTML comment counts as empty
+        write(tmp_path / "nfrs.md", """\
+            ## Repository Scope
+
+            **Scope:** `single-repo`
+
+            ## Out of scope
+            <!-- none declared yet -->
+
+            ## Performance
+            - Response time < 200ms
+        """)
+        result, msg = check_nfrs_sections(tmp_path)
+        assert result is None
+        assert "Out of scope" in msg
+
+    def test_missing_repository_scope_warns(self, tmp_path):
+        write(tmp_path / "nfrs.md", """\
+            ## Out of scope
+            - none declared yet
+
+            ## Performance
+            - Response time < 200ms
+        """)
+        result, msg = check_nfrs_sections(tmp_path)
+        assert result is None  # WARN — hard-gated by repo-scope-check/preflight
+        assert "Repository Scope" in msg
+
+    def test_out_of_scope_with_suffix_matches(self, tmp_path):
+        # starter_data uses "## Out of scope (this NFRs file)" — must still satisfy
+        write(tmp_path / "nfrs.md", """\
+            ## Repository Scope
+
+            **Scope:** `single-repo`
+
+            ## Out of scope (this NFRs file)
+            - Source system reliability (owned elsewhere)
+        """)
+        result, msg = check_nfrs_sections(tmp_path)
+        assert result is True
+        assert "section contract OK" in msg
+
+    def test_missing_file(self, tmp_path):
+        tmp_path.mkdir(exist_ok=True)
+        result, msg = check_nfrs_sections(tmp_path)
+        assert result is False
+        assert "not found" in msg
 
 
 # ---------------------------------------------------------------------------
