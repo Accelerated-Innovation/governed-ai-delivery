@@ -141,10 +141,15 @@ def print_detection_summary(
     _print_chosen_stack_line(inferred_stack, inferred_confidence, chosen_stack, stack_source)
 
 
-def _build_stack_assumption(
+def build_stack_assumption(
     overlay, source: str, confidence: str, evidence: list[str],
 ) -> dict:
-    """Construct the `stack.id` assumption block to write into the marker."""
+    """Construct the `stack.id` assumption block to write into the marker.
+
+    Single point of definition for the record shape — `govkit apply --stack`
+    (via apply_stack_overlay) and `govkit stack apply` (cmd_stack) both
+    consume it so the two write paths cannot drift apart.
+    """
     return {
         "id": STACK_ID_ASSUMPTION,
         "value": overlay.id,
@@ -159,6 +164,20 @@ def _build_stack_assumption(
         ) if source == "default" else None,
         "calibrated_at": None,
         "calibrated_against_overlay_version": None,
+    }
+
+
+def build_stack_meta(overlay) -> dict:
+    """Construct the marker's `stack` metadata block, stamped now.
+
+    Shared by apply_stack_overlay and cmd_stack for the same
+    single-point-of-definition reason as build_stack_assumption.
+    """
+    return {
+        "id": overlay.id,
+        "version": overlay.version,
+        "display_name": overlay.display_name,
+        "applied_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -202,13 +221,8 @@ def apply_stack_overlay(
     print(f"\nStack overlay: {overlay.id} ({overlay.display_name})")
     apply_overlay(overlay, target, applied_at=prior_applied_at, force=force)
 
-    stack_meta = {
-        "id": overlay.id,
-        "version": overlay.version,
-        "display_name": overlay.display_name,
-        "applied_at": datetime.now(timezone.utc).isoformat(),
-    }
-    stack_assumption = _build_stack_assumption(overlay, source, confidence, evidence)
+    stack_meta = build_stack_meta(overlay)
+    stack_assumption = build_stack_assumption(overlay, source, confidence, evidence)
     # Persist the chosen stack in marker.options so future commands
     # (upgrade, stack apply, doctor) know what was selected.
     return stack_meta, stack_assumption, {**options, "stack": overlay.id}, profile
