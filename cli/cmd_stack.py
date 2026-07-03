@@ -9,14 +9,13 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 from .marker import read_govkit_marker, write_govkit_marker
 from .overlay import apply_overlay, list_overlays, load_overlay
 from .setup_review import print_review_checklist, write_setup_review
 from .skill_context import write_skill_context
-from .stack_select import STACK_ID_ASSUMPTION
+from .stack_select import STACK_ID_ASSUMPTION, build_stack_assumption, build_stack_meta
 
 
 def cmd_stack_list(_args: argparse.Namespace) -> None:
@@ -83,26 +82,14 @@ def cmd_stack_apply(args: argparse.Namespace) -> None:
     print(f"  {overlay.display_name}\n")
     apply_overlay(overlay, target, applied_at=prior_applied_at, force=args.force)
 
-    stack_meta = {
-        "id": overlay.id,
-        "version": overlay.version,
-        "display_name": overlay.display_name,
-        "applied_at": datetime.now(timezone.utc).isoformat(),
-    }
-    # Replace any prior stack.id assumption; keep the rest.
+    stack_meta = build_stack_meta(overlay)
+    # Replace any prior stack.id assumption; keep the rest. The stack id is
+    # an explicit CLI argument here, so source/confidence mirror the --stack
+    # flag path in apply.
     assumptions = [a for a in prior_assumptions if a.get("id") != STACK_ID_ASSUMPTION]
-    assumptions.append({
-        "id": STACK_ID_ASSUMPTION,
-        "value": overlay.id,
-        "source": "flag",
-        "confidence": "high",
-        "evidence": [],
-        "files_affected": [d["dest"] for d in overlay.docs],
-        "review_required": False,
-        "warning_message": None,
-        "calibrated_at": None,
-        "calibrated_against_overlay_version": None,
-    })
+    assumptions.append(
+        build_stack_assumption(overlay, source="flag", confidence="high", evidence=[])
+    )
 
     write_govkit_marker(
         target, agent, level, options,
