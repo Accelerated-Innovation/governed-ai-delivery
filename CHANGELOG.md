@@ -83,6 +83,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed — internal
 
+- The two stack marker records (the `stack.id` assumption and the `stack`
+  metadata block) are now built only by `stack_select.build_stack_assumption`
+  / `build_stack_meta`; `govkit stack apply` consumes them instead of
+  inlining copies, so the two write paths cannot drift apart. See
+  `plans/STACK_RECORD_DEDUP_PLAN.md`.
 - The three one-time migration warnings in `cli/marker.py` (version, shape,
   directory) now share a single `_OneTimeWarning` value object instead of
   three copies of the flag/env-check/reset machinery. Messages, suppression
