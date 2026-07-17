@@ -29,6 +29,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   govkit's `api` rule; both coexist and load. Skill namespacing is not included
   here (it would change how govkit skills are invoked, e.g. `/spec-planning`), and
   codex's nested per-layer `AGENTS.md` files are unchanged for now.
+### Changed
+
 - **govkit no longer overwrites your `CLAUDE.md` or `.github/copilot-instructions.md`.**
   Both agents natively auto-load a separate instructions directory, so govkit's
   governance now installs there — `.claude/rules/govkit/governance.md` for
