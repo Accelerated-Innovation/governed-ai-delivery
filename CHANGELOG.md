@@ -36,6 +36,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   governance install is skipped (with a warning) so you never get duplicate
   governance. Codex (`AGENTS.md`, which has no native rules directory) is
   unchanged for now.
+  instruction file is retired automatically when it is byte-identical to govkit's
+  governance; if you edited it, it is kept and governance install is skipped
+  (with a warning) so you never get duplicate governance. Codex (`AGENTS.md`,
+  which has no native rules directory) is unchanged for now.
 - `govkit doctor`'s rule-glob check (D001) now scans the rules directory
   recursively, so rules in subdirectories — including govkit's own
   `.claude/rules/govkit/` — are validated instead of silently skipped.
