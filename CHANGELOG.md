@@ -31,6 +31,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   codex's nested per-layer `AGENTS.md` files are unchanged for now.
 ### Changed
 
+- **govkit's layer rules now install under a `govkit/` subdirectory**, so a team's
+  own same-named rule survives. claude-code rules move to `.claude/rules/govkit/`
+  and copilot's to `.github/instructions/govkit/` — a team that keeps their own
+  `.claude/rules/api.md` (or `api.instructions.md`) is no longer clobbered by
+  govkit's `api` rule; both coexist and load. Skill namespacing is not included
+  here (it would change how govkit skills are invoked, e.g. `/spec-planning`), and
+  codex's nested per-layer `AGENTS.md` files are unchanged for now.
 - **govkit no longer overwrites your `CLAUDE.md` or `.github/copilot-instructions.md`.**
   Both agents natively auto-load a separate instructions directory, so govkit's
   governance now installs there — `.claude/rules/govkit/governance.md` for
