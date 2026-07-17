@@ -12,7 +12,7 @@ is not.
 
 This is the **Level 4 — Spec-Driven Add-On** for data projects: every feature
 ships the L3 baseline data contracts (`docs/data/architecture/`, path-scoped
-`.github/instructions/` rules) PLUS a spec-driven feature package.
+`.github/instructions/govkit/` rules) PLUS a spec-driven feature package.
 
 ---
 
@@ -22,7 +22,7 @@ Copilot operates aligned to:
 
 * Product specifications under `features/`
 * Architecture contracts under `docs/data/architecture/`
-* Path-scoped instructions under `.github/instructions/`
+* Path-scoped instructions under `.github/instructions/govkit/`
 
 Before planning or generating models, tests, or macros:
 

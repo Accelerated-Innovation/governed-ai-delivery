@@ -22,7 +22,7 @@ is not.
 Copilot operates aligned to:
 
 * Architecture contracts under `docs/backend/architecture/`
-* Path-scoped instructions under `.github/instructions/`
+* Path-scoped instructions under `.github/instructions/govkit/`
 
 Before generating or modifying code:
 
@@ -57,7 +57,7 @@ These documents define your stack's specific approach. The architecture
 principles (Hexagonal Architecture, boundaries, layered separation) are
 universal; the implementation details are here.
 
-Path-scoped instructions load automatically from `.github/instructions/` when
+Path-scoped instructions load automatically from `.github/instructions/govkit/` when
 editing files matching their `applyTo` patterns:
 
 * `api.instructions.md` — `**/api/**`

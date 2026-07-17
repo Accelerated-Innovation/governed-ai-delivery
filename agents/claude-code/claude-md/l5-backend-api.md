@@ -127,7 +127,7 @@ These documents define your stack's implementation. The architecture principles 
 - **Guardrails must match the declared mode** — see `GUARDRAILS_CONTRACT.md`
 - **Observability via LLM telemetry** — see `OBSERVABILITY_LLM_CONTRACT.md`
 
-Layer-specific rules load automatically from `.claude/rules/` when editing files in each layer:
+Layer-specific rules load automatically from `.claude/rules/govkit/` when editing files in each layer:
 
 - `api.md` — `**/api/**`
 - `services.md` — `**/services/**`

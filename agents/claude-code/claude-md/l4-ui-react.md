@@ -57,7 +57,7 @@ Read before generating any code:
 - Plain async functions — no React, no hooks
 - One file per backend resource
 - Use shared base client from `src/shared/api/`
-- See `.claude/rules/api.md`
+- See `.claude/rules/govkit/api.md`
 
 ---
 
