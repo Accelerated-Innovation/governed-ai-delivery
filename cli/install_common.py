@@ -13,6 +13,7 @@ them inward without duplicating logic or reaching back into cli/govkit.py.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -22,6 +23,63 @@ from .marker import read_govkit_marker
 
 if TYPE_CHECKING:
     from .detect import RepoProfile
+
+
+# A6: govkit used to install its agent instructions at these top-level paths.
+# They now live in the auto-loaded rules namespace, so on upgrade an existing
+# install carries an orphaned copy. This maps each new governance dest back to
+# the legacy path it superseded, so upgrade can retire the orphan.
+_LEGACY_INSTRUCTION_DEST = {
+    ".claude/rules/govkit/governance.md": "CLAUDE.md",
+    ".claude/rules/govkit/governance-src.md": "src/CLAUDE.md",
+    ".github/instructions/govkit/governance.instructions.md": ".github/copilot-instructions.md",
+}
+
+
+def reconcile_legacy_instruction_files(
+    target: Path, agent_dir: Path, files: list,
+) -> list:
+    """Retire a pre-namespace govkit instruction file before writing governance.
+
+    For each governance entry, if the legacy top-level file it superseded is
+    present:
+      - byte-identical to govkit's governance body ⇒ it is govkit's own
+        untouched orphan; delete it and let governance install.
+      - otherwise ⇒ treat it as the team's file: keep it, and drop the
+        governance entry so upgrade does not install duplicate governance
+        alongside it. A warning tells the team how to adopt the managed layout.
+
+    Returns the files list to actually write. Upgrade-only: on a fresh apply a
+    top-level CLAUDE.md is the team's, and governance is expected to coexist.
+    """
+    keep = []
+    for entry in files:
+        legacy_rel = _LEGACY_INSTRUCTION_DEST.get(entry["dest"])
+        if legacy_rel is None:
+            keep.append(entry)
+            continue
+        legacy = target / legacy_rel
+        if not legacy.exists():
+            keep.append(entry)
+            continue
+        govkit_body = (agent_dir / entry["src"]).read_text(encoding="utf-8")
+        try:
+            legacy_body = legacy.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            legacy_body = None
+        if legacy_body == govkit_body:
+            legacy.unlink()
+            print(f"  migrated {legacy_rel} -> {entry['dest']}  (removed govkit-authored orphan)")
+            keep.append(entry)
+        else:
+            print(
+                f"  warning: {legacy_rel} exists and is not govkit's governance; "
+                f"leaving it and skipping {entry['dest']} to avoid duplicate governance. "
+                f"If it is no longer needed, delete {legacy_rel} and re-run upgrade to "
+                "adopt the managed governance.",
+                file=sys.stderr,
+            )
+    return keep
 
 
 # PR 6c: L5-only architecture docs. These live in docs/backend/architecture/
