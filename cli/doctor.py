@@ -83,9 +83,11 @@ def _parse_frontmatter(text: str) -> dict | None:
 
 
 def _iter_rule_files(target: Path, rules_dir: Path) -> list[Path]:
-    """Find every rule file at target/<rules_dir>.
+    """Find every rule file at or below target/<rules_dir>.
 
-    `*.instructions.md` (copilot) is a subset of `*.md`, so glob both then
+    The scan is recursive: govkit owns a `govkit/` subtree under the rules dir,
+    and teams may nest their own rules, so a top-level glob would silently skip
+    both. `*.instructions.md` (copilot) is a subset of `*.md`, so glob both then
     dedupe — keeps the helper agent-agnostic.
     """
     full = target / rules_dir
@@ -93,7 +95,7 @@ def _iter_rule_files(target: Path, rules_dir: Path) -> list[Path]:
         return []
     seen: set[Path] = set()
     out: list[Path] = []
-    for p in sorted(full.glob("*.md")) + sorted(full.glob("*.instructions.md")):
+    for p in sorted(full.rglob("*.md")) + sorted(full.rglob("*.instructions.md")):
         if p in seen:
             continue
         seen.add(p)
