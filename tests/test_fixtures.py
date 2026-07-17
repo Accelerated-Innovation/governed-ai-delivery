@@ -643,6 +643,22 @@ class TestCodexAgentsMdManagedBlock:
         assert content.count("BEGIN GOVKIT GOVERNANCE") == 1
         assert content.index("ACME") < content.index("BEGIN GOVKIT GOVERNANCE")
 
+    def test_team_nested_agents_md_is_preserved(self, tmp_path):
+        """Codex's per-layer AGENTS.md live in real source dirs (api/, etc.) and
+        can't move to a namespace, so they get the same managed block — a team's
+        own api/AGENTS.md keeps its content."""
+        target = _copy_fixture("python-fastapi-github", tmp_path)
+        nested = target / "api" / "AGENTS.md"
+        nested.parent.mkdir(parents=True, exist_ok=True)
+        nested.write_text("# TEAM api notes\nOur conventions.\n", encoding="utf-8")
+
+        self._apply(target)
+
+        content = nested.read_text(encoding="utf-8")
+        assert "# TEAM api notes" in content
+        assert "BEGIN GOVKIT GOVERNANCE" in content
+        assert content.index("TEAM api notes") < content.index("BEGIN GOVKIT GOVERNANCE")
+
 
 class TestGovernanceLivesInRulesNamespace:
     """govkit's agent instructions install into its own auto-loaded rules

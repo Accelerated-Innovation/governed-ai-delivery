@@ -37,6 +37,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   `/govkit-spec-planning` (and `$spec-planning` for codex). Governance content and
   skill descriptions are updated to the prefixed names. A team's own
   `.claude/skills/spec-planning/` now coexists with govkit's `govkit-spec-planning`.
+- **Codex's nested per-layer `AGENTS.md` files are now installed as managed
+  blocks too.** They must live in real source directories (`api/`, `services/`,
+  …) for codex's path-scoping, so they can't move to a namespace — instead
+  govkit fences its per-layer guidance in the same `BEGIN/END GOVKIT GOVERNANCE`
+  block used for the root `AGENTS.md`, preserving a team's own content in those
+  files.
 - **govkit's layer rules now install under a `govkit/` subdirectory**, so a team's
   own same-named rule survives. claude-code rules move to `.claude/rules/govkit/`
   and copilot's to `.github/instructions/govkit/` — a team that keeps their own
