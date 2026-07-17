@@ -14,6 +14,7 @@ them inward without duplicating logic or reaching back into cli/govkit.py.
 from __future__ import annotations
 
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -36,18 +37,38 @@ _LEGACY_INSTRUCTION_DEST = {
 }
 
 
+def _unmodified_since(path: Path, applied_at: str | None) -> bool:
+    """True when `path` has not been modified since the marker's `applied_at`.
+
+    govkit wrote the legacy instruction file at apply time, so a file still at
+    (or before) that timestamp is govkit's own untouched copy — regardless of
+    which govkit version's text it carries. Returns False when `applied_at` is
+    missing/unparseable, so an unknown history never authorizes a delete.
+    """
+    if not applied_at:
+        return False
+    try:
+        applied_dt = datetime.fromisoformat(applied_at)
+    except (ValueError, TypeError):
+        return False
+    mtime_dt = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+    return mtime_dt <= applied_dt
+
+
 def reconcile_legacy_instruction_files(
-    target: Path, agent_dir: Path, files: list,
+    target: Path, agent_dir: Path, files: list, applied_at: str | None = None,
 ) -> list:
     """Retire a pre-namespace govkit instruction file before writing governance.
 
     For each governance entry, if the legacy top-level file it superseded is
-    present:
-      - byte-identical to govkit's governance body ⇒ it is govkit's own
-        untouched orphan; delete it and let governance install.
-      - otherwise ⇒ treat it as the team's file: keep it, and drop the
-        governance entry so upgrade does not install duplicate governance
-        alongside it. A warning tells the team how to adopt the managed layout.
+    present, it is treated as govkit's own untouched orphan — and removed — when
+    EITHER:
+      - it is byte-identical to govkit's current governance body, or
+      - it has not been modified since the marker's `applied_at` (so it is
+        govkit's file from an earlier version, untouched by the team).
+    Otherwise it is treated as the team's file: kept, and the governance entry
+    is dropped so upgrade does not install duplicate governance alongside it. A
+    warning tells the team how to adopt the managed layout.
 
     Returns the files list to actually write. Upgrade-only: on a fresh apply a
     top-level CLAUDE.md is the team's, and governance is expected to coexist.
@@ -67,7 +88,8 @@ def reconcile_legacy_instruction_files(
             legacy_body = legacy.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             legacy_body = None
-        if legacy_body == govkit_body:
+        is_govkit_orphan = legacy_body == govkit_body or _unmodified_since(legacy, applied_at)
+        if is_govkit_orphan:
             legacy.unlink()
             print(f"  migrated {legacy_rel} -> {entry['dest']}  (removed govkit-authored orphan)")
             keep.append(entry)

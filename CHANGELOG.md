@@ -30,10 +30,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   copilot — and govkit writes no top-level instruction file at all. A team that
   wrote its own `CLAUDE.md` keeps it untouched while govkit's governance still
   loads every session. On `upgrade`, an existing install's old govkit-authored
-  instruction file is retired automatically when it is byte-identical to govkit's
-  governance; if you edited it, it is kept and governance install is skipped
-  (with a warning) so you never get duplicate governance. Codex (`AGENTS.md`,
-  which has no native rules directory) is unchanged for now.
+  instruction file is retired automatically when it is govkit's own — either
+  byte-identical to the current governance or untouched since the last apply
+  (so older-version files clean up too); if you edited it, it is kept and
+  governance install is skipped (with a warning) so you never get duplicate
+  governance. Codex (`AGENTS.md`, which has no native rules directory) is
+  unchanged for now.
 - `govkit doctor`'s rule-glob check (D001) now scans the rules directory
   recursively, so rules in subdirectories — including govkit's own
   `.claude/rules/govkit/` — are validated instead of silently skipped.

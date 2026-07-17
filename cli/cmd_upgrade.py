@@ -118,7 +118,7 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
 
     # A6: retire any pre-namespace top-level instruction file (CLAUDE.md etc.)
     # before installing governance into the rules namespace.
-    files = reconcile_legacy_instruction_files(target, agent_dir, files)
+    files = reconcile_legacy_instruction_files(target, agent_dir, files, prior_applied_at)
 
     print("Agent files (refreshed):")
     for entry in files:

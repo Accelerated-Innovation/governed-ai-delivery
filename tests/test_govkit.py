@@ -2476,10 +2476,35 @@ class TestUpgradeMigratesLegacyInstructionFile:
         assert not (target / "CLAUDE.md").exists()
         assert (target / ".claude" / "rules" / "govkit" / "governance.md").is_file()
 
+    def test_removes_cross_version_untouched_claude_md(self, tmp_path, monkeypatch):
+        """An older-version govkit CLAUDE.md won't byte-match today's governance,
+        but if it is untouched since the last apply (mtime <= applied_at) it is
+        still govkit's orphan → removed, and current governance installed."""
+        import os
+        from datetime import datetime, timezone
+
+        target = self._target(tmp_path, claude_md="# OLD govkit governance (v0.10)\n")
+        # Untouched since apply: mtime a month before the marker's applied_at.
+        stamp = datetime(2025, 12, 1, tzinfo=timezone.utc).timestamp()
+        os.utime(target / "CLAUDE.md", (stamp, stamp))
+
+        self._run(tmp_path, target, monkeypatch)
+
+        assert not (target / "CLAUDE.md").exists()
+        assert (target / ".claude" / "rules" / "govkit" / "governance.md").is_file()
+
     def test_keeps_edited_claude_md_and_skips_governance(self, tmp_path, monkeypatch, capsys):
-        """A CLAUDE.md that differs from govkit's governance is treated as the
-        team's: kept, governance.md NOT installed (no duplicate), warning shown."""
+        """A CLAUDE.md that differs from govkit's governance AND was touched since
+        the last apply is the team's: kept, governance.md NOT installed (no
+        duplicate), warning shown."""
+        import os
+        from datetime import datetime, timezone
+
         target = self._target(tmp_path, claude_md="# ACME house rules\nUse pnpm.\n")
+        # Edited after apply: mtime well after the marker's applied_at.
+        stamp = datetime(2026, 6, 1, tzinfo=timezone.utc).timestamp()
+        os.utime(target / "CLAUDE.md", (stamp, stamp))
+
         self._run(tmp_path, target, monkeypatch)
 
         assert (target / "CLAUDE.md").read_text(encoding="utf-8") == "# ACME house rules\nUse pnpm.\n"
