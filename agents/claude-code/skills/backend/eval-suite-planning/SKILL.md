@@ -1,6 +1,6 @@
 ---
-name: eval-suite-planning
-description: Plan DeepEval, Promptfoo, and RAGAS evaluation suites for an LLM feature. Use when the user asks to plan LLM evaluations or invokes /eval-suite-planning.
+name: govkit-eval-suite-planning
+description: Plan DeepEval, Promptfoo, and RAGAS evaluation suites for an LLM feature. Use when the user asks to plan LLM evaluations or invokes /govkit-eval-suite-planning.
 ---
 
 # Evaluation Suite Planning

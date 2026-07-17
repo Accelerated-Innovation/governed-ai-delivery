@@ -1,13 +1,13 @@
 ---
-name: multi-agent-design
-description: Design the agent topology for a multi-agent feature and produce agent_topology.md. Use when eval_criteria.yaml declares multi_agent:true or when invoking /multi-agent-design.
+name: govkit-multi-agent-design
+description: Design the agent topology for a multi-agent feature and produce agent_topology.md. Use when eval_criteria.yaml declares multi_agent:true or when invoking /govkit-multi-agent-design.
 ---
 
 # Multi-Agent Design
 
 You are designing the agent topology for a feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
-Run this skill before `/architecture-preflight` whenever `eval_criteria.yaml` declares `multi_agent: true`.
+Run this skill before `/govkit-architecture-preflight` whenever `eval_criteria.yaml` declares `multi_agent: true`.
 
 ## Inputs to read
 
@@ -81,4 +81,4 @@ After writing, confirm:
 - [ ] No direct agent-to-agent calls are implied
 - [ ] `agent_topology.md` has all four required sections: Orchestrator, Specialist Agents, Routing Logic, Failure Modes
 
-Then proceed to `/architecture-preflight <feature_name>`.
+Then proceed to `/govkit-architecture-preflight <feature_name>`.

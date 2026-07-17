@@ -1,6 +1,6 @@
 ---
-name: ui-implementation-plan
-description: Generate an ordered UI implementation checklist from a validated plan and preflight. Use when the user asks to draft UI implementation steps or invokes /ui-implementation-plan.
+name: govkit-ui-implementation-plan
+description: Generate an ordered UI implementation checklist from a validated plan and preflight. Use when the user asks to draft UI implementation steps or invokes /govkit-ui-implementation-plan.
 ---
 
 # Implementation Plan — UI

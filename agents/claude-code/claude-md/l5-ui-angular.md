@@ -71,14 +71,14 @@ Implementation must not begin unless all five artifacts exist.
 
 ## Feature Lifecycle (Mandatory Order — no steps may be skipped)
 
-0. **Multi-agent features only:** run `/multi-agent-design` before architecture preflight to produce `agent_topology.md`
-1. UI Architecture Preflight → run `/ui-architecture-preflight`
-2. GenAI Preflight → run `/genai-preflight` (validates L5-specific decisions — applies whenever the UI consumes an LLM-backed endpoint)
+0. **Multi-agent features only:** run `/govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
+1. UI Architecture Preflight → run `/govkit-ui-architecture-preflight`
+2. GenAI Preflight → run `/govkit-genai-preflight` (validates L5-specific decisions — applies whenever the UI consumes an LLM-backed endpoint)
 3. ADR creation (if required by preflight)
-4. UI Spec Planning → run `/ui-spec-planning`
-5. Evaluation Suite Planning → run `/eval-suite-planning` (plans DeepEval/Promptfoo/RAGAS suites where the UI exercises LLM behavior)
+4. UI Spec Planning → run `/govkit-ui-spec-planning`
+5. Evaluation Suite Planning → run `/govkit-eval-suite-planning` (plans DeepEval/Promptfoo/RAGAS suites where the UI exercises LLM behavior)
 6. Evaluation Compliance Summary (must be in `plan.md`)
-7. UI Implementation Planning → run `/ui-implementation-plan`
+7. UI Implementation Planning → run `/govkit-ui-implementation-plan`
 8. Incremental implementation — API → ViewModel → View
 9. Component, E2E, and LLM evaluation tests
 10. CI gates (UI quality gate + UI eval gate + backend eval gate when LLM-backed)

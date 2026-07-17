@@ -730,13 +730,10 @@ class TestTeamRuleNameSurvivesApply:
         ).is_file()
 
 
-@pytest.mark.xfail(
-    reason="Skill namespacing (govkit- prefix) is deferred pending the invocation-name "
-    "decision — prefixing changes /spec-planning to /govkit-spec-planning. Today a "
-    "team skill colliding with govkit's name is still overwritten. Pins the target contract.",
-    strict=True,
-)
 class TestTeamSkillNameSurvivesApply:
+    """govkit prefixes its skills with `govkit-` (directory and invocation name),
+    so a team's own skill sharing a bare name with one of govkit's survives."""
+
     def _apply(self, target: Path, agent: str) -> None:
         from cli.cmd_apply import cmd_apply
 

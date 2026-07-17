@@ -54,14 +54,14 @@ Before proceeding to Architecture Preflight or planning:
 
 ## Feature Lifecycle (Mandatory Order — no steps may be skipped)
 
-0. **Multi-agent features only:** invoke `$multi-agent-design` before architecture preflight to produce `agent_topology.md`
-1. Architecture Preflight → invoke `$architecture-preflight`
-2. GenAI Preflight → invoke `$genai-preflight` (validates L5-specific decisions)
+0. **Multi-agent features only:** invoke `$govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
+1. Architecture Preflight → invoke `$govkit-architecture-preflight`
+2. GenAI Preflight → invoke `$govkit-genai-preflight` (validates L5-specific decisions)
 3. ADR creation (if required by preflight)
-4. Plan finalization → invoke `$spec-planning`
-5. Evaluation Suite Planning → invoke `$eval-suite-planning` (plans DeepEval/Promptfoo/RAGAS suites)
+4. Plan finalization → invoke `$govkit-spec-planning`
+5. Evaluation Suite Planning → invoke `$govkit-eval-suite-planning` (plans DeepEval/Promptfoo/RAGAS suites)
 6. Evaluation Compliance Summary (must be in `plan.md`)
-7. Incremental implementation → guided by `$implementation-plan`
+7. Incremental implementation → guided by `$govkit-implementation-plan`
 8. Automated tests (unit + LLM evaluation)
 9. Static analysis and evaluation gates
 

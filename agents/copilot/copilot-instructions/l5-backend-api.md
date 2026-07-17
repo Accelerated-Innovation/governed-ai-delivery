@@ -50,7 +50,7 @@ Implementation must not begin unless all artifacts exist and are complete.
 
 ## 3. Feature Lifecycle (Mandatory Order)
 
-0. **Multi-agent features only:** run `/multi-agent-design` before architecture preflight to produce `agent_topology.md`
+0. **Multi-agent features only:** run `/govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
 1. Architecture Preflight
 2. GenAI Preflight (L5-specific validation)
 3. ADR creation (if required)

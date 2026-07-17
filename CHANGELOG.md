@@ -31,6 +31,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   codex's nested per-layer `AGENTS.md` files are unchanged for now.
 ### Changed
 
+- **govkit's skills are now prefixed `govkit-`**, so a team's own skill that shares
+  a bare name with one of govkit's is no longer overwritten. This renames both the
+  installed skill directory and its invocation name — e.g. `/spec-planning` becomes
+  `/govkit-spec-planning` (and `$spec-planning` for codex). Governance content and
+  skill descriptions are updated to the prefixed names. A team's own
+  `.claude/skills/spec-planning/` now coexists with govkit's `govkit-spec-planning`.
 - **govkit's layer rules now install under a `govkit/` subdirectory**, so a team's
   own same-named rule survives. claude-code rules move to `.claude/rules/govkit/`
   and copilot's to `.github/instructions/govkit/` — a team that keeps their own
