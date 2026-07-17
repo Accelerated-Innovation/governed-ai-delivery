@@ -130,7 +130,16 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
         shared, target, prior_applied_at, args.force, baseline, l5_exclude,
     )
 
-    marker = write_govkit_marker(target, agent, stored_level, options)
+    # Upgrade re-installs govkit's own files; it does not re-decide anything the
+    # team decided. Carry stack/assumptions/calibration across or they reset to
+    # empty — which also blanks the stack facts skill_context.yaml derives below.
+    # applied_at still defaults to now: upgrade IS a re-install.
+    marker = write_govkit_marker(
+        target, agent, stored_level, options,
+        stack=stored.get("stack"),
+        assumptions=stored.get("assumptions") or [],
+        calibration=stored.get("calibration"),
+    )
     post_install_finalize(target, agent, marker=marker)
 
     print(f"\nDone. '{agent}' upgraded to govkit {version.GOVKIT_VERSION} at {target}")

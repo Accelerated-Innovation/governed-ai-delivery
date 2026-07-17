@@ -2278,6 +2278,90 @@ class TestCmdUpgrade:
         marker = read_govkit_marker(target)
         assert marker["version"] == "0.2.0"
 
+    def _calibrated_marker(self, target: Path) -> tuple[dict, list, dict]:
+        """Stamp a completed calibration onto the target's marker.
+
+        Mirrors what `calibrate` records: the selected stack, an assumption
+        cleared by the team, and the decisions they made per checklist step.
+        """
+        stack = {
+            "id": "python-fastapi",
+            "version": "1.0.0",
+            "display_name": "Python + FastAPI",
+        }
+        # Shape mirrors stack_select._build_stack_assumption after the team has
+        # calibrated it: review_required cleared, calibrated_* stamped.
+        assumptions = [{
+            "id": "stack.id",
+            "value": "python-fastapi",
+            "source": "detected",
+            "confidence": "high",
+            "evidence": ["pyproject.toml: fastapi"],
+            "files_affected": [],
+            "review_required": False,
+            "warning_message": None,
+            "calibrated_at": "2026-01-02T00:00:00+00:00",
+            "calibrated_against_overlay_version": "1.0.0",
+        }]
+        calibration = {
+            "completed_at": "2026-01-02T00:00:00+00:00",
+            "decisions": [
+                {"step": "step.tech_stack", "decision": "confirmed"},
+                {"step": "step.boundaries", "decision": "modified: medallion layers"},
+            ],
+        }
+        marker_path = target / ".govkit"
+        stored = json.loads(marker_path.read_text(encoding="utf-8"))
+        stored.update(stack=stack, assumptions=assumptions, calibration=calibration)
+        marker_path.write_text(json.dumps(stored), encoding="utf-8")
+        return stack, assumptions, calibration
+
+    def test_upgrade_preserves_calibration_stack_and_assumptions(
+        self, tmp_path, monkeypatch,
+    ):
+        """Upgrade refreshes govkit's files; it must not reset the team's calibration.
+
+        `calibrate` records decisions/assumptions and `apply` records the
+        selected stack. Upgrade re-installs govkit-owned content — that is
+        not a reason to forget what the team decided. Losing `stack` also
+        cascades: post_install_finalize regenerates skill_context.yaml from
+        the marker, so a wiped stack silently blanks the facts the agent reads.
+        """
+
+        repo = _make_upgrade_repo(tmp_path)
+        target = self._target_with_marker(tmp_path, repo, version="0.1.0")
+        stack, assumptions, calibration = self._calibrated_marker(target)
+        monkeypatch.setattr("cli.paths.AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", repo)
+        monkeypatch.setattr("cli.version.GOVKIT_VERSION", "0.2.0")
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+        marker = read_govkit_marker(target)
+        assert marker["stack"] == stack
+        assert marker["assumptions"] == assumptions
+        assert marker["calibration"] == calibration
+
+    def test_upgrade_still_bumps_applied_at(self, tmp_path, monkeypatch):
+        """applied_at must keep moving — upgrade IS a re-install.
+
+        Guards the fix above from over-correcting: preserving calibration
+        must not turn into preserving applied_at, which would leave
+        edit-protection comparing mtimes against a stale install time.
+        """
+
+        repo = _make_upgrade_repo(tmp_path)
+        target = self._target_with_marker(tmp_path, repo, version="0.1.0")
+        self._calibrated_marker(target)
+        monkeypatch.setattr("cli.paths.AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", repo)
+        monkeypatch.setattr("cli.version.GOVKIT_VERSION", "0.2.0")
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+        marker = read_govkit_marker(target)
+        assert marker["applied_at"] != "2025-01-01T00:00:00+00:00"
+
     def test_upgrade_no_marker_exits(self, tmp_path, monkeypatch):
         """cmd_upgrade exits 1 when no .govkit marker exists."""
 
