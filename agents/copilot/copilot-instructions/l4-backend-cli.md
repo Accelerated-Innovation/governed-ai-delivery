@@ -1,3 +1,6 @@
+---
+applyTo: "**"
+---
 # GitHub Copilot Instructions
 
 These instructions govern how GitHub Copilot plans, reasons, and generates code in this repository.

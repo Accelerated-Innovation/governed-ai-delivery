@@ -22,16 +22,6 @@ def _layout_for(agent: str) -> AgentLayout:
     return AGENT_LAYOUTS.get(agent, AGENT_LAYOUTS["claude-code"])
 
 
-def _rules_display(layout: AgentLayout) -> tuple[str, str]:
-    """Human-readable (rules_dir, rules_glob) for the review file and banner.
-
-    Agents without a glob-scoped rules dir (codex) get descriptive text — a
-    presentation concern, so it lives here rather than in the layout table."""
-    if layout.rules_dir is None:
-        return "(nested AGENTS.md per layer)", layout.instruction_file
-    return f"{layout.rules_dir}/", layout.rules_glob
-
-
 def _architecture_root(type_value: str) -> str:
     """Map project type to its docs architecture root."""
     if type_value in ("ui-react", "ui-angular"):
@@ -83,7 +73,6 @@ def _format_review_checklist(agent: str, type_value: str) -> str:
     agent/type; the items themselves are stable for PR 1."""
     arch = _architecture_root(type_value)
     layout = _layout_for(agent)
-    rules_dir, rules_glob = _rules_display(layout)
     items = [
         (f"{arch}/TECH_STACK.md",
          "Confirm the language, framework, persistence, messaging, observability, "
@@ -96,12 +85,17 @@ def _format_review_checklist(agent: str, type_value: str) -> str:
         (f"{arch}/TESTING.md",
          "Confirm the unit/BDD framework, mocking library, and any framework-as-L4-gate "
          "decisions (set BDD to 'none' if your team does not practise BDD)."),
-        (layout.instruction_file,
-         "Top-level agent guidance. Confirm references to architecture docs are accurate."),
-        (rules_dir,
-         f"Agent rules ({rules_glob}). Confirm globs/applyTo patterns match your "
-         "folder layout — rules that don't match anything provide no guidance."),
     ]
+    # Agents with a native rules dir (claude-code, copilot) get govkit's
+    # governance in that auto-loaded namespace — govkit owns and refreshes it,
+    # so it is NOT a team-editable review item. Teams steer it through the
+    # architecture docs above and `govkit calibrate`. Codex has no rules dir, so
+    # its governance lives in AGENTS.md, which the team still reviews.
+    if layout.rules_dir is None:
+        items.append((
+            layout.instruction_file,
+            "Top-level agent guidance. Confirm references to architecture docs are accurate.",
+        ))
     lines = ["Please read these files before relying on the installed governance:\n"]
     for i, (path, note) in enumerate(items, start=1):
         lines.append(f"{i}. **{path}**\n   {note}")
@@ -193,10 +187,13 @@ this file — author your notes in ADRs or a separate doc instead.
 
 ## Next steps
 
-- After reviewing, edit any docs above to match your repo. GovKit detects your
+- After reviewing, edit the docs above to match your repo. GovKit detects your
   edits (via the `govkit:editable` header + file mtime vs. the marker's
   `applied_at`) and refuses to overwrite them on `govkit upgrade` or
   `govkit stack apply`. Use `--force` to override.
+- GovKit's own agent guidance is refreshed on every upgrade and is not meant to
+  be hand-edited — steer it through the architecture docs above and
+  `govkit calibrate`, not by editing the installed governance files.
 - `govkit doctor` validates fit and surfaces mismatches; run it in CI.
 - `govkit calibrate` walks the review checklist with the team and records
   each decision in `.govkit/marker.json`.
@@ -216,7 +213,6 @@ def print_review_checklist(target: Path, marker: dict) -> None:
     type_value = marker.get("options", {}).get("type", "api")
     arch = _architecture_root(type_value)
     layout = _layout_for(agent)
-    rules_dir, _ = _rules_display(layout)
     needs_review_count = sum(
         1 for a in (marker.get("assumptions") or []) if a.get("review_required")
     )
@@ -229,13 +225,16 @@ def print_review_checklist(target: Path, marker: dict) -> None:
         bar,
         "  See GOVKIT_SETUP_REVIEW.md (just written) for the full checklist.",
         "",
-        "  Top items to confirm:",
+        "  Confirm these match your repo (GovKit governs against them):",
         f"    1. {arch}/TECH_STACK.md      — language / framework / libraries",
         f"    2. {arch}/BOUNDARIES.md      — architecture style + folder mappings",
         f"    3. {arch}/TESTING.md         — test framework + BDD policy",
-        f"    4. {layout.instruction_file:32s} — top-level agent guidance",
-        f"    5. {rules_dir:32s} — rule globs / applyTo patterns",
     ]
+    # Codex has no auto-loaded rules dir, so its governance lives in AGENTS.md,
+    # which the team reviews. claude-code/copilot governance is govkit-owned in
+    # the rules namespace and isn't a team-review item.
+    if layout.rules_dir is None:
+        lines.append(f"    4. {layout.instruction_file:32s} — top-level agent guidance")
     if needs_review_count:
         lines.append("")
         lines.append(

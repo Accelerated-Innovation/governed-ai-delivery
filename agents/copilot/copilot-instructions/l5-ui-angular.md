@@ -1,3 +1,6 @@
+---
+applyTo: "**"
+---
 # GitHub Copilot Instructions — Level 5 GenAI Operations (Angular UI)
 
 These instructions govern how GitHub Copilot plans, reasons, and generates code in this Angular UI repository at Level 5.

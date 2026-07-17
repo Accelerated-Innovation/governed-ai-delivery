@@ -1,3 +1,6 @@
+---
+applyTo: "**"
+---
 # GitHub Copilot Instructions — Data (Level 4)
 
 These instructions govern how GitHub Copilot plans, reasons, and generates

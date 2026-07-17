@@ -49,33 +49,33 @@ Read before generating any code:
 - No business logic or data transformation
 - Receive data and callbacks via props or hooks only
 - All data via React Query hooks or Zustand selectors
-- See `src/CLAUDE.md`
+- See `.claude/rules/govkit/governance-src.md`
 
 ### ViewModel — Hooks (`src/features/<slice>/hooks/`)
 
 - All server state via React Query (`useQuery`, `useMutation`)
 - One hook file per logical data concern
 - Transform API responses here — never in components
-- See `src/CLAUDE.md`
+- See `.claude/rules/govkit/governance-src.md`
 
 ### ViewModel — Store (`src/features/<slice>/store/`)
 
 - Zustand for client-only UI state (modals, selections, pagination)
 - Never store server data in Zustand — that belongs in React Query cache
 - Slice-scoped stores only — no global catch-all store
-- See `src/CLAUDE.md`
+- See `.claude/rules/govkit/governance-src.md`
 
 ### Model — API (`src/features/<slice>/api/`)
 
 - Plain async functions — no React, no hooks
 - One file per backend resource
 - Use shared base client from `src/shared/api/`
-- See `src/CLAUDE.md`
+- See `.claude/rules/govkit/governance-src.md`
 
 ### Accessibility
 
 - Every interactive component must meet WCAG 2.1 AA
-- See `src/CLAUDE.md` and
+- See `.claude/rules/govkit/governance-src.md` and
   `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`
 
 ---

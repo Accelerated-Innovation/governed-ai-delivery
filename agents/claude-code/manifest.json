@@ -26,7 +26,7 @@
     "type": {
       "api": {
         "files": [
-          { "src": "claude-md/backend-api.md", "dest": "CLAUDE.md" },
+          { "src": "claude-md/backend-api.md", "dest": ".claude/rules/govkit/governance.md" },
           { "src": "rules/backend/api.md", "dest": ".claude/rules/api.md" },
           { "src": "rules/backend/services.md", "dest": ".claude/rules/services.md" },
           { "src": "rules/backend/ports.md", "dest": ".claude/rules/ports.md" },
@@ -42,7 +42,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "claude-md/l4-backend-api.md", "dest": "CLAUDE.md" },
+            { "src": "claude-md/l4-backend-api.md", "dest": ".claude/rules/govkit/governance.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
@@ -63,7 +63,7 @@
         "level_5": {
           "mode": "replace",
           "files": [
-            { "src": "claude-md/l5-backend-api.md", "dest": "CLAUDE.md" },
+            { "src": "claude-md/l5-backend-api.md", "dest": ".claude/rules/govkit/governance.md" },
             { "src": "rules/backend/api.md", "dest": ".claude/rules/api.md" },
             { "src": "rules/backend/services.md", "dest": ".claude/rules/services.md" },
             { "src": "rules/backend/ports.md", "dest": ".claude/rules/ports.md" },
@@ -98,7 +98,7 @@
       },
       "cli": {
         "files": [
-          { "src": "claude-md/backend-cli.md", "dest": "CLAUDE.md" },
+          { "src": "claude-md/backend-cli.md", "dest": ".claude/rules/govkit/governance.md" },
           { "src": "rules/cli/cli.md", "dest": ".claude/rules/cli.md" },
           { "src": "rules/backend/services.md", "dest": ".claude/rules/services.md" },
           { "src": "rules/backend/ports.md", "dest": ".claude/rules/ports.md" },
@@ -114,7 +114,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "claude-md/l4-backend-cli.md", "dest": "CLAUDE.md" },
+            { "src": "claude-md/l4-backend-cli.md", "dest": ".claude/rules/govkit/governance.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
@@ -134,7 +134,7 @@
         "level_5": {
           "mode": "replace",
           "files": [
-            { "src": "claude-md/l5-backend-cli.md", "dest": "CLAUDE.md" },
+            { "src": "claude-md/l5-backend-cli.md", "dest": ".claude/rules/govkit/governance.md" },
             { "src": "rules/cli/cli.md", "dest": ".claude/rules/cli.md" },
             { "src": "rules/backend/services.md", "dest": ".claude/rules/services.md" },
             { "src": "rules/backend/ports.md", "dest": ".claude/rules/ports.md" },
@@ -168,8 +168,8 @@
       },
       "ui-react": {
         "files": [
-          { "src": "claude-md/ui-react.md", "dest": "CLAUDE.md" },
-          { "src": "claude-md/src-ui-react.md", "dest": "src/CLAUDE.md" },
+          { "src": "claude-md/ui-react.md", "dest": ".claude/rules/govkit/governance.md" },
+          { "src": "claude-md/src-ui-react.md", "dest": ".claude/rules/govkit/governance-src.md" },
           { "src": "rules/generic/repo-scope-ui.md", "dest": ".claude/rules/repo-scope.md" },
           { "src": "skills/ui/adr-author/", "dest": ".claude/skills/ui-adr-author/" }
         ],
@@ -183,7 +183,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "claude-md/l4-ui-react.md", "dest": "CLAUDE.md" },
+            { "src": "claude-md/l4-ui-react.md", "dest": ".claude/rules/govkit/governance.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
             { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
@@ -202,8 +202,8 @@
         "level_5": {
           "mode": "replace",
           "files": [
-            { "src": "claude-md/l5-ui-react.md", "dest": "CLAUDE.md" },
-            { "src": "claude-md/src-ui-react.md", "dest": "src/CLAUDE.md" },
+            { "src": "claude-md/l5-ui-react.md", "dest": ".claude/rules/govkit/governance.md" },
+            { "src": "claude-md/src-ui-react.md", "dest": ".claude/rules/govkit/governance-src.md" },
             { "src": "rules/generic/repo-scope-ui.md", "dest": ".claude/rules/repo-scope.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
@@ -228,8 +228,8 @@
       },
       "ui-angular": {
         "files": [
-          { "src": "claude-md/ui-angular.md", "dest": "CLAUDE.md" },
-          { "src": "claude-md/src-ui-angular.md", "dest": "src/CLAUDE.md" },
+          { "src": "claude-md/ui-angular.md", "dest": ".claude/rules/govkit/governance.md" },
+          { "src": "claude-md/src-ui-angular.md", "dest": ".claude/rules/govkit/governance-src.md" },
           { "src": "rules/generic/repo-scope-ui.md", "dest": ".claude/rules/repo-scope.md" },
           { "src": "skills/ui/adr-author/", "dest": ".claude/skills/ui-adr-author/" }
         ],
@@ -243,7 +243,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "claude-md/l4-ui-angular.md", "dest": "CLAUDE.md" },
+            { "src": "claude-md/l4-ui-angular.md", "dest": ".claude/rules/govkit/governance.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
             { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
@@ -262,8 +262,8 @@
         "level_5": {
           "mode": "replace",
           "files": [
-            { "src": "claude-md/l5-ui-angular.md", "dest": "CLAUDE.md" },
-            { "src": "claude-md/src-ui-angular.md", "dest": "src/CLAUDE.md" },
+            { "src": "claude-md/l5-ui-angular.md", "dest": ".claude/rules/govkit/governance.md" },
+            { "src": "claude-md/src-ui-angular.md", "dest": ".claude/rules/govkit/governance-src.md" },
             { "src": "rules/generic/repo-scope-ui.md", "dest": ".claude/rules/repo-scope.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
@@ -288,7 +288,7 @@
       },
       "data": {
         "files": [
-          { "src": "claude-md/data.md", "dest": "CLAUDE.md" },
+          { "src": "claude-md/data.md", "dest": ".claude/rules/govkit/governance.md" },
           { "src": "rules/data/staging.md", "dest": ".claude/rules/staging.md" },
           { "src": "rules/data/intermediate.md", "dest": ".claude/rules/intermediate.md" },
           { "src": "rules/data/marts.md", "dest": ".claude/rules/marts.md" },
@@ -304,7 +304,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "claude-md/l4-data.md", "dest": "CLAUDE.md" },
+            { "src": "claude-md/l4-data.md", "dest": ".claude/rules/govkit/governance.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/spec-compliance.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },

@@ -1,3 +1,6 @@
+---
+applyTo: "**"
+---
 # GitHub Copilot Instructions — Level 5 GenAI Operations (React UI)
 
 These instructions govern how GitHub Copilot plans, reasons, and generates code in this React UI repository at Level 5.

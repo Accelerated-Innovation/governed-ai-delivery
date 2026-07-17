@@ -1,3 +1,6 @@
+---
+applyTo: "**"
+---
 # GitHub Copilot Instructions — Foundations (Level 3) — Data
 
 These instructions govern how GitHub Copilot plans, reasons, and generates
