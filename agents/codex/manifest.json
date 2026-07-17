@@ -26,7 +26,7 @@
     "type": {
       "data": {
         "files": [
-          { "src": "agents-md/data.md", "dest": "AGENTS.md" },
+          { "src": "agents-md/data.md", "dest": "AGENTS.md", "managed_block": true },
           { "src": "rules/data/staging.md", "dest": "models/staging/AGENTS.md" },
           { "src": "rules/data/intermediate.md", "dest": "models/intermediate/AGENTS.md" },
           { "src": "rules/data/marts.md", "dest": "models/marts/AGENTS.md" },
@@ -42,7 +42,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "agents-md/l4-data.md", "dest": "AGENTS.md" },
+            { "src": "agents-md/l4-data.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
@@ -57,7 +57,7 @@
       },
       "api": {
         "files": [
-          { "src": "agents-md/backend-api.md", "dest": "AGENTS.md" },
+          { "src": "agents-md/backend-api.md", "dest": "AGENTS.md", "managed_block": true },
           { "src": "rules/backend/api.md", "dest": "api/AGENTS.md" },
           { "src": "rules/backend/services.md", "dest": "services/AGENTS.md" },
           { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md" },
@@ -73,7 +73,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "agents-md/l4-backend-api.md", "dest": "AGENTS.md" },
+            { "src": "agents-md/l4-backend-api.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
@@ -94,7 +94,7 @@
         "level_5": {
           "mode": "replace",
           "files": [
-            { "src": "agents-md/l5-backend-api.md", "dest": "AGENTS.md" },
+            { "src": "agents-md/l5-backend-api.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "rules/backend/api.md", "dest": "api/AGENTS.md" },
             { "src": "rules/backend/services.md", "dest": "services/AGENTS.md" },
             { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md" },
@@ -129,7 +129,7 @@
       },
       "cli": {
         "files": [
-          { "src": "agents-md/backend-cli.md", "dest": "AGENTS.md" },
+          { "src": "agents-md/backend-cli.md", "dest": "AGENTS.md", "managed_block": true },
           { "src": "rules/cli/cli.md", "dest": "cli/AGENTS.md" },
           { "src": "rules/backend/services.md", "dest": "services/AGENTS.md" },
           { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md" },
@@ -145,7 +145,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "agents-md/l4-backend-cli.md", "dest": "AGENTS.md" },
+            { "src": "agents-md/l4-backend-cli.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
@@ -165,7 +165,7 @@
         "level_5": {
           "mode": "replace",
           "files": [
-            { "src": "agents-md/l5-backend-cli.md", "dest": "AGENTS.md" },
+            { "src": "agents-md/l5-backend-cli.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "rules/cli/cli.md", "dest": "cli/AGENTS.md" },
             { "src": "rules/backend/services.md", "dest": "services/AGENTS.md" },
             { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md" },
@@ -199,7 +199,7 @@
       },
       "ui-react": {
         "files": [
-          { "src": "agents-md/ui-react.md", "dest": "AGENTS.md" },
+          { "src": "agents-md/ui-react.md", "dest": "AGENTS.md", "managed_block": true },
           { "src": "agents-md/src-ui-react.md", "dest": "src/AGENTS.md" },
           { "src": "rules/ui-react/components.md", "dest": "src/features/components/AGENTS.md" },
           { "src": "rules/ui-react/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },
@@ -218,7 +218,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "agents-md/l4-ui-react.md", "dest": "AGENTS.md" },
+            { "src": "agents-md/l4-ui-react.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
             { "src": "skills/ui/spec-planning/", "dest": ".agents/skills/ui-spec-planning/" },
@@ -237,7 +237,7 @@
         "level_5": {
           "mode": "replace",
           "files": [
-            { "src": "agents-md/l5-ui-react.md", "dest": "AGENTS.md" },
+            { "src": "agents-md/l5-ui-react.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "agents-md/src-ui-react.md", "dest": "src/AGENTS.md" },
             { "src": "rules/ui-react/components.md", "dest": "src/features/components/AGENTS.md" },
             { "src": "rules/ui-react/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },
@@ -267,7 +267,7 @@
       },
       "ui-angular": {
         "files": [
-          { "src": "agents-md/ui-angular.md", "dest": "AGENTS.md" },
+          { "src": "agents-md/ui-angular.md", "dest": "AGENTS.md", "managed_block": true },
           { "src": "agents-md/src-ui-angular.md", "dest": "src/AGENTS.md" },
           { "src": "rules/ui-angular/components.md", "dest": "src/features/components/AGENTS.md" },
           { "src": "rules/ui-angular/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },
@@ -286,7 +286,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "agents-md/l4-ui-angular.md", "dest": "AGENTS.md" },
+            { "src": "agents-md/l4-ui-angular.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
             { "src": "skills/ui/spec-planning/", "dest": ".agents/skills/ui-spec-planning/" },
@@ -305,7 +305,7 @@
         "level_5": {
           "mode": "replace",
           "files": [
-            { "src": "agents-md/l5-ui-angular.md", "dest": "AGENTS.md" },
+            { "src": "agents-md/l5-ui-angular.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "agents-md/src-ui-angular.md", "dest": "src/AGENTS.md" },
             { "src": "rules/ui-angular/components.md", "dest": "src/features/components/AGENTS.md" },
             { "src": "rules/ui-angular/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },

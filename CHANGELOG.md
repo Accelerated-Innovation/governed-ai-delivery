@@ -43,6 +43,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - `govkit doctor`'s rule-glob check (D001) now scans the rules directory
   recursively, so rules in subdirectories — including govkit's own
   `.claude/rules/govkit/` — are validated instead of silently skipped.
+- **Codex `AGENTS.md` is no longer overwritten wholesale.** Codex has no
+  auto-loaded rules directory, so its governance must share `AGENTS.md` with the
+  team — govkit now installs it as a managed block fenced by
+  `<!-- BEGIN GOVKIT GOVERNANCE -->` / `<!-- END GOVKIT GOVERNANCE -->`, and
+  preserves whatever the team wrote outside it. On `upgrade`, an existing
+  pre-block govkit `AGENTS.md` is replaced by the block when it is provably
+  govkit's own (byte-identical or untouched since `applied_at`); a team's file
+  keeps its content with the block appended below. Nested per-layer `AGENTS.md`
+  files are unchanged for now.
 
 ### Changed — internal
 

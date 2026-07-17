@@ -5,7 +5,6 @@ installed editable doc gets a top header that records its baseline so doctor
 can detect staleness and edit-protection can preserve team changes.
 """
 
-import pytest
 
 
 class TestFormatEditableHeader:
@@ -153,7 +152,7 @@ class TestPrependHeaderToFile:
     def test_does_not_duplicate_existing_header(self, tmp_path):
         """If the file already starts with an editable header, prepending must
         not stack a second one."""
-        from cli.headers import prepend_header_to_file, format_editable_header
+        from cli.headers import format_editable_header, prepend_header_to_file
 
         existing = format_editable_header(baseline="govkit@0.10.0")
         doc = tmp_path / "TECH_STACK.md"
@@ -189,3 +188,58 @@ class TestPrependHeaderToFile:
         # Should not raise.
         prepend_header_to_file(missing, baseline="govkit@0.10.0")
         assert not missing.exists()
+
+
+class TestUpsertGovkitBlock:
+    """Codex has no auto-loaded rules dir, so govkit's governance must live in
+    AGENTS.md. The managed block lets govkit own its governance in-file while
+    preserving whatever the team wrote around it."""
+
+    def _markers(self):
+        from cli.headers import GOVKIT_BLOCK_BEGIN, GOVKIT_BLOCK_END
+        return GOVKIT_BLOCK_BEGIN, GOVKIT_BLOCK_END
+
+    def test_new_file_is_just_the_block(self):
+        from cli.headers import upsert_govkit_block
+        begin, end = self._markers()
+
+        out = upsert_govkit_block(None, "GOVERNANCE BODY")
+        assert out.startswith(begin)
+        assert end in out
+        assert "GOVERNANCE BODY" in out
+
+    def test_team_file_without_block_keeps_team_content(self):
+        from cli.headers import upsert_govkit_block
+        begin, end = self._markers()
+
+        team = "# ACME AGENTS.md\nUse pnpm.\n"
+        out = upsert_govkit_block(team, "GOVERNANCE BODY")
+        assert "# ACME AGENTS.md" in out
+        assert "Use pnpm." in out
+        assert begin in out and end in out
+        # Team content comes first; govkit's block is appended below it.
+        assert out.index("ACME") < out.index(begin)
+
+    def test_existing_block_is_replaced_in_place(self):
+        from cli.headers import upsert_govkit_block
+        begin, end = self._markers()
+
+        before = f"# team top\n\n{begin}\nOLD GOVERNANCE\n{end}\n\n# team bottom\n"
+        out = upsert_govkit_block(before, "NEW GOVERNANCE")
+        assert "NEW GOVERNANCE" in out
+        assert "OLD GOVERNANCE" not in out
+        assert "# team top" in out
+        assert "# team bottom" in out
+        # Exactly one block after replacement.
+        assert out.count(begin) == 1
+        assert out.count(end) == 1
+
+    def test_replace_unblocked_replaces_whole_file(self):
+        """An existing govkit full-overwrite AGENTS.md (no block) is govkit's
+        own — replace it wholesale with the block, not append to it."""
+        from cli.headers import upsert_govkit_block
+
+        old_full = "# old govkit governance, no markers\n"
+        out = upsert_govkit_block(old_full, "NEW GOVERNANCE", replace_unblocked=True)
+        assert "old govkit governance" not in out
+        assert "NEW GOVERNANCE" in out
