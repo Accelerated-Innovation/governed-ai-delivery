@@ -96,3 +96,53 @@ class TestResolveStackChoiceTypeCompatibility:
         )
         assert chosen == "dotnet-aspnet"
         assert source == "detected"
+
+
+class TestStackMarkerRecordBuilders:
+    """build_stack_assumption / build_stack_meta are the single point of
+    construction for the two stack records written into the marker — both
+    `govkit apply --stack` and `govkit stack apply` must consume them so the
+    record shapes cannot drift apart."""
+
+    def _overlay(self):
+        from cli.overlay import load_overlay
+
+        overlay = load_overlay("python-fastapi")
+        assert overlay is not None
+        return overlay
+
+    def test_assumption_from_flag_source(self):
+        from cli.stack_select import build_stack_assumption
+
+        overlay = self._overlay()
+        a = build_stack_assumption(overlay, source="flag", confidence="high", evidence=[])
+        assert a["id"] == "stack.id"
+        assert a["value"] == "python-fastapi"
+        assert a["source"] == "flag"
+        assert a["confidence"] == "high"
+        assert a["evidence"] == []
+        assert a["files_affected"] == [d["dest"] for d in overlay.docs]
+        assert a["review_required"] is False
+        assert a["warning_message"] is None
+        assert a["calibrated_at"] is None
+        assert a["calibrated_against_overlay_version"] is None
+
+    def test_assumption_from_default_source_requires_review(self):
+        from cli.stack_select import build_stack_assumption
+
+        a = build_stack_assumption(self._overlay(), source="default", confidence="low", evidence=[])
+        assert a["review_required"] is True
+        assert "python-fastapi" in a["warning_message"]
+
+    def test_stack_meta_shape(self):
+        from datetime import datetime
+
+        from cli.stack_select import build_stack_meta
+
+        overlay = self._overlay()
+        meta = build_stack_meta(overlay)
+        assert set(meta) == {"id", "version", "display_name", "applied_at"}
+        assert meta["id"] == overlay.id
+        assert meta["version"] == overlay.version
+        assert meta["display_name"] == overlay.display_name
+        datetime.fromisoformat(meta["applied_at"])  # parseable timestamp
