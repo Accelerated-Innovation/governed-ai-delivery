@@ -2440,6 +2440,63 @@ def _make_governance_repo(tmp_path: Path, agent: str = "test-agent") -> tuple[Pa
     return tmp_path, body
 
 
+class TestWriteManagedAgentBlock:
+    """A6: the codex AGENTS.md writer must replace govkit's own pre-block file
+    wholesale, but preserve a team's content by appending the block below it."""
+
+    def test_govkit_byte_identical_file_is_replaced_not_appended(self, tmp_path):
+        from cli.install_common import write_managed_agent_block
+
+        body = "# govkit governance\nRules.\n"
+        dest = tmp_path / "AGENTS.md"
+        dest.write_text(body, encoding="utf-8")  # govkit's old full-overwrite copy
+
+        write_managed_agent_block(dest, body)
+
+        out = dest.read_text(encoding="utf-8")
+        assert out.count("BEGIN GOVKIT GOVERNANCE") == 1
+        # The body appears once (inside the block) — the old unblocked copy was
+        # replaced, not left above a duplicate in the block.
+        assert out.count("Rules.") == 1
+
+    def test_untouched_since_applied_at_is_replaced(self, tmp_path):
+        import os
+        from datetime import datetime, timezone
+
+        from cli.install_common import write_managed_agent_block
+
+        dest = tmp_path / "AGENTS.md"
+        dest.write_text("# OLD govkit v0.10 governance\n", encoding="utf-8")
+        stamp = datetime(2025, 12, 1, tzinfo=timezone.utc).timestamp()
+        os.utime(dest, (stamp, stamp))
+        applied_at = datetime(2026, 1, 1, tzinfo=timezone.utc).isoformat()
+
+        write_managed_agent_block(dest, "# NEW governance\n", applied_at)
+
+        out = dest.read_text(encoding="utf-8")
+        assert "OLD govkit v0.10" not in out
+        assert "NEW governance" in out
+
+    def test_team_file_is_preserved_and_block_appended(self, tmp_path):
+        import os
+        from datetime import datetime, timezone
+
+        from cli.install_common import write_managed_agent_block
+
+        dest = tmp_path / "AGENTS.md"
+        dest.write_text("# ACME rules\nUse pnpm.\n", encoding="utf-8")
+        stamp = datetime(2026, 6, 1, tzinfo=timezone.utc).timestamp()  # after applied_at
+        os.utime(dest, (stamp, stamp))
+        applied_at = datetime(2026, 1, 1, tzinfo=timezone.utc).isoformat()
+
+        write_managed_agent_block(dest, "# govkit governance\n", applied_at)
+
+        out = dest.read_text(encoding="utf-8")
+        assert "# ACME rules" in out
+        assert "Use pnpm." in out
+        assert out.index("ACME") < out.index("BEGIN GOVKIT GOVERNANCE")
+
+
 class TestUpgradeMigratesLegacyInstructionFile:
     """A6: an existing install carries govkit's old top-level CLAUDE.md. Once
     governance moves into the rules namespace, upgrade must retire the orphan —
