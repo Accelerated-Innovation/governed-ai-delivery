@@ -22,7 +22,7 @@ is not.
 Copilot operates aligned to:
 
 * Architecture contracts under `docs/ui/architecture/`
-* Path-scoped instructions under `.github/instructions/`
+* Path-scoped instructions under `.github/instructions/govkit/`
 
 Before generating or modifying code:
 
@@ -73,7 +73,7 @@ Read before generating any code:
 * All server data via TanStack Query inject functions
 * All client state via Signal store injection
 * Use `@if`, `@for`, `@switch` control flow (Angular 17+)
-* See `.github/instructions/components.instructions.md`
+* See `.github/instructions/govkit/components.instructions.md`
 
 ### ViewModel — Query Functions (`src/features/<slice>/hooks/`)
 
@@ -81,7 +81,7 @@ Read before generating any code:
 * Transform API responses in `select` — never in templates or components
 * Query keys defined as typed constants in `query-keys.ts` per slice
 * Mutations must invalidate relevant query keys on success
-* See `.github/instructions/viewmodel.instructions.md`
+* See `.github/instructions/govkit/viewmodel.instructions.md`
 
 ### ViewModel — Signal Store (`src/features/<slice>/store/`)
 
@@ -96,12 +96,12 @@ Read before generating any code:
 * Plain functions wrapping `HttpClient`
 * One file per backend resource
 * Use shared base from `src/shared/api/`
-* See `.github/instructions/api.instructions.md`
+* See `.github/instructions/govkit/api.instructions.md`
 
 ### Accessibility
 
 * Every interactive component must meet WCAG 2.1 AA
-* See `.github/instructions/accessibility.instructions.md` and
+* See `.github/instructions/govkit/accessibility.instructions.md` and
   `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`
 
 ---

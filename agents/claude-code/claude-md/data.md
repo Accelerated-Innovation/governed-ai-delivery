@@ -41,12 +41,12 @@ the team's source-shaped / serving / business-logic folders respectively.
 
 ## Layer-scoped rules (loaded automatically)
 
-- `.claude/rules/staging.md` — staging-model conventions
-- `.claude/rules/intermediate.md` — intermediate-model conventions
-- `.claude/rules/marts.md` — mart conventions (the public contract)
-- `.claude/rules/data-quality.md` — testing discipline + severity policy
-- `.claude/rules/pii.md` — PII tagging + masking
-- `.claude/rules/repo-scope.md` — when to touch this repo vs. another
+- `.claude/rules/govkit/staging.md` — staging-model conventions
+- `.claude/rules/govkit/intermediate.md` — intermediate-model conventions
+- `.claude/rules/govkit/marts.md` — mart conventions (the public contract)
+- `.claude/rules/govkit/data-quality.md` — testing discipline + severity policy
+- `.claude/rules/govkit/pii.md` — PII tagging + masking
+- `.claude/rules/govkit/repo-scope.md` — when to touch this repo vs. another
 
 Rule globs in this install are templated to your actual folder layout at
 install time (see `paths:` in each rule's frontmatter). If the globs don't

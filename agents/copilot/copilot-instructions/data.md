@@ -22,7 +22,7 @@ is not.
 Copilot operates aligned to:
 
 * Architecture contracts under `docs/data/architecture/`
-* Path-scoped instructions under `.github/instructions/`
+* Path-scoped instructions under `.github/instructions/govkit/`
 
 Before generating or modifying models, tests, macros, or seeds:
 
@@ -56,7 +56,7 @@ Stack-specific guidance lives in the overlay docs at the same path
 (`TECH_STACK.md`, `TESTING.md`, `MODEL_LAYERING.md`, `QUERY_CONVENTIONS.md`,
 `PII_HANDLING.md`, `LINEAGE_OBSERVABILITY.md`).
 
-Path-scoped instructions load automatically from `.github/instructions/` when
+Path-scoped instructions load automatically from `.github/instructions/govkit/` when
 editing files matching their `applyTo` patterns:
 
 * `staging.instructions.md` — `**/models/staging/**`

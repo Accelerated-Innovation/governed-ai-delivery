@@ -126,7 +126,7 @@ class TestDotnetAspnetClaudeRulesTemplating:
             force=False, detect=False,
         ))
 
-        text = (target / ".claude" / "rules" / "adapters.md").read_text(encoding="utf-8")
+        text = (target / ".claude" / "rules" / "govkit" / "adapters.md").read_text(encoding="utf-8")
         fm = yaml.safe_load(text.split("---", 2)[1])
         assert "**/Infrastructure/**" in (fm.get("paths") or [])
         # Hexagonal default is gone — clean layers took its place.
@@ -142,7 +142,7 @@ class TestDotnetAspnetClaudeRulesTemplating:
             force=False, detect=False,
         ))
 
-        text = (target / ".github" / "instructions" / "adapters.instructions.md").read_text(encoding="utf-8")
+        text = (target / ".github" / "instructions" / "govkit" / "adapters.instructions.md").read_text(encoding="utf-8")
         fm = yaml.safe_load(text.split("---", 2)[1])
         applyto = fm.get("applyTo", "")
         assert "**/Infrastructure/**" in applyto
@@ -251,7 +251,7 @@ class TestDbtProjectFixture:
         target = _copy_fixture("dbt-project", tmp_path)
         self._apply(target)
 
-        text = (target / ".claude" / "rules" / "staging.md").read_text(encoding="utf-8")
+        text = (target / ".claude" / "rules" / "govkit" / "staging.md").read_text(encoding="utf-8")
         fm = yaml.safe_load(text.split("---", 2)[1])
         paths = fm.get("paths") or []
         assert "**/models/staging/**" in paths
@@ -260,7 +260,7 @@ class TestDbtProjectFixture:
         target = _copy_fixture("dbt-project", tmp_path)
         self._apply(target)
 
-        text = (target / ".claude" / "rules" / "marts.md").read_text(encoding="utf-8")
+        text = (target / ".claude" / "rules" / "govkit" / "marts.md").read_text(encoding="utf-8")
         fm = yaml.safe_load(text.split("---", 2)[1])
         paths = fm.get("paths") or []
         assert "**/models/marts/**" in paths
@@ -688,18 +688,10 @@ class TestGovernanceLivesInRulesNamespace:
         assert (target / ".claude" / "rules" / "govkit" / "governance.md").is_file()
 
 
-@pytest.mark.xfail(
-    reason="Namespacing govkit rules/skills under govkit/ is deferred (plan inc 2); "
-    "today a team rule whose name collides with govkit's is still overwritten. "
-    "These pin the target contract.",
-    strict=True,
-)
-class TestTeamOwnedContentSurvivesApply:
-    """A team that authored their own agent files before adopting govkit must
-    not lose them on `govkit apply`. govkit owns a `govkit/` subtree under the
-    native rules dir and a `govkit-` skill prefix, so its files never share a
-    path with a team's own same-named rule or skill.
-    """
+class TestTeamRuleNameSurvivesApply:
+    """govkit owns a `govkit/` subtree under each agent's native rules dir, so a
+    team's own rule that merely shares a name with one of govkit's is not
+    clobbered by apply."""
 
     def _apply(self, target: Path, agent: str) -> None:
         from cli.cmd_apply import cmd_apply
@@ -723,18 +715,6 @@ class TestTeamOwnedContentSurvivesApply:
         # govkit's own copy lands in its namespace, still installed.
         assert (target / ".claude" / "rules" / "govkit" / "api.md").is_file()
 
-    def test_team_skill_with_govkit_name_survives(self, tmp_path):
-        """A team's own .claude/skills/spec-planning/ is not clobbered."""
-        target = _copy_fixture("python-fastapi-github", tmp_path)
-        team_skill = target / ".claude" / "skills" / "spec-planning" / "SKILL.md"
-        team_skill.parent.mkdir(parents=True, exist_ok=True)
-        team_skill.write_text("# TEAM spec-planning\n", encoding="utf-8")
-
-        self._apply(target, "claude-code")
-
-        assert team_skill.read_text(encoding="utf-8") == "# TEAM spec-planning\n"
-        assert (target / ".claude" / "skills" / "govkit-spec-planning" / "SKILL.md").is_file()
-
     def test_copilot_team_instruction_with_govkit_name_survives(self, tmp_path):
         """A team's own .github/instructions/api.instructions.md is not clobbered."""
         target = _copy_fixture("python-fastapi-github", tmp_path)
@@ -748,3 +728,32 @@ class TestTeamOwnedContentSurvivesApply:
         assert (
             target / ".github" / "instructions" / "govkit" / "api.instructions.md"
         ).is_file()
+
+
+@pytest.mark.xfail(
+    reason="Skill namespacing (govkit- prefix) is deferred pending the invocation-name "
+    "decision — prefixing changes /spec-planning to /govkit-spec-planning. Today a "
+    "team skill colliding with govkit's name is still overwritten. Pins the target contract.",
+    strict=True,
+)
+class TestTeamSkillNameSurvivesApply:
+    def _apply(self, target: Path, agent: str) -> None:
+        from cli.cmd_apply import cmd_apply
+
+        cmd_apply(argparse.Namespace(
+            agent=agent, target=str(target),
+            level="4", type="api", ci="github", stack=None,
+            force=False, detect=False,
+        ))
+
+    def test_team_skill_with_govkit_name_survives(self, tmp_path):
+        """A team's own .claude/skills/spec-planning/ is not clobbered."""
+        target = _copy_fixture("python-fastapi-github", tmp_path)
+        team_skill = target / ".claude" / "skills" / "spec-planning" / "SKILL.md"
+        team_skill.parent.mkdir(parents=True, exist_ok=True)
+        team_skill.write_text("# TEAM spec-planning\n", encoding="utf-8")
+
+        self._apply(target, "claude-code")
+
+        assert team_skill.read_text(encoding="utf-8") == "# TEAM spec-planning\n"
+        assert (target / ".claude" / "skills" / "govkit-spec-planning" / "SKILL.md").is_file()

@@ -134,7 +134,7 @@ jobs:
           test -f "$tmp/.govkit/marker.json"
           test -f "$tmp/.govkit/skill_context.yaml"
           test -f "$tmp/.claude/rules/govkit/governance.md"        # claude-md/data.md
-          test -f "$tmp/.claude/rules/staging.md"                   # rules/data/
+          test -f "$tmp/.claude/rules/govkit/staging.md"           # rules/data/
           test -f "$tmp/docs/data/architecture/BOUNDARIES.md"       # baseline contracts
           test -f "$tmp/docs/data/architecture/TECH_STACK.md"       # python-dbt overlay
           grep -q "baseline: python-dbt@" "$tmp/docs/data/architecture/TECH_STACK.md"

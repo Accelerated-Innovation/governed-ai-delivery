@@ -22,7 +22,7 @@ is not.
 Copilot operates aligned to:
 
 * Architecture contracts under `docs/ui/architecture/`
-* Path-scoped instructions under `.github/instructions/`
+* Path-scoped instructions under `.github/instructions/govkit/`
 
 Before generating or modifying code:
 
@@ -71,14 +71,14 @@ Read before generating any code:
 * No business logic or data transformation
 * Receive data and callbacks via props or hooks only
 * All data via React Query hooks or Zustand selectors
-* See `.github/instructions/components.instructions.md`
+* See `.github/instructions/govkit/components.instructions.md`
 
 ### ViewModel — Hooks (`src/features/<slice>/hooks/`)
 
 * All server state via React Query (`useQuery`, `useMutation`)
 * One hook file per logical data concern
 * Transform API responses here — never in components
-* See `.github/instructions/viewmodel.instructions.md`
+* See `.github/instructions/govkit/viewmodel.instructions.md`
 
 ### ViewModel — Store (`src/features/<slice>/store/`)
 
@@ -91,12 +91,12 @@ Read before generating any code:
 * Plain async functions — no React, no hooks
 * One file per backend resource
 * Use shared base client from `src/shared/api/`
-* See `.github/instructions/api.instructions.md`
+* See `.github/instructions/govkit/api.instructions.md`
 
 ### Accessibility
 
 * Every interactive component must meet WCAG 2.1 AA
-* See `.github/instructions/accessibility.instructions.md` and
+* See `.github/instructions/govkit/accessibility.instructions.md` and
   `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`
 
 ---

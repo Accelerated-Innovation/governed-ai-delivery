@@ -88,7 +88,7 @@ These documents define your stack's implementation. The architecture principles 
 - **All LLM calls must route through the LLM gateway** — see `LLM_GATEWAY_CONTRACT.md`
 - **Guardrails must match the declared mode** — see `GUARDRAILS_CONTRACT.md`
 
-Layer-specific rules load automatically from `.claude/rules/`.
+Layer-specific rules load automatically from `.claude/rules/govkit/`.
 
 ---
 

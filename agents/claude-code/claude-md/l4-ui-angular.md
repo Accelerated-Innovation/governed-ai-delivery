@@ -61,7 +61,7 @@ Read before generating any code:
 - Plain async functions using the shared `ApiService`
 - No Angular decorators, no DI — pure functions that take `HttpClient` or the shared service
 - All request and response types explicitly typed — no `any`
-- See `.claude/rules/api.md`
+- See `.claude/rules/govkit/api.md`
 
 ---
 
