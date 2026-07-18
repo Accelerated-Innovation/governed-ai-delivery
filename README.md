@@ -59,9 +59,11 @@ govkit calibrate
 ### 4. Commit your governance baseline
 
 ```bash
-git add .govkit CLAUDE.md docs/ governance/ ci/
+git add .govkit .claude/ docs/ governance/ ci/
 git commit -m "chore: add govkit governance baseline"
 ```
+
+> For Copilot, stage `.github/` instead of `.claude/`; for Codex, stage `AGENTS.md` and `.agents/`. govkit installs its governance into those agent-owned locations and does not create a top-level `CLAUDE.md` / `copilot-instructions.md`, so your own instruction file (if any) stays out of this commit.
 
 You're ready to build. See [The feature lifecycle](#the-feature-lifecycle) for how you drive the agent through a feature, and run [`govkit doctor`](#commands) once you have source code (and in CI) to catch governance that has drifted out of sync with your repo.
 
@@ -124,11 +126,10 @@ After applying, your project contains artifacts appropriate to the shape you pic
 
 ```
 your-project/
-├── CLAUDE.md (or .github/copilot-instructions.md, or AGENTS.md)
-├── .claude/rules/ (or .github/instructions/, or nested AGENTS.md per layer)
-│   └── api.md, services.md, ports.md, adapters.md, security.md, repo-scope.md
-├── .claude/skills/ (or .github/skills/, or .agents/skills/)
-│   └── architecture-preflight/, spec-planning/, implementation-plan/, adr-author/
+├── .claude/rules/govkit/        — governance.md + layer rules
+│   └── governance.md, api.md, services.md, ports.md, adapters.md, security.md, repo-scope.md
+├── .claude/skills/              — govkit skills, all govkit- prefixed
+│   └── govkit-architecture-preflight/, govkit-spec-planning/, govkit-implementation-plan/, govkit-adr-author/
 ├── docs/backend/
 │   ├── architecture/   — ARCH_CONTRACT, API_CONVENTIONS, TECH_STACK, etc.
 │   └── evaluation/     — eval_criteria.md, scoring rubrics
@@ -137,24 +138,26 @@ your-project/
 └── ci/github/ (or azure/)        — l3-quality-gate.yml + L4/L5 gates
 ```
 
+> **govkit does not create or overwrite a top-level `CLAUDE.md` / `.github/copilot-instructions.md`.** Its governance loads from the `govkit/` namespace above (Claude Code and Copilot both auto-load those directories), so your own instruction file is left untouched. Copilot's equivalents live under `.github/instructions/govkit/` (rules) and `.github/skills/govkit-*` (skills). Codex has no rules directory, so its governance installs as a **managed block** inside `AGENTS.md` — at the root and per layer (`api/AGENTS.md`, `services/AGENTS.md`, …) — fenced by `<!-- BEGIN/END GOVKIT GOVERNANCE -->` and preserving whatever you wrote around it; Codex skills go under `.agents/skills/govkit-*`.
+
 **UI shape** (`--type ui-react` or `--type ui-angular`):
 
 ```
 your-project/
-├── CLAUDE.md (or .github/copilot-instructions.md, or AGENTS.md)
-├── src/CLAUDE.md       — Claude only: nested UI layer rules under src/
-│                         (Codex uses src/AGENTS.md + nested AGENTS.md per layer;
-│                          Copilot uses .github/instructions/ with src-scoped applyTo: globs)
-├── .claude/rules/ (or .github/instructions/)
+├── .claude/rules/govkit/
+│   ├── governance.md         — root UI governance (loads every session)
+│   ├── governance-src.md     — UI layer rules, path-scoped to src/** (Claude Code)
 │   └── repo-scope.md, test-first.md (L4+), spec-compliance.md (L4+)
 ├── .claude/skills/
-│   └── ui-architecture-preflight/, ui-spec-planning/, ui-implementation-plan/, ui-adr-author/
+│   └── govkit-ui-architecture-preflight/, govkit-ui-spec-planning/, govkit-ui-implementation-plan/, govkit-ui-adr-author/
 ├── docs/ui/
 │   ├── architecture/   — MVVM_CONTRACT, ACCESSIBILITY_STANDARDS, react|angular subdirs
 │   └── evaluation/     — eval_criteria.md, scoring rubrics
 ├── governance/ui/      — schemas, templates
 └── ci/github/ (or azure/)  — l3-ui-quality-gate.yml + L4/L5 UI gates
 ```
+
+> As with the backend shape, no top-level `CLAUDE.md` / `copilot-instructions.md` is created. Copilot installs the same content under `.github/instructions/govkit/` (with `applyTo:` globs, `src/**`-scoped for the layer rules); Codex uses managed blocks in `AGENTS.md` at the root and under `src/`.
 
 Backend installs ship no UI artifacts; UI installs ship no backend artifacts. The CI dispatch is type-aware: backend types get `l3-quality-gate.yml`, UI types get `l3-ui-quality-gate.yml`. For fullstack monorepos, run one `govkit apply` per app subdirectory — see the [monorepo pattern](docs/MONOREPO_PATTERN.md).
 
@@ -186,13 +189,13 @@ govkit supports three operating levels in an additive ladder. Each level commits
 
 | Level | Name | What it ships | What the team commits to |
 |-------|------|---------------|--------------------------|
-| **Level 3** | Governed AI Delivery (Foundations) | Agent rules, architecture contracts under `docs/*/architecture/`, `/adr-author` skill, lean CI gate (commit-format + import-linter + sonar/snyk). **No `features/` directory, no per-feature artifacts.** | "Our AI agents follow our architecture contracts." Lowest-friction entry; no project-structure change required. |
-| **Level 4** | Spec-Driven Add-On | Adds the `features/<name>/` 5-artifact contract (`acceptance.feature`, `nfrs.md`, `eval_criteria.yaml`, `plan.md`, `architecture_preflight.md`), feature-coupled skills (`/spec-planning`, `/architecture-preflight`, `/implementation-plan`), test-first + spec-compliance rules (binding), governance CI jobs, and per-feature evaluation prediction (FIRST + 7 Virtues, average ≥ 4.0). | "We adopt spec-first, test-first feature delivery on top of L3." `govkit init` becomes meaningful here. |
+| **Level 3** | Governed AI Delivery (Foundations) | Agent rules, architecture contracts under `docs/*/architecture/`, `/govkit-adr-author` skill, lean CI gate (commit-format + import-linter + sonar/snyk). **No `features/` directory, no per-feature artifacts.** | "Our AI agents follow our architecture contracts." Lowest-friction entry; no project-structure change required. |
+| **Level 4** | Spec-Driven Add-On | Adds the `features/<name>/` 5-artifact contract (`acceptance.feature`, `nfrs.md`, `eval_criteria.yaml`, `plan.md`, `architecture_preflight.md`), feature-coupled skills (`/govkit-spec-planning`, `/govkit-architecture-preflight`, `/govkit-implementation-plan`), test-first + spec-compliance rules (binding), governance CI jobs, and per-feature evaluation prediction (FIRST + 7 Virtues, average ≥ 4.0). | "We adopt spec-first, test-first feature delivery on top of L3." `govkit init` becomes meaningful here. |
 | **Level 5** | GenAI Operations | LLM-specific NFR categories (latency, cost, fallback, safety), `agent_topology.md` for multi-agent features, deepeval/promptfoo/guardrails CI gates, LLM gateway/observability/multi-agent rules, LiteLLM routing, OpenLLMetry + Langfuse, RAGAS, NeMo Guardrails. | "Our LLM features are governed (routing, evaluation, safety)." Builds on L4. |
 
 **Start at Level 3 (default)** if you want governed AI agents without restructuring your codebase. **Move to Level 4** when your team is ready to commit to spec-first feature delivery. **Move to Level 5** when shipping LLM-powered features that need governed model routing, evaluation, and safety.
 
-The ladder is **additive**: L4 ⊃ L3, L5 ⊃ L4. Files installed at lower levels are not replaced by higher levels (with one exception: the agent's top-level entry point — `CLAUDE.md` / `.github/copilot-instructions.md` / `AGENTS.md` — is re-issued at each level so the agent sees the right operating mode).
+The ladder is **additive**: L4 ⊃ L3, L5 ⊃ L4. Files installed at lower levels are not replaced by higher levels (with one exception: the govkit governance file — `.claude/rules/govkit/governance.md`, `.github/instructions/govkit/governance.instructions.md`, or the managed block in Codex's `AGENTS.md` — is re-issued at each level so the agent sees the right operating mode).
 
 ### Level 3 — Governed AI Delivery (Foundations)
 
@@ -200,7 +203,7 @@ Your AI agent operates aligned to your architecture contracts:
 
 - Reads `docs/<area>/architecture/` (ARCH_CONTRACT, BOUNDARIES, TESTING, SECURITY_AUTH_PATTERNS, etc.) on every turn
 - Path-scoped rules trigger when editing files in each layer (api/, services/, ports/, adapters/, security/)
-- ADRs required for any standard extension, override, or boundary change — scaffolded with `/adr-author`
+- ADRs required for any standard extension, override, or boundary change — scaffolded with `/govkit-adr-author`
 - Test-first is recommended (the binding rule lives at L4)
 - CI quality-gate enforces commit-format, import-linter (architecture boundaries), SonarQube, Snyk
 - **No `features/` directory is created.** `govkit init` errors at L3 with a pointer to `--level 4`.
@@ -278,11 +281,11 @@ Edit `features/my_feature/nfrs.md` — replace every TBD entry with concrete req
 
 ### Step 4: Run architecture preflight
 
-Ask the agent to validate your feature against the architecture contracts with `/architecture-preflight my_feature`. The agent produces `architecture_preflight.md` covering boundary analysis, security impact, evaluation impact, and whether an ADR is needed. If an ADR is required, create it next with `/adr-author my_feature`.
+Ask the agent to validate your feature against the architecture contracts with `/govkit-architecture-preflight my_feature`. The agent produces `architecture_preflight.md` covering boundary analysis, security impact, evaluation impact, and whether an ADR is needed. If an ADR is required, create it next with `/govkit-adr-author my_feature`.
 
 ### Step 5: Generate the plan
 
-Ask the agent to create the implementation plan with `/spec-planning my_feature`. The agent generates `plan.md` and `eval_criteria.yaml`. The plan includes:
+Ask the agent to create the implementation plan with `/govkit-spec-planning my_feature`. The agent generates `plan.md` and `eval_criteria.yaml`. The plan includes:
 
 - Increments with deliverables and tests
 - An **Evaluation Compliance Summary** predicting FIRST and 7 Virtue scores
@@ -292,7 +295,7 @@ Ask the agent to create the implementation plan with `/spec-planning my_feature`
 
 ### Step 6: Review the implementation plan
 
-Ask the agent to break the plan into a detailed task checklist with `/implementation-plan my_feature`. Review and approve before implementation begins.
+Ask the agent to break the plan into a detailed task checklist with `/govkit-implementation-plan my_feature`. Review and approve before implementation begins.
 
 ### Step 7: Implement incrementally
 
@@ -324,10 +327,10 @@ The lifecycle is identical across agents; only the invocation syntax differs.
 
 | Step | Claude Code | Copilot | Codex |
 |---|---|---|---|
-| Architecture preflight | `/architecture-preflight my_feature` | `/architecture-preflight` | `$architecture-preflight my_feature` |
-| Author ADR | `/adr-author my_feature` | `/adr-author` | `$adr-author my_feature` |
-| Spec planning | `/spec-planning my_feature` | `/spec-planning` | `$spec-planning my_feature` |
-| Implementation plan | `/implementation-plan my_feature` | `/implementation-plan` | `$implementation-plan my_feature` |
+| Architecture preflight | `/govkit-architecture-preflight my_feature` | `/govkit-architecture-preflight` | `$govkit-architecture-preflight my_feature` |
+| Author ADR | `/govkit-adr-author my_feature` | `/govkit-adr-author` | `$govkit-adr-author my_feature` |
+| Spec planning | `/govkit-spec-planning my_feature` | `/govkit-spec-planning` | `$govkit-spec-planning my_feature` |
+| Implementation plan | `/govkit-implementation-plan my_feature` | `/govkit-implementation-plan` | `$govkit-implementation-plan my_feature` |
 
 Copilot infers the feature from context rather than taking it as an argument; Codex invokes skills with a `$` prefix.
 
@@ -430,9 +433,9 @@ govkit apply --agent claude-code --type ui-react --level 4 --ci github --target 
 
 Each subdir becomes a self-contained govkit install — separate `.govkit` marker, separate `features/`, separate CI gates. The three agents all support subpath governance natively:
 
-- **Claude Code** — recursive `CLAUDE.md` discovery picks up the right shape based on the open file's directory
-- **Codex** — directory-walk loader concatenates `AGENTS.md` from leaf to root
-- **Copilot** — `applyTo:` globs in each instructions file (one small post-install adjustment to prefix the app path so globs don't cross app boundaries)
+- **Claude Code** — recursive `.claude/rules/` discovery picks up each subdir's `govkit/` rules based on the open file's directory
+- **Codex** — directory-walk loader concatenates `AGENTS.md` (govkit's managed block plus your content) from leaf to root
+- **Copilot** — `applyTo:` globs in each `.github/instructions/govkit/` file (one small post-install adjustment to prefix the app path so globs don't cross app boundaries)
 
 `govkit calibrate` and `govkit doctor` are monorepo-aware: run them with no `--target` from the repo root and they discover every `.govkit/` install under the tree and process each app in turn.
 
@@ -630,13 +633,16 @@ pip install --upgrade govkit
 govkit upgrade --target .
 ```
 
-govkit distinguishes three categories of files:
+govkit distinguishes these categories of files:
 
 | Category | Examples | `apply` | `upgrade` |
 |---|---|---|---|
-| **Agent config** | `CLAUDE.md`, `.claude/rules/`, `.agents/skills/` | Always overwrite | Always overwrite |
+| **govkit agent config** | `.claude/rules/govkit/`, `.github/instructions/govkit/`, `.claude/skills/govkit-*`, Codex's managed `AGENTS.md` block | Overwrite (govkit-owned namespace) | Overwrite / refresh |
 | **Governed contracts** | `docs/backend/architecture/`, `governance/backend/templates/`, `ci/github/` | Write once (skip if present) | **Overwrite** |
 | **Project artifacts** | `features/starter_*/`, your ADRs, filled-in feature files | Write once (skip if present) | Skip |
+| **Your files** | your own `CLAUDE.md` / `.github/copilot-instructions.md`, your content around Codex's `AGENTS.md` block, your own `.claude/rules/*.md` or `.claude/skills/*` | Never written or touched | Never touched |
+
+**govkit never overwrites files you authored.** Everything govkit installs lives in a namespace it owns — a `govkit/` subdirectory under the rules dir, a `govkit-` prefix on skills, or a fenced managed block inside Codex's `AGENTS.md`. So your own `CLAUDE.md`, a rule you named `.claude/rules/api.md`, or a skill you named `spec-planning` all coexist with govkit's copies untouched. When you upgrade an install created by an older govkit that *did* write a top-level `CLAUDE.md`, `upgrade` retires that orphan only when it can prove it was govkit's own (byte-identical to the shipped governance, or unmodified since the last apply); if you edited it, it is kept and you're told how to adopt the managed layout.
 
 After upgrading, review the diff and commit:
 
@@ -682,7 +688,7 @@ A: Ensure your Python scripts directory is on your PATH. Try `python -m cli.govk
 A: Check that you're using a valid agent name (`claude-code`, `copilot`, or `codex`). Run `govkit list` to see available agents.
 
 **Q: The agent ignores my architecture rules**
-A: Verify the rules files were copied to the correct location (`.claude/rules/`, `.github/instructions/`, or the nested `AGENTS.md` files for Codex). Run `govkit doctor` — its D001 check flags any rule whose path globs resolve to zero files in your repo, which is the most common cause. Claude Code loads rules based on the file path you're editing; Codex walks the directory tree from repo root down to the current working directory and concatenates each `AGENTS.md` it finds.
+A: Verify the rules files were copied to the correct location (`.claude/rules/govkit/`, `.github/instructions/govkit/`, or the nested `AGENTS.md` managed blocks for Codex). Run `govkit doctor` — its D001 check flags any rule whose path globs resolve to zero files in your repo, which is the most common cause. (D001 scans the rules directory recursively, so it validates govkit's `govkit/` rules and any of your own.) Claude Code loads rules based on the file path you're editing; Codex walks the directory tree from repo root down to the current working directory and concatenates each `AGENTS.md` it finds.
 
 **Q: How do I update to a newer version of govkit?**
 A: Run `pip install --upgrade govkit`, then `govkit upgrade --target .` to refresh govkit-owned files without touching your customized contracts. See [Keeping contracts up to date](#keeping-contracts-up-to-date).
@@ -850,7 +856,7 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 |---|---|
 | **Agent** | The AI coding tool (Claude Code, GitHub Copilot, or OpenAI Codex) that reads governance artifacts and generates code |
 | **Rule** (Claude Code) | A path-scoped `.md` file in `.claude/rules/` that loads automatically when editing files matching its path |
-| **Skill** (Claude Code) | A reusable prompt in `.claude/skills/` invoked via slash command (e.g., `/architecture-preflight`) |
+| **Skill** (Claude Code) | A reusable prompt in `.claude/skills/` invoked via slash command (e.g., `/govkit-architecture-preflight`) |
 | **Instruction** (Copilot) | A path-scoped `.md` file in `.github/instructions/` — Copilot equivalent of a rule |
 | **Skill** (Copilot) | A reusable task in `.github/skills/` invoked via slash command — open agent skills standard |
 | **AGENTS.md** (Codex) | A markdown instructions file read by Codex. A root `AGENTS.md` applies globally; nested `AGENTS.md` files at layer directories scope rules to that subtree via directory walk |
@@ -868,9 +874,9 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 | **NFR** | Non-Functional Requirement — performance, security, availability, etc. |
 | **Evaluation Prediction** | Predicted FIRST and Virtue scores in `plan.md` — must average >= 4.0 before implementation |
 | **Extension** | An optional, self-describing pack under `extensions/<id>/` that layers extra contracts/templates onto the core kit (drop-in; not CLI-installed) |
-| `/architecture-preflight` | Agent skill that validates a feature against architecture contracts before planning (`$architecture-preflight` in Codex) |
-| `/genai-preflight` | L5 agent skill that validates LLM gateway, observability, guardrails, and evaluation decisions (`$genai-preflight` in Codex) |
-| `/eval-suite-planning` | L5 agent skill that plans DeepEval, Promptfoo, and RAGAS test suites (`$eval-suite-planning` in Codex) |
+| `/govkit-architecture-preflight` | Agent skill that validates a feature against architecture contracts before planning (`$govkit-architecture-preflight` in Codex) |
+| `/govkit-genai-preflight` | L5 agent skill that validates LLM gateway, observability, guardrails, and evaluation decisions (`$govkit-genai-preflight` in Codex) |
+| `/govkit-eval-suite-planning` | L5 agent skill that plans DeepEval, Promptfoo, and RAGAS test suites (`$govkit-eval-suite-planning` in Codex) |
 | **LiteLLM** | L5 sole LLM gateway — model routing, provider abstraction, fallback, cost tracking |
 | **OpenLLMetry** | L5 LLM telemetry emission standard (OpenTelemetry for LLMs) |
 | **Langfuse** | Trace storage, prompt versioning, and production evaluation visibility |
