@@ -205,7 +205,7 @@ class TestTemplateInstalledRules:
             stack="python-fastapi", force=False, detect=False,
         ))
 
-        for rule in (target / ".claude" / "rules").glob("*.md"):
+        for rule in (target / ".claude" / "rules").rglob("*.md"):
             text = rule.read_text(encoding="utf-8")
             assert "paths_template:" not in text, f"{rule.name} still has paths_template"
 
@@ -231,7 +231,7 @@ class TestTemplateInstalledRules:
         ))
 
         # adapters.md (outbound) should now reference Infrastructure/
-        adapters_text = (target / ".claude" / "rules" / "adapters.md").read_text(encoding="utf-8")
+        adapters_text = (target / ".claude" / "rules" / "govkit" / "adapters.md").read_text(encoding="utf-8")
         fm = yaml.safe_load(adapters_text.split("---", 2)[1])
         paths = fm.get("paths") or []
         assert "**/Infrastructure/**" in paths
@@ -258,7 +258,7 @@ class TestTemplateInstalledRules:
             stack="python-fastapi", force=False, detect=False,
         ))
 
-        adapters_text = (target / ".claude" / "rules" / "adapters.md").read_text(encoding="utf-8")
+        adapters_text = (target / ".claude" / "rules" / "govkit" / "adapters.md").read_text(encoding="utf-8")
         fm = yaml.safe_load(adapters_text.split("---", 2)[1])
         paths = fm.get("paths") or []
         # Hexagonal-style layers include adapters/ + ports/outbound/
@@ -282,7 +282,7 @@ class TestTemplateInstalledRules:
             stack="python-fastapi", force=False, detect=False,
         ))
 
-        adapters_text = (target / ".claude" / "rules" / "adapters.md").read_text(encoding="utf-8")
+        adapters_text = (target / ".claude" / "rules" / "govkit" / "adapters.md").read_text(encoding="utf-8")
         fm = yaml.safe_load(adapters_text.split("---", 2)[1])
         paths = fm.get("paths") or []
         assert "**/adapters/**" in paths
@@ -312,7 +312,7 @@ class TestTemplateInstalledRules:
             stack_id="dotnet-aspnet", target=str(target), force=False,
         ))
 
-        adapters_text = (target / ".claude" / "rules" / "adapters.md").read_text(encoding="utf-8")
+        adapters_text = (target / ".claude" / "rules" / "govkit" / "adapters.md").read_text(encoding="utf-8")
         fm = yaml.safe_load(adapters_text.split("---", 2)[1])
         paths = fm.get("paths") or []
         # Still using clean-architecture layers from detected signals.

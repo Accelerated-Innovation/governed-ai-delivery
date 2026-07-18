@@ -91,7 +91,7 @@ Steps may not be skipped. Implementation order within a feature must follow the 
 
 ## 5. Layer Rules
 
-Layer rules load automatically via `.github/instructions/*.instructions.md` with `applyTo:` globs.
+Layer rules load automatically via `.github/instructions/govkit/*.instructions.md` with `applyTo:` globs.
 
 ### View — Components (`src/features/*/components/`)
 * Standalone Angular components only — no `NgModule` registration

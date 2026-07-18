@@ -115,7 +115,7 @@ These documents define your stack's specific approach. The architecture principl
 - Follow API conventions from `docs/backend/architecture/API_CONVENTIONS.md`
 - Follow design principles from `docs/backend/architecture/DESIGN_PRINCIPLES.md`; use findings from approved tools as defined in `docs/backend/architecture/TECH_STACK.md` — blocking findings must be resolved before proceeding
 
-Layer-specific rules load automatically from `.claude/rules/` when editing files in each layer:
+Layer-specific rules load automatically from `.claude/rules/govkit/` when editing files in each layer:
 
 - `api.md` — `**/api/**`
 - `services.md` — `**/services/**`

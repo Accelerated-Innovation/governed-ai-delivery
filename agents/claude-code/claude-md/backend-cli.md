@@ -17,7 +17,7 @@ Repository artifacts are the source of truth. Chat history is not.
 Claude operates aligned to:
 
 - Architecture contracts under `docs/backend/architecture/`
-- Layer-specific path rules under `.claude/rules/`
+- Layer-specific path rules under `.claude/rules/govkit/`
 
 Before generating or modifying code:
 
@@ -52,7 +52,7 @@ These documents define your stack's specific approach. The architecture
 principles (Hexagonal Architecture, boundaries, layered separation) are
 universal; the implementation details are here.
 
-Layer-specific rules load automatically from `.claude/rules/` when editing
+Layer-specific rules load automatically from `.claude/rules/govkit/` when editing
 files in each layer:
 
 - `cli.md` — `**/cli/**` and `**/commands/**`
