@@ -26,7 +26,7 @@
     "type": {
       "data": {
         "files": [
-          { "src": "copilot-instructions/data.md", "dest": ".github/copilot-instructions.md" },
+          { "src": "copilot-instructions/data.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
           { "src": "instructions/data/staging.instructions.md", "dest": ".github/instructions/staging.instructions.md" },
           { "src": "instructions/data/intermediate.instructions.md", "dest": ".github/instructions/intermediate.instructions.md" },
           { "src": "instructions/data/marts.instructions.md", "dest": ".github/instructions/marts.instructions.md" },
@@ -42,7 +42,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "copilot-instructions/l4-data.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "copilot-instructions/l4-data.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".github/skills/spec-planning/" },
@@ -57,7 +57,7 @@
       },
       "api": {
         "files": [
-          { "src": "copilot-instructions/backend-api.md", "dest": ".github/copilot-instructions.md" },
+          { "src": "copilot-instructions/backend-api.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
           { "src": "instructions/backend/api.instructions.md", "dest": ".github/instructions/api.instructions.md" },
           { "src": "instructions/backend/services.instructions.md", "dest": ".github/instructions/services.instructions.md" },
           { "src": "instructions/backend/ports.instructions.md", "dest": ".github/instructions/ports.instructions.md" },
@@ -73,7 +73,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "copilot-instructions/l4-backend-api.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "copilot-instructions/l4-backend-api.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".github/skills/spec-planning/" },
@@ -94,7 +94,7 @@
         "level_5": {
           "mode": "replace",
           "files": [
-            { "src": "copilot-instructions/l5-backend-api.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "copilot-instructions/l5-backend-api.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/backend/", "dest": ".github/instructions/" },
             { "src": "instructions/backend/llm-gateway.instructions.md", "dest": ".github/instructions/llm-gateway.instructions.md" },
             { "src": "instructions/backend/guardrails.instructions.md", "dest": ".github/instructions/guardrails.instructions.md" },
@@ -122,7 +122,7 @@
       },
       "cli": {
         "files": [
-          { "src": "copilot-instructions/backend-cli.md", "dest": ".github/copilot-instructions.md" },
+          { "src": "copilot-instructions/backend-cli.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
           { "src": "instructions/cli/cli.instructions.md", "dest": ".github/instructions/cli.instructions.md" },
           { "src": "instructions/backend/services.instructions.md", "dest": ".github/instructions/services.instructions.md" },
           { "src": "instructions/backend/ports.instructions.md", "dest": ".github/instructions/ports.instructions.md" },
@@ -138,7 +138,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "copilot-instructions/l4-backend-cli.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "copilot-instructions/l4-backend-cli.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".github/skills/spec-planning/" },
@@ -158,7 +158,7 @@
         "level_5": {
           "mode": "replace",
           "files": [
-            { "src": "copilot-instructions/l5-backend-cli.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "copilot-instructions/l5-backend-cli.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/cli/", "dest": ".github/instructions/" },
             { "src": "instructions/backend/llm-gateway.instructions.md", "dest": ".github/instructions/llm-gateway.instructions.md" },
             { "src": "instructions/backend/guardrails.instructions.md", "dest": ".github/instructions/guardrails.instructions.md" },
@@ -185,7 +185,7 @@
       },
       "ui-react": {
         "files": [
-          { "src": "copilot-instructions/ui-react.md", "dest": ".github/copilot-instructions.md" },
+          { "src": "copilot-instructions/ui-react.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
           { "src": "instructions/ui-react/components.instructions.md", "dest": ".github/instructions/components.instructions.md" },
           { "src": "instructions/ui-react/viewmodel.instructions.md", "dest": ".github/instructions/viewmodel.instructions.md" },
           { "src": "instructions/ui-react/api.instructions.md", "dest": ".github/instructions/ui-api.instructions.md" },
@@ -203,7 +203,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "copilot-instructions/l4-ui-react.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "copilot-instructions/l4-ui-react.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
             { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
@@ -222,7 +222,7 @@
         "level_5": {
           "mode": "replace",
           "files": [
-            { "src": "copilot-instructions/l5-ui-react.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "copilot-instructions/l5-ui-react.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/ui-react/components.instructions.md", "dest": ".github/instructions/components.instructions.md" },
             { "src": "instructions/ui-react/viewmodel.instructions.md", "dest": ".github/instructions/viewmodel.instructions.md" },
             { "src": "instructions/ui-react/api.instructions.md", "dest": ".github/instructions/ui-api.instructions.md" },
@@ -251,7 +251,7 @@
       },
       "ui-angular": {
         "files": [
-          { "src": "copilot-instructions/ui-angular.md", "dest": ".github/copilot-instructions.md" },
+          { "src": "copilot-instructions/ui-angular.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
           { "src": "instructions/ui-angular/components.instructions.md", "dest": ".github/instructions/components.instructions.md" },
           { "src": "instructions/ui-angular/viewmodel.instructions.md", "dest": ".github/instructions/viewmodel.instructions.md" },
           { "src": "instructions/ui-angular/api.instructions.md", "dest": ".github/instructions/ui-api.instructions.md" },
@@ -269,7 +269,7 @@
         "level_4": {
           "mode": "merge",
           "files": [
-            { "src": "copilot-instructions/l4-ui-angular.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "copilot-instructions/l4-ui-angular.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/spec-compliance.instructions.md" },
             { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
@@ -288,7 +288,7 @@
         "level_5": {
           "mode": "replace",
           "files": [
-            { "src": "copilot-instructions/l5-ui-angular.md", "dest": ".github/copilot-instructions.md" },
+            { "src": "copilot-instructions/l5-ui-angular.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/ui-angular/components.instructions.md", "dest": ".github/instructions/components.instructions.md" },
             { "src": "instructions/ui-angular/viewmodel.instructions.md", "dest": ".github/instructions/viewmodel.instructions.md" },
             { "src": "instructions/ui-angular/api.instructions.md", "dest": ".github/instructions/ui-api.instructions.md" },

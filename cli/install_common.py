@@ -13,6 +13,8 @@ them inward without duplicating logic or reaching back into cli/govkit.py.
 
 from __future__ import annotations
 
+import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -22,6 +24,109 @@ from .marker import read_govkit_marker
 
 if TYPE_CHECKING:
     from .detect import RepoProfile
+
+
+# A6: govkit used to install its agent instructions at these top-level paths.
+# They now live in the auto-loaded rules namespace, so on upgrade an existing
+# install carries an orphaned copy. This maps each new governance dest back to
+# the legacy path it superseded, so upgrade can retire the orphan.
+_LEGACY_INSTRUCTION_DEST = {
+    ".claude/rules/govkit/governance.md": "CLAUDE.md",
+    ".claude/rules/govkit/governance-src.md": "src/CLAUDE.md",
+    ".github/instructions/govkit/governance.instructions.md": ".github/copilot-instructions.md",
+}
+
+
+def _unmodified_since(path: Path, applied_at: str | None) -> bool:
+    """True when `path` has not been modified since the marker's `applied_at`.
+
+    govkit wrote the legacy instruction file at apply time, so a file still at
+    (or before) that timestamp is govkit's own untouched copy — regardless of
+    which govkit version's text it carries. Returns False when `applied_at` is
+    missing/unparseable, so an unknown history never authorizes a delete.
+
+    A timezone-naive `applied_at` (no offset on disk — markers aren't schema-
+    validated) is likewise treated as unknown history: it cannot be compared
+    to the timezone-aware UTC mtime without raising TypeError, so it returns
+    False rather than crash the caller. The comparison is also wrapped as a
+    final safety net.
+    """
+    if not applied_at:
+        return False
+    try:
+        applied_dt = datetime.fromisoformat(applied_at)
+    except (ValueError, TypeError):
+        return False
+    if applied_dt.tzinfo is None:
+        return False
+    mtime_dt = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+    try:
+        return mtime_dt <= applied_dt
+    except TypeError:
+        return False
+
+
+def reconcile_legacy_instruction_files(
+    target: Path, agent_dir: Path, files: list, applied_at: str | None = None,
+) -> list:
+    """Retire a pre-namespace govkit instruction file before writing governance.
+
+    For each governance entry, if the legacy top-level file it superseded is
+    present, it is treated as govkit's own untouched orphan — and removed — when
+    EITHER:
+      - it is byte-identical to govkit's current governance body, or
+      - it has not been modified since the marker's `applied_at` (so it is
+        govkit's file from an earlier version, untouched by the team).
+    Otherwise it is treated as the team's file: kept, and the governance entry
+    is dropped so upgrade does not install duplicate governance alongside it. A
+    warning tells the team how to adopt the managed layout.
+
+    Returns the files list to actually write. Upgrade-only: on a fresh apply a
+    top-level CLAUDE.md is the team's, and governance is expected to coexist.
+    """
+    keep = []
+    for entry in files:
+        legacy_rel = _LEGACY_INSTRUCTION_DEST.get(entry["dest"])
+        if legacy_rel is None:
+            keep.append(entry)
+            continue
+        legacy = target / legacy_rel
+        if not legacy.exists():
+            keep.append(entry)
+            continue
+        govkit_body = (agent_dir / entry["src"]).read_text(encoding="utf-8")
+        try:
+            legacy_body = legacy.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            legacy_body = None
+        is_govkit_orphan = legacy_body == govkit_body or _unmodified_since(legacy, applied_at)
+        if is_govkit_orphan:
+            try:
+                legacy.unlink()
+            except OSError as exc:
+                # Deletion can fail (permissions, a Windows sharing violation, a
+                # read-only mount). Don't crash the upgrade — and don't install
+                # the namespaced governance while the legacy copy is still on
+                # disk, or the agent would load governance twice.
+                print(
+                    f"  warning: could not remove legacy {legacy_rel} ({exc}); "
+                    f"skipping {entry['dest']} to avoid loading governance twice. "
+                    f"Remove {legacy_rel} manually and re-run upgrade to adopt the "
+                    "managed governance.",
+                    file=sys.stderr,
+                )
+                continue
+            print(f"  migrated {legacy_rel} -> {entry['dest']}  (removed govkit-authored orphan)")
+            keep.append(entry)
+        else:
+            print(
+                f"  warning: {legacy_rel} exists and is not govkit's governance; "
+                f"leaving it and skipping {entry['dest']} to avoid duplicate governance. "
+                f"If it is no longer needed, delete {legacy_rel} and re-run upgrade to "
+                "adopt the managed governance.",
+                file=sys.stderr,
+            )
+    return keep
 
 
 # PR 6c: L5-only architecture docs. These live in docs/backend/architecture/

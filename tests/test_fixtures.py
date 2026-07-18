@@ -605,3 +605,109 @@ class TestMonorepoFixture:
         for f in web_findings:
             if f.file:
                 assert "apps" not in f.file or "web" in f.file
+
+
+class TestGovernanceLivesInRulesNamespace:
+    """govkit's agent instructions install into its own auto-loaded rules
+    namespace, not the team's top-level CLAUDE.md. This is what lets a team's
+    hand-written CLAUDE.md survive `govkit apply` untouched while govkit's
+    governance still loads every session.
+    """
+
+    def _apply(self, target: Path, agent: str) -> None:
+        from cli.cmd_apply import cmd_apply
+
+        cmd_apply(argparse.Namespace(
+            agent=agent, target=str(target),
+            level="4", type="api", ci="github", stack=None,
+            force=False, detect=False,
+        ))
+
+    def test_governance_installs_into_rules_namespace(self, tmp_path):
+        target = _copy_fixture("python-fastapi-github", tmp_path)
+        self._apply(target, "claude-code")
+
+        governance = target / ".claude" / "rules" / "govkit" / "governance.md"
+        assert governance.is_file()
+        # It carries the real governance body, not a stub.
+        assert "source of truth" in governance.read_text(encoding="utf-8").lower()
+
+    def test_apply_does_not_write_a_claude_md(self, tmp_path):
+        """No-stub: govkit never creates CLAUDE.md, so a team is free to own it."""
+        target = _copy_fixture("python-fastapi-github", tmp_path)
+        assert not (target / "CLAUDE.md").exists()
+        self._apply(target, "claude-code")
+        assert not (target / "CLAUDE.md").exists()
+
+    def test_team_claude_md_untouched(self, tmp_path):
+        target = _copy_fixture("python-fastapi-github", tmp_path)
+        (target / "CLAUDE.md").write_text("# ACME house rules\nUse pnpm.\n", encoding="utf-8")
+
+        self._apply(target, "claude-code")
+
+        assert (target / "CLAUDE.md").read_text(encoding="utf-8") == (
+            "# ACME house rules\nUse pnpm.\n"
+        )
+        assert (target / ".claude" / "rules" / "govkit" / "governance.md").is_file()
+
+
+@pytest.mark.xfail(
+    reason="Namespacing govkit rules/skills under govkit/ is deferred (plan inc 2); "
+    "today a team rule whose name collides with govkit's is still overwritten. "
+    "These pin the target contract.",
+    strict=True,
+)
+class TestTeamOwnedContentSurvivesApply:
+    """A team that authored their own agent files before adopting govkit must
+    not lose them on `govkit apply`. govkit owns a `govkit/` subtree under the
+    native rules dir and a `govkit-` skill prefix, so its files never share a
+    path with a team's own same-named rule or skill.
+    """
+
+    def _apply(self, target: Path, agent: str) -> None:
+        from cli.cmd_apply import cmd_apply
+
+        cmd_apply(argparse.Namespace(
+            agent=agent, target=str(target),
+            level="4", type="api", ci="github", stack=None,
+            force=False, detect=False,
+        ))
+
+    def test_team_rule_with_govkit_name_survives(self, tmp_path):
+        """A team's own .claude/rules/api.md is not clobbered by govkit's api rule."""
+        target = _copy_fixture("python-fastapi-github", tmp_path)
+        team_rule = target / ".claude" / "rules" / "api.md"
+        team_rule.parent.mkdir(parents=True, exist_ok=True)
+        team_rule.write_text("# TEAM api rule — do not lose\n", encoding="utf-8")
+
+        self._apply(target, "claude-code")
+
+        assert team_rule.read_text(encoding="utf-8") == "# TEAM api rule — do not lose\n"
+        # govkit's own copy lands in its namespace, still installed.
+        assert (target / ".claude" / "rules" / "govkit" / "api.md").is_file()
+
+    def test_team_skill_with_govkit_name_survives(self, tmp_path):
+        """A team's own .claude/skills/spec-planning/ is not clobbered."""
+        target = _copy_fixture("python-fastapi-github", tmp_path)
+        team_skill = target / ".claude" / "skills" / "spec-planning" / "SKILL.md"
+        team_skill.parent.mkdir(parents=True, exist_ok=True)
+        team_skill.write_text("# TEAM spec-planning\n", encoding="utf-8")
+
+        self._apply(target, "claude-code")
+
+        assert team_skill.read_text(encoding="utf-8") == "# TEAM spec-planning\n"
+        assert (target / ".claude" / "skills" / "govkit-spec-planning" / "SKILL.md").is_file()
+
+    def test_copilot_team_instruction_with_govkit_name_survives(self, tmp_path):
+        """A team's own .github/instructions/api.instructions.md is not clobbered."""
+        target = _copy_fixture("python-fastapi-github", tmp_path)
+        team_rule = target / ".github" / "instructions" / "api.instructions.md"
+        team_rule.parent.mkdir(parents=True, exist_ok=True)
+        team_rule.write_text("# TEAM copilot api\n", encoding="utf-8")
+
+        self._apply(target, "copilot")
+
+        assert team_rule.read_text(encoding="utf-8") == "# TEAM copilot api\n"
+        assert (
+            target / ".github" / "instructions" / "govkit" / "api.instructions.md"
+        ).is_file()

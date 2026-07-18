@@ -11,7 +11,6 @@ from pathlib import Path
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -203,6 +202,48 @@ class TestMonorepoDiscovery:
         assert d001s[0].severity == "error"
         assert "ports" in d001s[0].message
         assert d001s[0].file and "ports.md" in d001s[0].file
+
+    def test_d001_checks_rules_in_govkit_subdirectory(self, tmp_path):
+        """Rules live in `.claude/rules/govkit/` once govkit owns its own
+        namespace; doctor must descend into subdirectories, not just glob the
+        top level, or it silently stops validating govkit's own rule globs."""
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path, agent="claude-code")
+        govkit_rules = tmp_path / ".claude" / "rules" / "govkit"
+        govkit_rules.mkdir(parents=True)
+        (govkit_rules / "ports.md").write_text(
+            '---\npaths:\n  - "**/ports/**"\n---\n# Ports\n', encoding="utf-8",
+        )
+        # No ports/ folder anywhere in target — the glob resolves to nothing.
+
+        findings = run_doctor(tmp_path)
+        d001s = [f for f in findings if f.id == "D001"]
+        assert len(d001s) == 1
+        assert d001s[0].file and "ports.md" in d001s[0].file
+
+    def test_d001_still_checks_flat_team_rules_alongside_subdir(self, tmp_path):
+        """The recursive scan is additive: a team's own flat rule is still
+        validated, not shadowed by the govkit/ subtree."""
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path, agent="claude-code")
+        rules_dir = tmp_path / ".claude" / "rules"
+        (rules_dir / "govkit").mkdir(parents=True)
+        # govkit's rule resolves (folder exists); the team's flat rule does not.
+        (rules_dir / "govkit" / "api.md").write_text(
+            '---\npaths:\n  - "**/api/**"\n---\n# Api\n', encoding="utf-8",
+        )
+        (rules_dir / "team-thing.md").write_text(
+            '---\npaths:\n  - "**/nonexistent-team-folder/**"\n---\n# Team\n',
+            encoding="utf-8",
+        )
+        (tmp_path / "src" / "api").mkdir(parents=True)
+
+        findings = run_doctor(tmp_path)
+        d001s = [f for f in findings if f.id == "D001"]
+        assert len(d001s) == 1
+        assert d001s[0].file and "team-thing.md" in d001s[0].file
 
     def test_d001_handles_copilot_applyto_format(self, tmp_path):
         """Copilot rules carry `applyTo: "<glob>"` (string), not the
@@ -430,8 +471,8 @@ class TestMonorepoDiscovery:
     def test_d006_fires_when_installed_doc_baseline_is_older(self, tmp_path):
         """Installed TECH_STACK.md carries baseline=python-fastapi@0.9.0 but
         the bundled overlay is at 0.10.0 — user should refresh."""
-        from cli.headers import format_editable_header
         from cli.doctor import run_doctor
+        from cli.headers import format_editable_header
 
         _write_marker(tmp_path, stack={
             "id": "python-fastapi", "version": "0.10.0",
@@ -450,8 +491,8 @@ class TestMonorepoDiscovery:
         assert "0.10.0" in d006s[0].message
 
     def test_d006_does_not_fire_when_baseline_matches_current_overlay(self, tmp_path):
-        from cli.headers import format_editable_header
         from cli.doctor import run_doctor
+        from cli.headers import format_editable_header
 
         _write_marker(tmp_path, stack={
             "id": "python-fastapi", "version": "0.10.0",
@@ -483,8 +524,8 @@ class TestMonorepoDiscovery:
     # -----------------------------------------------------------------------
 
     def test_d007_fires_at_l4_when_tech_stack_mentions_litellm(self, tmp_path):
-        from cli.headers import format_editable_header
         from cli.doctor import run_doctor
+        from cli.headers import format_editable_header
 
         _write_marker(tmp_path, level="4")
         tech_stack = tmp_path / "docs" / "backend" / "architecture" / "TECH_STACK.md"
@@ -504,8 +545,8 @@ class TestMonorepoDiscovery:
         assert "LiteLLM" in d007s[0].message or "L5" in d007s[0].message
 
     def test_d007_does_not_fire_at_l5(self, tmp_path):
-        from cli.headers import format_editable_header
         from cli.doctor import run_doctor
+        from cli.headers import format_editable_header
 
         _write_marker(tmp_path, level="5")
         tech_stack = tmp_path / "docs" / "backend" / "architecture" / "TECH_STACK.md"
@@ -520,8 +561,8 @@ class TestMonorepoDiscovery:
         assert not any(f.id == "D007" for f in findings)
 
     def test_d007_does_not_fire_when_no_llm_keywords(self, tmp_path):
-        from cli.headers import format_editable_header
         from cli.doctor import run_doctor
+        from cli.headers import format_editable_header
 
         _write_marker(tmp_path, level="4")
         tech_stack = tmp_path / "docs" / "backend" / "architecture" / "TECH_STACK.md"
@@ -573,8 +614,8 @@ class TestMonorepoDiscovery:
     # -----------------------------------------------------------------------
 
     def test_d009_fires_when_testing_md_names_framework_not_in_deps(self, tmp_path):
-        from cli.headers import format_editable_header
         from cli.doctor import run_doctor
+        from cli.headers import format_editable_header
 
         _write_marker(tmp_path)
         testing = tmp_path / "docs" / "backend" / "architecture" / "TESTING.md"
@@ -593,8 +634,8 @@ class TestMonorepoDiscovery:
         assert "pytest" in d009s[0].message
 
     def test_d009_does_not_fire_when_framework_in_deps(self, tmp_path):
-        from cli.headers import format_editable_header
         from cli.doctor import run_doctor
+        from cli.headers import format_editable_header
 
         _write_marker(tmp_path)
         testing = tmp_path / "docs" / "backend" / "architecture" / "TESTING.md"
@@ -618,8 +659,8 @@ class TestMonorepoDiscovery:
 
     def test_d009_silent_when_no_dep_manifest(self, tmp_path):
         """Without any dep manifest to cross-check, D009 has nothing to compare against."""
-        from cli.headers import format_editable_header
         from cli.doctor import run_doctor
+        from cli.headers import format_editable_header
 
         _write_marker(tmp_path)
         testing = tmp_path / "docs" / "backend" / "architecture" / "TESTING.md"
@@ -664,6 +705,7 @@ class TestMonorepoDiscovery:
     def test_d010_does_not_fire_for_recent_assumption(self, tmp_path):
         """A review_required assumption applied recently isn't yet stale."""
         from datetime import datetime, timezone
+
         from cli.doctor import run_doctor
 
         recent = datetime.now(timezone.utc).isoformat()

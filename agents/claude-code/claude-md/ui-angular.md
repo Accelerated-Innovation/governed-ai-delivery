@@ -51,7 +51,7 @@ Read before generating any code:
 - All server data via TanStack Query inject functions
 - All client state via Signal store injection
 - Use `@if`, `@for`, `@switch` control flow (Angular 17+)
-- See `src/CLAUDE.md`
+- See `.claude/rules/govkit/governance-src.md`
 
 ### ViewModel — Query Functions (`src/features/<slice>/hooks/`)
 
@@ -59,7 +59,7 @@ Read before generating any code:
 - Transform API responses in `select` — never in templates or components
 - Query keys defined as typed constants in `query-keys.ts` per slice
 - Mutations must invalidate relevant query keys on success
-- See `src/CLAUDE.md`
+- See `.claude/rules/govkit/governance-src.md`
 
 ### ViewModel — Signal Store (`src/features/<slice>/store/`)
 
@@ -68,19 +68,19 @@ Read before generating any code:
 - Never store server data — use TanStack Query cache
 - Expose read-only signals via `.asReadonly()`
 - Never call API services directly from a store
-- See `src/CLAUDE.md`
+- See `.claude/rules/govkit/governance-src.md`
 
 ### Model — API (`src/features/<slice>/api/`)
 
 - Plain functions wrapping `HttpClient`
 - One file per backend resource
 - Use shared base from `src/shared/api/`
-- See `src/CLAUDE.md`
+- See `.claude/rules/govkit/governance-src.md`
 
 ### Accessibility
 
 - Every interactive component must meet WCAG 2.1 AA
-- See `src/CLAUDE.md` and
+- See `.claude/rules/govkit/governance-src.md` and
   `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`
 
 ---

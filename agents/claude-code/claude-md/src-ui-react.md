@@ -1,6 +1,10 @@
+---
+paths:
+  - "src/**"
+---
 # UI Layer Rules — React (src/)
 
-This file consolidates the React UI layer rules. Claude Code loads it automatically when working anywhere under `src/`. Rules below apply on top of the root `CLAUDE.md`.
+This file consolidates the React UI layer rules. Claude Code loads it automatically when editing files under `src/`. Rules below apply on top of the root govkit governance (`.claude/rules/govkit/governance.md`).
 
 Source-of-truth contracts live in `docs/ui/architecture/` and `docs/ui/architecture/react/` — this file is the inline-loadable summary.
 

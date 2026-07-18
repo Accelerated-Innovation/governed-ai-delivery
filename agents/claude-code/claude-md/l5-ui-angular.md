@@ -87,7 +87,7 @@ Implementation must not begin unless all five artifacts exist.
 
 ## Layer Rules
 
-Layer-specific rules are consolidated in `src/CLAUDE.md`. Claude Code loads it automatically when working anywhere under `src/`. Categories covered:
+Layer-specific rules are consolidated in `.claude/rules/govkit/governance-src.md`. Claude Code loads it automatically when working anywhere under `src/`. Categories covered:
 
 - Component rules — `**/components/**`
 - ViewModel rules (hooks + store) — `**/hooks/**`, `**/store/**`

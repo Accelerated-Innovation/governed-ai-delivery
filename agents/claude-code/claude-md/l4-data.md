@@ -1,7 +1,7 @@
-# CLAUDE.md — Data Project Governance (L4 — Spec-Driven Add-On)
+# Governed AI Delivery — Data Project Governance (L4 — Spec-Driven Add-On)
 
 This repository is at **Level 4 — Spec-Driven Add-On**. Every feature ships
-with the L3 baseline contracts (see the L3 CLAUDE.md content above) PLUS a
+with the L3 baseline contracts (see the L3 governance content above) PLUS a
 spec-driven feature package.
 
 ---

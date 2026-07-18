@@ -1,4 +1,4 @@
-# CLAUDE.md — Data Project Governance
+# Governed AI Delivery — Data Project Governance
 
 This repository ships data pipelines + models. Claude must follow the
 contracts in `docs/data/architecture/` when writing or modifying anything

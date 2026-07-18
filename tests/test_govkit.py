@@ -2406,6 +2406,174 @@ class TestCmdUpgrade:
         assert not (target / "ci" / "github" / "repo-scope-check.yml").exists()
 
 
+def _make_governance_repo(tmp_path: Path, agent: str = "test-agent") -> tuple[Path, str]:
+    """A repo whose manifest installs governance into the rules namespace
+    (post-migration layout), returning (repo, governance_body)."""
+    agents = tmp_path / "agents" / agent
+    (agents / "claude-md").mkdir(parents=True, exist_ok=True)
+    body = "# Governed AI Delivery\nRepository artifacts are the source of truth.\n"
+    (agents / "claude-md" / "governance.md").write_text(body, encoding="utf-8")
+    manifest = {
+        "agent": agent,
+        "description": "governance-namespace test agent",
+        "options": {
+            "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
+            "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
+            "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
+        },
+        "variants": {
+            "type": {
+                "api": {
+                    "files": [
+                        {"src": "claude-md/governance.md",
+                         "dest": ".claude/rules/govkit/governance.md"},
+                    ],
+                    "shared": [],
+                    "governed": [],
+                }
+            },
+            "ci": {"github": {"files": [], "shared": [], "governed": []}},
+        },
+        "base_files": [],
+    }
+    (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return tmp_path, body
+
+
+class TestUpgradeMigratesLegacyInstructionFile:
+    """A6: an existing install carries govkit's old top-level CLAUDE.md. Once
+    governance moves into the rules namespace, upgrade must retire the orphan —
+    but only when it is provably govkit's own untouched file, never a team's."""
+
+    def _target(
+        self, tmp_path: Path, claude_md: str | None,
+        applied_at: str = "2026-01-01T00:00:00+00:00",
+    ) -> Path:
+        target = tmp_path / "project"
+        target.mkdir()
+        if claude_md is not None:
+            (target / "CLAUDE.md").write_text(claude_md, encoding="utf-8")
+        marker = {
+            "version": "0.1.0", "level": "4", "agent": "test-agent",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": applied_at,
+        }
+        (target / ".govkit").mkdir()
+        (target / ".govkit" / "marker.json").write_text(json.dumps(marker), encoding="utf-8")
+        return target
+
+    def _run(self, tmp_path, target, monkeypatch):
+        repo, _ = _make_governance_repo(tmp_path)
+        monkeypatch.setattr("cli.paths.AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", repo)
+        monkeypatch.setattr("cli.version.GOVKIT_VERSION", "0.2.0")
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+    def test_removes_govkit_authored_claude_md(self, tmp_path, monkeypatch):
+        """CLAUDE.md byte-identical to govkit's governance is govkit's own
+        orphan → removed; governance.md is installed in its place."""
+        _, body = _make_governance_repo(tmp_path)
+        target = self._target(tmp_path, claude_md=body)
+        self._run(tmp_path, target, monkeypatch)
+
+        assert not (target / "CLAUDE.md").exists()
+        assert (target / ".claude" / "rules" / "govkit" / "governance.md").is_file()
+
+    def test_removes_cross_version_untouched_claude_md(self, tmp_path, monkeypatch):
+        """An older-version govkit CLAUDE.md won't byte-match today's governance,
+        but if it is untouched since the last apply (mtime <= applied_at) it is
+        still govkit's orphan → removed, and current governance installed."""
+        import os
+        from datetime import datetime, timezone
+
+        target = self._target(tmp_path, claude_md="# OLD govkit governance (v0.10)\n")
+        # Untouched since apply: mtime a month before the marker's applied_at.
+        stamp = datetime(2025, 12, 1, tzinfo=timezone.utc).timestamp()
+        os.utime(target / "CLAUDE.md", (stamp, stamp))
+
+        self._run(tmp_path, target, monkeypatch)
+
+        assert not (target / "CLAUDE.md").exists()
+        assert (target / ".claude" / "rules" / "govkit" / "governance.md").is_file()
+
+    def test_keeps_edited_claude_md_and_skips_governance(self, tmp_path, monkeypatch, capsys):
+        """A CLAUDE.md that differs from govkit's governance AND was touched since
+        the last apply is the team's: kept, governance.md NOT installed (no
+        duplicate), warning shown."""
+        import os
+        from datetime import datetime, timezone
+
+        target = self._target(tmp_path, claude_md="# ACME house rules\nUse pnpm.\n")
+        # Edited after apply: mtime well after the marker's applied_at.
+        stamp = datetime(2026, 6, 1, tzinfo=timezone.utc).timestamp()
+        os.utime(target / "CLAUDE.md", (stamp, stamp))
+
+        self._run(tmp_path, target, monkeypatch)
+
+        assert (target / "CLAUDE.md").read_text(encoding="utf-8") == "# ACME house rules\nUse pnpm.\n"
+        assert not (target / ".claude" / "rules" / "govkit" / "governance.md").exists()
+        err = capsys.readouterr().err
+        assert "CLAUDE.md" in err
+
+    def test_no_legacy_file_installs_governance_normally(self, tmp_path, monkeypatch):
+        """A migrated (or fresh) install with no CLAUDE.md just gets governance.md."""
+        target = self._target(tmp_path, claude_md=None)
+        self._run(tmp_path, target, monkeypatch)
+
+        assert (target / ".claude" / "rules" / "govkit" / "governance.md").is_file()
+        assert not (target / "CLAUDE.md").exists()
+
+    def test_naive_applied_at_does_not_crash_or_delete(self, tmp_path, monkeypatch, capsys):
+        """A marker whose applied_at parses timezone-naive (no offset on disk —
+        markers aren't schema-validated) must not crash upgrade when compared to
+        the timezone-aware mtime. Unknown history → the legacy file is kept, never
+        deleted on the strength of a naive timestamp."""
+        import os
+        from datetime import datetime, timezone
+
+        target = self._target(
+            tmp_path,
+            claude_md="# OLD govkit governance (v0.10)\n",
+            applied_at="2026-01-01T00:00:00",  # naive: no UTC offset
+        )
+        # mtime BEFORE the naive applied_at: a buggy naive comparison would treat
+        # this as "unmodified since apply" and delete it. The fix returns False.
+        stamp = datetime(2025, 12, 1, tzinfo=timezone.utc).timestamp()
+        os.utime(target / "CLAUDE.md", (stamp, stamp))
+
+        self._run(tmp_path, target, monkeypatch)  # must not raise TypeError
+
+        assert (target / "CLAUDE.md").exists()
+        assert not (target / ".claude" / "rules" / "govkit" / "governance.md").exists()
+
+    def test_unlink_failure_warns_and_continues(self, tmp_path, monkeypatch, capsys):
+        """If removing the govkit-authored orphan fails (permissions, a Windows
+        sharing violation, a read-only mount), upgrade must not crash: it warns
+        and skips installing the namespaced governance so the agent never loads
+        governance twice."""
+        _, body = _make_governance_repo(tmp_path)
+        # Byte-identical to govkit's governance → provably govkit's orphan, so
+        # reconcile attempts to unlink it.
+        target = self._target(tmp_path, claude_md=body)
+
+        real_unlink = Path.unlink
+
+        def failing_unlink(self, *args, **kwargs):
+            if self.name == "CLAUDE.md":
+                raise OSError("simulated sharing violation")
+            return real_unlink(self, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "unlink", failing_unlink)
+
+        self._run(tmp_path, target, monkeypatch)  # must not raise OSError
+
+        assert (target / "CLAUDE.md").exists()  # left in place
+        assert not (target / ".claude" / "rules" / "govkit" / "governance.md").exists()
+        err = capsys.readouterr().err
+        assert "CLAUDE.md" in err
+        assert "could not remove" in err
+
+
 class TestCmdUpgradeEditProtection:
     """PR 1 / A2: cmd_upgrade refuses to overwrite user-edited governed
     docs unless --force is supplied. Files without a govkit:editable header

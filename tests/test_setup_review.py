@@ -51,7 +51,9 @@ class TestWriteSetupReview:
         assert "TECH_STACK.md" in content
         assert "BOUNDARIES.md" in content
         assert "TESTING.md" in content
-        assert "CLAUDE.md" in content
+        # claude-code governance is govkit-owned in the rules namespace, not a
+        # team-editable review item — the checklist must not list CLAUDE.md.
+        assert "CLAUDE.md" not in content
 
     def test_review_paths_match_ui_type(self, tmp_path):
         """UI installs should reference docs/ui/architecture/, not docs/backend/."""
@@ -63,16 +65,16 @@ class TestWriteSetupReview:
         assert "docs/ui/architecture" in content
 
     def test_review_paths_match_copilot_agent(self, tmp_path):
-        """Copilot installs reference .github/instructions/ for agent rules,
-        not .claude/rules/."""
+        """Copilot governance lives in the govkit-owned .github/instructions/govkit/
+        namespace, so the review lists the team-editable architecture docs and
+        does NOT present copilot-instructions.md as something to hand-edit."""
         from cli.setup_review import write_setup_review
 
         write_setup_review(tmp_path, self._marker(agent="copilot"))
         content = (tmp_path / "GOVKIT_SETUP_REVIEW.md").read_text(encoding="utf-8")
 
-        assert ".github/instructions" in content
-        # The agent-instruction file for copilot:
-        assert "copilot-instructions.md" in content
+        assert "TECH_STACK.md" in content
+        assert "copilot-instructions.md" not in content
 
     def test_review_paths_match_codex_agent(self, tmp_path):
         from cli.setup_review import write_setup_review

@@ -39,19 +39,19 @@ Read before generating any code:
 - No business logic or data transformation
 - Receive data and callbacks via props or hooks only
 - All data via React Query hooks or Zustand selectors
-- See `src/CLAUDE.md`
+- See `.claude/rules/govkit/governance-src.md`
 
 ### ViewModel — Hooks (`src/features/<feature>/hooks/`)
 - All server state via React Query (`useQuery`, `useMutation`)
 - One hook file per logical data concern
 - Transform API responses here — never in components
-- See `src/CLAUDE.md`
+- See `.claude/rules/govkit/governance-src.md`
 
 ### ViewModel — Store (`src/features/<feature>/store/`)
 - Zustand for client-only UI state (modals, selections, pagination)
 - Never store server data in Zustand — that belongs in React Query cache
 - Feature-scoped stores only — no global catch-all store
-- See `src/CLAUDE.md`
+- See `.claude/rules/govkit/governance-src.md`
 
 ### Model — API (`src/features/<feature>/api/`)
 - Plain async functions — no React, no hooks

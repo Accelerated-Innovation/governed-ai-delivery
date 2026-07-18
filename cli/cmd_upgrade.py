@@ -18,7 +18,12 @@ from pathlib import Path
 
 from . import paths, version
 from .fs import copy_entry
-from .install_common import copy_governed_or_shared, exclude_for_level, post_install_finalize
+from .install_common import (
+    copy_governed_or_shared,
+    exclude_for_level,
+    post_install_finalize,
+    reconcile_legacy_instruction_files,
+)
 from .manifest import load_manifest, resolve_variant_files
 from .marker import _compare_version, read_govkit_marker, write_govkit_marker
 
@@ -110,6 +115,10 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     # headers.
     prior_applied_at = stored.get("applied_at")
     baseline = f"govkit@{version.GOVKIT_VERSION}"
+
+    # A6: retire any pre-namespace top-level instruction file (CLAUDE.md etc.)
+    # before installing governance into the rules namespace.
+    files = reconcile_legacy_instruction_files(target, agent_dir, files, prior_applied_at)
 
     print("Agent files (refreshed):")
     for entry in files:

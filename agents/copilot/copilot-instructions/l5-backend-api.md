@@ -1,3 +1,6 @@
+---
+applyTo: "**"
+---
 # GitHub Copilot Instructions — Level 5 GenAI Operations
 
 These instructions govern how GitHub Copilot plans, reasons, and generates code in this repository.
