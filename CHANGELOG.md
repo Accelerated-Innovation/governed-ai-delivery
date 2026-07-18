@@ -8,6 +8,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- `govkit upgrade` no longer erases the team's calibration. It wrote the marker
+  without threading the stored `stack`, `assumptions`, and `calibration`
+  blocks, so every upgrade reset them to `null` / `[]` / no decisions —
+  discarding each `calibration.decisions[]` entry, every `review_required:
+  false` an assumption had earned, and the selected stack. The loss cascaded:
+  `post_install_finalize` regenerates `.govkit/skill_context.yaml` from the
+  marker, so a wiped `stack` silently blanked the stack facts the agent reads
+  (`stack.id: null`). `apply`, `stack apply`, and `calibrate` already carried
+  these through; `upgrade` was the lone writer that did not. `applied_at` still
+  advances on upgrade — that is a re-install, and edit-protection depends on it.
+
 ### Changed — internal
 
 - The three one-time migration warnings in `cli/marker.py` (version, shape,
