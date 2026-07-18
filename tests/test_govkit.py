@@ -2445,7 +2445,10 @@ class TestUpgradeMigratesLegacyInstructionFile:
     governance moves into the rules namespace, upgrade must retire the orphan —
     but only when it is provably govkit's own untouched file, never a team's."""
 
-    def _target(self, tmp_path: Path, claude_md: str | None) -> Path:
+    def _target(
+        self, tmp_path: Path, claude_md: str | None,
+        applied_at: str = "2026-01-01T00:00:00+00:00",
+    ) -> Path:
         target = tmp_path / "project"
         target.mkdir()
         if claude_md is not None:
@@ -2453,7 +2456,7 @@ class TestUpgradeMigratesLegacyInstructionFile:
         marker = {
             "version": "0.1.0", "level": "4", "agent": "test-agent",
             "options": {"type": "api", "ci": "github"},
-            "applied_at": "2026-01-01T00:00:00+00:00",
+            "applied_at": applied_at,
         }
         (target / ".govkit").mkdir()
         (target / ".govkit" / "marker.json").write_text(json.dumps(marker), encoding="utf-8")
@@ -2519,6 +2522,56 @@ class TestUpgradeMigratesLegacyInstructionFile:
 
         assert (target / ".claude" / "rules" / "govkit" / "governance.md").is_file()
         assert not (target / "CLAUDE.md").exists()
+
+    def test_naive_applied_at_does_not_crash_or_delete(self, tmp_path, monkeypatch, capsys):
+        """A marker whose applied_at parses timezone-naive (no offset on disk —
+        markers aren't schema-validated) must not crash upgrade when compared to
+        the timezone-aware mtime. Unknown history → the legacy file is kept, never
+        deleted on the strength of a naive timestamp."""
+        import os
+        from datetime import datetime, timezone
+
+        target = self._target(
+            tmp_path,
+            claude_md="# OLD govkit governance (v0.10)\n",
+            applied_at="2026-01-01T00:00:00",  # naive: no UTC offset
+        )
+        # mtime BEFORE the naive applied_at: a buggy naive comparison would treat
+        # this as "unmodified since apply" and delete it. The fix returns False.
+        stamp = datetime(2025, 12, 1, tzinfo=timezone.utc).timestamp()
+        os.utime(target / "CLAUDE.md", (stamp, stamp))
+
+        self._run(tmp_path, target, monkeypatch)  # must not raise TypeError
+
+        assert (target / "CLAUDE.md").exists()
+        assert not (target / ".claude" / "rules" / "govkit" / "governance.md").exists()
+
+    def test_unlink_failure_warns_and_continues(self, tmp_path, monkeypatch, capsys):
+        """If removing the govkit-authored orphan fails (permissions, a Windows
+        sharing violation, a read-only mount), upgrade must not crash: it warns
+        and skips installing the namespaced governance so the agent never loads
+        governance twice."""
+        _, body = _make_governance_repo(tmp_path)
+        # Byte-identical to govkit's governance → provably govkit's orphan, so
+        # reconcile attempts to unlink it.
+        target = self._target(tmp_path, claude_md=body)
+
+        real_unlink = Path.unlink
+
+        def failing_unlink(self, *args, **kwargs):
+            if self.name == "CLAUDE.md":
+                raise OSError("simulated sharing violation")
+            return real_unlink(self, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "unlink", failing_unlink)
+
+        self._run(tmp_path, target, monkeypatch)  # must not raise OSError
+
+        assert (target / "CLAUDE.md").exists()  # left in place
+        assert not (target / ".claude" / "rules" / "govkit" / "governance.md").exists()
+        err = capsys.readouterr().err
+        assert "CLAUDE.md" in err
+        assert "could not remove" in err
 
 
 class TestCmdUpgradeEditProtection:

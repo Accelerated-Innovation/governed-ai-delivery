@@ -44,6 +44,12 @@ def _unmodified_since(path: Path, applied_at: str | None) -> bool:
     (or before) that timestamp is govkit's own untouched copy — regardless of
     which govkit version's text it carries. Returns False when `applied_at` is
     missing/unparseable, so an unknown history never authorizes a delete.
+
+    A timezone-naive `applied_at` (no offset on disk — markers aren't schema-
+    validated) is likewise treated as unknown history: it cannot be compared
+    to the timezone-aware UTC mtime without raising TypeError, so it returns
+    False rather than crash the caller. The comparison is also wrapped as a
+    final safety net.
     """
     if not applied_at:
         return False
@@ -51,8 +57,13 @@ def _unmodified_since(path: Path, applied_at: str | None) -> bool:
         applied_dt = datetime.fromisoformat(applied_at)
     except (ValueError, TypeError):
         return False
+    if applied_dt.tzinfo is None:
+        return False
     mtime_dt = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
-    return mtime_dt <= applied_dt
+    try:
+        return mtime_dt <= applied_dt
+    except TypeError:
+        return False
 
 
 def reconcile_legacy_instruction_files(
@@ -90,7 +101,21 @@ def reconcile_legacy_instruction_files(
             legacy_body = None
         is_govkit_orphan = legacy_body == govkit_body or _unmodified_since(legacy, applied_at)
         if is_govkit_orphan:
-            legacy.unlink()
+            try:
+                legacy.unlink()
+            except OSError as exc:
+                # Deletion can fail (permissions, a Windows sharing violation, a
+                # read-only mount). Don't crash the upgrade — and don't install
+                # the namespaced governance while the legacy copy is still on
+                # disk, or the agent would load governance twice.
+                print(
+                    f"  warning: could not remove legacy {legacy_rel} ({exc}); "
+                    f"skipping {entry['dest']} to avoid loading governance twice. "
+                    f"Remove {legacy_rel} manually and re-run upgrade to adopt the "
+                    "managed governance.",
+                    file=sys.stderr,
+                )
+                continue
             print(f"  migrated {legacy_rel} -> {entry['dest']}  (removed govkit-authored orphan)")
             keep.append(entry)
         else:
