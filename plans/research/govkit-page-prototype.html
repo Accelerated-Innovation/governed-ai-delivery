@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GovKit — Governed AI Delivery Toolkit | Accelerated Innovation</title>
+<meta name="description" content="GovKit is a free, open-source pip-installable toolkit that puts your AI coding agent inside your architecture contracts, specs, and CI gates. pip install govkit.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --dark-purple:#19004f;
+    --purple:#5865e7;
+    --magenta:#821db0;
+    --light-blue:#0abeef;
+    --black:#1a1a1a;
+    --white:#f2f2f2;
+    --gradient:linear-gradient(35deg,#0abeef 0%,#5865e7 50%,#19004f 100%);
+    --maxw:1120px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Poppins',system-ui,sans-serif;color:var(--black);background:var(--white);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  section{padding:88px 0}
+  .eyebrow{font-size:.78rem;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:var(--purple);margin-bottom:14px}
+  .band-dark .eyebrow{color:var(--light-blue)}
+  h1{font-size:clamp(2.2rem,5vw,3.5rem);font-weight:700;line-height:1.1;letter-spacing:-.5px}
+  h2{font-size:clamp(1.7rem,3.6vw,2.5rem);font-weight:700;line-height:1.15;letter-spacing:-.3px}
+  h3{font-size:1.15rem;font-weight:600}
+  p{font-size:1.02rem;font-weight:400}
+  .lead{font-size:1.18rem;font-weight:300;max-width:760px}
+  .band-dark{background:var(--dark-purple);color:var(--white)}
+  .band-dark p{color:#d8d4ea}
+  .band-grad{background:var(--gradient);color:var(--white)}
+  /* buttons */
+  .btns{display:flex;flex-wrap:wrap;gap:14px;margin-top:30px}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-family:inherit;font-size:1rem;font-weight:500;padding:14px 26px;border-radius:8px;text-decoration:none;cursor:pointer;border:1.5px solid transparent;transition:filter .15s ease,transform .15s ease,border-color .15s ease,color .15s ease}
+  .btn-primary{color:#fff;background:var(--gradient);position:relative}
+  .btn-primary::after{content:"";position:absolute;inset:0;border-radius:8px;background:rgba(25,0,79,.28)}/* dark overlay for AA contrast on white text */
+  .btn-primary span{position:relative;z-index:1}
+  .btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .btn-ghost{border-color:var(--purple);color:var(--purple);background:transparent}
+  .band-dark .btn-ghost,.band-grad .btn-ghost{border-color:#fff;color:#fff}
+  .btn-ghost:hover{border-color:var(--magenta);color:var(--magenta)}
+  .band-dark .btn-ghost:hover,.band-grad .btn-ghost:hover{border-color:var(--light-blue);color:var(--light-blue)}
+  .tlink{color:var(--purple);font-weight:500;text-decoration:none;border-bottom:1px solid transparent}
+  .band-dark .tlink{color:var(--light-blue)}
+  .tlink:hover{border-bottom-color:currentColor}
+  .btn:focus-visible,.tlink:focus-visible{outline:2px solid var(--light-blue);outline-offset:2px}
+  /* code */
+  pre{background:var(--black);color:#e8e8ef;border-radius:10px;padding:18px 20px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:.9rem;line-height:1.7;border:1px solid #2a2a3a;margin-top:14px}
+  pre .c{color:#6b7280}
+  pre .t{color:var(--light-blue)}
+  code{font-family:'JetBrains Mono',monospace}
+  .caption{font-size:.92rem;color:#6b6b78;margin-top:10px}
+  .band-dark .caption{color:#b6b0cf}
+  /* hero */
+  .hero{background:var(--dark-purple);position:relative;overflow:hidden}
+  .hero::before{content:"";position:absolute;top:-30%;right:-10%;width:620px;height:620px;background:var(--gradient);filter:blur(90px);opacity:.35;border-radius:50%}
+  .hero .wrap{position:relative;z-index:1}
+  .hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center}
+  .hero h1{color:#fff;max-width:680px}
+  .hero .lead{color:#d8d4ea;margin-top:20px}
+  .trust{margin-top:22px;font-size:.9rem;color:#b6b0cf;max-width:560px}
+  .hero-art{display:flex;justify-content:center}
+  /* grids */
+  .grid{display:grid;gap:24px;margin-top:48px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:28px}
+  .band-light .card{background:#fff;border:1px solid #e6e3f0;box-shadow:0 1px 3px rgba(25,0,79,.05)}
+  .card .ico{width:46px;height:46px;margin-bottom:16px}
+  .card h3{margin-bottom:10px}
+  .card.dark h3{color:#fff}
+  .chips{display:flex;flex-wrap:wrap;gap:14px;margin-top:34px}
+  .chip{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e6e3f0;border-radius:10px;padding:14px 18px;font-weight:500;font-size:.95rem}
+  /* notice */
+  .notice{border-left:4px solid var(--magenta);background:rgba(130,29,176,.06);padding:18px 22px;border-radius:0 8px 8px 0;margin-top:26px;font-size:.98rem}
+  .notice strong{color:var(--magenta)}
+  /* flow diagram */
+  .flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:44px}
+  .flow .node{flex:1;min-width:120px;background:#fff;border:1px solid #e6e3f0;border-radius:12px;padding:18px 14px;text-align:center}
+  .flow .node .n{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:50%;background:rgba(88,101,231,.12);color:var(--purple);font-weight:700;margin-bottom:8px}
+  .flow .arrow{color:var(--purple);font-size:1.4rem;flex:0 0 auto}
+  /* ladder */
+  .ladder{margin-top:44px;display:flex;flex-direction:column;gap:14px}
+  .rung{border-radius:12px;padding:22px 26px;color:#fff}
+  .rung h3{color:#fff;margin-bottom:4px}
+  .rung small{opacity:.85}
+  .r3{background:var(--dark-purple);width:78%}
+  .r4{background:var(--purple);width:89%}
+  .r5{background:linear-gradient(90deg,var(--magenta),var(--light-blue));width:100%}
+  /* facts */
+  .facts{list-style:none;margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:14px 40px;max-width:760px}
+  .facts li{padding-left:26px;position:relative;color:#d8d4ea}
+  .facts li::before{content:"";position:absolute;left:0;top:9px;width:12px;height:12px;border-radius:3px;background:var(--light-blue)}
+  .facts strong{color:#fff;font-weight:600}
+  /* closing */
+  .closing{text-align:center}
+  .closing h2{color:#fff;max-width:680px;margin:0 auto}
+  .closing .lead{color:rgba(255,255,255,.9);margin:18px auto 0}
+  .closing pre{max-width:340px;margin:24px auto 0;text-align:left}
+  .closing .btns{justify-content:center}
+  .closing .micro{margin-top:20px;font-size:.9rem;color:rgba(255,255,255,.85)}
+  /* badges */
+  .badges{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
+  .badge{font-family:'JetBrains Mono',monospace;font-size:.78rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 12px;border-radius:6px}
+  .proto-flag{background:#1a1a1a;color:#ffd24a;text-align:center;font-size:.82rem;padding:8px;font-family:'JetBrains Mono',monospace}
+  /* equivalents table */
+  table.eq{width:100%;border-collapse:collapse;margin-top:24px;font-size:.92rem}
+  table.eq th,table.eq td{text-align:left;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.14)}
+  table.eq th{color:var(--light-blue);font-weight:500}
+  table.eq code{color:#cdd2ff}
+  @media(max-width:920px){
+    .hero-grid{grid-template-columns:1fr}.hero-art{order:-1}
+    .g3{grid-template-columns:1fr 1fr}
+  }
+  @media(max-width:680px){
+    section{padding:60px 0}
+    .g3,.g2,.facts{grid-template-columns:1fr}
+    .flow{flex-direction:column}.flow .arrow{transform:rotate(90deg)}
+    .btn{width:100%;justify-content:center}
+    .r3,.r4,.r5{width:100%}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="proto-flag">PROTOTYPE — brand-styled mock of the GovKit page. Placeholder SVGs mark assets A–H for Design. Copy is verbatim from the spec.</div>
+
+<!-- ===== 1. HERO ===== -->
+<section class="hero band-dark">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">Open Source · Pip-installable · Apache-2.0</div>
+        <h1>Govern Your AI Coding Agent — Before It Drifts</h1>
+        <p class="lead">GovKit puts your AI coding agent inside a governed system where your architecture contracts, acceptance criteria, and evaluation thresholds are the source of truth — not the model's training data.</p>
+        <pre><code><span class="c"># install, apply, calibrate</span>
+pip install govkit
+govkit apply --agent claude-code --target .
+govkit calibrate</code></pre>
+        <div class="btns">
+          <a class="btn btn-primary" href="#install"><span>Install GovKit</span></a>
+          <a class="btn btn-ghost" href="https://github.com/Accelerated-Innovation/governed-ai-delivery">View on GitHub</a>
+          <a class="tlink" href="https://github.com/Accelerated-Innovation/governed-ai-delivery#readme" style="align-self:center">Read the docs →</a>
+        </div>
+        <p class="trust">Works with Claude Code, GitHub Copilot, and OpenAI Codex · Any language — Python, C#, Java, Go, TypeScript · Python 3.11+ dev-tool requirement only, never a project dependency.</p>
+      </div>
+      <div class="hero-art">
+        <!-- ASSET A placeholder: agent-in-contract hexagon + wordmark -->
+        <svg width="280" height="280" viewBox="0 0 280 280" fill="none" aria-hidden="true">
+          <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#0abeef"/><stop offset=".5" stop-color="#5865e7"/><stop offset="1" stop-color="#19004f"/>
+          </linearGradient></defs>
+          <rect x="20" y="20" width="240" height="240" rx="24" stroke="url(#g)" stroke-width="3" stroke-dasharray="10 8"/>
+          <polygon points="140,70 196,102 196,166 140,198 84,166 84,102" stroke="url(#g)" stroke-width="3" fill="none"/>
+          <circle cx="140" cy="134" r="20" fill="none" stroke="#fff" stroke-width="3"/>
+          <circle cx="200" cy="80" r="6" fill="#821db0"/>
+          <text x="140" y="244" text-anchor="middle" fill="#f2f2f2" font-family="Poppins" font-weight="700" font-size="22">GovKit</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 2. PROBLEM ===== -->
+<section class="band-light">
+  <div class="wrap">
+    <div class="eyebrow">The Problem</div>
+    <h2>Powerful Agents, No Guardrails</h2>
+    <p class="lead" style="margin-top:18px">AI coding agents are powerful — but without constraints, they drift. They invent architecture, skip tests, ignore NFRs, and make decisions that belong to your team. GovKit replaces "trust the model" with a governed workflow: your contracts, specs, and CI gates decide what good looks like — every feature, every time.</p>
+    <div class="chips">
+      <div class="chip"><span style="color:var(--magenta)">◆</span> Invented architecture — patterns from training data, not your boundaries.</div>
+      <div class="chip"><span style="color:var(--magenta)">◆</span> Skipped tests &amp; ignored NFRs — left as "TBD."</div>
+      <div class="chip"><span style="color:var(--magenta)">◆</span> Team decisions made by a model — changes that should need an ADR.</div>
+    </div>
+    <p class="caption">↑ ASSET B — "Drift vs. Governed" icon trio goes here (drift arrow · spec page · CI shield).</p>
+  </div>
+</section>
+
+<!-- ===== 3. CAPABILITIES ===== -->
+<section class="band-dark">
+  <div class="wrap">
+    <div class="eyebrow">What GovKit Does</div>
+    <h2>Governance Your Agent Actually Reads</h2>
+    <div class="grid g3">
+      <div class="card dark"><svg class="ico" viewBox="0 0 46 46" aria-hidden="true"><rect x="8" y="6" width="24" height="34" rx="3" fill="none" stroke="#0abeef" stroke-width="2.2"/><path d="M14 16h12M14 22h12M14 28h8" stroke="#0abeef" stroke-width="2.2" stroke-linecap="round"/></svg><h3>Governed agent rules</h3><p>Path-scoped rules load automatically as the agent edits each layer — api, services, ports, adapters, security. It reads your architecture contracts on every turn, not its own assumptions.</p></div>
+      <div class="card dark"><svg class="ico" viewBox="0 0 46 46" aria-hidden="true"><rect x="9" y="6" width="22" height="30" rx="3" fill="none" stroke="#0abeef" stroke-width="2.2"/><path d="M15 18l4 4 8-9" stroke="#0abeef" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="33" cy="33" r="7" fill="#19004f" stroke="#0abeef" stroke-width="2"/><text x="33" y="36" text-anchor="middle" fill="#0abeef" font-size="8" font-family="Poppins">5</text></svg><h3>Spec-driven feature contracts (L4+)</h3><p>Every feature lives under <code>features/&lt;name&gt;/</code> with five required artifacts: Gherkin acceptance criteria, fully-populated NFRs, schema-validated eval criteria, a plan, and an architecture preflight.</p></div>
+      <div class="card dark"><svg class="ico" viewBox="0 0 46 46" aria-hidden="true"><path d="M12 34l16-16M26 12l8 8" stroke="#0abeef" stroke-width="2.2" stroke-linecap="round"/><path d="M30 8l2 4 4 2-4 2-2 4-2-4-4-2 4-2z" fill="#0abeef"/></svg><h3>Architecture &amp; evaluation skills</h3><p>Ships agent skills — <code>/architecture-preflight</code>, <code>/spec-planning</code>, <code>/implementation-plan</code>, <code>/adr-author</code> — that validate features against your contracts and predict FIRST + 7-Virtue scores before any code is written.</p></div>
+      <div class="card dark"><svg class="ico" viewBox="0 0 46 46" aria-hidden="true"><path d="M10 14h12M10 14a4 4 0 100-1zM24 14h6a4 4 0 014 4v6" fill="none" stroke="#0abeef" stroke-width="2.2" stroke-linecap="round"/><path d="M30 20l4 8h-8z" fill="none" stroke="#0abeef" stroke-width="2.2" stroke-linejoin="round"/></svg><h3>CI gates that enforce, not suggest</h3><p><code>govkit doctor</code> checks whether installed governance still fits your repo; <code>govkit validate</code> checks whether features meet the contract. Both run in CI: schema validation, NFR coverage, boundary enforcement, prediction thresholds.</p></div>
+      <div class="card dark"><svg class="ico" viewBox="0 0 46 46" aria-hidden="true"><path d="M23 8l14 7-14 7-14-7z" fill="none" stroke="#0abeef" stroke-width="2.2" stroke-linejoin="round"/><path d="M9 23l14 7 14-7M9 31l14 7 14-7" fill="none" stroke="#0abeef" stroke-width="2.2" stroke-linejoin="round"/></svg><h3>Multi-agent, multi-stack, monorepo</h3><p>One toolkit for Claude Code, Copilot, and Codex, across FastAPI, .NET, Spring Boot, Fastify, Gin, dbt, and Databricks overlays. Monorepo-aware — one <code>govkit apply</code> per app subdirectory.</p></div>
+      <div class="card dark"><svg class="ico" viewBox="0 0 46 46" aria-hidden="true"><path d="M10 23h8M28 16h8M28 30h8M18 23l10-7M18 23l10 7" stroke="#0abeef" stroke-width="2.2" stroke-linecap="round"/><circle cx="10" cy="23" r="3" fill="#0abeef"/><circle cx="38" cy="16" r="3" fill="#0abeef"/><circle cx="38" cy="30" r="3" fill="#0abeef"/></svg><h3>GenAI operations (L5)</h3><p>For LLM features, add governed model routing (LiteLLM), observability (OpenLLMetry + Langfuse), and evaluation/safety gates (DeepEval, Promptfoo, RAGAS, NeMo Guardrails, Guardrails AI).</p></div>
+    </div>
+    <p class="caption" style="margin-top:24px">↑ ASSET C — six capability glyphs (shown as placeholders) to be delivered as one icon family.</p>
+  </div>
+</section>
+
+<!-- ===== 4. INSTALL ===== -->
+<section class="band-light" id="install">
+  <div class="wrap">
+    <div class="eyebrow">Get Started in 4 Steps</div>
+    <h2>Install, Apply, Calibrate, Commit</h2>
+    <p class="lead" style="margin-top:18px">You need Python 3.11+ on your machine (GovKit is a dev tool, never a project dependency) and an AI coding agent — Claude Code, GitHub Copilot, or OpenAI Codex. GovKit ships the governance configuration; you bring the agent.</p>
+
+    <!-- ASSET D: flow diagram -->
+    <div class="flow">
+      <div class="node"><span class="n">1</span><div>Install</div></div>
+      <div class="arrow">→</div>
+      <div class="node"><span class="n">2</span><div>Apply</div></div>
+      <div class="arrow">→</div>
+      <div class="node"><span class="n">3</span><div>Calibrate</div></div>
+      <div class="arrow">→</div>
+      <div class="node"><span class="n">4</span><div>Commit</div></div>
+    </div>
+
+    <pre><code><span class="c"># 1 — install</span>
+pip install govkit
+
+<span class="c"># 2 — from your project root</span>
+govkit apply --agent claude-code --target .
+
+<span class="c"># 3 — make the generic defaults match your repo</span>
+govkit calibrate
+
+<span class="c"># 4 — commit your governance baseline</span>
+git add .govkit CLAUDE.md docs/ governance/ ci/
+git commit -m "chore: add govkit governance baseline"</code></pre>
+
+    <div class="notice"><strong>This step is not optional.</strong> The files GovKit installs are sound generic defaults — and your agent treats them as law. If you skip calibration, the agent governs your project against someone else's architecture decisions. <code>govkit calibrate</code> walks you through a 9-step review; prefer to review with the team first? Run <code>govkit calibrate --non-interactive</code> to write a checklist file instead.</div>
+
+    <p class="caption">Upgrading later? <code>pip install --upgrade govkit &amp;&amp; govkit upgrade --target .</code> refreshes the files GovKit owns without touching the contracts you've customized.</p>
+
+    <div class="btns">
+      <a class="btn btn-primary" href="https://pypi.org/project/govkit/"><span>View on PyPI</span></a>
+      <a class="btn btn-ghost" href="https://github.com/Accelerated-Innovation/governed-ai-delivery#get-started-in-4-steps">Full quickstart on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 5. EXAMPLES ===== -->
+<section class="band-dark">
+  <div class="wrap">
+    <div class="eyebrow">See It in Use</div>
+    <h2>From Spec to Governed Feature</h2>
+
+    <h3 style="color:#fff;margin-top:34px">Scaffold a feature, then govern it</h3>
+    <pre><code>govkit init my_feature --target .</code></pre>
+    <p class="caption">Creates <code>features/my_feature/</code> from the appropriate starter (Level 4+). At L3 this errors with a pointer to <code>--level 4</code> — Foundations ships rules and contracts only.</p>
+
+    <h3 style="color:#fff;margin-top:30px">Drive the agent through the lifecycle (Claude Code)</h3>
+    <pre><code>/architecture-preflight my_feature
+/adr-author my_feature
+/spec-planning my_feature
+/implementation-plan my_feature</code></pre>
+    <p class="caption">The agent produces <code>architecture_preflight.md</code>, <code>plan.md</code>, and <code>eval_criteria.yaml</code> — and will not proceed if predicted FIRST or 7-Virtue averages fall below 4.0.</p>
+
+    <table class="eq">
+      <tr><th>Step</th><th>Claude Code</th><th>Copilot</th><th>Codex</th></tr>
+      <tr><td>Architecture preflight</td><td><code>/architecture-preflight my_feature</code></td><td><code>/architecture-preflight</code></td><td><code>$architecture-preflight my_feature</code></td></tr>
+      <tr><td>Spec planning</td><td><code>/spec-planning my_feature</code></td><td><code>/spec-planning</code></td><td><code>$spec-planning my_feature</code></td></tr>
+    </table>
+    <p class="caption">Copilot infers the feature from context; Codex invokes skills with a <code>$</code> prefix.</p>
+
+    <h3 style="color:#fff;margin-top:30px">Validate compliance in CI</h3>
+    <pre><code>govkit validate --target .</code></pre>
+    <p class="caption">Level-aware per-feature compliance — artifact existence, Gherkin structure, NFR coverage, eval-criteria schema, prediction thresholds. No-op at L3.</p>
+  </div>
+</section>
+
+<!-- ===== 6. WHO IT'S FOR ===== -->
+<section class="band-light">
+  <div class="wrap">
+    <div class="eyebrow">Who It's For</div>
+    <h2>Built for Teams Shipping With AI Agents</h2>
+
+    <!-- ASSET F: maturity ladder -->
+    <div class="ladder">
+      <div class="rung r3"><h3>L3 — Foundations</h3><small>Governed agent rules + architecture contracts. No codebase restructuring. Your agent follows your hexagonal boundaries from day one.</small></div>
+      <div class="rung r4"><h3>L4 — Spec-Driven</h3><small>Spec-first, test-first delivery: the five-artifact feature contract, feature-coupled skills, and governance CI jobs that gate every PR.</small></div>
+      <div class="rung r5"><h3>L5 — GenAI Operations</h3><small>Governed model routing, LLM observability, and evaluation/safety gates so your LLM features are routed, evaluated, and guarded by contract.</small></div>
+    </div>
+    <p class="lead" style="margin-top:34px">Backend APIs, CLIs, React or Angular UIs, and governed dbt / Databricks data projects — across Claude Code, GitHub Copilot, and OpenAI Codex. Any project language; GovKit copies Markdown specs, YAML configs, and Gherkin files into your repo.</p>
+  </div>
+</section>
+
+<!-- ===== 7. OPEN SOURCE ===== -->
+<section class="band-dark">
+  <div class="wrap">
+    <div class="eyebrow">Open Source</div>
+    <h2>Free, Apache-2.0, and Yours to Inspect</h2>
+    <ul class="facts">
+      <li><strong>License:</strong> Apache-2.0 — free for commercial use.</li>
+      <li><strong>Package:</strong> govkit on PyPI · version 0.13.0.</li>
+      <li><strong>Requires:</strong> Python 3.11+ (dev-machine tool only).</li>
+      <li><strong>Runtime dependency:</strong> a single one — PyYAML.</li>
+      <li><strong>Agents:</strong> Claude Code · GitHub Copilot · OpenAI Codex.</li>
+      <li><strong>Maintained by:</strong> Accelerated Innovation.</li>
+    </ul>
+    <div class="badges">
+      <span class="badge">PyPI v0.13.0</span><span class="badge">Python 3.11+</span><span class="badge">License: Apache-2.0</span><span class="badge">CI: passing</span>
+    </div>
+    <div class="btns">
+      <a class="btn btn-primary" href="https://github.com/Accelerated-Innovation/governed-ai-delivery"><span>Star on GitHub</span></a>
+      <a class="btn btn-ghost" href="https://pypi.org/project/govkit/">View on PyPI</a>
+      <a class="tlink" href="https://github.com/Accelerated-Innovation/governed-ai-delivery/blob/main/CHANGELOG.md" style="align-self:center">Read the CHANGELOG →</a>
+    </div>
+    <p class="caption" style="margin-top:18px">↑ ASSET G — badge strip (live shields.io or brand chips). TODO: confirm default branch for raw links.</p>
+  </div>
+</section>
+
+<!-- ===== 8. CLOSING ===== -->
+<section class="band-grad closing">
+  <div class="wrap">
+    <h2>Put Your AI Agent on Rails</h2>
+    <p class="lead">Install GovKit, apply it to your repo, and let your contracts — not the model — decide what good looks like.</p>
+    <pre><code>pip install govkit</code></pre>
+    <div class="btns">
+      <a class="btn btn-ghost" href="https://pypi.org/project/govkit/" style="background:#fff;border-color:#fff;color:#19004f">Install GovKit</a>
+      <a class="btn btn-ghost" href="https://github.com/Accelerated-Innovation/governed-ai-delivery">View on GitHub</a>
+      <a class="btn btn-ghost" href="https://acceleratedinnovation.com/our-solutions/product-accelerators/">Accelerate delivery with our team →</a>
+    </div>
+    <p class="micro">Free and open source. Want help rolling governed AI delivery out across your teams? Talk to Accelerated Innovation.</p>
+  </div>
+</section>
+
+</body>
+</html>
