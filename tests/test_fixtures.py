@@ -607,6 +607,43 @@ class TestMonorepoFixture:
                 assert "apps" not in f.file or "web" in f.file
 
 
+class TestCodexAgentsMdManagedBlock:
+    """Codex has no auto-loaded rules dir, so govkit's governance must live in
+    AGENTS.md. govkit fences it in a managed block so a team's own AGENTS.md
+    content survives apply/upgrade."""
+
+    def _apply(self, target: Path) -> None:
+        from cli.cmd_apply import cmd_apply
+
+        cmd_apply(argparse.Namespace(
+            agent="codex", target=str(target),
+            level="4", type="api", ci="github", stack=None,
+            force=False, detect=False,
+        ))
+
+    def test_fresh_install_writes_the_block(self, tmp_path):
+        target = _copy_fixture("python-fastapi-github", tmp_path)
+        self._apply(target)
+        content = (target / "AGENTS.md").read_text(encoding="utf-8")
+        assert "BEGIN GOVKIT GOVERNANCE" in content
+        assert "END GOVKIT GOVERNANCE" in content
+
+    def test_team_agents_md_content_is_preserved(self, tmp_path):
+        target = _copy_fixture("python-fastapi-github", tmp_path)
+        (target / "AGENTS.md").write_text(
+            "# ACME agent rules\nAlways use pnpm.\n", encoding="utf-8",
+        )
+        self._apply(target)
+
+        content = (target / "AGENTS.md").read_text(encoding="utf-8")
+        assert "# ACME agent rules" in content
+        assert "Always use pnpm." in content
+        assert "BEGIN GOVKIT GOVERNANCE" in content
+        # Exactly one managed block, and the team's content leads.
+        assert content.count("BEGIN GOVKIT GOVERNANCE") == 1
+        assert content.index("ACME") < content.index("BEGIN GOVKIT GOVERNANCE")
+
+
 class TestGovernanceLivesInRulesNamespace:
     """govkit's agent instructions install into its own auto-loaded rules
     namespace, not the team's top-level CLAUDE.md. This is what lets a team's

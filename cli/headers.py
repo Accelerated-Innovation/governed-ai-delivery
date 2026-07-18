@@ -21,10 +21,49 @@ renders invisibly in tooling that respects markdown comments.
 
 from pathlib import Path
 
-
 _HEADER_START = "<!-- govkit:editable"
 _HEADER_END = "-->"
 _DEFAULT_SEE = "GOVKIT_SETUP_REVIEW.md"
+
+# Managed-block markers (A6, codex). An agent whose only instruction mechanism
+# is a shared file — codex's AGENTS.md — cannot have its governance moved to a
+# separate namespace. Instead govkit fences its governance between these markers
+# so a team's own content in the same file is preserved across upgrades.
+GOVKIT_BLOCK_BEGIN = "<!-- BEGIN GOVKIT GOVERNANCE -->"
+GOVKIT_BLOCK_END = "<!-- END GOVKIT GOVERNANCE -->"
+_BLOCK_NOTE = (
+    "<!-- Managed by govkit — content in this block is overwritten on "
+    "`govkit upgrade`. Put your own instructions outside it. -->"
+)
+
+
+def upsert_govkit_block(
+    existing: str | None, body: str, replace_unblocked: bool = False,
+) -> str:
+    """Return file content carrying govkit's governance in a managed block.
+
+    - `existing is None` (no file yet) ⇒ just the block.
+    - `existing` already contains a govkit block ⇒ the block's body is replaced
+      in place; everything before and after it is preserved byte-for-byte.
+    - `existing` has no block and `replace_unblocked` ⇒ the whole file is
+      replaced by the block. Used when the existing file is govkit's own
+      pre-block full-overwrite copy (nothing of the team's to keep).
+    - `existing` has no block and not `replace_unblocked` ⇒ the block is
+      appended below the team's content, which is preserved.
+    """
+    block = f"{GOVKIT_BLOCK_BEGIN}\n{_BLOCK_NOTE}\n{body.rstrip(chr(10))}\n{GOVKIT_BLOCK_END}\n"
+    if existing is None or replace_unblocked and GOVKIT_BLOCK_BEGIN not in existing:
+        return block
+
+    b_idx = existing.find(GOVKIT_BLOCK_BEGIN)
+    e_idx = existing.find(GOVKIT_BLOCK_END)
+    if b_idx != -1 and e_idx != -1 and e_idx > b_idx:
+        before = existing[:b_idx]
+        after = existing[e_idx + len(GOVKIT_BLOCK_END):]
+        return before + block.rstrip("\n") + after
+
+    # Team file with no block: keep it, append govkit's block below.
+    return existing.rstrip("\n") + "\n\n" + block
 
 
 def format_editable_header(

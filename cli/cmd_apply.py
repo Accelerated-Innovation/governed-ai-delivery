@@ -14,10 +14,10 @@ from typing import TYPE_CHECKING
 
 from . import paths, version
 from .compat import validate_level_type
-from .fs import copy_entry
 from .install_common import (
     copy_governed_or_shared,
     exclude_for_level,
+    install_agent_file,
     post_install_finalize,
 )
 from .manifest import load_manifest, resolve_options, resolve_variant_files
@@ -112,7 +112,7 @@ def _apply_variant_install(
 
     print("Agent files:")
     for entry in files:
-        copy_entry(agent_dir / entry["src"], target / entry["dest"])
+        install_agent_file(agent_dir, entry, target, prior_applied_at)
 
     l5_exclude = exclude_for_level(level)
     print("\nGoverned contracts (skip if present):")
@@ -143,7 +143,7 @@ def _apply_legacy_install(
     print(f"\nApplying govkit agent '{args.agent}' to {target}\n")
     print("Agent files:")
     for entry in manifest["files"]:
-        copy_entry(agent_dir / entry["src"], target / entry["dest"])
+        install_agent_file(agent_dir, entry, target, prior_applied_at)
 
     print("\nShared governance:")
     copy_governed_or_shared(

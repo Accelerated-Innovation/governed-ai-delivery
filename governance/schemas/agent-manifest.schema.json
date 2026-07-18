@@ -73,6 +73,10 @@
         "dest": {
           "type": "string",
           "description": "Destination path relative to the target project root"
+        },
+        "managed_block": {
+          "type": "boolean",
+          "description": "When true, govkit installs this file's content as a managed block fenced by BEGIN/END GOVKIT markers instead of overwriting the whole file, preserving a team's own content in the same file. Used for agents (codex) whose only instruction mechanism is a shared AGENTS.md."
         }
       }
     },
