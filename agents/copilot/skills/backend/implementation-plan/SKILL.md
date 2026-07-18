@@ -1,6 +1,6 @@
 ---
-name: implementation-plan
-description: Generate an ordered implementation checklist with evaluation compliance summary from a validated preflight. Use when the user asks to draft implementation steps or invokes /implementation-plan.
+name: govkit-implementation-plan
+description: Generate an ordered implementation checklist with evaluation compliance summary from a validated preflight. Use when the user asks to draft implementation steps or invokes /govkit-implementation-plan.
 ---
 
 # Implementation Plan

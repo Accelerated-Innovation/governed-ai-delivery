@@ -16,8 +16,8 @@ For every new feature in `features/<feature_name>/`:
    reliability, observability)
 3. **`eval_criteria.yaml`** — the success criteria CI checks against
 4. **`architecture_preflight.md`** — produced by the
-   `/architecture-preflight` skill before any code lands
-5. **`plan.md`** — produced by `/implementation-plan` after preflight; lists
+   `/govkit-architecture-preflight` skill before any code lands
+5. **`plan.md`** — produced by `/govkit-implementation-plan` after preflight; lists
    the dbt models / orchestrator changes / tests required, ordered
 
 Implementation must not begin unless all five artifacts exist for the
@@ -57,11 +57,11 @@ every NFR category has at least one tagged scenario.
 
 ## Skills Available
 
-- `/architecture-preflight <feature>` — analyzes inputs + produces
+- `/govkit-architecture-preflight <feature>` — analyzes inputs + produces
   `architecture_preflight.md`
-- `/spec-planning <feature>` — drafts the Gherkin + NFRs scaffolding
-- `/implementation-plan <feature>` — produces the ordered `plan.md`
-- `/adr-author` — drafts an ADR when a contract violation is required
+- `/govkit-spec-planning <feature>` — drafts the Gherkin + NFRs scaffolding
+- `/govkit-implementation-plan <feature>` — produces the ordered `plan.md`
+- `/govkit-adr-author` — drafts an ADR when a contract violation is required
 
 These skills read `.govkit/skill_context.yaml` for the team's actual
 architecture style — they do NOT assume hexagonal / clean / layered /

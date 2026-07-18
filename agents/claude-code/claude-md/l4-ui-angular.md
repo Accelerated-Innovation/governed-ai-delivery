@@ -81,9 +81,9 @@ Hard constraints. Never violate without an accepted ADR.
 
 Every feature follows this mandatory sequence:
 
-1. **Architecture Preflight** — `/architecture-preflight`
-2. **Spec Planning** — `/spec-planning`
-3. **Implementation Planning** — `/implementation-plan`
+1. **Architecture Preflight** — `/govkit-architecture-preflight`
+2. **Spec Planning** — `/govkit-spec-planning`
+3. **Implementation Planning** — `/govkit-implementation-plan`
 4. **Implementation** — API → ViewModel → View
 5. **CI & Merge** — all gates must pass
 

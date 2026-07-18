@@ -1,6 +1,6 @@
 ---
-name: ui-architecture-preflight
-description: Validate UI architecture boundaries, backend contracts, and ADR need before spec planning. Use when starting a new UI feature or invoking /ui-architecture-preflight.
+name: govkit-ui-architecture-preflight
+description: Validate UI architecture boundaries, backend contracts, and ADR need before spec planning. Use when starting a new UI feature or invoking /govkit-ui-architecture-preflight.
 ---
 
 # Architecture Preflight — UI

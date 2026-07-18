@@ -119,7 +119,7 @@ These are hard constraints. Never violate without an accepted ADR.
 - Any deviation from the MVVM layer boundaries
 - Changes to authentication or authorization patterns
 
-ADRs live under `docs/ui/architecture/ADR/`. Invoke `$adr-author` to scaffold
+ADRs live under `docs/ui/architecture/ADR/`. Invoke `$govkit-adr-author` to scaffold
 a new ADR.
 
 ---
@@ -168,7 +168,7 @@ Level 4 layers the following on top of Level 3:
 
 - `features/<name>/` directory model with the 5-artifact governed contract
   (separate from `src/features/`)
-- `$ui-spec-planning`, `$ui-architecture-preflight`, `$ui-implementation-plan`
+- `$govkit-ui-spec-planning`, `$govkit-ui-architecture-preflight`, `$govkit-ui-implementation-plan`
   skills
 - Test-first and spec-compliance rules (binding, not just recommended)
 - Evaluation prediction discipline including accessibility, FIRST, and 7

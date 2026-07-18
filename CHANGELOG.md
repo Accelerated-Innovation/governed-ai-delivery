@@ -29,6 +29,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   govkit's `api` rule; both coexist and load. Skill namespacing is not included
   here (it would change how govkit skills are invoked, e.g. `/spec-planning`), and
   codex's nested per-layer `AGENTS.md` files are unchanged for now.
+### Changed
+
+- **govkit's skills are now prefixed `govkit-`**, so a team's own skill that shares
+  a bare name with one of govkit's is no longer overwritten. This renames both the
+  installed skill directory and its invocation name — e.g. `/spec-planning` becomes
+  `/govkit-spec-planning` (and `$spec-planning` for codex). Governance content and
+  skill descriptions are updated to the prefixed names. A team's own
+  `.claude/skills/spec-planning/` now coexists with govkit's `govkit-spec-planning`.
+- **Codex's nested per-layer `AGENTS.md` files are now installed as managed
+  blocks too.** They must live in real source directories (`api/`, `services/`,
+  …) for codex's path-scoping, so they can't move to a namespace — instead
+  govkit fences its per-layer guidance in the same `BEGIN/END GOVKIT GOVERNANCE`
+  block used for the root `AGENTS.md`, preserving a team's own content in those
+  files.
+- **govkit's layer rules now install under a `govkit/` subdirectory**, so a team's
+  own same-named rule survives. claude-code rules move to `.claude/rules/govkit/`
+  and copilot's to `.github/instructions/govkit/` — a team that keeps their own
+  `.claude/rules/api.md` (or `api.instructions.md`) is no longer clobbered by
+  govkit's `api` rule; both coexist and load. Skill namespacing is not included
+  here (it would change how govkit skills are invoked, e.g. `/spec-planning`), and
+  codex's nested per-layer `AGENTS.md` files are unchanged for now.
 - **govkit no longer overwrites your `CLAUDE.md` or `.github/copilot-instructions.md`.**
   Both agents natively auto-load a separate instructions directory, so govkit's
   governance now installs there — `.claude/rules/govkit/governance.md` for

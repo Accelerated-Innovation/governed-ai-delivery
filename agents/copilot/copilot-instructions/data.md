@@ -108,7 +108,7 @@ An Architecture Decision Record (ADR) is required when:
 
 ADRs live under `docs/data/architecture/ADR/`, follow
 `docs/data/architecture/ADR/TEMPLATE.md`, and must be Accepted before
-implementation proceeds. Use the `/adr-author` skill to scaffold a new ADR.
+implementation proceeds. Use the `/govkit-adr-author` skill to scaffold a new ADR.
 
 ---
 
@@ -165,6 +165,6 @@ govkit apply --level 4 --target <path>
 Level 4 layers the following on top of Level 3:
 
 * `features/<name>/` directory model with the 5-artifact governed contract
-* `/architecture-preflight`, `/spec-planning`, `/implementation-plan` skills
+* `/govkit-architecture-preflight`, `/govkit-spec-planning`, `/govkit-implementation-plan` skills
 * Test-first and spec-compliance instructions (binding, not just recommended)
 * Governance CI jobs: artifact existence, eval-criteria schema

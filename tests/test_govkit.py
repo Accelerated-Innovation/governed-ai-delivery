@@ -1645,7 +1645,7 @@ class TestApplyTypeDataStackDefault:
         ))
 
         for skill in ("architecture-preflight", "spec-planning", "implementation-plan"):
-            assert (target / skills_dir / skill / "SKILL.md").is_file()
+            assert (target / skills_dir / f"govkit-{skill}" / "SKILL.md").is_file()
 
     @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
     def test_apply_type_data_rejects_l5(self, tmp_path, agent, capsys):
@@ -3643,7 +3643,7 @@ class TestNoUiDimensionInManifests:
         files = manifest["variants"]["type"]["data"]["level_4"]["files"]
         destinations = {entry["dest"] for entry in files}
         for skill in ("architecture-preflight", "spec-planning", "implementation-plan"):
-            assert any(dest.endswith(f"/{skill}/") for dest in destinations), (
+            assert any(dest.endswith(f"/govkit-{skill}/") for dest in destinations), (
                 f"{agent}: data level_4 must install {skill}"
             )
 

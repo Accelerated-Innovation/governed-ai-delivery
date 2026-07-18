@@ -36,7 +36,7 @@ CLI features may be deterministic (no LLM). If mode is `llm`, all L5 contracts a
 
 ## 3. Feature Lifecycle
 
-0. **Multi-agent features only:** run `/multi-agent-design` before architecture preflight to produce `agent_topology.md`
+0. **Multi-agent features only:** run `/govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
 1. Architecture Preflight
 2. GenAI Preflight (if mode: llm)
 3. ADR creation (if required)

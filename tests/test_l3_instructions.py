@@ -150,12 +150,12 @@ def test_line_count_parity_within_20_percent():
 
 
 @pytest.mark.parametrize("forbidden", [
-    "/spec-planning",
-    "/architecture-preflight",
-    "/implementation-plan",
-    "$spec-planning",
-    "$architecture-preflight",
-    "$implementation-plan",
+    "/govkit-spec-planning",
+    "/govkit-architecture-preflight",
+    "/govkit-implementation-plan",
+    "$govkit-spec-planning",
+    "$govkit-architecture-preflight",
+    "$govkit-implementation-plan",
     "Mandatory Feature Structure",
     "Evaluation Compliance Summary",
     "Architecture Preflight Triggers",

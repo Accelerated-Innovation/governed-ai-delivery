@@ -80,9 +80,9 @@ These are hard constraints. Never violate without an accepted ADR.
 
 Every feature follows this mandatory sequence:
 
-1. **Architecture Preflight** — invoke `$ui-architecture-preflight`
-2. **Spec Planning** — invoke `$ui-spec-planning`
-3. **Implementation Planning** — invoke `$ui-implementation-plan`
+1. **Architecture Preflight** — invoke `$govkit-ui-architecture-preflight`
+2. **Spec Planning** — invoke `$govkit-ui-spec-planning`
+3. **Implementation Planning** — invoke `$govkit-ui-implementation-plan`
 4. **Implementation** — one increment at a time
 5. **CI & Merge** — all gates must pass
 
