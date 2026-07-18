@@ -1,11 +1,11 @@
 ---
-name: genai-preflight
-description: Validate Level 5 GenAI architecture decisions (LLM gateway, observability, guardrails, evaluation) before planning. Use after /architecture-preflight for features with mode:llm or when invoking /genai-preflight.
+name: govkit-genai-preflight
+description: Validate Level 5 GenAI architecture decisions (LLM gateway, observability, guardrails, evaluation) before planning. Use after /govkit-architecture-preflight for features with mode:llm or when invoking /govkit-genai-preflight.
 ---
 
 # GenAI Preflight
 
-Run after `/architecture-preflight` to validate GenAI-specific architecture decisions for a feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
+Run after `/govkit-architecture-preflight` to validate GenAI-specific architecture decisions for a feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
 ## Inputs to read
 

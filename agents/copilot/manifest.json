@@ -33,7 +33,7 @@
           { "src": "instructions/data/data-quality.instructions.md", "dest": ".github/instructions/govkit/data-quality.instructions.md" },
           { "src": "instructions/data/pii.instructions.md", "dest": ".github/instructions/govkit/pii.instructions.md" },
           { "src": "instructions/generic/repo-scope-backend.instructions.md", "dest": ".github/instructions/govkit/repo-scope.instructions.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".github/skills/adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".github/skills/govkit-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -45,9 +45,9 @@
             { "src": "copilot-instructions/l4-data.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/govkit/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/govkit/spec-compliance.instructions.md" },
-            { "src": "skills/backend/spec-planning/", "dest": ".github/skills/spec-planning/" },
-            { "src": "skills/backend/architecture-preflight/", "dest": ".github/skills/architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".github/skills/implementation-plan/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".github/skills/govkit-spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".github/skills/govkit-architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".github/skills/govkit-implementation-plan/" }
           ],
           "shared": [
             "features/starter_data/"
@@ -64,7 +64,7 @@
           { "src": "instructions/backend/adapters.instructions.md", "dest": ".github/instructions/govkit/adapters.instructions.md" },
           { "src": "instructions/backend/security.instructions.md", "dest": ".github/instructions/govkit/security.instructions.md" },
           { "src": "instructions/generic/repo-scope-backend.instructions.md", "dest": ".github/instructions/govkit/repo-scope.instructions.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".github/skills/adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".github/skills/govkit-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -76,9 +76,9 @@
             { "src": "copilot-instructions/l4-backend-api.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/govkit/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/govkit/spec-compliance.instructions.md" },
-            { "src": "skills/backend/spec-planning/", "dest": ".github/skills/spec-planning/" },
-            { "src": "skills/backend/architecture-preflight/", "dest": ".github/skills/architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".github/skills/implementation-plan/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".github/skills/govkit-spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".github/skills/govkit-architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".github/skills/govkit-implementation-plan/" }
           ],
           "shared": [
             "features/starter_backend/",
@@ -105,9 +105,9 @@
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/govkit/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/govkit/spec-compliance.instructions.md" },
             { "src": "skills/backend/", "dest": ".github/skills/" },
-            { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" },
-            { "src": "skills/backend/multi-agent-design/", "dest": ".github/skills/multi-agent-design/" }
+            { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/govkit-genai-preflight/" },
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/govkit-eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".github/skills/govkit-multi-agent-design/" }
           ],
           "shared": [
             "features/starter_backend_l5/",
@@ -129,7 +129,7 @@
           { "src": "instructions/backend/adapters.instructions.md", "dest": ".github/instructions/govkit/adapters.instructions.md" },
           { "src": "instructions/backend/security.instructions.md", "dest": ".github/instructions/govkit/security.instructions.md" },
           { "src": "instructions/generic/repo-scope-backend.instructions.md", "dest": ".github/instructions/govkit/repo-scope.instructions.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".github/skills/adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".github/skills/govkit-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -141,9 +141,9 @@
             { "src": "copilot-instructions/l4-backend-cli.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/govkit/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/govkit/spec-compliance.instructions.md" },
-            { "src": "skills/backend/spec-planning/", "dest": ".github/skills/spec-planning/" },
-            { "src": "skills/backend/architecture-preflight/", "dest": ".github/skills/architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".github/skills/implementation-plan/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".github/skills/govkit-spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".github/skills/govkit-architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".github/skills/govkit-implementation-plan/" }
           ],
           "shared": [
             "features/starter_cli/"
@@ -169,9 +169,9 @@
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/govkit/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/govkit/spec-compliance.instructions.md" },
             { "src": "skills/backend/", "dest": ".github/skills/" },
-            { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/eval-suite-planning/" },
-            { "src": "skills/backend/multi-agent-design/", "dest": ".github/skills/multi-agent-design/" }
+            { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/govkit-genai-preflight/" },
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/govkit-eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".github/skills/govkit-multi-agent-design/" }
           ],
           "shared": [
             "features/starter_cli_l5/"
@@ -191,7 +191,7 @@
           { "src": "instructions/ui-react/api.instructions.md", "dest": ".github/instructions/govkit/ui-api.instructions.md" },
           { "src": "instructions/ui-react/accessibility.instructions.md", "dest": ".github/instructions/govkit/accessibility.instructions.md" },
           { "src": "instructions/generic/repo-scope-ui.instructions.md", "dest": ".github/instructions/govkit/repo-scope.instructions.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" }
+          { "src": "skills/ui/adr-author/", "dest": ".github/skills/govkit-ui-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -206,9 +206,9 @@
             { "src": "copilot-instructions/l4-ui-react.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/govkit/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/govkit/spec-compliance.instructions.md" },
-            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
+            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/govkit-ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/govkit-ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/govkit-ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -230,10 +230,10 @@
             { "src": "instructions/generic/repo-scope-ui.instructions.md", "dest": ".github/instructions/govkit/repo-scope.instructions.md" },
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/govkit/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/govkit/spec-compliance.instructions.md" },
-            { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" },
-            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
+            { "src": "skills/ui/adr-author/", "dest": ".github/skills/govkit-ui-adr-author/" },
+            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/govkit-ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/govkit-ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/govkit-ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -257,7 +257,7 @@
           { "src": "instructions/ui-angular/api.instructions.md", "dest": ".github/instructions/govkit/ui-api.instructions.md" },
           { "src": "instructions/ui-angular/accessibility.instructions.md", "dest": ".github/instructions/govkit/accessibility.instructions.md" },
           { "src": "instructions/generic/repo-scope-ui.instructions.md", "dest": ".github/instructions/govkit/repo-scope.instructions.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" }
+          { "src": "skills/ui/adr-author/", "dest": ".github/skills/govkit-ui-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -272,9 +272,9 @@
             { "src": "copilot-instructions/l4-ui-angular.md", "dest": ".github/instructions/govkit/governance.instructions.md" },
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/govkit/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/govkit/spec-compliance.instructions.md" },
-            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
+            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/govkit-ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/govkit-ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/govkit-ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -296,10 +296,10 @@
             { "src": "instructions/generic/repo-scope-ui.instructions.md", "dest": ".github/instructions/govkit/repo-scope.instructions.md" },
             { "src": "instructions/generic/test-first.instructions.md", "dest": ".github/instructions/govkit/test-first.instructions.md" },
             { "src": "instructions/generic/spec-compliance.instructions.md", "dest": ".github/instructions/govkit/spec-compliance.instructions.md" },
-            { "src": "skills/ui/adr-author/", "dest": ".github/skills/ui-adr-author/" },
-            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/ui-implementation-plan/" }
+            { "src": "skills/ui/adr-author/", "dest": ".github/skills/govkit-ui-adr-author/" },
+            { "src": "skills/ui/spec-planning/", "dest": ".github/skills/govkit-ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/govkit-ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/govkit-ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui/",

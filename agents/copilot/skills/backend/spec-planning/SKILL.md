@@ -1,6 +1,6 @@
 ---
-name: spec-planning
-description: Generate a feature plan (plan.md) and eval_criteria.yaml from NFRs and acceptance scenarios. Use when the user asks to plan a feature or invokes /spec-planning.
+name: govkit-spec-planning
+description: Generate a feature plan (plan.md) and eval_criteria.yaml from NFRs and acceptance scenarios. Use when the user asks to plan a feature or invokes /govkit-spec-planning.
 ---
 
 Plan the implementation of the named feature. When invoked, determine the feature name from the user's request; if it is not provided, ask before proceeding.
@@ -79,4 +79,4 @@ Do not proceed if predicted FIRST average or Virtue average is below 4.0.
 - Keep Output B as valid YAML and ready to commit.
 - No implementation code in this step.
 
-This output will feed `/implementation-plan`.
+This output will feed `/govkit-implementation-plan`.

@@ -39,9 +39,9 @@ artifacts:
 - `nfrs.md` — non-functional requirements (freshness SLA, masking, reliability,
   observability)
 - `eval_criteria.yaml` — the success criteria CI checks against
-- `architecture_preflight.md` — produced by `$architecture-preflight` before any
+- `architecture_preflight.md` — produced by `$govkit-architecture-preflight` before any
   model lands
-- `plan.md` — produced by `$implementation-plan` after preflight; lists the dbt
+- `plan.md` — produced by `$govkit-implementation-plan` after preflight; lists the dbt
   models / orchestrator changes / tests required, ordered
 
 Implementation must not begin unless all five artifacts exist. If `nfrs.md`
@@ -83,10 +83,10 @@ Preflight and plan finalization — stop if incomplete.
 
 ## Feature Lifecycle (Mandatory Order — no steps may be skipped)
 
-1. Architecture Preflight → invoke `$architecture-preflight`
+1. Architecture Preflight → invoke `$govkit-architecture-preflight`
 2. ADR creation (if required by preflight — see L3 ADR triggers)
-3. Plan finalization → invoke `$spec-planning`
-4. Incremental implementation → guided by `$implementation-plan`
+3. Plan finalization → invoke `$govkit-spec-planning`
+4. Incremental implementation → guided by `$govkit-implementation-plan`
 5. Automated tests (schema + custom singular tests per
    `docs/data/architecture/DATA_QUALITY_CONTRACT.md`)
 6. Data-quality and PII gates
@@ -99,11 +99,11 @@ and `.agents/rules/pii.md` remain binding at L4.
 
 ## Skills Available
 
-- `$architecture-preflight <feature>` — analyzes inputs + produces
+- `$govkit-architecture-preflight <feature>` — analyzes inputs + produces
   `architecture_preflight.md`
-- `$spec-planning <feature>` — drafts the Gherkin + NFRs scaffolding
-- `$implementation-plan <feature>` — produces the ordered `plan.md`
-- `$adr-author` — drafts an ADR when a contract violation is required
+- `$govkit-spec-planning <feature>` — drafts the Gherkin + NFRs scaffolding
+- `$govkit-implementation-plan <feature>` — produces the ordered `plan.md`
+- `$govkit-adr-author` — drafts an ADR when a contract violation is required
 
 These skills read `.govkit/skill_context.yaml` for the team's actual layer
 mapping (staging/intermediate/marts vs medallion bronze/silver/gold) — they do

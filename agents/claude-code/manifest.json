@@ -33,7 +33,7 @@
           { "src": "rules/backend/adapters.md", "dest": ".claude/rules/govkit/adapters.md" },
           { "src": "rules/backend/security.md", "dest": ".claude/rules/govkit/security.md" },
           { "src": "rules/generic/repo-scope-backend.md", "dest": ".claude/rules/govkit/repo-scope.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".claude/skills/adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".claude/skills/govkit-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -45,9 +45,9 @@
             { "src": "claude-md/l4-backend-api.md", "dest": ".claude/rules/govkit/governance.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/govkit/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
-            { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
-            { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/govkit-spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/govkit-architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/govkit-implementation-plan/" }
           ],
           "shared": [
             "features/starter_backend/",
@@ -77,13 +77,13 @@
             { "src": "rules/generic/repo-scope-backend.md", "dest": ".claude/rules/govkit/repo-scope.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/govkit/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
-            { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
-            { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" },
-            { "src": "skills/backend/adr-author/", "dest": ".claude/skills/adr-author/" },
-            { "src": "skills/backend/genai-preflight/", "dest": ".claude/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".claude/skills/eval-suite-planning/" },
-            { "src": "skills/backend/multi-agent-design/", "dest": ".claude/skills/multi-agent-design/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/govkit-spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/govkit-architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/govkit-implementation-plan/" },
+            { "src": "skills/backend/adr-author/", "dest": ".claude/skills/govkit-adr-author/" },
+            { "src": "skills/backend/genai-preflight/", "dest": ".claude/skills/govkit-genai-preflight/" },
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".claude/skills/govkit-eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".claude/skills/govkit-multi-agent-design/" }
           ],
           "shared": [
             "features/starter_backend_l5/",
@@ -105,7 +105,7 @@
           { "src": "rules/backend/adapters.md", "dest": ".claude/rules/govkit/adapters.md" },
           { "src": "rules/backend/security.md", "dest": ".claude/rules/govkit/security.md" },
           { "src": "rules/generic/repo-scope-backend.md", "dest": ".claude/rules/govkit/repo-scope.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".claude/skills/adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".claude/skills/govkit-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -117,9 +117,9 @@
             { "src": "claude-md/l4-backend-cli.md", "dest": ".claude/rules/govkit/governance.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/govkit/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
-            { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
-            { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/govkit-spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/govkit-architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/govkit-implementation-plan/" }
           ],
           "shared": [
             "features/starter_cli/"
@@ -148,13 +148,13 @@
             { "src": "rules/generic/repo-scope-backend.md", "dest": ".claude/rules/govkit/repo-scope.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/govkit/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
-            { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
-            { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" },
-            { "src": "skills/backend/adr-author/", "dest": ".claude/skills/adr-author/" },
-            { "src": "skills/backend/genai-preflight/", "dest": ".claude/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".claude/skills/eval-suite-planning/" },
-            { "src": "skills/backend/multi-agent-design/", "dest": ".claude/skills/multi-agent-design/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/govkit-spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/govkit-architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/govkit-implementation-plan/" },
+            { "src": "skills/backend/adr-author/", "dest": ".claude/skills/govkit-adr-author/" },
+            { "src": "skills/backend/genai-preflight/", "dest": ".claude/skills/govkit-genai-preflight/" },
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".claude/skills/govkit-eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".claude/skills/govkit-multi-agent-design/" }
           ],
           "shared": [
             "features/starter_cli_l5/"
@@ -171,7 +171,7 @@
           { "src": "claude-md/ui-react.md", "dest": ".claude/rules/govkit/governance.md" },
           { "src": "claude-md/src-ui-react.md", "dest": ".claude/rules/govkit/governance-src.md" },
           { "src": "rules/generic/repo-scope-ui.md", "dest": ".claude/rules/govkit/repo-scope.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".claude/skills/ui-adr-author/" }
+          { "src": "skills/ui/adr-author/", "dest": ".claude/skills/govkit-ui-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -186,9 +186,9 @@
             { "src": "claude-md/l4-ui-react.md", "dest": ".claude/rules/govkit/governance.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/govkit/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
-            { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" }
+            { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/govkit-ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/govkit-ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -207,10 +207,10 @@
             { "src": "rules/generic/repo-scope-ui.md", "dest": ".claude/rules/govkit/repo-scope.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/govkit/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
-            { "src": "skills/ui/adr-author/", "dest": ".claude/skills/ui-adr-author/" },
-            { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" }
+            { "src": "skills/ui/adr-author/", "dest": ".claude/skills/govkit-ui-adr-author/" },
+            { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/govkit-ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/govkit-ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -231,7 +231,7 @@
           { "src": "claude-md/ui-angular.md", "dest": ".claude/rules/govkit/governance.md" },
           { "src": "claude-md/src-ui-angular.md", "dest": ".claude/rules/govkit/governance-src.md" },
           { "src": "rules/generic/repo-scope-ui.md", "dest": ".claude/rules/govkit/repo-scope.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".claude/skills/ui-adr-author/" }
+          { "src": "skills/ui/adr-author/", "dest": ".claude/skills/govkit-ui-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -246,9 +246,9 @@
             { "src": "claude-md/l4-ui-angular.md", "dest": ".claude/rules/govkit/governance.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/govkit/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
-            { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" }
+            { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/govkit-ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/govkit-ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -267,10 +267,10 @@
             { "src": "rules/generic/repo-scope-ui.md", "dest": ".claude/rules/govkit/repo-scope.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/govkit/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
-            { "src": "skills/ui/adr-author/", "dest": ".claude/skills/ui-adr-author/" },
-            { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/ui-implementation-plan/" }
+            { "src": "skills/ui/adr-author/", "dest": ".claude/skills/govkit-ui-adr-author/" },
+            { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/govkit-ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/govkit-ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -295,7 +295,7 @@
           { "src": "rules/data/data-quality.md", "dest": ".claude/rules/govkit/data-quality.md" },
           { "src": "rules/data/pii.md", "dest": ".claude/rules/govkit/pii.md" },
           { "src": "rules/generic/repo-scope-backend.md", "dest": ".claude/rules/govkit/repo-scope.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".claude/skills/adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".claude/skills/govkit-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -307,9 +307,9 @@
             { "src": "claude-md/l4-data.md", "dest": ".claude/rules/govkit/governance.md" },
             { "src": "rules/generic/test-first.md", "dest": ".claude/rules/govkit/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
-            { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/spec-planning/" },
-            { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/implementation-plan/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/govkit-spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/govkit-architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/govkit-implementation-plan/" }
           ],
           "shared": [
             "features/starter_data/"

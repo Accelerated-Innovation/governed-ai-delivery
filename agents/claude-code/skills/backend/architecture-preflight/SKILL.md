@@ -1,6 +1,6 @@
 ---
-name: architecture-preflight
-description: Validate architecture boundaries, standards alignment, and ADR need before planning a feature. Use when starting a new feature or invoking /architecture-preflight.
+name: govkit-architecture-preflight
+description: Validate architecture boundaries, standards alignment, and ADR need before planning a feature. Use when starting a new feature or invoking /govkit-architecture-preflight.
 ---
 
 # Architecture Preflight
@@ -117,7 +117,7 @@ If **not declared**, write: "Section 15: Not applicable — multi_agent not decl
 
 If **declared**:
 
-- [ ] `features/<feature_name>/agent_topology.md` exists — if missing, **HALT**: request `/multi-agent-design <feature_name>` first
+- [ ] `features/<feature_name>/agent_topology.md` exists — if missing, **HALT**: request `/govkit-multi-agent-design <feature_name>` first
 - [ ] Orchestrator section is complete: role, system prompt path, model alias, routing strategy
 - [ ] Each specialist agent has: role, typed input state fields, typed output state fields, system prompt path, model alias
 - [ ] All system prompt files declared in `agent_topology.md` exist in the repository

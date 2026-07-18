@@ -48,14 +48,14 @@ Implementation must not begin unless all five artifacts exist.
 
 ## Feature Lifecycle (Mandatory Order — no steps may be skipped)
 
-0. **Multi-agent features only:** invoke `$multi-agent-design` before architecture preflight to produce `agent_topology.md`
-1. Architecture Preflight → invoke `$architecture-preflight`
-2. GenAI Preflight → invoke `$genai-preflight` (if feature uses LLM)
+0. **Multi-agent features only:** invoke `$govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
+1. Architecture Preflight → invoke `$govkit-architecture-preflight`
+2. GenAI Preflight → invoke `$govkit-genai-preflight` (if feature uses LLM)
 3. ADR creation (if required by preflight)
-4. Plan finalization → invoke `$spec-planning`
-5. Evaluation Suite Planning → invoke `$eval-suite-planning` (if mode: llm)
+4. Plan finalization → invoke `$govkit-spec-planning`
+5. Evaluation Suite Planning → invoke `$govkit-eval-suite-planning` (if mode: llm)
 6. Evaluation Compliance Summary (must be in `plan.md`)
-7. Incremental implementation → guided by `$implementation-plan`
+7. Incremental implementation → guided by `$govkit-implementation-plan`
 8. Automated tests
 9. Static analysis and evaluation gates
 

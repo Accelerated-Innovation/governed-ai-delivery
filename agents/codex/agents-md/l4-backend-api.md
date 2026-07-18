@@ -48,11 +48,11 @@ Before proceeding to Architecture Preflight or planning:
 
 ## Feature Lifecycle (Mandatory Order — no steps may be skipped)
 
-1. Architecture Preflight → invoke `$architecture-preflight`
+1. Architecture Preflight → invoke `$govkit-architecture-preflight`
 2. ADR creation (if required by preflight)
-3. Plan finalization → invoke `$spec-planning`
+3. Plan finalization → invoke `$govkit-spec-planning`
 4. Evaluation Compliance Summary (must be in `plan.md`)
-5. Incremental implementation → guided by `$implementation-plan`
+5. Incremental implementation → guided by `$govkit-implementation-plan`
 6. Automated tests
 7. Static analysis and evaluation gates
 

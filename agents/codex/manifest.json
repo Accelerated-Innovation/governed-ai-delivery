@@ -27,13 +27,13 @@
       "data": {
         "files": [
           { "src": "agents-md/data.md", "dest": "AGENTS.md", "managed_block": true },
-          { "src": "rules/data/staging.md", "dest": "models/staging/AGENTS.md" },
-          { "src": "rules/data/intermediate.md", "dest": "models/intermediate/AGENTS.md" },
-          { "src": "rules/data/marts.md", "dest": "models/marts/AGENTS.md" },
+          { "src": "rules/data/staging.md", "dest": "models/staging/AGENTS.md", "managed_block": true },
+          { "src": "rules/data/intermediate.md", "dest": "models/intermediate/AGENTS.md", "managed_block": true },
+          { "src": "rules/data/marts.md", "dest": "models/marts/AGENTS.md", "managed_block": true },
           { "src": "rules/data/data-quality.md", "dest": ".agents/rules/data-quality.md" },
           { "src": "rules/data/pii.md", "dest": ".agents/rules/pii.md" },
           { "src": "rules/generic/repo-scope-backend.md", "dest": ".agents/rules/repo-scope.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".agents/skills/govkit-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -45,9 +45,9 @@
             { "src": "agents-md/l4-data.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
-            { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
-            { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/implementation-plan/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/govkit-spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/govkit-architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/govkit-implementation-plan/" }
           ],
           "shared": [
             "features/starter_data/"
@@ -58,13 +58,13 @@
       "api": {
         "files": [
           { "src": "agents-md/backend-api.md", "dest": "AGENTS.md", "managed_block": true },
-          { "src": "rules/backend/api.md", "dest": "api/AGENTS.md" },
-          { "src": "rules/backend/services.md", "dest": "services/AGENTS.md" },
-          { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md" },
-          { "src": "rules/backend/adapters.md", "dest": "adapters/AGENTS.md" },
-          { "src": "rules/backend/security.md", "dest": "security/AGENTS.md" },
+          { "src": "rules/backend/api.md", "dest": "api/AGENTS.md", "managed_block": true },
+          { "src": "rules/backend/services.md", "dest": "services/AGENTS.md", "managed_block": true },
+          { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md", "managed_block": true },
+          { "src": "rules/backend/adapters.md", "dest": "adapters/AGENTS.md", "managed_block": true },
+          { "src": "rules/backend/security.md", "dest": "security/AGENTS.md", "managed_block": true },
           { "src": "rules/generic/repo-scope-backend.md", "dest": ".agents/rules/repo-scope.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".agents/skills/govkit-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -76,9 +76,9 @@
             { "src": "agents-md/l4-backend-api.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
-            { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
-            { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/implementation-plan/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/govkit-spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/govkit-architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/govkit-implementation-plan/" }
           ],
           "shared": [
             "features/starter_backend/",
@@ -95,26 +95,26 @@
           "mode": "replace",
           "files": [
             { "src": "agents-md/l5-backend-api.md", "dest": "AGENTS.md", "managed_block": true },
-            { "src": "rules/backend/api.md", "dest": "api/AGENTS.md" },
-            { "src": "rules/backend/services.md", "dest": "services/AGENTS.md" },
-            { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md" },
-            { "src": "rules/backend/adapters.md", "dest": "adapters/AGENTS.md" },
-            { "src": "rules/backend/security.md", "dest": "security/AGENTS.md" },
-            { "src": "rules/backend/llm-gateway.md", "dest": "adapters/llm/AGENTS.md" },
-            { "src": "rules/backend/guardrails.md", "dest": "adapters/guardrails/AGENTS.md" },
-            { "src": "rules/backend/llm-evaluation.md", "dest": "tests/eval/AGENTS.md" },
-            { "src": "rules/backend/llm-observability.md", "dest": "adapters/observability/AGENTS.md" },
-            { "src": "rules/backend/multi-agent.md", "dest": "services/graphs/AGENTS.md" },
+            { "src": "rules/backend/api.md", "dest": "api/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/services.md", "dest": "services/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/adapters.md", "dest": "adapters/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/security.md", "dest": "security/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/llm-gateway.md", "dest": "adapters/llm/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/guardrails.md", "dest": "adapters/guardrails/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/llm-evaluation.md", "dest": "tests/eval/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/llm-observability.md", "dest": "adapters/observability/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/multi-agent.md", "dest": "services/graphs/AGENTS.md", "managed_block": true },
             { "src": "rules/generic/repo-scope-backend.md", "dest": ".agents/rules/repo-scope.md" },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
-            { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
-            { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/implementation-plan/" },
-            { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" },
-            { "src": "skills/backend/genai-preflight/", "dest": ".agents/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".agents/skills/eval-suite-planning/" },
-            { "src": "skills/backend/multi-agent-design/", "dest": ".agents/skills/multi-agent-design/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/govkit-spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/govkit-architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/govkit-implementation-plan/" },
+            { "src": "skills/backend/adr-author/", "dest": ".agents/skills/govkit-adr-author/" },
+            { "src": "skills/backend/genai-preflight/", "dest": ".agents/skills/govkit-genai-preflight/" },
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".agents/skills/govkit-eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".agents/skills/govkit-multi-agent-design/" }
           ],
           "shared": [
             "features/starter_backend_l5/",
@@ -130,13 +130,13 @@
       "cli": {
         "files": [
           { "src": "agents-md/backend-cli.md", "dest": "AGENTS.md", "managed_block": true },
-          { "src": "rules/cli/cli.md", "dest": "cli/AGENTS.md" },
-          { "src": "rules/backend/services.md", "dest": "services/AGENTS.md" },
-          { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md" },
-          { "src": "rules/backend/adapters.md", "dest": "adapters/AGENTS.md" },
-          { "src": "rules/backend/security.md", "dest": "security/AGENTS.md" },
+          { "src": "rules/cli/cli.md", "dest": "cli/AGENTS.md", "managed_block": true },
+          { "src": "rules/backend/services.md", "dest": "services/AGENTS.md", "managed_block": true },
+          { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md", "managed_block": true },
+          { "src": "rules/backend/adapters.md", "dest": "adapters/AGENTS.md", "managed_block": true },
+          { "src": "rules/backend/security.md", "dest": "security/AGENTS.md", "managed_block": true },
           { "src": "rules/generic/repo-scope-backend.md", "dest": ".agents/rules/repo-scope.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".agents/skills/govkit-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -148,9 +148,9 @@
             { "src": "agents-md/l4-backend-cli.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
-            { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
-            { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/implementation-plan/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/govkit-spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/govkit-architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/govkit-implementation-plan/" }
           ],
           "shared": [
             "features/starter_cli/"
@@ -166,26 +166,26 @@
           "mode": "replace",
           "files": [
             { "src": "agents-md/l5-backend-cli.md", "dest": "AGENTS.md", "managed_block": true },
-            { "src": "rules/cli/cli.md", "dest": "cli/AGENTS.md" },
-            { "src": "rules/backend/services.md", "dest": "services/AGENTS.md" },
-            { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md" },
-            { "src": "rules/backend/adapters.md", "dest": "adapters/AGENTS.md" },
-            { "src": "rules/backend/security.md", "dest": "security/AGENTS.md" },
-            { "src": "rules/backend/llm-gateway.md", "dest": "adapters/llm/AGENTS.md" },
-            { "src": "rules/backend/guardrails.md", "dest": "adapters/guardrails/AGENTS.md" },
-            { "src": "rules/backend/llm-evaluation.md", "dest": "tests/eval/AGENTS.md" },
-            { "src": "rules/backend/llm-observability.md", "dest": "adapters/observability/AGENTS.md" },
-            { "src": "rules/backend/multi-agent.md", "dest": "services/graphs/AGENTS.md" },
+            { "src": "rules/cli/cli.md", "dest": "cli/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/services.md", "dest": "services/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/ports.md", "dest": "ports/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/adapters.md", "dest": "adapters/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/security.md", "dest": "security/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/llm-gateway.md", "dest": "adapters/llm/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/guardrails.md", "dest": "adapters/guardrails/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/llm-evaluation.md", "dest": "tests/eval/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/llm-observability.md", "dest": "adapters/observability/AGENTS.md", "managed_block": true },
+            { "src": "rules/backend/multi-agent.md", "dest": "services/graphs/AGENTS.md", "managed_block": true },
             { "src": "rules/generic/repo-scope-backend.md", "dest": ".agents/rules/repo-scope.md" },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
-            { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/spec-planning/" },
-            { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/implementation-plan/" },
-            { "src": "skills/backend/adr-author/", "dest": ".agents/skills/adr-author/" },
-            { "src": "skills/backend/genai-preflight/", "dest": ".agents/skills/genai-preflight/" },
-            { "src": "skills/backend/eval-suite-planning/", "dest": ".agents/skills/eval-suite-planning/" },
-            { "src": "skills/backend/multi-agent-design/", "dest": ".agents/skills/multi-agent-design/" }
+            { "src": "skills/backend/spec-planning/", "dest": ".agents/skills/govkit-spec-planning/" },
+            { "src": "skills/backend/architecture-preflight/", "dest": ".agents/skills/govkit-architecture-preflight/" },
+            { "src": "skills/backend/implementation-plan/", "dest": ".agents/skills/govkit-implementation-plan/" },
+            { "src": "skills/backend/adr-author/", "dest": ".agents/skills/govkit-adr-author/" },
+            { "src": "skills/backend/genai-preflight/", "dest": ".agents/skills/govkit-genai-preflight/" },
+            { "src": "skills/backend/eval-suite-planning/", "dest": ".agents/skills/govkit-eval-suite-planning/" },
+            { "src": "skills/backend/multi-agent-design/", "dest": ".agents/skills/govkit-multi-agent-design/" }
           ],
           "shared": [
             "features/starter_cli_l5/"
@@ -200,13 +200,13 @@
       "ui-react": {
         "files": [
           { "src": "agents-md/ui-react.md", "dest": "AGENTS.md", "managed_block": true },
-          { "src": "agents-md/src-ui-react.md", "dest": "src/AGENTS.md" },
-          { "src": "rules/ui-react/components.md", "dest": "src/features/components/AGENTS.md" },
-          { "src": "rules/ui-react/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },
-          { "src": "rules/ui-react/api.md", "dest": "src/features/api/AGENTS.md" },
-          { "src": "rules/ui-react/accessibility.md", "dest": "src/shared/accessibility/AGENTS.md" },
+          { "src": "agents-md/src-ui-react.md", "dest": "src/AGENTS.md", "managed_block": true },
+          { "src": "rules/ui-react/components.md", "dest": "src/features/components/AGENTS.md", "managed_block": true },
+          { "src": "rules/ui-react/viewmodel.md", "dest": "src/features/hooks/AGENTS.md", "managed_block": true },
+          { "src": "rules/ui-react/api.md", "dest": "src/features/api/AGENTS.md", "managed_block": true },
+          { "src": "rules/ui-react/accessibility.md", "dest": "src/shared/accessibility/AGENTS.md", "managed_block": true },
           { "src": "rules/generic/repo-scope-ui.md", "dest": ".agents/rules/repo-scope.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".agents/skills/ui-adr-author/" }
+          { "src": "skills/ui/adr-author/", "dest": ".agents/skills/govkit-ui-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -221,9 +221,9 @@
             { "src": "agents-md/l4-ui-react.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
-            { "src": "skills/ui/spec-planning/", "dest": ".agents/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".agents/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".agents/skills/ui-implementation-plan/" }
+            { "src": "skills/ui/spec-planning/", "dest": ".agents/skills/govkit-ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".agents/skills/govkit-ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".agents/skills/govkit-ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -238,18 +238,18 @@
           "mode": "replace",
           "files": [
             { "src": "agents-md/l5-ui-react.md", "dest": "AGENTS.md", "managed_block": true },
-            { "src": "agents-md/src-ui-react.md", "dest": "src/AGENTS.md" },
-            { "src": "rules/ui-react/components.md", "dest": "src/features/components/AGENTS.md" },
-            { "src": "rules/ui-react/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },
-            { "src": "rules/ui-react/api.md", "dest": "src/features/api/AGENTS.md" },
-            { "src": "rules/ui-react/accessibility.md", "dest": "src/shared/accessibility/AGENTS.md" },
+            { "src": "agents-md/src-ui-react.md", "dest": "src/AGENTS.md", "managed_block": true },
+            { "src": "rules/ui-react/components.md", "dest": "src/features/components/AGENTS.md", "managed_block": true },
+            { "src": "rules/ui-react/viewmodel.md", "dest": "src/features/hooks/AGENTS.md", "managed_block": true },
+            { "src": "rules/ui-react/api.md", "dest": "src/features/api/AGENTS.md", "managed_block": true },
+            { "src": "rules/ui-react/accessibility.md", "dest": "src/shared/accessibility/AGENTS.md", "managed_block": true },
             { "src": "rules/generic/repo-scope-ui.md", "dest": ".agents/rules/repo-scope.md" },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
-            { "src": "skills/ui/adr-author/", "dest": ".agents/skills/ui-adr-author/" },
-            { "src": "skills/ui/spec-planning/", "dest": ".agents/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".agents/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".agents/skills/ui-implementation-plan/" }
+            { "src": "skills/ui/adr-author/", "dest": ".agents/skills/govkit-ui-adr-author/" },
+            { "src": "skills/ui/spec-planning/", "dest": ".agents/skills/govkit-ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".agents/skills/govkit-ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".agents/skills/govkit-ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -268,13 +268,13 @@
       "ui-angular": {
         "files": [
           { "src": "agents-md/ui-angular.md", "dest": "AGENTS.md", "managed_block": true },
-          { "src": "agents-md/src-ui-angular.md", "dest": "src/AGENTS.md" },
-          { "src": "rules/ui-angular/components.md", "dest": "src/features/components/AGENTS.md" },
-          { "src": "rules/ui-angular/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },
-          { "src": "rules/ui-angular/api.md", "dest": "src/features/api/AGENTS.md" },
-          { "src": "rules/ui-angular/accessibility.md", "dest": "src/shared/accessibility/AGENTS.md" },
+          { "src": "agents-md/src-ui-angular.md", "dest": "src/AGENTS.md", "managed_block": true },
+          { "src": "rules/ui-angular/components.md", "dest": "src/features/components/AGENTS.md", "managed_block": true },
+          { "src": "rules/ui-angular/viewmodel.md", "dest": "src/features/hooks/AGENTS.md", "managed_block": true },
+          { "src": "rules/ui-angular/api.md", "dest": "src/features/api/AGENTS.md", "managed_block": true },
+          { "src": "rules/ui-angular/accessibility.md", "dest": "src/shared/accessibility/AGENTS.md", "managed_block": true },
           { "src": "rules/generic/repo-scope-ui.md", "dest": ".agents/rules/repo-scope.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".agents/skills/ui-adr-author/" }
+          { "src": "skills/ui/adr-author/", "dest": ".agents/skills/govkit-ui-adr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -289,9 +289,9 @@
             { "src": "agents-md/l4-ui-angular.md", "dest": "AGENTS.md", "managed_block": true },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
-            { "src": "skills/ui/spec-planning/", "dest": ".agents/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".agents/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".agents/skills/ui-implementation-plan/" }
+            { "src": "skills/ui/spec-planning/", "dest": ".agents/skills/govkit-ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".agents/skills/govkit-ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".agents/skills/govkit-ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -306,18 +306,18 @@
           "mode": "replace",
           "files": [
             { "src": "agents-md/l5-ui-angular.md", "dest": "AGENTS.md", "managed_block": true },
-            { "src": "agents-md/src-ui-angular.md", "dest": "src/AGENTS.md" },
-            { "src": "rules/ui-angular/components.md", "dest": "src/features/components/AGENTS.md" },
-            { "src": "rules/ui-angular/viewmodel.md", "dest": "src/features/hooks/AGENTS.md" },
-            { "src": "rules/ui-angular/api.md", "dest": "src/features/api/AGENTS.md" },
-            { "src": "rules/ui-angular/accessibility.md", "dest": "src/shared/accessibility/AGENTS.md" },
+            { "src": "agents-md/src-ui-angular.md", "dest": "src/AGENTS.md", "managed_block": true },
+            { "src": "rules/ui-angular/components.md", "dest": "src/features/components/AGENTS.md", "managed_block": true },
+            { "src": "rules/ui-angular/viewmodel.md", "dest": "src/features/hooks/AGENTS.md", "managed_block": true },
+            { "src": "rules/ui-angular/api.md", "dest": "src/features/api/AGENTS.md", "managed_block": true },
+            { "src": "rules/ui-angular/accessibility.md", "dest": "src/shared/accessibility/AGENTS.md", "managed_block": true },
             { "src": "rules/generic/repo-scope-ui.md", "dest": ".agents/rules/repo-scope.md" },
             { "src": "rules/generic/test-first.md", "dest": ".agents/rules/test-first.md" },
             { "src": "rules/generic/spec-compliance.md", "dest": ".agents/rules/spec-compliance.md" },
-            { "src": "skills/ui/adr-author/", "dest": ".agents/skills/ui-adr-author/" },
-            { "src": "skills/ui/spec-planning/", "dest": ".agents/skills/ui-spec-planning/" },
-            { "src": "skills/ui/architecture-preflight/", "dest": ".agents/skills/ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".agents/skills/ui-implementation-plan/" }
+            { "src": "skills/ui/adr-author/", "dest": ".agents/skills/govkit-ui-adr-author/" },
+            { "src": "skills/ui/spec-planning/", "dest": ".agents/skills/govkit-ui-spec-planning/" },
+            { "src": "skills/ui/architecture-preflight/", "dest": ".agents/skills/govkit-ui-architecture-preflight/" },
+            { "src": "skills/ui/implementation-plan/", "dest": ".agents/skills/govkit-ui-implementation-plan/" }
           ],
           "shared": [
             "features/starter_ui/",
