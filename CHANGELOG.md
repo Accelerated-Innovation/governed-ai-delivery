@@ -8,6 +8,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- Added the bundled `skill-oriented-agent-architecture` extension. It translates
+  approved SOAA v0.2 decisions into five progressively loaded contract sets for
+  core semantics, selection and authority, context and resilience, assurance,
+  and lifecycle interoperability. The package is provider-neutral, supersedes
+  the generic `AGENT_ARCHITECTURE.md` when installed, and includes focused
+  validation and installation tests.
+
 ### Fixed
 
 - `govkit upgrade` no longer erases the team's calibration. It wrote the marker

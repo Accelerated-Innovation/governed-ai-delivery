@@ -25,7 +25,11 @@ def test_extension_packs_dir_exists_and_has_bundled_packs():
         for p in paths.EXTENSION_PACKS_DIR.iterdir()
         if p.is_dir() and not p.name.startswith(".")
     }
-    assert {"agentic-skills", "vision-inference"} <= ids, f"bundled packs missing; found {ids}"
+    assert {
+        "agentic-skills",
+        "skill-oriented-agent-architecture",
+        "vision-inference",
+    } <= ids, f"bundled packs missing; found {ids}"
 
 
 def test_extension_list_prints_bundled_packs(capsys):
@@ -33,6 +37,7 @@ def test_extension_list_prints_bundled_packs(capsys):
     out = capsys.readouterr().out
     assert "vision-inference" in out
     assert "agentic-skills" in out
+    assert "skill-oriented-agent-architecture" in out
 
 
 def test_extension_list_shows_supported_levels_and_types(capsys):

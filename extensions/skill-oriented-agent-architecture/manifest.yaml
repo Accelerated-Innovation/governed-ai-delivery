@@ -1,0 +1,171 @@
+id: skill-oriented-agent-architecture
+name: Skill-Oriented Agent Architecture Extension
+version: 0.1.0
+description: Adds provider-neutral architecture contracts for governed applications in which accountable agent runs select and apply versioned procedural skills inside deterministic control boundaries.
+govkit_min_version: 0.13.0
+extension_type: architecture
+supported_levels:
+  - 5
+supported_project_types:
+  - api
+  - cli
+
+contract_sets:
+  - id: soaa_core
+    description: Core SOAA semantics, responsibility boundaries, task ownership, runtime state, and skill contracts.
+    paths:
+      - docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md
+      - docs/backend/architecture/SKILL_CONTRACT.md
+      - docs/backend/architecture/RUNTIME_STATE_AND_EXECUTION_CONTRACT.md
+    applies_to:
+      - "**/*agent*"
+      - "**/*skill*"
+      - "**/*task*"
+      - "**/*runtime*"
+      - "**/*orchestrat*"
+      - "**/*workflow*"
+    capabilities:
+      - governed-agent-runtime
+      - procedural-skills
+      - task-ownership
+      - deterministic-control-boundary
+      - provider-neutral-agent-architecture
+    relates_to:
+      extends:
+        - docs/backend/architecture/ARCH_CONTRACT.md
+        - docs/backend/architecture/BOUNDARIES.md
+      supersedes:
+        - docs/backend/architecture/AGENT_ARCHITECTURE.md
+
+  - id: soaa_selection_authority
+    description: Skill retrieval, deterministic admission, ranking, activation, effective authority, approval, revocation, and instruction precedence.
+    paths:
+      - docs/backend/architecture/SKILL_SELECTION_AND_ACTIVATION_CONTRACT.md
+      - docs/backend/architecture/AUTHORITY_AND_APPROVAL_CONTRACT.md
+    applies_to:
+      - "**/*catalog*"
+      - "**/*registry*"
+      - "**/*select*"
+      - "**/*rank*"
+      - "**/*admission*"
+      - "**/*activation*"
+      - "**/*authoriz*"
+      - "**/*permission*"
+      - "**/*approval*"
+      - "**/*policy*"
+    capabilities:
+      - deterministic-skill-admission
+      - skill-ranking
+      - atomic-skill-activation
+      - effective-authority
+      - scoped-approval
+      - revocation
+      - instruction-precedence
+    relates_to:
+      extends:
+        - docs/backend/architecture/SECURITY_AUTH_PATTERNS.md
+        - docs/backend/architecture/GUARDRAILS_CONTRACT.md
+      supersedes: []
+
+  - id: soaa_context_resilience
+    description: Immutable context snapshots, progressive disclosure, resource trust, governed memory, failure handling, recovery, budgets, and operational telemetry.
+    paths:
+      - docs/backend/architecture/CONTEXT_MEMORY_AND_RESOURCE_CONTRACT.md
+      - docs/backend/architecture/RESILIENCE_AND_RECOVERY_CONTRACT.md
+    applies_to:
+      - "**/*context*"
+      - "**/*memory*"
+      - "**/*resource*"
+      - "**/*retriev*"
+      - "**/*checkpoint*"
+      - "**/*retry*"
+      - "**/*recover*"
+      - "**/*budget*"
+      - "**/*telemetr*"
+      - "**/*observab*"
+    capabilities:
+      - progressive-context
+      - context-snapshots
+      - resource-trust
+      - governed-memory
+      - bounded-retry
+      - reconciliation
+      - compensation
+      - execution-budgets
+    relates_to:
+      extends:
+        - docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md
+        - docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md
+      supersedes: []
+
+  - id: soaa_assurance
+    description: Evaluation definitions, oracle selection, completion gates, evidence integrity, and conformance claim boundaries.
+    paths:
+      - docs/backend/architecture/EVALUATION_EVIDENCE_AND_COMPLETION_CONTRACT.md
+    applies_to:
+      - "**/*eval*"
+      - "**/*grader*"
+      - "**/*evidence*"
+      - "**/*complete*"
+      - "**/*verify*"
+      - "**/*conformance*"
+      - "**/*test*"
+    capabilities:
+      - agent-evaluation
+      - skill-admission-evaluation
+      - completion-gates
+      - durable-evidence
+      - conformance-claims
+    relates_to:
+      extends:
+        - docs/backend/architecture/TESTING.md
+        - docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
+      supersedes: []
+
+  - id: soaa_ecosystem
+    description: Governed skill release lifecycle, version identity, supply-chain controls, Agent Skills packaging, MCP and A2A mappings, and portability.
+    paths:
+      - docs/backend/architecture/SKILL_LIFECYCLE_AND_INTEROPERABILITY_CONTRACT.md
+    applies_to:
+      - "**/SKILL.md"
+      - "**/soaa/manifest.yaml"
+      - "**/*release*"
+      - "**/*version*"
+      - "**/*package*"
+      - "**/*provenance*"
+      - "**/*mcp*"
+      - "**/*a2a*"
+      - "**/*protocol*"
+      - "**/*interop*"
+    capabilities:
+      - governed-skill-lifecycle
+      - exact-release-binding
+      - skill-supply-chain
+      - agent-skills-profile
+      - mcp-mapping
+      - a2a-mapping
+      - runtime-portability
+    relates_to:
+      extends:
+        - docs/backend/architecture/LLM_GATEWAY_CONTRACT.md
+      supersedes: []
+
+agent_guidance:
+  architecture_preflight:
+    - Read this manifest before planning any feature involving agents, skills, adaptive orchestration, tool use, delegation, memory, or agent evaluation.
+    - Load soaa_core first, then load only the additional contract sets matched by feature intent and touched files.
+    - Classify every relevant component as agent run, skill, tool, resource, workflow, policy, evaluator, memory, or trusted controller.
+    - Record the accountable principal, accepted task boundary, single runtime owner, authoritative state writers, external side effects, approval routes, and completion evidence.
+    - List every applicable SOAA contract in architecture_preflight.md.
+    - Require an ADR for an extension, override, or violation of these contracts.
+  implementation_plan:
+    - Separate adaptive model proposals from deterministic validation and commit paths.
+    - Map every authoritative aggregate to one trusted writer, typed port, persistence boundary, and verification family.
+    - Bind each activation to one exact admitted skill release, authority envelope, context snapshot, dependency lock, and evidence profile.
+    - Give every mutating external operation a durable identity, fresh authorization, idempotency rule, reconciliation route, and evidence record.
+    - Include negative, fault-injection, concurrency, recovery, evaluation, and evidence tests for every affected control boundary.
+  validation:
+    - Validate every declared contract path after extension installation.
+    - Reject direct model writes to authoritative state, direct skill grants, hidden skill activation, and task completion based only on skill or model success.
+    - Verify one active task owner, deterministic admission before ranking, atomic activation, fresh operation authorization, bounded execution, and an independent completion gate.
+    - Treat missing, stale, conflicting, or invalid evidence as a blocked or inconclusive gate, never implicit success.
