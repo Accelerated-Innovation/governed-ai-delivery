@@ -30,7 +30,8 @@ Add a bundled GovKit architecture extension that translates the approved SOAA v0
 ## Verification result
 
 - Focused extension and schema suite: 167 passed.
-- Full repository suite: 1047 passed, 1 skipped.
+- Agent Skills compatibility amendment suite: 28 passed.
+- Full repository suite: 1048 passed, 1 skipped.
 - Diff whitespace validation: passed.
 - Wheel build and bundled-extension inventory: passed.
 

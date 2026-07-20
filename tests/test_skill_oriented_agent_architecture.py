@@ -170,6 +170,48 @@ def test_completion_contract_rejects_self_asserted_success():
     assert "task controller transition" in folded
 
 
+def test_agent_skills_profile_defines_standard_compatibility_boundary():
+    contract = (
+        EXT_DIR
+        / "docs"
+        / "backend"
+        / "architecture"
+        / "SKILL_CONTRACT.md"
+    ).read_text(encoding="utf-8")
+    lifecycle = (
+        EXT_DIR
+        / "docs"
+        / "backend"
+        / "architecture"
+        / "SKILL_LIFECYCLE_AND_INTEROPERABILITY_CONTRACT.md"
+    ).read_text(encoding="utf-8")
+
+    for phrase in (
+        "SOAA profile for Agent Skills packages",
+        "string keys mapped to string values",
+        "soaa-profile",
+        "soaa-manifest",
+        "soaa-manifest-digest",
+        "soaa-release-id",
+        "Generic-client behavior",
+        "must not claim SOAA package-profile or runtime conformance",
+        "skills-ref validate <skill-root>",
+        "Two-stage validation",
+        "intersect runtime_policy",
+        "intersect task_authority",
+        "intersect approval_scope",
+    ):
+        assert phrase in contract
+
+    for phrase in (
+        "Flat string metadata keys",
+        "may ignore `soaa/`",
+        "must not claim SOAA conformance",
+        "intersection of that ceiling, runtime policy, task authority, and approval scope",
+    ):
+        assert phrase in lifecycle
+
+
 def test_contracts_are_provider_and_framework_neutral():
     prohibited_product_names = {
         "langgraph",

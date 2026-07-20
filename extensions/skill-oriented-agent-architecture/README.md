@@ -27,6 +27,12 @@ Install this extension for an API or CLI application with one or more of these c
 
 This extension governs the application being built. It is distinct from the Agent Skills packages used by Codex, Claude Code, or Copilot to guide software delivery.
 
+## Agent Skills compatibility
+
+The SOAA package profile preserves a standard root `SKILL.md` and places governance metadata in an additional `soaa/` directory permitted by the Agent Skills format. A generic Agent Skills client may ignore the SOAA files and process the standard skill, but it must not claim SOAA conformance. A SOAA-aware runtime validates both the Agent Skills format and the SOAA profile before admission.
+
+See [`SKILL_CONTRACT.md`](docs/backend/architecture/SKILL_CONTRACT.md) for the normative flat metadata keys, two-stage validation rule, and `allowed-tools` authority boundary.
+
 ## Install
 
 ```bash

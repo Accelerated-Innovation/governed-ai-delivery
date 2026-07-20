@@ -7,6 +7,7 @@
 | Primary decisions | SOAA-018 through SOAA-020 |
 | Primary invariants | SOAA-INV-147 through SOAA-INV-206 |
 | Source module | SOAA Packet 6 |
+| External format | [Agent Skills specification](https://agentskills.io/specification), accessed 2026-07-20 |
 
 ## Purpose
 
@@ -149,15 +150,17 @@ Revalidation triggers include changes to:
 
 Revalidation results in pass, constrained operation, deprecation, disablement, revocation, or suspension for insufficient evidence.
 
-## Agent Skills mapping
+## SOAA profile for Agent Skills packages
 
 The SOAA package profile uses:
 
 - `SKILL.md` for standard discovery and procedure
 - `soaa/manifest.yaml` for governance semantics
-- Namespaced metadata for profile, manifest path, manifest digest, and release identity
+- Flat string metadata keys `soaa-profile`, `soaa-manifest`, `soaa-manifest-digest`, and `soaa-release-id`
 
-`allowed-tools` is a requested ceiling, not a grant.
+The Agent Skills format permits additional files and directories. A generic client may ignore `soaa/` and remain Agent Skills-format compatible, but it must not claim SOAA conformance. A SOAA-aware client must first validate the standard `SKILL.md`, then validate the SOAA manifest, digest, release identity, declared package contents, compatibility, provenance, and evidence profile.
+
+`allowed-tools` is a requested ceiling, not a grant. Effective tool access is the intersection of that ceiling, runtime policy, task authority, and approval scope. Absence of the field never authorizes a tool.
 
 Package integrity covers instructions, manifest, profile files, scripts, assets, references, evaluations, schemas, migrations, license, and provenance. Parent traversal, symbolic-link escape, undeclared executable assets, and digest mismatch fail admission.
 

@@ -7,6 +7,7 @@
 | Primary decisions | SOAA-002, SOAA-004, SOAA-019 |
 | Primary invariants | SOAA-INV-006 through SOAA-INV-020 and SOAA-INV-175 through SOAA-INV-182 |
 | Source modules | SOAA Packets 1 and 6 |
+| External format | [Agent Skills specification](https://agentskills.io/specification), accessed 2026-07-20 |
 
 ## Purpose
 
@@ -57,7 +58,7 @@ Executable assets remain inert until:
 
 One package may contain instructions, references, schemas, and executable assets. Packaging does not erase the responsibility boundary.
 
-## Agent Skills package profile
+## SOAA profile for Agent Skills packages
 
 A SOAA-aligned Agent Skills package uses two layers:
 
@@ -76,16 +77,61 @@ skill-name/
 └── LICENSE.txt
 ```
 
-`SKILL.md` preserves standard discovery metadata and procedural instructions. `soaa/manifest.yaml` holds the governance contract.
+`SKILL.md` preserves Agent Skills discovery metadata and procedural instructions. `soaa/manifest.yaml` holds the SOAA governance contract. The Agent Skills format permits additional files and directories, so `soaa/` and `evals/` extend the package without replacing or modifying the standard format.
 
-The `SKILL.md` metadata must link:
+The standard constraints for `SKILL.md` remain binding, including the parent-directory name match and the required `name` and `description` fields. SOAA metadata uses the standard `metadata` field, whose entries are string keys mapped to string values.
 
-- SOAA profile identifier
-- Relative manifest path
-- Manifest digest
-- Exact skill release identity
+```yaml
+---
+name: skill-name
+description: Performs the governed skill-name procedure. Use for tasks that require this procedure.
+license: LICENSE.txt
+metadata:
+  soaa-profile: "soaa-agent-skills/0.2"
+  soaa-manifest: "soaa/manifest.yaml"
+  soaa-manifest-digest: "sha256:<64-lowercase-hex>"
+  soaa-release-id: "<immutable-release-id>"
+---
+```
 
-The standard `allowed-tools` field is a requested ceiling. It never grants runtime access.
+The four SOAA metadata keys are normative:
+
+| Key | Required value |
+|---|---|
+| `soaa-profile` | Exact SOAA Agent Skills profile identifier and version |
+| `soaa-manifest` | Skill-root-relative path to `soaa/manifest.yaml` with no parent traversal |
+| `soaa-manifest-digest` | Digest of the exact manifest bytes using the declared algorithm |
+| `soaa-release-id` | Immutable release identity matching the manifest |
+
+All four values must be non-empty strings. Nested SOAA metadata is invalid because Agent Skills metadata values are strings, not mappings. The manifest digest and release identity must match before admission.
+
+### Generic-client behavior
+
+A generic Agent Skills client may ignore the `soaa/` directory and unrecognized `soaa-*` metadata. It may still process the package as Agent Skills-format conformant when `SKILL.md` passes standard validation. It must not claim SOAA package-profile or runtime conformance.
+
+A SOAA-aware client must recognize the four metadata keys, validate the referenced manifest and package integrity, and enforce SOAA admission and activation rules before using governed capabilities.
+
+### `allowed-tools` profile rule
+
+The Agent Skills `allowed-tools` field remains an optional, space-separated string. Within SOAA it declares a requested maximum tool set, not an authority grant. A SOAA runtime calculates:
+
+```text
+effective_tools = allowed_tools
+                  intersect runtime_policy
+                  intersect task_authority
+                  intersect approval_scope
+```
+
+An absent `allowed-tools` field never authorizes a tool. Runtime policy, task authority, approvals, and the admitted SOAA manifest remain controlling.
+
+### Two-stage validation
+
+Package admission requires both validation stages:
+
+1. Agent Skills format validation using `skills-ref validate <skill-root>` or an equivalent conforming validator. This validates `SKILL.md` frontmatter, naming, and standard field constraints.
+2. SOAA profile validation. This validates the manifest schema and digest, release identity, declared files, package digest, compatibility, provenance, evidence profile, executable-asset declarations, and mirrored-field consistency.
+
+Passing stage 1 supports an Agent Skills-format conformance claim. Passing both stages supports a SOAA package-profile conformance claim. Neither result alone establishes runtime, activation, evaluation, or task-completion conformance.
 
 ## Source-of-truth split
 
