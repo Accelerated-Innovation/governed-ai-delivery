@@ -510,7 +510,7 @@ See [`cli/stacks/README.md`](cli/stacks/README.md) for the complete guide, inclu
 
 ## Extensions
 
-Govkit ships **optional extension packs** that layer additional architecture contracts on top of the core kit — currently `agentic-skills` and `vision-inference`. Add one with `govkit extension add`, or drop the folder in by hand; either way the folder under `extensions/<id>/` in your project *is* the install.
+Govkit ships **optional extension packs** that layer additional architecture contracts on top of the core kit — currently `agentic-skills`, `skill-oriented-agent-architecture`, and `vision-inference`. Add one with `govkit extension add`, or drop the folder in by hand; either way the folder under `extensions/<id>/` in your project *is* the install.
 
 ### How to add an extension
 
@@ -519,6 +519,7 @@ The quickest path is the bundled-pack command:
 ```bash
 govkit extension list                              # see what's bundled
 govkit extension add vision-inference --target .   # copy it into extensions/vision-inference/
+govkit extension add skill-oriented-agent-architecture --target .
 ```
 
 `add` copies the pack into your project's `extensions/<id>/` and validates it in place. It **warns but proceeds** if the pack's `supported_levels` / `supported_project_types` don't match your `.govkit` marker, or if a core contract it `extends` isn't installed yet (e.g. a generative pack's L5 contracts in a non-L5 project). Pass `--force` to overwrite an existing folder.
@@ -549,7 +550,7 @@ govkit extension add vision-inference --target .   # copy it into extensions/vis
 
 When `extensions/` is absent, govkit behaves exactly as it does without extensions — they are entirely optional.
 
-See `extensions/agentic-skills/` and `extensions/vision-inference/` in this repository for complete reference examples.
+See `extensions/skill-oriented-agent-architecture/` and `extensions/vision-inference/` in this repository for complete reference examples. The older `agentic-skills/` package remains available for its product-specific skill-family and phase model. Do not install it beside `skill-oriented-agent-architecture`.
 
 ### Authoring an extension
 
