@@ -311,7 +311,7 @@ Violations must be fixed before proceeding.
 
 ### 10.1 Development Tool Usage
 
-Approved tools are defined in `docs/backend/architecture/TECH_STACK.md` and `docs/backend/architecture/AGENT_ARCHITECTURE.md`.
+Approved tools are defined in `docs/backend/architecture/TECH_STACK.md` and applicable ADRs.
 
 Copilot must use tool findings to detect lint and formatting issues, identify structural complexity and duplicated logic, detect security vulnerabilities, and validate architecture boundary compliance.
 

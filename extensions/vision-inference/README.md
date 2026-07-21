@@ -60,9 +60,10 @@ For vision-language models (Claude vision, GPT-4V) and image generation:
 
 - `MULTIMODAL_INPUT_CONTRACT.md` — image-as-untrusted-instruction-channel
   (prompt-injection-via-image), generated-output validation, and the biometric
-  obligations that still apply. **Reuses** the L5 GenAI-Ops contracts via
-  `relates_to.extends` (guardrails, eval-as-judge, LLM observability, gateway)
-  rather than reinventing them — so this set is intended for L5-governed projects.
+  obligations that still apply. **Reuses** the provider-neutral
+  `llm-application` contracts via `relates_to.extends` (model guardrails,
+  evaluation, observability, and gateway) rather than reinventing them. Install
+  `llm-application` when using this contract set.
 
 Schemas live under `extensions/vision-inference/schemas/`:
 

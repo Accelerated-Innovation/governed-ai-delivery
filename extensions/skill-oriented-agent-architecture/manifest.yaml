@@ -34,8 +34,7 @@ contract_sets:
       extends:
         - docs/backend/architecture/ARCH_CONTRACT.md
         - docs/backend/architecture/BOUNDARIES.md
-      supersedes:
-        - docs/backend/architecture/AGENT_ARCHITECTURE.md
+      supersedes: []
 
   - id: soaa_selection_authority
     description: Skill retrieval, deterministic admission, ranking, activation, effective authority, approval, revocation, and instruction precedence.
@@ -64,7 +63,6 @@ contract_sets:
     relates_to:
       extends:
         - docs/backend/architecture/SECURITY_AUTH_PATTERNS.md
-        - docs/backend/architecture/GUARDRAILS_CONTRACT.md
       supersedes: []
 
   - id: soaa_context_resilience
@@ -95,7 +93,6 @@ contract_sets:
     relates_to:
       extends:
         - docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md
-        - docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md
       supersedes: []
 
   - id: soaa_assurance
@@ -119,7 +116,6 @@ contract_sets:
     relates_to:
       extends:
         - docs/backend/architecture/TESTING.md
-        - docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
       supersedes: []
 
   - id: soaa_ecosystem
@@ -147,7 +143,7 @@ contract_sets:
       - runtime-portability
     relates_to:
       extends:
-        - docs/backend/architecture/LLM_GATEWAY_CONTRACT.md
+        - docs/backend/architecture/ARCH_CONTRACT.md
       supersedes: []
 
 agent_guidance:

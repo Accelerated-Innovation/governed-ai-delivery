@@ -1,84 +1,80 @@
 ---
 name: govkit-multi-agent-design
-description: Design the agent topology for a multi-agent feature and produce agent_topology.md. Use when eval_criteria.yaml declares multi_agent:true or when invoking /govkit-multi-agent-design.
+description: Design a governed agent topology and produce agent_topology.md. Use for multi-agent features, delegation, adaptive orchestration, or when invoking /govkit-multi-agent-design.
 ---
 
-# Multi-Agent Design
+# Governed Agent Topology Design
 
-You are designing the agent topology for a feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
+Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
-Run this skill before `/govkit-architecture-preflight` whenever `eval_criteria.yaml` declares `multi_agent: true`.
+## Required extension
+
+Confirm `extensions/skill-oriented-agent-architecture/manifest.yaml` exists. If it is missing, stop and report:
+
+```bash
+govkit extension add skill-oriented-agent-architecture --target .
+```
 
 ## Inputs to read
 
-- `features/<feature_name>/nfrs.md` — understand scope and constraints
-- `features/<feature_name>/acceptance.feature` — understand required outcomes
-- `features/<feature_name>/eval_criteria.yaml` — confirm `multi_agent: true`
-- `docs/backend/architecture/AGENT_ARCHITECTURE.md` Section 17 — architecture rules
-- `docs/backend/architecture/TECH_STACK.md` — approved model aliases
+- `features/<feature_name>/nfrs.md`
+- `features/<feature_name>/acceptance.feature`
+- `features/<feature_name>/eval_criteria.yaml`
+- `extensions/skill-oriented-agent-architecture/docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md`
+- `extensions/skill-oriented-agent-architecture/docs/backend/architecture/RUNTIME_STATE_AND_EXECUTION_CONTRACT.md`
+- `extensions/skill-oriented-agent-architecture/docs/backend/architecture/AUTHORITY_AND_APPROVAL_CONTRACT.md`
+- `extensions/skill-oriented-agent-architecture/docs/backend/architecture/RESILIENCE_AND_RECOVERY_CONTRACT.md`
+- `extensions/skill-oriented-agent-architecture/docs/backend/architecture/EVALUATION_EVIDENCE_AND_COMPLETION_CONTRACT.md`
+- `docs/backend/architecture/TECH_STACK.md` and applicable ADRs
 
-## Step 1: Justify multi-agent
+If the design invokes language models, also load the applicable `llm-application` contracts.
 
-Answer these questions before proceeding. If the answers do not justify multiple agents, recommend a single-agent design and stop.
+## 1. Justify the topology
 
-- What workflow step genuinely benefits from specialization?
-- Would a single agent with tool calls achieve the same outcome? If yes, prefer that.
-- Is the expected output quality meaningfully better with specialized agents?
+State why multiple agent runs, delegation, or specialization is necessary. Prefer the smallest topology that satisfies the feature. Stop and recommend a simpler workflow when separate agent ownership does not provide a clear benefit.
 
-## Step 2: Define the Orchestrator
+## 2. Define task control
 
-- What decision does the orchestrator make?
-- What is its routing strategy (e.g., classify first, then route)?
-- System prompt file path: `src/agents/orchestrator/system_prompt.md`
-- Which LLM model alias does it use?
+Record:
 
-## Step 3: Define each Specialist Agent
+- accountable principal and accepted task boundary
+- exactly one trusted runtime owner and task controller
+- authoritative state and its declared writers
+- completion authority and independent verification gate
+- time, token, cost, tool, retry, and delegation budgets
 
-For each specialist, specify:
-- Role: one sentence
-- Input state fields: name and type for each field received from the graph state
-- Output state fields: name and type for each field written back to graph state
-- System prompt file path: `src/agents/<name>/system_prompt.md`
-- LLM model alias
-- Outbound ports invoked (e.g., `LLMPort`, `VectorSearchPort`, `DatabasePort`)
+## 3. Classify components and responsibilities
 
-Stop if any specialist's role overlaps significantly with another — collapse it.
+Classify every component as agent run, skill, tool, resource, workflow, policy, evaluator, memory, or trusted controller. For each agent run, define its bounded responsibility, accepted inputs, proposed outputs, context, permitted ports, authority ceiling, and evidence obligations. Collapse overlapping responsibilities.
 
-## Step 4: Define Routing Logic
+## 4. Define execution and state
 
-Map every graph edge with its condition. Every node must have a path to END. No unconditional loops.
+Specify typed, versioned runtime state; legal transitions; deterministic admission and routing controls; proposal/validation/commit boundaries; and the persistence or checkpoint boundary. Model or skill output cannot be an authoritative state write.
 
-Format:
-```
-START → <node>
-<node> → <node>  (condition: <what triggers this edge>)
-<node> → END     (condition: <what triggers termination>)
-```
+## 5. Define handoffs and external operations
 
-## Step 5: Define Failure Modes
+For each handoff, preserve task identity, authority, context provenance, budgets, and evidence. For every external operation, define typed arguments, fresh authorization, approval, idempotency, timeout, retry, reconciliation, compensation, and evidence.
 
-- Per-node timeout (seconds)
-- Graph-level timeout (seconds)
-- What happens when a node fails: return partial state with `error` field, route to END
-- Fallback model: declare in LiteLLM config, not in graph code
+## 6. Define failure and recovery
 
-## Step 6: Define State Schema
+Specify failure categories, bounded retries, cancellation, deadline behavior, checkpoint/replay rules, reconciliation, compensation, degraded behavior, escalation, and terminal states. No implicit recursion or unbounded delegation is permitted.
 
-Name the `TypedDict` and list all fields with types:
-- Input fields (set by the caller)
-- Intermediate fields (written and read between nodes)
-- Output fields (consumed by the caller)
-- `error: str | None` (required — populated on node failure)
+## 7. Define completion
+
+List the independent evidence required to enter verification and the trusted controller transition required for completion. Agent confidence, model confidence, and skill success are not completion evidence by themselves.
 
 ## Output
 
-Write `features/<feature_name>/agent_topology.md` following the template in `features/starter_backend_l5/agent_topology.md`.
+Write `features/<feature_name>/agent_topology.md` using the bundled template. Include the framework or runtime chosen in `TECH_STACK.md` or an ADR, but do not make product-specific types part of application contracts.
 
-After writing, confirm:
-- [ ] All system prompt paths are declared
-- [ ] All state fields are typed
-- [ ] Every node has a path to END
-- [ ] No direct agent-to-agent calls are implied
-- [ ] `agent_topology.md` has all four required sections: Orchestrator, Specialist Agents, Routing Logic, Failure Modes
+Before proceeding, confirm:
+
+- [ ] one accountable principal and exactly one runtime owner
+- [ ] all components and authoritative writers are classified
+- [ ] state, transitions, handoffs, and ports are typed
+- [ ] authority and approvals are explicit and fresh at execution time
+- [ ] retries, loops, delegation, time, tokens, cost, and tools are bounded
+- [ ] every side effect has idempotency and recovery behavior
+- [ ] completion requires independent evidence and a trusted transition
 
 Then proceed to `/govkit-architecture-preflight <feature_name>`.

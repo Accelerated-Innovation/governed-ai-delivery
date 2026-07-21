@@ -27,6 +27,7 @@ def test_extension_packs_dir_exists_and_has_bundled_packs():
     }
     assert {
         "agentic-skills",
+        "llm-application",
         "skill-oriented-agent-architecture",
         "vision-inference",
     } <= ids, f"bundled packs missing; found {ids}"
@@ -37,6 +38,7 @@ def test_extension_list_prints_bundled_packs(capsys):
     out = capsys.readouterr().out
     assert "vision-inference" in out
     assert "agentic-skills" in out
+    assert "llm-application" in out
     assert "skill-oriented-agent-architecture" in out
 
 

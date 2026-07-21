@@ -19,7 +19,6 @@ from pathlib import Path
 from . import paths, version
 from .install_common import (
     copy_governed_or_shared,
-    exclude_for_level,
     install_agent_file,
     post_install_finalize,
     reconcile_legacy_instruction_files,
@@ -124,17 +123,14 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     for entry in files:
         install_agent_file(agent_dir, entry, target, prior_applied_at)
 
-    # PR 6c: keep L5-only docs out of L3/L4 upgrades too.
-    l5_exclude = exclude_for_level(stored_level)
-
     print("\nGoverned contracts (refreshed, edit-protected):")
     copy_governed_or_shared(
-        governed, target, prior_applied_at, args.force, baseline, l5_exclude,
+        governed, target, prior_applied_at, args.force, baseline,
         skip_existing=False,
     )
     print("\nShared governance (skip if present):")
     copy_governed_or_shared(
-        shared, target, prior_applied_at, args.force, baseline, l5_exclude,
+        shared, target, prior_applied_at, args.force, baseline,
     )
 
     # Upgrade re-installs govkit's own files; it does not re-decide anything the

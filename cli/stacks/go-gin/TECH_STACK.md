@@ -79,11 +79,14 @@ docs/backend/architecture/API_CONVENTIONS.md
 
 ---
 
-<!-- §4 Agent Frameworks, §4a LLM Gateway moved to AGENT_ARCHITECTURE.md (L5-only). -->
+<!-- Agent-runtime contracts live in the optional skill-oriented-agent-architecture extension.
+     Model gateway contracts live in the optional llm-application extension. -->
 
 ---
 
-# 5. LLM Providers
+# 5. LLM Providers (when `llm-application` is installed)
+
+Contract: `extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
 
 Providers must be accessed through **adapter layers**.
 
@@ -178,9 +181,7 @@ sonar-project.properties
 .github/workflows/
 ```
 
-Agent interaction rules for development tools are defined in:
-
-`docs/backend/architecture/AGENT_ARCHITECTURE.md`
+AI coding agents may use these tools only within the project's approved task and authority boundaries.
 
 ---
 
@@ -201,7 +202,7 @@ features/<feature_name>/eval_criteria.yaml
 
 ---
 
-<!-- §10a LLM Evaluation moved to AGENT_ARCHITECTURE.md (L5-only). -->
+<!-- Model evaluation contracts live in the optional llm-application extension. -->
 
 ---
 
@@ -257,7 +258,7 @@ Full contract: `docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md`
 
 ---
 
-<!-- §11a Runtime Guardrails moved to AGENT_ARCHITECTURE.md (L5-only). -->
+<!-- Model guardrail contracts live in the optional llm-application extension. -->
 
 ---
 

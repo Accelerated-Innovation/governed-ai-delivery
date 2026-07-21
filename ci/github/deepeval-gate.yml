@@ -1,5 +1,6 @@
 # deepeval-gate.yml
 #
+# OPTIONAL IMPLEMENTATION PROFILE: use only when DeepEval is selected in TECH_STACK.md or an ADR.
 # PURPOSE: Level 5 — Runs DeepEval LLM quality evaluation tests for features with deepeval_* criteria.
 # Copy this file to .github/workflows/deepeval-gate.yml.
 #
@@ -10,7 +11,7 @@
 #   OPENAI_API_KEY or ANTHROPIC_API_KEY — required for LLM-as-judge metrics
 #
 # SEE ALSO:
-#   docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
+#   extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md
 #   docs/backend/guides/deepeval-usage.md
 
 name: DeepEval Gate (L5)

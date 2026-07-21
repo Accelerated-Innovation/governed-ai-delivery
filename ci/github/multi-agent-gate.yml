@@ -10,7 +10,7 @@
 # NO SECRETS REQUIRED — structural validation only.
 #
 # SEE ALSO:
-#   docs/backend/architecture/AGENT_ARCHITECTURE.md  (Section 17)
+#   extensions/skill-oriented-agent-architecture/manifest.yaml
 #   features/<feature>/agent_topology.md
 
 name: Multi-Agent Governance Gate (L5)

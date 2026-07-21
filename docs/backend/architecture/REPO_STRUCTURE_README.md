@@ -107,7 +107,6 @@ API_CONVENTIONS.md
 SECURITY_AUTH_PATTERNS.md
 TESTING.md
 TECH_STACK.md
-AGENT_ARCHITECTURE.md
 ADR/
 ```
 
@@ -121,7 +120,6 @@ Purpose of each file:
 | SECURITY_AUTH_PATTERNS.md | Auth and security model |
 | TESTING.md | Testing strategy (FIRST + BDD) |
 | TECH_STACK.md | Approved technologies |
-| AGENT_ARCHITECTURE.md | AI agent architecture rules |
 | ADR/ | Architecture Decision Records |
 
 These documents rarely change and define **how systems must be built**.
@@ -349,8 +347,15 @@ pip install git+https://github.com/Accelerated-Innovation/governed-ai-delivery.g
 After running `govkit apply`, review and update:
 ```
 docs/backend/architecture/TECH_STACK.md
-docs/backend/architecture/AGENT_ARCHITECTURE.md
 docs/backend/architecture/API_CONVENTIONS.md
+```
+
+When the project uses optional architecture extensions, also review their
+manifests and applicable contract sets, for example:
+
+```
+extensions/llm-application/manifest.yaml
+extensions/skill-oriented-agent-architecture/manifest.yaml
 ```
 
 You may also update:

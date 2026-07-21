@@ -212,33 +212,9 @@ def reconcile_legacy_instruction_files(
     return keep
 
 
-# PR 6c: L5-only architecture docs. These live in docs/backend/architecture/
-# alongside the universal baseline files for repo-self-governance purposes,
-# but they must NOT install at L3/L4 — doctor D007 (LLM-leakage in non-L5)
-# is the canary. Future PR may relocate these into a separate dir and drop
-# the exclusion machinery.
-_L5_ONLY_GOVERNED_BASENAMES: set[str] = {
-    "AGENT_ARCHITECTURE.md",
-    "LLM_GATEWAY_CONTRACT.md",
-    "GUARDRAILS_CONTRACT.md",
-    "OBSERVABILITY_LLM_CONTRACT.md",
-    "EVALUATION_LLM_CONTRACT.md",
-}
-
-
-def exclude_for_level(level: str) -> set[str] | None:
-    """Return basenames to exclude from governed copy at this level.
-
-    None at L5 (everything ships); the L5-only set at L3/L4.
-    """
-    if level == "5":
-        return None
-    return _L5_ONLY_GOVERNED_BASENAMES
-
-
 def copy_governed_or_shared(
     rel_paths: list, target: Path, prior_applied_at: str | None,
-    force: bool, baseline: str, exclude: set[str] | None,
+    force: bool, baseline: str,
     skip_existing: bool = True,
 ) -> None:
     """Copy each governed/shared dir from the bundle (REPO_ROOT) to target.
@@ -257,7 +233,6 @@ def copy_governed_or_shared(
             applied_at=prior_applied_at,
             force=force,
             header_baseline=baseline,
-            exclude_basenames=exclude,
         )
 
 

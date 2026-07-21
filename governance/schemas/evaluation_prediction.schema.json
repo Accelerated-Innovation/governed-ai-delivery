@@ -52,7 +52,26 @@
           "description": "L5 LLM-specific evaluation predictions (optional — only for Level 5 features)",
           "type": "object",
           "properties": {
+            "criteria": {
+              "description": "Provider-neutral predicted evaluation criteria. Use evaluator to identify the configured adapter or oracle.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["criterion", "evaluator", "predicted_score", "threshold"],
+                "properties": {
+                  "criterion": { "type": "string", "minLength": 1 },
+                  "evaluator": { "type": "string", "minLength": 1 },
+                  "predicted_score": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "threshold": { "type": "number", "minimum": 0, "maximum": 1 }
+                },
+                "additionalProperties": false
+              }
+            },
+            "adversarial_required": { "type": "boolean" },
+            "guardrail_policy": { "type": "string", "minLength": 1 },
+            "retrieval_required": { "type": "boolean" },
             "deepeval_metrics": {
+              "description": "Legacy bundled implementation-profile field. Prefer criteria for provider-neutral plans.",
               "type": "array",
               "items": {
                 "type": "object",
@@ -65,12 +84,19 @@
                 "additionalProperties": false
               }
             },
-            "promptfoo_required": { "type": "boolean" },
+            "promptfoo_required": {
+              "type": "boolean",
+              "description": "Legacy bundled implementation-profile field. Prefer adversarial_required."
+            },
             "guardrail_mode": {
               "type": "string",
-              "enum": ["nemo", "guardrails-ai", "both", "none"]
+              "enum": ["nemo", "guardrails-ai", "both", "none"],
+              "description": "Legacy bundled implementation-profile field. Prefer guardrail_policy."
             },
-            "ragas_required": { "type": "boolean" }
+            "ragas_required": {
+              "type": "boolean",
+              "description": "Legacy bundled implementation-profile field. Prefer retrieval_required."
+            }
           },
           "additionalProperties": false
         },

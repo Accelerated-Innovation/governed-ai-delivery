@@ -43,10 +43,10 @@
 - docs/backend/architecture/BOUNDARIES.md:
 - docs/backend/architecture/API_CONVENTIONS.md:
 - docs/backend/architecture/SECURITY_AUTH_PATTERNS.md:
-- docs/backend/architecture/LLM_GATEWAY_CONTRACT.md:
-- docs/backend/architecture/GUARDRAILS_CONTRACT.md:
-- docs/backend/architecture/EVALUATION_LLM_CONTRACT.md:
-- docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md:
+- extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md:
+- extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md:
+- extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md:
+- extensions/llm-application/docs/backend/architecture/LLM_OBSERVABILITY_CONTRACT.md:
 - docs/backend/evaluation/eval_criteria.md:
 
 ### ADRs
@@ -81,34 +81,41 @@
 
 ## LLM Gateway Configuration
 
-- LiteLLM model alias:
-- Fallback chain:
-- Cost budget (per-request / monthly):
-- Retry policy:
+- Typed model gateway port and adapter:
+- Logical capability or model alias:
+- Routing policy/configuration identity:
+- Timeout, cancellation, bounded retry, fallback, and degraded behavior:
+- Data classification, residency, retention, and provider-use policy:
+- Rate, concurrency, token, and financial budgets:
+- Tool-call proposal/validation/authorization boundary:
 
 ---
 
 ## Guardrails Configuration
 
-- Guardrail mode: nemo | guardrails-ai | both | none
-- NeMo rail definitions: <path or n/a>
-- Guardrails AI validators: <list or n/a>
-- Justification (if mode is none):
+- Guardrail policy identity:
+- Trusted and untrusted instruction/context sources:
+- Input, context, structural, semantic, content, grounding, and tool-call controls:
+- Policy, rule, schema, detector, and threshold versions:
+- Refusal, escalation, repair, degraded, and fail-closed behavior:
+- Fresh tool authorization and approval boundary:
+- Inapplicable control points and justification:
 
 ---
 
 ## Multi-Agent Configuration (skip if multi_agent not declared)
 
 - Agent topology: `features/<feature_name>/agent_topology.md`
-- Graph state schema: `services/graphs/<feature_name>_state.py`
+- SOAA contract sets applied:
+- Accountable principal and accepted task boundary:
+- Trusted runtime owner and task controller:
+- Authoritative state schema, writers, and transitions:
+- Agent-run responsibilities and authority ceilings:
+- Handoff, operation, recovery, and evidence boundaries:
+- Independent completion gate:
 
-| Agent | Role | System Prompt | Model |
-|---|---|---|---|
-| orchestrator | TBD | `src/agents/orchestrator/system_prompt.md` | TBD |
-| <specialist-1> | TBD | `src/agents/<specialist-1>/system_prompt.md` | TBD |
-
-- `topology_validated`: false → set true after agent_topology.md reviewed
-- `system_prompt_governed`: false → set true after all prompt files confirmed
+- `topology_validated`: false → set true after SOAA review
+- `system_prompt_governed`: false → set true after all applicable instruction or prompt references are confirmed
 
 ---
 
@@ -135,12 +142,12 @@ evaluation_prediction:
     brief:     { score: null, evidence: "" }
     average: null
   llm_evaluation:
-    deepeval_metrics:
-      - { metric: "faithfulness", predicted_score: null, threshold: 0.8 }
-      - { metric: "answer_relevancy", predicted_score: null, threshold: 0.85 }
-    promptfoo_required: null     # true | false
-    guardrail_mode: null         # nemo | guardrails-ai | both | none
-    ragas_required: null         # true | false
+    criteria:
+      - { criterion: "faithfulness", evaluator: "<configured-adapter>", predicted_score: null, threshold: 0.8 }
+      - { criterion: "answer_relevancy", evaluator: "<configured-adapter>", predicted_score: null, threshold: 0.85 }
+    adversarial_required: null    # true | false
+    guardrail_policy: ""         # immutable policy id or profile
+    retrieval_required: null     # true | false
   thresholds_met: null   # true | false — set to false triggers plan revision
 ```
 
@@ -216,9 +223,9 @@ If `thresholds_met` is false or any average is below 4.0, this plan must be revi
 - Evaluation criteria satisfied (`eval_criteria.yaml`)
 - FIRST principles satisfied
 - 7 Virtue thresholds satisfied
-- DeepEval metrics pass thresholds
-- Promptfoo adversarial suite passes (if required)
-- RAGAS metrics pass thresholds (if required)
+- Declared model-quality criteria pass thresholds
+- Declared adversarial suite passes (if required)
+- Declared retrieval criteria pass thresholds (if required)
 - Guardrails tested and functional (if applicable)
 - CI passes (tests, quality, eval gates, deepeval-gate, promptfoo-gate)
 - No boundary violations

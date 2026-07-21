@@ -35,7 +35,7 @@ contract_sets:
       - prediction-observability
 
   - id: vision_generative
-    description: Generative / vision-language consumption (VLMs such as Claude vision or GPT-4V, and image generation / diffusion). Adds multimodal input governance and REUSES the L5 GenAI-Ops contracts (guardrails, eval-as-judge, LLM observability, gateway) via relates_to.extends rather than reinventing them.
+    description: Generative / vision-language consumption and image generation. Adds multimodal input governance and reuses the provider-neutral llm-application contracts through relates_to.extends rather than reinventing them.
     paths:
       - docs/backend/architecture/MULTIMODAL_INPUT_CONTRACT.md
     applies_to:
@@ -50,10 +50,10 @@ contract_sets:
       - generative-output-validation
     relates_to:
       extends:
-        - docs/backend/architecture/GUARDRAILS_CONTRACT.md
-        - docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
-        - docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md
-        - docs/backend/architecture/LLM_GATEWAY_CONTRACT.md
+        - extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md
+        - extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md
+        - extensions/llm-application/docs/backend/architecture/LLM_OBSERVABILITY_CONTRACT.md
+        - extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md
 
 agent_guidance:
   architecture_preflight:

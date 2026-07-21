@@ -17,8 +17,9 @@ govkit extensions — discovery of self-describing extension packs.
 
 Extensions live in-place under <target>/extensions/<id>/ in a consuming
 project. Govkit discovers them by scanning for manifest.yaml files and
-surfaces them to agents and validation. Extensions are not installed by
-the CLI; the in-repo folder *is* the install.
+surfaces them to agents and validation. A bundled pack may be added with
+`govkit extension add`, or the folder may be vendored directly; either way,
+the in-repo folder is the installed extension.
 
 This module owns Increment 1 of the extension feature: discovery only.
 Validation (validate_extension) and overlap detection arrive in later
@@ -270,7 +271,7 @@ def _topic_token(contract_filename: str) -> str | None:
     """Extract the topic token from a contract filename.
 
     AGENT_EVALUATION_CONTRACT.md -> 'EVALUATION'
-    EVALUATION_LLM_CONTRACT.md   -> 'LLM'
+    LLM_EVALUATION_CONTRACT.md   -> 'EVALUATION'
     Files not ending in _CONTRACT.md return None.
     """
     if not contract_filename.endswith(_CONTRACT_SUFFIX):

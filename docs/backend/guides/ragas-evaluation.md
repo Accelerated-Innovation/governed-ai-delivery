@@ -2,7 +2,9 @@
 
 Practical guide for evaluating retrieval quality in RAG pipelines with RAGAS.
 
-Contract: `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
+Contract: `extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md`
+
+> Optional implementation profile. The extension contract is authoritative; this product is not required.
 
 ---
 

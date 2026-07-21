@@ -2,7 +2,9 @@
 
 Practical guide for configuring OpenLLMetry for LLM telemetry emission.
 
-Contract: `docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md`
+Contract: `extensions/llm-application/docs/backend/architecture/LLM_OBSERVABILITY_CONTRACT.md`
+
+> Optional implementation profile. The extension contract is authoritative; this product is not required.
 
 ---
 

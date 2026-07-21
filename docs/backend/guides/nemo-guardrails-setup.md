@@ -2,7 +2,9 @@
 
 Practical guide for configuring NeMo Guardrails for conversational safety.
 
-Contract: `docs/backend/architecture/GUARDRAILS_CONTRACT.md`
+Contract: `extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md`
+
+> Optional implementation profile. The extension contract is authoritative; this product is not required.
 
 ---
 

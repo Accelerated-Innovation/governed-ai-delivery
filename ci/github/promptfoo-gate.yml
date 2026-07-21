@@ -1,5 +1,6 @@
 # promptfoo-gate.yml
 #
+# OPTIONAL IMPLEMENTATION PROFILE: use only when Promptfoo is selected in TECH_STACK.md or an ADR.
 # PURPOSE: Level 5 — Runs Promptfoo adversarial and regression test suites.
 # Copy this file to .github/workflows/promptfoo-gate.yml.
 #
@@ -10,7 +11,7 @@
 #   OPENAI_API_KEY or ANTHROPIC_API_KEY — required for LLM provider access
 #
 # SEE ALSO:
-#   docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
+#   extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md
 #   docs/backend/guides/promptfoo-usage.md
 
 name: Promptfoo Gate (L5)

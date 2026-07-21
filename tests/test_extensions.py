@@ -543,7 +543,7 @@ class TestUndeclaredOverlap:
         assert all("overlaps core" not in i for i in issues)
 
     def test_undeclared_overlap_warns(self, tmp_path):
-        self._make_core_contract(tmp_path, "EVALUATION_LLM_CONTRACT.md")
+        self._make_core_contract(tmp_path, "QUALITY_EVALUATION_CONTRACT.md")
         self._make_ext_with_contract(
             tmp_path, "ext1", "docs/backend/architecture/AGENT_EVALUATION_CONTRACT.md"
         )
@@ -551,13 +551,13 @@ class TestUndeclaredOverlap:
         issues = validate_extension(ext, tmp_path)
         assert any(
             "AGENT_EVALUATION_CONTRACT.md" in i
-            and "EVALUATION_LLM_CONTRACT.md" in i
+            and "QUALITY_EVALUATION_CONTRACT.md" in i
             and "overlaps core" in i
             for i in issues
         )
 
     def test_overlap_warning_mentions_relates_to_remedy(self, tmp_path):
-        self._make_core_contract(tmp_path, "EVALUATION_LLM_CONTRACT.md")
+        self._make_core_contract(tmp_path, "QUALITY_EVALUATION_CONTRACT.md")
         self._make_ext_with_contract(
             tmp_path, "ext1", "docs/backend/architecture/AGENT_EVALUATION_CONTRACT.md"
         )
@@ -568,11 +568,11 @@ class TestUndeclaredOverlap:
         assert "relates_to" in overlap[0]
 
     def test_declared_extends_suppresses_warning(self, tmp_path):
-        self._make_core_contract(tmp_path, "EVALUATION_LLM_CONTRACT.md")
+        self._make_core_contract(tmp_path, "QUALITY_EVALUATION_CONTRACT.md")
         relates_to = textwrap.dedent("""\
             relates_to:
               extends:
-                - docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
+                - docs/backend/architecture/QUALITY_EVALUATION_CONTRACT.md
             """)
         self._make_ext_with_contract(
             tmp_path,
@@ -585,11 +585,11 @@ class TestUndeclaredOverlap:
         assert all("overlaps core" not in i for i in issues), issues
 
     def test_declared_supersedes_suppresses_warning(self, tmp_path):
-        self._make_core_contract(tmp_path, "EVALUATION_LLM_CONTRACT.md")
+        self._make_core_contract(tmp_path, "QUALITY_EVALUATION_CONTRACT.md")
         relates_to = textwrap.dedent("""\
             relates_to:
               supersedes:
-                - docs/backend/architecture/EVALUATION_LLM_CONTRACT.md
+                - docs/backend/architecture/QUALITY_EVALUATION_CONTRACT.md
             """)
         self._make_ext_with_contract(
             tmp_path,
@@ -602,8 +602,8 @@ class TestUndeclaredOverlap:
         assert all("overlaps core" not in i for i in issues), issues
 
     def test_multiple_core_matches_each_warned(self, tmp_path):
-        # AGENT_OBSERVABILITY overlaps both OBSERVABILITY_LLM and OBSERVABILITY_PORT
-        self._make_core_contract(tmp_path, "OBSERVABILITY_LLM_CONTRACT.md")
+        # AGENT_OBSERVABILITY overlaps two core contracts with the same topic token.
+        self._make_core_contract(tmp_path, "MODEL_OBSERVABILITY_CONTRACT.md")
         self._make_core_contract(tmp_path, "OBSERVABILITY_PORT_CONTRACT.md")
         self._make_ext_with_contract(
             tmp_path, "ext1", "docs/backend/architecture/AGENT_OBSERVABILITY_CONTRACT.md"
@@ -612,17 +612,17 @@ class TestUndeclaredOverlap:
         issues = validate_extension(ext, tmp_path)
         warnings = [i for i in issues if "overlaps core" in i]
         assert len(warnings) == 2
-        assert any("OBSERVABILITY_LLM_CONTRACT.md" in w for w in warnings)
+        assert any("MODEL_OBSERVABILITY_CONTRACT.md" in w for w in warnings)
         assert any("OBSERVABILITY_PORT_CONTRACT.md" in w for w in warnings)
 
     def test_partial_declared_warns_only_for_undeclared(self, tmp_path):
-        # Declare OBSERVABILITY_LLM; leave OBSERVABILITY_PORT undeclared
-        self._make_core_contract(tmp_path, "OBSERVABILITY_LLM_CONTRACT.md")
+        # Declare MODEL_OBSERVABILITY; leave OBSERVABILITY_PORT undeclared.
+        self._make_core_contract(tmp_path, "MODEL_OBSERVABILITY_CONTRACT.md")
         self._make_core_contract(tmp_path, "OBSERVABILITY_PORT_CONTRACT.md")
         relates_to = textwrap.dedent("""\
             relates_to:
               extends:
-                - docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md
+                - docs/backend/architecture/MODEL_OBSERVABILITY_CONTRACT.md
             """)
         self._make_ext_with_contract(
             tmp_path,
@@ -638,7 +638,7 @@ class TestUndeclaredOverlap:
 
     def test_non_contract_filenames_skipped(self, tmp_path):
         # Filenames not ending with _CONTRACT.md should not trip the heuristic
-        self._make_core_contract(tmp_path, "EVALUATION_LLM_CONTRACT.md")
+        self._make_core_contract(tmp_path, "QUALITY_EVALUATION_CONTRACT.md")
         self._make_ext_with_contract(
             tmp_path, "ext1", "docs/backend/architecture/AGENT_EVALUATION_GUIDE.md"
         )

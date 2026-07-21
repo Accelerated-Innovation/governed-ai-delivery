@@ -21,8 +21,8 @@ Copilot operates aligned to:
 * Architecture contracts under `docs/backend/architecture/`
 * Evaluation standards under `docs/backend/evaluation/`
 * Governance rules under `governance/`
-* L5 contracts: `LLM_GATEWAY_CONTRACT.md`, `OBSERVABILITY_LLM_CONTRACT.md`, `GUARDRAILS_CONTRACT.md`, `EVALUATION_LLM_CONTRACT.md`
-* If `eval_criteria.yaml` declares `multi_agent: true`, read `docs/backend/architecture/AGENT_ARCHITECTURE.md` Section 17
+* The contract sets declared by `extensions/llm-application/manifest.yaml`; if the manifest is missing for `mode: llm`, stop and request `govkit extension add llm-application --target .`
+* If `eval_criteria.yaml` declares `multi_agent: true`, read `extensions/skill-oriented-agent-architecture/docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md` and the applicable runtime, authority, resilience, and completion contracts
 
 ---
 
@@ -56,10 +56,10 @@ Your project's language- and framework-specific conventions are documented in `d
 |---|---|---|
 | CLI / inbound adapter | `CLI_CONVENTIONS.md` | Command structure, arguments, output format |
 | Services / domain | `ARCH_CONTRACT.md` | Architecture model, layering, approved libraries |
-| LLM gateway | `LLM_GATEWAY_CONTRACT.md` | LiteLLM usage, provider routing, model aliases |
-| Guardrails / safety | `GUARDRAILS_CONTRACT.md` | NeMo Guardrails and Guardrails AI integration |
-| Observability | `OBSERVABILITY_LLM_CONTRACT.md` | OpenLLMetry and Langfuse setup |
-| LLM evaluation | `EVALUATION_LLM_CONTRACT.md` | DeepEval, Promptfoo, RAGAS integration |
+| LLM gateway | `LLM_GATEWAY_CONTRACT.md` | provider-neutral port, logical routing, resilience, and budgets |
+| Guardrails / safety | `MODEL_GUARDRAILS_CONTRACT.md` | input, context, output, and tool-call policy with fail-closed behavior |
+| Observability | `LLM_OBSERVABILITY_CONTRACT.md` | privacy-aware telemetry, immutable provenance, usage, and trace correlation |
+| LLM evaluation | `LLM_EVALUATION_CONTRACT.md` | versioned datasets, oracles, slices, thresholds, gates, and evidence |
 | Technology decisions | `TECH_STACK.md` | Approved frameworks, libraries, tools, and versions |
 
 These documents define your stack's implementation. The architecture principles (hexagonal architecture, boundaries, evaluation) are universal; the specific tools and patterns are here.
@@ -69,8 +69,8 @@ These documents define your stack's implementation. The architecture principles 
 ## 5. Implementation Rules
 
 * Follow Hexagonal Architecture, CLI conventions
-* All LLM calls through LiteLLM
-* Guardrails match declared mode
+* All LLM calls through the configured model gateway
+* Guardrails match the declared policy
 * CLI commands are inbound adapters — delegate to ports
 
 ---
@@ -78,7 +78,7 @@ These documents define your stack's implementation. The architecture principles 
 ## 5. Evaluation
 
 * FIRST and 7 Virtues apply to all code
-* DeepEval/Promptfoo/RAGAS apply when mode: llm
+* configured quality/adversarial/retrieval evaluators apply when mode: llm
 
 ---
 
@@ -92,4 +92,4 @@ These documents define your stack's implementation. The architecture principles 
 
 Copilot follows standards. It does not invent them.
 
-Multi-agent ADR triggers: adding/removing/rerouting graph nodes, material system prompt changes, graph state schema changes.
+Multi-agent ADR triggers: adding/removing/rerouting agent-topology nodes, material system prompt changes, runtime state schema changes.

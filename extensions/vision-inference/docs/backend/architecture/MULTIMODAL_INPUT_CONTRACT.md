@@ -42,13 +42,13 @@ GenAI-Ops contracts (see "Relationship to L5" below).
 This contract **extends**, and does not duplicate, the core L5 GenAI-Ops contracts
 (declared in the manifest's `relates_to.extends`):
 
-- `GUARDRAILS_CONTRACT.md` — input/output safety (NSFW, unsafe, infringing content)
+- `extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md` — input/output safety (NSFW, unsafe, infringing content)
   applies to image+text prompts and to generated images/text.
-- `EVALUATION_LLM_CONTRACT.md` — eval-as-judge for open-ended VLM output replaces the
+- `extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md` — eval-as-judge for open-ended VLM output replaces the
   bounded per-class acceptance metrics used for discriminative models.
-- `OBSERVABILITY_LLM_CONTRACT.md` — generation logging/tracing (PII-safe; never the
+- `extensions/llm-application/docs/backend/architecture/LLM_OBSERVABILITY_CONTRACT.md` — generation logging/tracing (PII-safe; never the
   raw image).
-- `LLM_GATEWAY_CONTRACT.md` — hosted VLM calls route through the governed gateway.
+- `extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md` — hosted VLM calls route through the governed gateway.
 
 If a project does not have the L5 contracts installed, this contract set's
 `relates_to.extends` paths will be missing and `govkit doctor` / `validate` will flag

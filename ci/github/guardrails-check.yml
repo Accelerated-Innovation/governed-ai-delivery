@@ -1,5 +1,6 @@
 # guardrails-check.yml
 #
+# OPTIONAL IMPLEMENTATION PROFILE: adapt to the guardrail products selected in TECH_STACK.md or an ADR.
 # PURPOSE: Level 5 — Validates guardrails configuration files exist and are well-formed.
 # Copy this file to .github/workflows/guardrails-check.yml.
 #
@@ -9,7 +10,7 @@
 # NO SECRETS REQUIRED — structural validation only.
 #
 # SEE ALSO:
-#   docs/backend/architecture/GUARDRAILS_CONTRACT.md
+#   extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md
 #   docs/backend/guides/nemo-guardrails-setup.md
 #   docs/backend/guides/guardrails-ai-setup.md
 

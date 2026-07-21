@@ -145,50 +145,59 @@ If no shared artifact, state: "No shared contract produced."
 
 ## 10. LLM Gateway Configuration (Level 5)
 
-- LiteLLM configured as sole gateway: yes/no
-- Model alias(es) used:
-- Fallback chain defined: yes/no
-- Cost budget defined in nfrs.md: yes/no
-- Direct provider SDK imports present (prohibited): yes/no
+- `llm-application` extension installed: yes/no
+- Typed model gateway port and adapter paths:
+- Logical capability or model alias(es):
+- Routing policy/configuration identity:
+- Timeout, cancellation, bounded retry, fallback, and degraded behavior:
+- Data classification, residency, retention, and provider-use policy:
+- Rate, concurrency, token, and financial budgets:
+- Tool-call proposal/validation/authorization boundary:
+- Direct provider or gateway SDK imports outside adapters (prohibited): yes/no
 
-Contract: `docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
+Contract: `extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
 
 ---
 
 ## 11. Observability Configuration (Level 5)
 
-- OpenLLMetry instrumentation configured: yes/no
-- Langfuse trace export configured: yes/no
-- Prompt versioning in Langfuse: yes/no/not-applicable
-- Environment matrix confirmed: yes/no
+- Observability port and model telemetry adapter paths:
+- Required events, usage, latency, failures, and trace correlations:
+- Immutable model, prompt, routing, guardrail, retrieval, and configuration identities:
+- Raw content capture disabled by default: yes/no
+- Redaction-before-export, access, residency, retention, and deletion policy:
+- Sampling, bounded cardinality, exporter failure, and evidence-required behavior:
 
-Contract: `docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md`
+Contract: `extensions/llm-application/docs/backend/architecture/LLM_OBSERVABILITY_CONTRACT.md`
 
 ---
 
 ## 12. Guardrails Configuration (Level 5)
 
-- Guardrail mode: nemo | guardrails-ai | both | none
-- NeMo rail definitions path (if applicable):
-- Guardrails AI validators (if applicable):
-- Justification (if mode is none):
+- Risk categories, users, data classes, and trusted/untrusted sources:
+- Required input, context, structural, semantic, content, grounding, and tool-call controls:
+- Policy, rule, schema, detector, and threshold identities:
+- Refusal, escalation, quarantine, repair, degraded, and fail-closed behavior:
+- Fresh tool authorization and approval boundary:
+- Inapplicable control points and risk-based justification:
 - Bypass allowed: yes/no (if yes, ADR required)
 
-Contract: `docs/backend/architecture/GUARDRAILS_CONTRACT.md`
+Contract: `extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md`
 
 ---
 
 ## 13. Evaluation Strategy (Level 5)
 
-- DeepEval metrics defined in eval_criteria.yaml: yes/no
-- DeepEval metrics selected:
-- Promptfoo required: yes/no
-- Promptfoo adversarial scenarios defined: yes/no (if required)
-- RAGAS required (feature uses retrieval): yes/no
-- RAGAS metrics selected (if required):
-- Evaluation dataset path:
+- Applicable evaluation families and justified omissions:
+- Versioned criteria, datasets, provenance, separation rules, and sensitive-data controls:
+- Required slices, negative cases, and boundary cases:
+- Oracle and evaluator adapter for each criterion:
+- Model-judge rubric, configuration, calibration, and inconclusive behavior (if applicable):
+- Per-case, per-slice, and aggregate thresholds declared before execution:
+- Missing, stale, invalid, ambiguous, and insufficient-evidence behavior:
+- Evaluation evidence path:
 
-Contract: `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
+Contract: `extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md`
 
 ---
 
