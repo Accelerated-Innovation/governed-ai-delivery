@@ -80,6 +80,40 @@
         }
       }
     },
+    "implementation_profiles": {
+      "type": "array",
+      "description": "Product-naming profiles that map contract sets to concrete default product bindings the consuming team may customize. Unlike contract_sets, a profile is allowed to name products (LangGraph, LiteLLM, …) and refine a contract; it is advisory and the neutral contract remains authoritative on conflict. Profiles are exempt from the undeclared-overlap heuristic.",
+      "items": {
+        "type": "object",
+        "required": ["id", "path"],
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" },
+          "path": {
+            "type": "string",
+            "description": "Extension-folder-relative path to the implementation-profile document (defaults the team can customize)."
+          },
+          "profiles_for": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "contract_set ids this profile supplies default product bindings for."
+          },
+          "authority": {
+            "type": "string",
+            "enum": ["defaults"],
+            "description": "'defaults' — the profile is advisory; the neutral contract wins on any conflict."
+          },
+          "product_selection_requires_adr": {
+            "type": "boolean",
+            "description": "When true, deviating from the profile's default product bindings requires an ADR in the consuming project."
+          },
+          "gate": {
+            "type": "string",
+            "description": "Reserved for a future blocking conformance gate. Advisory-only today; no CI gate is wired to profiles."
+          }
+        }
+      }
+    },
     "agent_guidance": {
       "type": "object",
       "description": "Named guidance blocks read by agent skills. Keys are phase names (e.g. architecture_preflight, implementation_plan, validation); values are arrays of instruction strings.",
