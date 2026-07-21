@@ -169,6 +169,64 @@ def test_bundled_extension_add_copies_profile(tmp_path, capsys):
         assert (installed / path).is_file()
 
 
+# ---------------------------------------------------------------------------
+# GATEWAY_STACK implementation profile — product-naming default bindings for the
+# LLM application ports. Advisory; the gateway/observability/guardrail contracts
+# stay authoritative. Names concrete products (LiteLLM, …) teams swap via ADR,
+# so it lives under implementation_profiles, NOT contract_sets.
+# ---------------------------------------------------------------------------
+
+GATEWAY_PROFILE_PATH = "docs/backend/architecture/GATEWAY_STACK.md"
+
+
+def test_manifest_declares_gateway_profile():
+    profiles = _manifest().get("implementation_profiles", [])
+    profile = next((p for p in profiles if p["id"] == "gateway_profile"), None)
+    assert profile is not None, "gateway_profile not declared"
+    assert profile["path"] == GATEWAY_PROFILE_PATH
+    assert profile["authority"] == "defaults"
+    assert profile["product_selection_requires_adr"] is True
+    assert "llm_gateway" in profile["profiles_for"]
+
+
+def test_gateway_profile_file_exists():
+    assert (EXT_DIR / GATEWAY_PROFILE_PATH).is_file()
+
+
+def test_gateway_profile_is_not_a_neutral_contract():
+    assert GATEWAY_PROFILE_PATH not in _declared_paths()
+    assert GATEWAY_PROFILE_PATH not in REQUIRED_CONTRACTS
+
+
+def test_gateway_profile_names_default_products():
+    text = (EXT_DIR / GATEWAY_PROFILE_PATH).read_text(encoding="utf-8").casefold()
+    assert "litellm" in text, "profile should name a concrete default gateway product"
+
+
+def test_gateway_profile_maps_to_ports_and_defers():
+    text = (EXT_DIR / GATEWAY_PROFILE_PATH).read_text(encoding="utf-8")
+    folded = text.casefold()
+    assert "ModelGatewayPort" in text
+    assert "advisory" in folded or "authoritative" in folded
+    assert "adr" in folded
+
+
+def test_bundled_extension_add_copies_gateway_profile(tmp_path, capsys):
+    args = type(
+        "Args",
+        (),
+        {
+            "extension_id": "llm-application",
+            "target": str(tmp_path),
+            "force": False,
+        },
+    )()
+    cmd_extension_add(args)
+    capsys.readouterr()
+    installed = tmp_path / "extensions" / "llm-application"
+    assert (installed / GATEWAY_PROFILE_PATH).is_file()
+
+
 def test_extension_add_validates_cleanly_in_level_5_project(tmp_path, capsys):
     target = tmp_path / "project"
     target.mkdir()

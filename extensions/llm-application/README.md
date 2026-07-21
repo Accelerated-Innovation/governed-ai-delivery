@@ -53,3 +53,14 @@ Install both for a skill-oriented agent that invokes language models. SOAA const
 ## Implementation profiles
 
 An implementation profile may select a gateway, evaluation framework, telemetry backend, or guardrail library. A profile must map each product to the ports and evidence defined here, pin compatible versions, document operational ownership, and preserve substitutability. Product selection never grants an SDK permission to cross an application boundary.
+
+The extension ships one such profile — `docs/backend/architecture/GATEWAY_STACK.md` —
+with **default product bindings** (LiteLLM for the gateway, OpenLLMetry → Langfuse
+for telemetry, NeMo Guardrails / Guardrails AI for guardrails) that a team can adopt
+and then customize. It is **advisory** (`authority: defaults`): the contracts remain
+authoritative, and deviating from a default requires an ADR
+(`product_selection_requires_adr: true`). It is declared under `implementation_profiles`
+in the manifest, not `contract_sets`, because it names products — the neutrality the
+contracts hold does not apply to it. Evaluation products are not restated in the
+profile; they are governed by the core `EVAL_STACK.md`. No blocking CI conformance
+gate is wired to the profile today.
