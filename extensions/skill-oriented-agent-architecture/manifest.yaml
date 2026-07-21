@@ -146,10 +146,21 @@ contract_sets:
         - docs/backend/architecture/ARCH_CONTRACT.md
       supersedes: []
 
+implementation_profiles:
+  - id: agent_runtime_profile
+    description: Default product bindings for the SOAA runtime responsibilities. Advisory — the runtime contract remains authoritative; deviations require an ADR.
+    path: docs/backend/architecture/AGENT_RUNTIME_STACK.md
+    profiles_for:
+      - soaa_core
+      - soaa_context_resilience
+    authority: defaults
+    product_selection_requires_adr: true
+
 agent_guidance:
   architecture_preflight:
     - Read this manifest before planning any feature involving agents, skills, adaptive orchestration, tool use, delegation, memory, or agent evaluation.
     - Load soaa_core first, then load only the additional contract sets matched by feature intent and touched files.
+    - Read AGENT_RUNTIME_STACK.md for default runtime product bindings, but treat it as advisory — the runtime contract wins on any conflict, and deviating from a default requires an ADR.
     - Classify every relevant component as agent run, skill, tool, resource, workflow, policy, evaluator, memory, or trusted controller.
     - Record the accountable principal, accepted task boundary, single runtime owner, authoritative state writers, external side effects, approval routes, and completion evidence.
     - List every applicable SOAA contract in architecture_preflight.md.
