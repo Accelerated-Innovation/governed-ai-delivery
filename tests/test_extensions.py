@@ -707,3 +707,107 @@ class TestRunValidationExtensions:
         exit_code = run_validation(tmp_path, level="3")
         assert exit_code == 0
         capsys.readouterr()  # drain
+
+
+# ---------------------------------------------------------------------------
+# implementation_profiles — product-naming profiles that map a contract set to
+# default product bindings. Validated for path safety like contract_sets, but
+# deliberately EXEMPT from the neutrality/overlap heuristic (a profile is meant
+# to name products and refine a contract).
+# ---------------------------------------------------------------------------
+
+
+_PROFILE_BLOCK = textwrap.dedent("""\
+    implementation_profiles:
+      - id: sample_profile
+        description: Default product bindings for the sample contract.
+        path: docs/SAMPLE_STACK.md
+        profiles_for:
+          - sample
+        authority: defaults
+        product_selection_requires_adr: true
+    """)
+
+
+class TestImplementationProfileValidation:
+    def test_valid_profile_passes(self, tmp_path):
+        body = VALID_MANIFEST + _PROFILE_BLOCK
+        ext_dir = _write_extension(tmp_path, "sample-ext", body)
+        (ext_dir / "docs").mkdir(exist_ok=True)
+        (ext_dir / "docs" / "SAMPLE.md").write_text("# sample", encoding="utf-8")
+        (ext_dir / "docs" / "SAMPLE_STACK.md").write_text(
+            "# profile\nDefault: SomeProduct", encoding="utf-8"
+        )
+        ext = discover_extensions(tmp_path)[0]
+        assert validate_extension(ext, tmp_path) == []
+
+    def test_missing_profile_path_reported(self, tmp_path):
+        body = VALID_MANIFEST + _PROFILE_BLOCK
+        ext_dir = _write_extension(tmp_path, "sample-ext", body)
+        (ext_dir / "docs").mkdir(exist_ok=True)
+        (ext_dir / "docs" / "SAMPLE.md").write_text("# sample", encoding="utf-8")
+        # NOTE: do NOT create docs/SAMPLE_STACK.md
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("SAMPLE_STACK.md" in i and "does not exist" in i for i in issues), issues
+
+    def test_profile_without_path_reported(self, tmp_path):
+        body = VALID_MANIFEST + textwrap.dedent("""\
+            implementation_profiles:
+              - id: sample_profile
+                description: missing its path
+            """)
+        ext_dir = _write_extension(tmp_path, "sample-ext", body)
+        (ext_dir / "docs").mkdir(exist_ok=True)
+        (ext_dir / "docs" / "SAMPLE.md").write_text("# sample", encoding="utf-8")
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("implementation_profiles[0].path" in i for i in issues), issues
+
+    def test_absolute_profile_path_reported(self, tmp_path):
+        body = VALID_MANIFEST + _PROFILE_BLOCK.replace(
+            "docs/SAMPLE_STACK.md", "/etc/passwd"
+        )
+        ext_dir = _write_extension(tmp_path, "sample-ext", body)
+        (ext_dir / "docs").mkdir(exist_ok=True)
+        (ext_dir / "docs" / "SAMPLE.md").write_text("# sample", encoding="utf-8")
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("must be relative" in i for i in issues), issues
+
+    def test_profile_escaping_extension_dir_reported(self, tmp_path):
+        outside = tmp_path / "outside.md"
+        outside.write_text("x", encoding="utf-8")
+        body = VALID_MANIFEST + _PROFILE_BLOCK.replace(
+            "docs/SAMPLE_STACK.md", "../../outside.md"
+        )
+        ext_dir = _write_extension(tmp_path, "sample-ext", body)
+        (ext_dir / "docs").mkdir(exist_ok=True)
+        (ext_dir / "docs" / "SAMPLE.md").write_text("# sample", encoding="utf-8")
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert any("resolves outside" in i for i in issues), issues
+
+    def test_profile_is_exempt_from_overlap_warning(self, tmp_path):
+        """A profile that shares a topic token with a *different* core contract
+        must NOT trigger the undeclared-overlap heuristic — that heuristic is
+        scoped to contract_sets, which are the neutral surface. A profile is
+        meant to name products and refine a contract, so overlap is expected."""
+        core = tmp_path / "docs" / "backend" / "architecture"
+        core.mkdir(parents=True)
+        (core / "AGENT_EXECUTION_CONTRACT.md").write_text("x", encoding="utf-8")
+        body = VALID_MANIFEST + textwrap.dedent("""\
+            implementation_profiles:
+              - id: runtime_profile
+                description: names products for the runtime contract
+                path: docs/RUNTIME_EXECUTION_CONTRACT.md
+            """)
+        ext_dir = _write_extension(tmp_path, "sample-ext", body)
+        (ext_dir / "docs").mkdir(exist_ok=True)
+        (ext_dir / "docs" / "SAMPLE.md").write_text("# sample", encoding="utf-8")
+        (ext_dir / "docs" / "RUNTIME_EXECUTION_CONTRACT.md").write_text(
+            "Default runtime: SomeProduct", encoding="utf-8"
+        )
+        ext = discover_extensions(tmp_path)[0]
+        issues = validate_extension(ext, tmp_path)
+        assert not any("overlaps core" in i for i in issues), issues

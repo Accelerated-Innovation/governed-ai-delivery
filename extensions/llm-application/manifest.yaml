@@ -113,10 +113,22 @@ contract_sets:
         - docs/backend/architecture/TESTING.md
       supersedes: []
 
+implementation_profiles:
+  - id: gateway_profile
+    description: Default product bindings for the LLM application ports (gateway, guardrails, observability). Advisory — the contracts remain authoritative; deviations require an ADR. Evaluation products are governed by the core EVAL_STACK.md.
+    path: docs/backend/architecture/GATEWAY_STACK.md
+    profiles_for:
+      - llm_gateway
+      - llm_observability
+      - model_guardrails
+    authority: defaults
+    product_selection_requires_adr: true
+
 agent_guidance:
   architecture_preflight:
     - Read this manifest before planning any feature that invokes, embeds, evaluates, monitors, or constrains a language model.
     - Load llm_gateway for every model-backed feature, then load only the additional contract sets matched by feature intent and touched files.
+    - Read GATEWAY_STACK.md for default product bindings, but treat it as advisory — the contracts win on any conflict, and deviating from a default requires an ADR.
     - Record logical model capabilities, data classifications, trust boundaries, side effects, guardrail policy, evaluation gates, telemetry fields, budgets, and failure behavior.
     - List every applicable LLM application contract in architecture_preflight.md.
     - Require an ADR for a provider or product selection, contract exception, or material routing, safety, evaluation, or telemetry policy change.

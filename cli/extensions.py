@@ -226,6 +226,33 @@ def _check_templates(manifest: dict, ext: Extension) -> list[str]:
     return issues
 
 
+def _check_implementation_profiles(manifest: dict, ext: Extension) -> list[str]:
+    """Validate implementation_profiles[].path like contract paths.
+
+    An implementation profile maps a contract set to concrete default product
+    bindings (e.g. "the runtime defaults to LangGraph"). Unlike contract_sets,
+    profiles are *allowed* to name products and refine a contract, so they are
+    deliberately excluded from the neutrality/overlap heuristic
+    (`_check_undeclared_overlap` scans contract_sets only). Here we only enforce
+    the same path-safety rules: each profile must declare a relative, contained,
+    existing file under the extension folder.
+    """
+    profiles = manifest.get("implementation_profiles")
+    if not isinstance(profiles, list):
+        return []
+    issues: list[str] = []
+    for i, prof in enumerate(profiles):
+        if not isinstance(prof, dict):
+            issues.append(f"implementation_profiles[{i}] must be a mapping")
+            continue
+        path = prof.get("path")
+        if path is None:
+            issues.append(f"implementation_profiles[{i}].path is required")
+            continue
+        issues.extend(_check_path_entry(f"implementation_profiles[{i}].path", path, ext))
+    return issues
+
+
 def _check_relates_to_field(
     label: str, paths: object, target: Path
 ) -> list[str]:
@@ -348,6 +375,8 @@ def validate_extension(ext: Extension, target: Path) -> list[str]:
       - id format and folder-name match
       - contract_sets[].paths exist under ext.root
       - templates[].path exist under ext.root
+      - implementation_profiles[].path exist under ext.root (product-naming
+        profiles; exempt from the neutrality/overlap heuristic by design)
 
     Returns [] when fully valid. The `target` parameter is used for
     project-root-relative checks (relates_to.extends/supersedes paths,
@@ -360,6 +389,7 @@ def validate_extension(ext: Extension, target: Path) -> list[str]:
         *_check_id(m, ext),
         *_check_contract_sets(m, ext),
         *_check_templates(m, ext),
+        *_check_implementation_profiles(m, ext),
         *_check_relates_to(m, target),
         *_check_undeclared_overlap(m, target),
     ]

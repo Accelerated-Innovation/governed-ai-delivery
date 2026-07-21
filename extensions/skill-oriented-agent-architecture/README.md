@@ -71,6 +71,21 @@ The extension ships these guidance contracts under `docs/backend/architecture/`:
 
 Each document identifies its approved SOAA decision scope and invariant range.
 
+## Implementation profile
+
+The contracts above are product neutral. The extension also ships one
+**implementation profile** — `docs/backend/architecture/AGENT_RUNTIME_STACK.md` —
+that maps the runtime responsibilities to concrete **default product bindings**
+(e.g. LangGraph for the decision loop, a durable checkpointer for restart) a team
+can adopt and then customize.
+
+The profile is **advisory** (`authority: defaults`). `RUNTIME_STATE_AND_EXECUTION_CONTRACT.md`
+remains authoritative; where they disagree, the contract wins. Deviating from a
+default binding requires an ADR (`product_selection_requires_adr: true`). It is
+declared under `implementation_profiles` in the manifest, not `contract_sets`,
+precisely because it names products — the neutrality that the contracts hold does
+not apply to it. No blocking CI conformance gate is wired to the profile today.
+
 ## Relationship to LLM application governance
 
 SOAA does not prescribe an LLM provider, model family, gateway product, evaluation product, observability product, or guardrail product. Those concerns also apply to LLM applications without skills and are owned by the separate `llm-application` extension.

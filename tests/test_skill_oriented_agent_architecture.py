@@ -249,3 +249,65 @@ def test_bundled_extension_add_copies_profile(tmp_path, capsys):
     assert (installed / "manifest.yaml").is_file()
     for path in REQUIRED_CONTRACTS:
         assert (installed / path).is_file()
+
+
+# ---------------------------------------------------------------------------
+# AGENT_RUNTIME_STACK implementation profile — product-naming default bindings
+# for the SOAA runtime. Advisory; RUNTIME_STATE_AND_EXECUTION_CONTRACT stays
+# authoritative. Names concrete products (LangGraph, …) that teams may swap
+# via ADR, so it lives under implementation_profiles, NOT contract_sets.
+# ---------------------------------------------------------------------------
+
+RUNTIME_PROFILE_PATH = "docs/backend/architecture/AGENT_RUNTIME_STACK.md"
+
+
+def test_manifest_declares_agent_runtime_profile():
+    profiles = _manifest().get("implementation_profiles", [])
+    profile = next((p for p in profiles if p["id"] == "agent_runtime_profile"), None)
+    assert profile is not None, "agent_runtime_profile not declared"
+    assert profile["path"] == RUNTIME_PROFILE_PATH
+    assert profile["authority"] == "defaults"
+    assert profile["product_selection_requires_adr"] is True
+    assert "soaa_core" in profile["profiles_for"]
+
+
+def test_agent_runtime_profile_file_exists():
+    assert (EXT_DIR / RUNTIME_PROFILE_PATH).is_file()
+
+
+def test_agent_runtime_profile_is_not_a_neutral_contract():
+    """The profile names products, so it must stay out of contract_sets (the
+    neutral surface) and out of the product-neutrality assertion set."""
+    assert RUNTIME_PROFILE_PATH not in _declared_paths()
+    assert RUNTIME_PROFILE_PATH not in REQUIRED_CONTRACTS
+
+
+def test_agent_runtime_profile_names_a_default_runtime_product():
+    text = (EXT_DIR / RUNTIME_PROFILE_PATH).read_text(encoding="utf-8").casefold()
+    assert "langgraph" in text, "profile should name a concrete default runtime"
+
+
+def test_agent_runtime_profile_defers_to_the_authoritative_contract():
+    text = (EXT_DIR / RUNTIME_PROFILE_PATH).read_text(encoding="utf-8")
+    folded = text.casefold()
+    # It supplies defaults, not law: the runtime contract wins on conflict.
+    assert "RUNTIME_STATE_AND_EXECUTION_CONTRACT" in text
+    assert "advisory" in folded or "authoritative" in folded
+    # No blocking CI conformance gate ships this round.
+    assert "adr" in folded
+
+
+def test_bundled_extension_add_copies_agent_runtime_profile(tmp_path, capsys):
+    args = type(
+        "Args",
+        (),
+        {
+            "extension_id": "skill-oriented-agent-architecture",
+            "target": str(tmp_path),
+            "force": False,
+        },
+    )()
+    cmd_extension_add(args)
+    capsys.readouterr()
+    installed = tmp_path / "extensions" / "skill-oriented-agent-architecture"
+    assert (installed / RUNTIME_PROFILE_PATH).is_file()
