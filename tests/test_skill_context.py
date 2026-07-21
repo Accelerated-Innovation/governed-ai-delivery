@@ -390,7 +390,7 @@ class TestLoadSkillContextMalformedBlocks:
 
     def test_extensions_as_scalar_does_not_crash(self, tmp_path):
         from cli.skill_context import load_skill_context
-        self._write(tmp_path, "architecture:\n  style: hexagonal\nstack: {}\nextensions: agentic-skills\n")
+        self._write(tmp_path, "architecture:\n  style: hexagonal\nstack: {}\nextensions: demo-ext\n")
         ctx = load_skill_context(tmp_path)
         assert ctx is not None
         assert isinstance(ctx.extensions, list)

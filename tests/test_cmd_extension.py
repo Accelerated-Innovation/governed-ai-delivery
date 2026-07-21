@@ -26,7 +26,6 @@ def test_extension_packs_dir_exists_and_has_bundled_packs():
         if p.is_dir() and not p.name.startswith(".")
     }
     assert {
-        "agentic-skills",
         "llm-application",
         "skill-oriented-agent-architecture",
         "vision-inference",
@@ -37,7 +36,6 @@ def test_extension_list_prints_bundled_packs(capsys):
     cmd_extension_list(argparse.Namespace())
     out = capsys.readouterr().out
     assert "vision-inference" in out
-    assert "agentic-skills" in out
     assert "llm-application" in out
     assert "skill-oriented-agent-architecture" in out
 

@@ -14,13 +14,7 @@ from cli.extensions import discover_extensions, validate_extension
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EXT_DIR = REPO_ROOT / "extensions" / "llm-application"
 MANIFEST_PATH = EXT_DIR / "manifest.yaml"
-SCHEMA_PATH = (
-    REPO_ROOT
-    / "extensions"
-    / "agentic-skills"
-    / "schemas"
-    / "extension-manifest.schema.json"
-)
+SCHEMA_PATH = REPO_ROOT / "governance" / "schemas" / "extension-manifest.schema.json"
 
 REQUIRED_CONTRACT_SETS = {
     "llm_gateway",

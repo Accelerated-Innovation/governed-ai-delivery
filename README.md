@@ -518,7 +518,7 @@ See [`cli/stacks/README.md`](cli/stacks/README.md) for the complete guide, inclu
 
 ## Extensions
 
-Govkit ships **optional extension packs** that layer additional architecture contracts on top of the core kit — currently `llm-application`, `skill-oriented-agent-architecture`, `vision-inference`, and the older `agentic-skills` profile. Add one with `govkit extension add`, or drop the folder in by hand; either way the folder under `extensions/<id>/` in your project *is* the install.
+Govkit ships **optional extension packs** that layer additional architecture contracts on top of the core kit — currently `llm-application`, `skill-oriented-agent-architecture`, and `vision-inference`. Add one with `govkit extension add`, or drop the folder in by hand; either way the folder under `extensions/<id>/` in your project *is* the install.
 
 ### How to add an extension
 
@@ -559,7 +559,7 @@ govkit extension add skill-oriented-agent-architecture --target .
 
 When `extensions/` is absent, govkit behaves exactly as it does without extensions — they are entirely optional.
 
-See `extensions/llm-application/`, `extensions/skill-oriented-agent-architecture/`, and `extensions/vision-inference/` in this repository for complete reference examples. Install both `llm-application` and `skill-oriented-agent-architecture` for an agentic system that invokes language models. The older `agentic-skills/` package remains available for its skill-family and phase model; do not install it beside `skill-oriented-agent-architecture`.
+See `extensions/llm-application/`, `extensions/skill-oriented-agent-architecture/`, and `extensions/vision-inference/` in this repository for complete reference examples. Install both `llm-application` and `skill-oriented-agent-architecture` for an agentic system that invokes language models.
 
 ### Authoring an extension
 
