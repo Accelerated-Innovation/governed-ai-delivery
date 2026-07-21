@@ -2,7 +2,9 @@
 
 Practical guide for configuring LiteLLM as the LLM gateway.
 
-Contract: `docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
+Contract: `extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
+
+> Optional implementation profile. The extension contract is authoritative; this product is not required.
 
 ---
 

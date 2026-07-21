@@ -558,8 +558,7 @@ class TestSchemaRelatesTo:
 
 
 class TestAgenticSkillsLiveRelatesTo:
-    """Pin the live agentic-skills manifest's relates_to claims so they don't
-    silently drift away from the real core L5 contracts they overlap with."""
+    """Pin the legacy extension's links to the LLM application contracts."""
 
     @staticmethod
     def _live_manifest() -> dict:
@@ -574,13 +573,13 @@ class TestAgenticSkillsLiveRelatesTo:
         assert isinstance(cs["relates_to"]["extends"], list)
         assert len(cs["relates_to"]["extends"]) > 0
 
-    def test_agentic_skills_extends_known_core_l5_contracts(self):
+    def test_agentic_skills_extends_known_llm_application_contracts(self):
         m = self._live_manifest()
         extends = set(m["contract_sets"][0].get("relates_to", {}).get("extends", []))
         expected = {
-            "docs/backend/architecture/EVALUATION_LLM_CONTRACT.md",
-            "docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md",
-            "docs/backend/architecture/GUARDRAILS_CONTRACT.md",
+            "extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md",
+            "extensions/llm-application/docs/backend/architecture/LLM_OBSERVABILITY_CONTRACT.md",
+            "extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md",
         }
         missing = expected - extends
         assert not missing, f"agentic-skills must extend {missing}"

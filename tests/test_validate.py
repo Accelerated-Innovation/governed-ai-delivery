@@ -760,10 +760,32 @@ class TestL5Validation:
         result = run_validation(tmp_path, level="5")
         assert result == 1
 
-    def test_l5_missing_deepeval_criteria_fails(self, tmp_path):
-        """L5 fails when eval_criteria.yaml has no deepeval/promptfoo eval_class."""
+    def test_l5_missing_model_evaluation_criteria_fails(self, tmp_path):
+        """L5 fails when mode:llm declares no model evaluation criteria."""
         features = tmp_path / "features"
-        make_l5_feature(features / "no_deepeval", **{
+        make_l5_feature(features / "no_model_criteria", **{
+            "eval_criteria.yaml": """\
+                version: 1
+                mode: llm
+                unit_tests:
+                  enforce_FIRST: true
+                  minimum_FIRST_average: 4
+                code_quality:
+                  enforce_virtues: true
+                  minimum_virtue_average: 4
+                llm_evaluation:
+                  criteria: []
+                  dataset: eval_sets/test.json
+                  fail_on_regression: true
+            """,
+        })
+        result = run_validation(tmp_path, level="5")
+        assert result == 1
+
+    def test_l5_provider_neutral_custom_criterion_passes(self, tmp_path):
+        """A configured custom evaluator is valid without a bundled product profile."""
+        features = tmp_path / "features"
+        make_l5_feature(features / "custom_evaluator", **{
             "eval_criteria.yaml": """\
                 version: 1
                 mode: llm
@@ -776,15 +798,15 @@ class TestL5Validation:
                 llm_evaluation:
                   criteria:
                     - name: groundedness
-                      eval_class: retrieval_match
+                      eval_class: custom
                       threshold: 0.9
                       fail_on: below_threshold
+                      tool: custom
                   dataset: eval_sets/test.json
                   fail_on_regression: true
             """,
         })
-        result = run_validation(tmp_path, level="5")
-        assert result == 1
+        assert run_validation(tmp_path, level="5") == 0
 
     def test_l5_missing_preflight_sections_fails(self, tmp_path):
         """L5 fails when architecture_preflight.md is missing L5 sections."""

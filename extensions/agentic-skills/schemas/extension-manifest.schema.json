@@ -48,17 +48,17 @@
           },
           "relates_to": {
             "type": "object",
-            "description": "Declares this contract set's relationship to core govkit contracts. Paths in extends and supersedes are project-root-relative (not extension-folder-relative).",
+            "description": "Declares this contract set's relationship to project contracts, including core govkit contracts and contracts from other installed extensions. Paths in extends and supersedes are project-root-relative (not extension-folder-relative).",
             "properties": {
               "extends": {
                 "type": "array",
                 "items": { "type": "string" },
-                "description": "Project-root-relative paths to core contracts this set layers additional constraints on top of."
+                "description": "Project-root-relative paths to contracts this set layers additional constraints on top of."
               },
               "supersedes": {
                 "type": "array",
                 "items": { "type": "string" },
-                "description": "Project-root-relative paths to core contracts this set replaces. Requires an ADR in the consuming project."
+                "description": "Project-root-relative paths to contracts this set replaces. Requires an ADR in the consuming project."
               }
             },
             "additionalProperties": false

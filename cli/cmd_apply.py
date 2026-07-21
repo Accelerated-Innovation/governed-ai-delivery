@@ -16,7 +16,6 @@ from . import paths, version
 from .compat import validate_level_type
 from .install_common import (
     copy_governed_or_shared,
-    exclude_for_level,
     install_agent_file,
     post_install_finalize,
 )
@@ -114,11 +113,10 @@ def _apply_variant_install(
     for entry in files:
         install_agent_file(agent_dir, entry, target, prior_applied_at)
 
-    l5_exclude = exclude_for_level(level)
     print("\nGoverned contracts (skip if present):")
-    copy_governed_or_shared(governed, target, prior_applied_at, force, baseline, l5_exclude)
+    copy_governed_or_shared(governed, target, prior_applied_at, force, baseline)
     print("\nShared governance:")
-    copy_governed_or_shared(shared, target, prior_applied_at, force, baseline, l5_exclude)
+    copy_governed_or_shared(shared, target, prior_applied_at, force, baseline)
 
     _ensure_features_dir(target, level)
 
@@ -147,7 +145,7 @@ def _apply_legacy_install(
 
     print("\nShared governance:")
     copy_governed_or_shared(
-        manifest.get("shared", []), target, prior_applied_at, force, baseline, None,
+        manifest.get("shared", []), target, prior_applied_at, force, baseline,
     )
 
     _create_features_dir_if_missing(target)

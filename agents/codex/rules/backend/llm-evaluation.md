@@ -1,30 +1,28 @@
 # LLM Evaluation Rules
 
-These rules apply when editing LLM evaluation tests and datasets.
+These rules apply when editing model evaluation definitions, tests, datasets, and evidence.
 
-Contract: `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
+Contract: `extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md`
 
 ---
 
 ## Rules
 
-- DeepEval measures LLM output quality (faithfulness, relevancy, hallucination) — required for `mode: llm` features
-- Promptfoo tests adversarial resilience (jailbreak, injection, regression) — required when user-facing
-- RAGAS evaluates retrieval quality (context recall, precision) — required only for RAG features
-- Each criterion in `eval_criteria.yaml` with a `deepeval_*` eval_class must have a corresponding test in `tests/eval/<feature>/`
-- Evaluation datasets live in `tests/eval/<feature>/eval_sets/` and must be versioned in git
-- DeepEval tests run via `deepeval test run` in CI
-- Promptfoo configs use YAML format in `tests/eval/<feature>/promptfoo.yaml`
-- RAGAS metrics run as part of the DeepEval test suite
-
-## Tool Boundaries
-
-- Do not use DeepEval for adversarial testing — Promptfoo owns this
-- Do not use Promptfoo for quality metrics — DeepEval owns this
-- Do not use RAGAS on non-retrieval features
+- Every model-backed feature declares versioned criteria, datasets, slices, oracles, thresholds, and failure policy
+- Select all applicable evaluation families: deterministic, task quality, safety/adversarial, retrieval, tool use, operational, and fairness/accessibility
+- Prefer deterministic assertions; use human review or a calibrated model judge only where deterministic checks are insufficient
+- Bind every run to immutable model-routing, prompt, retrieval, guardrail, dataset, evaluator, and configuration identities
+- Version evaluation datasets and keep development and final acceptance sets separated by declared policy
+- Safety-critical and required-slice failures block release even when an aggregate score passes
+- Missing, stale, malformed, ambiguous, or insufficient evidence is inconclusive or failing, never passing
+- A model judge has a versioned rubric and configuration, calibration evidence, parsing-failure behavior, and bias controls
+- Record selected evaluation tools as adapters in `TECH_STACK.md` or an ADR; no product is required by the architecture contract
 
 ## Prohibited
 
-- Importing `deepeval`, `promptfoo`, or `ragas` outside `tests/eval/`
-- Storing evaluation datasets outside version control
-- Skipping DeepEval for `mode: llm` features
+- Unversioned prompts, datasets, rubrics, evaluators, judges, or thresholds
+- Aggregate-only acceptance that hides a failing required slice
+- A model's self-assessment as the sole acceptance oracle
+- Re-running until a favourable sample appears
+- Treating evaluator errors or missing evidence as passes
+- Tuning against the final acceptance set

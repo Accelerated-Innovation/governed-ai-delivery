@@ -137,10 +137,10 @@ class TestGenerativeLayer:
 
     GENERATIVE_CONTRACT = "docs/backend/architecture/MULTIMODAL_INPUT_CONTRACT.md"
     EXPECTED_EXTENDS = {
-        "docs/backend/architecture/GUARDRAILS_CONTRACT.md",
-        "docs/backend/architecture/EVALUATION_LLM_CONTRACT.md",
-        "docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md",
-        "docs/backend/architecture/LLM_GATEWAY_CONTRACT.md",
+        "extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md",
+        "extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md",
+        "extensions/llm-application/docs/backend/architecture/LLM_OBSERVABILITY_CONTRACT.md",
+        "extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md",
     }
 
     @staticmethod

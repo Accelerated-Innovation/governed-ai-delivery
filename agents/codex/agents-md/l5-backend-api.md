@@ -17,14 +17,15 @@ Codex operates aligned to:
 
 Before planning or generating code:
 
+- Confirm `extensions/llm-application/manifest.yaml` exists. If missing, stop and request `govkit extension add llm-application --target .`
 - Read all files under `docs/backend/architecture/`
 - Read `docs/backend/evaluation/eval_criteria.md`
 - Read L5 contracts:
-  - `docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
-  - `docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md`
-  - `docs/backend/architecture/GUARDRAILS_CONTRACT.md`
-  - `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
-- If `eval_criteria.yaml` declares `multi_agent: true`, read `docs/backend/architecture/AGENT_ARCHITECTURE.md` Section 17
+  - `extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
+  - `extensions/llm-application/docs/backend/architecture/LLM_OBSERVABILITY_CONTRACT.md`
+  - `extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md`
+  - `extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md`
+- If `eval_criteria.yaml` declares `multi_agent: true`, read `extensions/skill-oriented-agent-architecture/docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md` and the applicable runtime, authority, resilience, and completion contracts
 - Apply architecture, testing, technology, evaluation, and GenAI contracts as binding constraints
 - Confirm required feature artifacts exist
 
@@ -59,7 +60,7 @@ Before proceeding to Architecture Preflight or planning:
 2. GenAI Preflight → invoke `$govkit-genai-preflight` (validates L5-specific decisions)
 3. ADR creation (if required by preflight)
 4. Plan finalization → invoke `$govkit-spec-planning`
-5. Evaluation Suite Planning → invoke `$govkit-eval-suite-planning` (plans DeepEval/Promptfoo/RAGAS suites)
+5. Evaluation Suite Planning → invoke `$govkit-eval-suite-planning` (plans configured quality/adversarial/retrieval evaluators suites)
 6. Evaluation Compliance Summary (must be in `plan.md`)
 7. Incremental implementation → guided by `$govkit-implementation-plan`
 8. Automated tests (unit + LLM evaluation)
@@ -76,7 +77,7 @@ The plan must:
 - Define explicit increments with deliverables and tests
 - Map Gherkin scenarios to BDD integration tests
 - Include an Evaluation Compliance Summary predicting FIRST, 7 Virtue, and LLM evaluation scores
-- Include LLM Gateway Configuration and Guardrails Configuration sections
+- Include Model Gateway Configuration and Guardrails Configuration sections
 - Reference ADRs and architecture contracts
 
 ---
@@ -91,11 +92,11 @@ An ADR is required when:
 - A boundary rule or dependency direction changes
 - A shared schema, API contract, event definition, or data model is introduced or modified
 - A new LLM provider is added to the routing table
-- The guardrail mode is changed for a production feature
-- LiteLLM is bypassed for any LLM call
-- A multi-agent graph node is added, removed, or rerouted
+- The guardrail policy profile is changed for a production feature
+- the configured model gateway is bypassed for any LLM call
+- A agent-topology node is added, removed, or rerouted
 - An agent's system prompt is materially changed
-- The shared graph state schema is changed
+- The shared runtime state schema is changed
 
 ---
 
@@ -107,10 +108,10 @@ Your project's language- and framework-specific conventions are documented in `d
 |---|---|---|
 | API / inbound adapter | `API_CONVENTIONS.md` | Routing, request/response, authentication, error mapping |
 | Services / domain | `ARCH_CONTRACT.md` | Architecture model, layering, approved libraries |
-| LLM gateway | `LLM_GATEWAY_CONTRACT.md` | LiteLLM usage, provider routing, model aliases |
-| Guardrails / safety | `GUARDRAILS_CONTRACT.md` | NeMo Guardrails and Guardrails AI integration |
-| Observability | `OBSERVABILITY_LLM_CONTRACT.md` | OpenLLMetry and Langfuse setup |
-| LLM evaluation | `EVALUATION_LLM_CONTRACT.md` | DeepEval, Promptfoo, RAGAS integration |
+| LLM gateway | `LLM_GATEWAY_CONTRACT.md` | provider-neutral port, logical routing, resilience, and budgets |
+| Guardrails / safety | `MODEL_GUARDRAILS_CONTRACT.md` | input, context, output, and tool-call policy with fail-closed behavior |
+| Observability | `LLM_OBSERVABILITY_CONTRACT.md` | privacy-aware telemetry, immutable provenance, usage, and trace correlation |
+| LLM evaluation | `LLM_EVALUATION_CONTRACT.md` | versioned datasets, oracles, slices, thresholds, gates, and evidence |
 | Technology decisions | `TECH_STACK.md` | Approved frameworks, libraries, tools, and versions |
 
 These documents define your stack's implementation. The architecture principles (hexagonal architecture, boundaries, evaluation) are universal; the specific tools and patterns are here.
@@ -123,9 +124,9 @@ These documents define your stack's implementation. The architecture principles 
 - Respect all rules in `docs/backend/architecture/BOUNDARIES.md`
 - Follow Hexagonal Architecture (ports and adapters)
 - Use only approved frameworks from `docs/backend/architecture/TECH_STACK.md`
-- **All LLM calls must route through LiteLLM** — see `LLM_GATEWAY_CONTRACT.md`
-- **Guardrails must match the declared mode** — see `GUARDRAILS_CONTRACT.md`
-- **Observability via OpenLLMetry + Langfuse** — see `OBSERVABILITY_LLM_CONTRACT.md`
+- **All LLM calls must route through the configured model gateway** — see `LLM_GATEWAY_CONTRACT.md`
+- **Guardrails must match the declared policy** — see `MODEL_GUARDRAILS_CONTRACT.md`
+- **Observability via the configured model instrumentation + the configured telemetry backend** — see `LLM_OBSERVABILITY_CONTRACT.md`
 
 Layer-specific rules load automatically via nested `AGENTS.md` files when working in each layer:
 
@@ -134,10 +135,10 @@ Layer-specific rules load automatically via nested `AGENTS.md` files when workin
 - `ports/AGENTS.md` — inbound/outbound port interfaces
 - `adapters/AGENTS.md` — outbound adapter implementations
 - `security/AGENTS.md` — auth, token validation, RBAC
-- `adapters/llm/AGENTS.md` — LLM gateway (LiteLLM)
-- `adapters/guardrails/AGENTS.md` — NeMo Guardrails and Guardrails AI
-- `tests/eval/AGENTS.md` — DeepEval/Promptfoo/RAGAS test suites
-- `adapters/observability/AGENTS.md` — OpenLLMetry and Langfuse
+- `adapters/llm/AGENTS.md` — LLM gateway (the configured model gateway)
+- `adapters/guardrails/AGENTS.md` — the configured behavioral safety adapter and the configured structured-output validator
+- `tests/eval/AGENTS.md` — configured quality/adversarial/retrieval evaluators test suites
+- `adapters/observability/AGENTS.md` — the configured model instrumentation and the configured telemetry backend
 
 ---
 
@@ -146,16 +147,16 @@ Layer-specific rules load automatically via nested `AGENTS.md` files when workin
 Before implementation:
 
 - Read `docs/backend/evaluation/eval_criteria.md`
-- Read `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
+- Read `extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md`
 - Read `features/<feature_name>/eval_criteria.yaml`
 - Confirm FIRST, 7 Virtue, and LLM evaluation thresholds
 
 Implementation must not proceed unless:
 
 - An Evaluation Compliance Summary exists in `plan.md` with predicted averages meeting thresholds
-- DeepEval metrics are defined for `mode: llm` features
-- Promptfoo is addressed (required or justified as not required)
-- RAGAS is addressed if the feature uses retrieval
+- declared quality criteria are defined for `mode: llm` features
+- adversarial evaluation is addressed (required or justified as not required)
+- retrieval evaluation is addressed if the feature uses retrieval
 
 CI evaluation gates are binding.
 
@@ -168,9 +169,9 @@ Each increment must include:
 - Unit tests compliant with FIRST principles
 - BDD integration tests derived from Gherkin scenarios
 - Contract tests when APIs, ports, or external integrations are affected
-- **DeepEval quality tests** for LLM output (faithfulness, relevancy, hallucination)
-- **Promptfoo adversarial tests** if the feature is user-facing
-- **RAGAS retrieval tests** if the feature uses RAG
+- **declared model-quality tests** for LLM output (faithfulness, relevancy, hallucination)
+- **declared adversarial tests** if the feature is user-facing
+- **declared retrieval tests** if the feature uses RAG
 
 ---
 

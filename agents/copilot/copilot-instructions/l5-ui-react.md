@@ -20,14 +20,15 @@ Copilot operates aligned to:
 * Product specifications under `features/`
 * UI architecture contracts under `docs/ui/architecture/`
 * UI evaluation standards under `docs/ui/evaluation/`
-* Backend LLM contracts under `docs/backend/architecture/` — this UI consumes LLM features through a governed backend gateway
+* Backend API contracts for any model-backed behavior — the UI consumes model features through a governed backend
 * Governance rules under `governance/ui/`
 
 Before planning or generating code:
 
 * Read all files under `docs/ui/architecture/`
 * Read `docs/ui/evaluation/eval_criteria.md`
-* Read the L5 backend LLM contracts for any LLM-adjacent UI code: `LLM_GATEWAY_CONTRACT.md`, `OBSERVABILITY_LLM_CONTRACT.md`, `GUARDRAILS_CONTRACT.md`, `EVALUATION_LLM_CONTRACT.md`
+* If this repository owns model execution, confirm `extensions/llm-application/manifest.yaml` exists and read its applicable contract sets
+* Otherwise read the backend service's versioned API contract and keep provider access and model controls behind that boundary
 * Apply MVVM contract, component conventions, state management rules, evaluation standards, and the backend LLM contracts as binding constraints
 * Confirm required feature artifacts exist
 
@@ -53,7 +54,7 @@ src/
 └── app/              # Entry point, routing, providers
 ```
 
-LLM features in this UI never call provider SDKs directly. All LLM-driven behavior is consumed through backend-exposed endpoints that route through the LLM Gateway. See `LLM_GATEWAY_CONTRACT.md`.
+LLM features in this UI never call provider SDKs directly. All LLM-driven behavior is consumed through backend-exposed endpoints that route through the governed backend model gateway. See `LLM_GATEWAY_CONTRACT.md`.
 
 ---
 
@@ -63,7 +64,7 @@ Every feature must live under `features/<feature_name>/` with these artifacts:
 
 * `acceptance.feature`
 * `nfrs.md` (including LLM Latency, LLM Cost, LLM Fallback, LLM Safety for any LLM-backed feature)
-* `eval_criteria.yaml` (with DeepEval/Promptfoo/RAGAS criteria for `mode: llm`)
+* `eval_criteria.yaml` (with configured quality/adversarial/retrieval evaluators criteria for `mode: llm`)
 * `plan.md`
 * `architecture_preflight.md`
 
@@ -75,10 +76,10 @@ Implementation must not begin unless all artifacts exist and are complete.
 
 0. **Multi-agent features only:** run `/govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
 1. UI Architecture Preflight — `/govkit-ui-architecture-preflight`
-2. GenAI Preflight — `/govkit-genai-preflight` (validates L5-specific decisions when the UI consumes an LLM-backed endpoint)
+2. LLM Application Preflight — run the GenAI preflight skill only when this repository owns model execution
 3. ADR creation (if required)
 4. UI Spec Planning — `/govkit-ui-spec-planning`
-5. Evaluation Suite Planning — `/govkit-eval-suite-planning` (plans DeepEval/Promptfoo/RAGAS suites)
+5. Evaluation Suite Planning — `/govkit-eval-suite-planning` (plans configured quality/adversarial/retrieval evaluators suites)
 6. Evaluation Compliance Summary in `plan.md`
 7. UI Implementation Planning — `/govkit-ui-implementation-plan`
 8. Incremental implementation (API → ViewModel → View)
@@ -129,7 +130,7 @@ Hard constraints. Never violate without an accepted ADR.
 * Zustand stores must not call API functions directly
 * `shared/` must not import from `features/`
 * No business logic outside `hooks/` and `api/`
-* **No direct LLM provider SDK imports anywhere in the UI** — all LLM traffic flows through backend endpoints that use the governed LLM Gateway
+* **No direct LLM provider SDK imports anywhere in the UI** — all LLM traffic flows through backend endpoints that use the governed model gateway
 * **No guardrail bypass in the UI** — the UI must not strip or ignore guardrail metadata returned by the backend
 
 ---
@@ -159,13 +160,13 @@ Every feature must include `eval_criteria.yaml` validated against `governance/ui
 Before implementation:
 
 * Read `docs/ui/evaluation/eval_criteria.md`
-* Read `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md` for any LLM-backed feature
+* If installed locally, read the applicable `llm-application` evaluation contract; otherwise reference the backend service's evaluation evidence through its API contract
 * Confirm `plan.md` contains a completed Evaluation Compliance Summary
 * Predicted FIRST average must be ≥ 4.0
 * Zero predicted critical axe-core violations
-* DeepEval metrics defined for `mode: llm` features
-* Promptfoo addressed for user-facing LLM features (required or justified as not required)
-* RAGAS addressed if the feature consumes retrieval-backed endpoints
+* declared quality criteria defined for `mode: llm` features
+* the configured adversarial evaluator addressed for user-facing LLM features (required or justified as not required)
+* the configured retrieval evaluator addressed if the feature consumes retrieval-backed endpoints
 
 If thresholds are not met, revise the plan before generating code.
 
@@ -179,7 +180,7 @@ Each increment must include:
 * Accessibility check — `jest-axe` in every component test
 * Hook tests — `renderHook` + MSW for API mocking (including LLM error states)
 * E2E tests — Playwright for every `@e2e`-tagged Gherkin scenario with axe scan
-* **DeepEval / Promptfoo / RAGAS tests** for any LLM-backed user flow — orchestrated by the backend evaluation harness; the UI test plan must reference the corresponding backend eval suite
+* **configured quality, adversarial, and retrieval evaluators tests** for any LLM-backed user flow — orchestrated by the backend evaluation harness; the UI test plan must reference the corresponding backend eval suite
 
 ---
 

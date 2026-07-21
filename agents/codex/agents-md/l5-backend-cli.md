@@ -17,14 +17,15 @@ Codex operates aligned to:
 
 Before planning or generating code:
 
+- Confirm `extensions/llm-application/manifest.yaml` exists. If missing, stop and request `govkit extension add llm-application --target .`
 - Read all files under `docs/backend/architecture/`
 - Read `docs/backend/evaluation/eval_criteria.md`
 - Read L5 contracts:
-  - `docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
-  - `docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md`
-  - `docs/backend/architecture/GUARDRAILS_CONTRACT.md`
-  - `docs/backend/architecture/EVALUATION_LLM_CONTRACT.md`
-- If `eval_criteria.yaml` declares `multi_agent: true`, read `docs/backend/architecture/AGENT_ARCHITECTURE.md` Section 17
+  - `extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
+  - `extensions/llm-application/docs/backend/architecture/LLM_OBSERVABILITY_CONTRACT.md`
+  - `extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md`
+  - `extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md`
+- If `eval_criteria.yaml` declares `multi_agent: true`, read `extensions/skill-oriented-agent-architecture/docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md` and the applicable runtime, authority, resilience, and completion contracts
 - Apply all contracts as binding constraints
 - Confirm required feature artifacts exist
 
@@ -69,10 +70,10 @@ Your project's language- and framework-specific conventions are documented in `d
 |---|---|---|
 | CLI / inbound adapter | `CLI_CONVENTIONS.md` | Command structure, arguments, output format |
 | Services / domain | `ARCH_CONTRACT.md` | Architecture model, layering, approved libraries |
-| LLM gateway | `LLM_GATEWAY_CONTRACT.md` | LiteLLM usage, provider routing, model aliases |
-| Guardrails / safety | `GUARDRAILS_CONTRACT.md` | NeMo Guardrails and Guardrails AI integration |
-| Observability | `OBSERVABILITY_LLM_CONTRACT.md` | OpenLLMetry and Langfuse setup |
-| LLM evaluation | `EVALUATION_LLM_CONTRACT.md` | DeepEval, Promptfoo, RAGAS integration |
+| LLM gateway | `LLM_GATEWAY_CONTRACT.md` | provider-neutral port, logical routing, resilience, and budgets |
+| Guardrails / safety | `MODEL_GUARDRAILS_CONTRACT.md` | input, context, output, and tool-call policy with fail-closed behavior |
+| Observability | `LLM_OBSERVABILITY_CONTRACT.md` | privacy-aware telemetry, immutable provenance, usage, and trace correlation |
+| LLM evaluation | `LLM_EVALUATION_CONTRACT.md` | versioned datasets, oracles, slices, thresholds, gates, and evidence |
 | Technology decisions | `TECH_STACK.md` | Approved frameworks, libraries, tools, and versions |
 
 These documents define your stack's implementation. The architecture principles (hexagonal architecture, boundaries, evaluation) are universal; the specific tools and patterns are here.
@@ -85,8 +86,8 @@ These documents define your stack's implementation. The architecture principles 
 - Respect all rules in `docs/backend/architecture/BOUNDARIES.md`
 - Follow Hexagonal Architecture (ports and adapters)
 - Follow CLI conventions from `docs/backend/architecture/CLI_CONVENTIONS.md`
-- **All LLM calls must route through LiteLLM** — see `LLM_GATEWAY_CONTRACT.md`
-- **Guardrails must match the declared mode** — see `GUARDRAILS_CONTRACT.md`
+- **All LLM calls must route through the configured model gateway** — see `LLM_GATEWAY_CONTRACT.md`
+- **Guardrails must match the declared policy** — see `MODEL_GUARDRAILS_CONTRACT.md`
 
 Layer-specific rules load automatically via nested `AGENTS.md` files at each scoped directory.
 
@@ -95,9 +96,9 @@ Layer-specific rules load automatically via nested `AGENTS.md` files at each sco
 ## Evaluation Discipline
 
 - FIRST and 7 Virtue thresholds apply to all features
-- DeepEval metrics required for `mode: llm` features
-- Promptfoo required for user-facing features
-- RAGAS required for RAG features
+- declared quality criteria required for `mode: llm` features
+- the configured adversarial evaluator required for user-facing features
+- the configured retrieval evaluator required for RAG features
 - CI evaluation gates are binding
 
 ---
@@ -115,4 +116,4 @@ Layer-specific rules load automatically via nested `AGENTS.md` files at each sco
 
 Architecture decisions belong to the Architect. Exceptions require an ADR and explicit approval. Codex follows standards — it does not invent them.
 
-Multi-agent ADR triggers: adding/removing/rerouting graph nodes, material system prompt changes, graph state schema changes.
+Multi-agent ADR triggers: adding/removing/rerouting agent-topology nodes, material system prompt changes, runtime state schema changes.

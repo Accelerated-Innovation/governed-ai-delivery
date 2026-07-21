@@ -39,7 +39,7 @@ See [`SKILL_CONTRACT.md`](docs/backend/architecture/SKILL_CONTRACT.md) for the n
 govkit extension add skill-oriented-agent-architecture --target .
 ```
 
-The extension targets GovKit Level 5 backend API and CLI projects. Its manifest supersedes the generic core `AGENT_ARCHITECTURE.md` contract for the consuming project. Record the supersession in an ADR during architecture preflight.
+The extension targets GovKit Level 5 backend API and CLI projects. Agent architecture is extension-owned; GovKit core supplies only the shared structural, security, testing, and observability-port contracts.
 
 ## Contract loading
 
@@ -73,16 +73,16 @@ Each document identifies its approved SOAA decision scope and invariant range.
 
 ## Relationship to LLM application governance
 
-SOAA does not prescribe an LLM provider, model family, gateway product, evaluation product, observability product, or guardrail product.
+SOAA does not prescribe an LLM provider, model family, gateway product, evaluation product, observability product, or guardrail product. Those concerns also apply to LLM applications without skills and are owned by the separate `llm-application` extension.
 
-The present GovKit Level 5 baseline supplies:
+Install both extensions when an SOAA-governed system invokes language models:
 
-- `LLM_GATEWAY_CONTRACT.md`
-- `EVALUATION_LLM_CONTRACT.md`
-- `OBSERVABILITY_LLM_CONTRACT.md`
-- `GUARDRAILS_CONTRACT.md`
+```bash
+govkit extension add llm-application --target .
+govkit extension add skill-oriented-agent-architecture --target .
+```
 
-Those concerns apply to LLM applications without skills and belong in a separate `llm-application` extension. Until GovKit extracts that package, this extension declares relationships to the Level 5 core contracts without duplicating them.
+The `llm-application` contracts govern the model-facing parts of the system. SOAA remains authoritative for task ownership, skill selection and activation, effective authority, side-effect control, recovery, evidence, and completion. SOAA can also govern a non-LLM runtime, so it does not declare the LLM extension as an unconditional dependency.
 
 ## Source authority and limits
 

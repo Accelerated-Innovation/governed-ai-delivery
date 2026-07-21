@@ -7,7 +7,7 @@
 # NO VARIABLES REQUIRED — structural validation only.
 #
 # SEE ALSO:
-#   docs/backend/architecture/AGENT_ARCHITECTURE.md  (Section 17)
+#   extensions/skill-oriented-agent-architecture/manifest.yaml
 
 trigger: none
 

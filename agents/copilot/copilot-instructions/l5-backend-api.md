@@ -24,10 +24,11 @@ Copilot operates aligned to:
 
 Before planning or generating code:
 
+* Confirm `extensions/llm-application/manifest.yaml` exists. If missing, stop and request `govkit extension add llm-application --target .`
 * Read all files under `docs/backend/architecture/`
 * Read `docs/backend/evaluation/eval_criteria.md`
-* Read L5 contracts: `LLM_GATEWAY_CONTRACT.md`, `OBSERVABILITY_LLM_CONTRACT.md`, `GUARDRAILS_CONTRACT.md`, `EVALUATION_LLM_CONTRACT.md`
-* If `eval_criteria.yaml` declares `multi_agent: true`, read `docs/backend/architecture/AGENT_ARCHITECTURE.md` Section 17
+* Read the contract sets declared by `extensions/llm-application/manifest.yaml`
+* If `eval_criteria.yaml` declares `multi_agent: true`, read `extensions/skill-oriented-agent-architecture/docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md` and the applicable runtime, authority, resilience, and completion contracts
 * Confirm required feature artifacts exist
 
 If required inputs are missing, stop and ask.
@@ -40,8 +41,8 @@ Required artifacts:
 
 * `acceptance.feature`
 * `nfrs.md` (including LLM Latency, LLM Cost, LLM Fallback, LLM Safety)
-* `eval_criteria.yaml` (with DeepEval/Promptfoo/RAGAS criteria for mode: llm)
-* `plan.md` (with LLM Gateway, Guardrails, and extended evaluation_prediction)
+* `eval_criteria.yaml` (with configured quality/adversarial/retrieval evaluators criteria for mode: llm)
+* `plan.md` (with model gateway, Guardrails, and extended evaluation_prediction)
 * `architecture_preflight.md` (sections 1-9 standard + sections 10-14 GenAI)
 
 Implementation must not begin unless all artifacts exist and are complete.
@@ -55,7 +56,7 @@ Implementation must not begin unless all artifacts exist and are complete.
 2. GenAI Preflight (L5-specific validation)
 3. ADR creation (if required)
 4. Plan finalization
-5. Evaluation Suite Planning (DeepEval/Promptfoo/RAGAS)
+5. Evaluation Suite Planning (configured quality/adversarial/retrieval evaluators)
 6. Evaluation Compliance Summary
 7. Incremental implementation
 8. Automated tests (unit + LLM evaluation)
@@ -69,10 +70,10 @@ Steps may not be skipped.
 
 All LLM features must comply with:
 
-* **LLM Gateway:** LiteLLM is the sole gateway — no direct provider SDK calls
-* **Observability:** OpenLLMetry emits, Langfuse stores — via ObservabilityPort
-* **Guardrails:** NeMo for conversation safety, Guardrails AI for output validation — via GuardrailPort
-* **Evaluation:** DeepEval for quality, Promptfoo for adversarial, RAGAS for retrieval — in tests/eval/
+* **model gateway:** the configured model gateway is the sole gateway — no direct provider SDK calls
+* **Observability:** model telemetry uses the observability port and approved adapters — via ObservabilityPort
+* **Guardrails:** declared input, context, output, and tool-call controls — via GuardrailPort
+* **Evaluation:** versioned criteria use the configured evaluator adapters — in tests/eval/
 
 ---
 
@@ -84,10 +85,10 @@ Your project's language- and framework-specific conventions are documented in `d
 |---|---|---|
 | API / inbound adapter | `API_CONVENTIONS.md` | Routing, request/response, authentication, error mapping |
 | Services / domain | `ARCH_CONTRACT.md` | Architecture model, layering, approved libraries |
-| LLM gateway | `LLM_GATEWAY_CONTRACT.md` | LiteLLM usage, provider routing, model aliases |
-| Guardrails / safety | `GUARDRAILS_CONTRACT.md` | NeMo Guardrails and Guardrails AI integration |
-| Observability | `OBSERVABILITY_LLM_CONTRACT.md` | OpenLLMetry and Langfuse setup |
-| LLM evaluation | `EVALUATION_LLM_CONTRACT.md` | DeepEval, Promptfoo, RAGAS integration |
+| LLM gateway | `LLM_GATEWAY_CONTRACT.md` | provider-neutral port, logical routing, resilience, and budgets |
+| Guardrails / safety | `MODEL_GUARDRAILS_CONTRACT.md` | input, context, output, and tool-call policy with fail-closed behavior |
+| Observability | `LLM_OBSERVABILITY_CONTRACT.md` | privacy-aware telemetry, immutable provenance, usage, and trace correlation |
+| LLM evaluation | `LLM_EVALUATION_CONTRACT.md` | versioned datasets, oracles, slices, thresholds, gates, and evidence |
 | Technology decisions | `TECH_STACK.md` | Approved frameworks, libraries, tools, and versions |
 
 These documents define your stack's implementation. The architecture principles (hexagonal architecture, boundaries, evaluation) are universal; the specific tools and patterns are here.
@@ -98,18 +99,18 @@ These documents define your stack's implementation. The architecture principles 
 
 * Implement one increment at a time
 * Follow Hexagonal Architecture (ports and adapters)
-* All LLM calls through LiteLLM (no direct provider imports outside adapters/llm/)
-* Guardrails match declared mode in architecture_preflight.md
-* Observability via OpenLLMetry + Langfuse
+* All LLM calls through the configured model gateway (no direct provider imports outside adapters/llm/)
+* Guardrails match the declared policy in architecture_preflight.md
+* Observability via the configured model instrumentation + the configured telemetry backend
 
 ---
 
 ## 6. Evaluation Discipline
 
 * FIRST and 7 Virtues apply to all code
-* DeepEval metrics required for mode: llm
-* Promptfoo required for user-facing features
-* RAGAS required for RAG features
+* declared quality criteria required for mode: llm
+* the configured adversarial evaluator required for user-facing features
+* the configured retrieval evaluator required for RAG features
 * CI gates: deepeval-gate, promptfoo-gate, guardrails-check
 
 ---
@@ -120,9 +121,9 @@ Each increment must include:
 
 * Unit tests (FIRST compliant)
 * BDD integration tests from Gherkin scenarios
-* DeepEval quality tests for LLM output
-* Promptfoo adversarial tests (if user-facing)
-* RAGAS retrieval tests (if RAG)
+* declared model-quality tests for LLM output
+* declared adversarial tests (if user-facing)
+* declared retrieval tests (if RAG)
 
 ---
 
@@ -138,4 +139,4 @@ Each increment must include:
 
 Architecture decisions belong to the Architect. Exceptions require an ADR and explicit approval. Copilot follows standards — it does not invent them.
 
-Multi-agent ADR triggers: adding/removing/rerouting graph nodes, material system prompt changes, graph state schema changes.
+Multi-agent ADR triggers: adding/removing/rerouting agent-topology nodes, material system prompt changes, runtime state schema changes.

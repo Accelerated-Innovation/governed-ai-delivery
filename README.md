@@ -95,8 +95,9 @@ govkit apply --agent claude-code --level 3 --type api --ci github --target .
 # Level 4: Spec-Driven Add-On — adds the features/ directory and 5-artifact contract
 govkit apply --agent claude-code --level 4 --type api --ci github --target .
 
-# Level 5: GenAI Operations (LLM routing, evaluation, guardrails)
+# Level 5: GenAI Operations plus provider-neutral LLM application contracts
 govkit apply --agent claude-code --level 5 --type api --ci github --target .
+govkit extension add llm-application --target .
 
 # Python CLI tool + Azure DevOps
 govkit apply --agent copilot --type cli --ci azure --target .
@@ -191,7 +192,7 @@ govkit supports three operating levels in an additive ladder. Each level commits
 |-------|------|---------------|--------------------------|
 | **Level 3** | Governed AI Delivery (Foundations) | Agent rules, architecture contracts under `docs/*/architecture/`, `/govkit-adr-author` skill, lean CI gate (commit-format + import-linter + sonar/snyk). **No `features/` directory, no per-feature artifacts.** | "Our AI agents follow our architecture contracts." Lowest-friction entry; no project-structure change required. |
 | **Level 4** | Spec-Driven Add-On | Adds the `features/<name>/` 5-artifact contract (`acceptance.feature`, `nfrs.md`, `eval_criteria.yaml`, `plan.md`, `architecture_preflight.md`), feature-coupled skills (`/govkit-spec-planning`, `/govkit-architecture-preflight`, `/govkit-implementation-plan`), test-first + spec-compliance rules (binding), governance CI jobs, and per-feature evaluation prediction (FIRST + 7 Virtues, average ≥ 4.0). | "We adopt spec-first, test-first feature delivery on top of L3." `govkit init` becomes meaningful here. |
-| **Level 5** | GenAI Operations | LLM-specific NFR categories (latency, cost, fallback, safety), `agent_topology.md` for multi-agent features, deepeval/promptfoo/guardrails CI gates, LLM gateway/observability/multi-agent rules, LiteLLM routing, OpenLLMetry + Langfuse, RAGAS, NeMo Guardrails. | "Our LLM features are governed (routing, evaluation, safety)." Builds on L4. |
+| **Level 5** | GenAI Operations | LLM-specific NFRs, evaluation and safety gates, extension-aware coding-agent rules, and optional implementation-profile CI templates. Add `llm-application` for provider-neutral gateway, evaluation, observability, and model-guardrail contracts; add `skill-oriented-agent-architecture` for agent runtime and skills. | "Our model-backed features are governed (routing, evaluation, telemetry, safety)." Builds on L4. |
 
 **Start at Level 3 (default)** if you want governed AI agents without restructuring your codebase. **Move to Level 4** when your team is ready to commit to spec-first feature delivery. **Move to Level 5** when shipping LLM-powered features that need governed model routing, evaluation, and safety.
 
@@ -226,11 +227,18 @@ Every feature lives under `features/<name>/` with five required artifacts:
 
 Everything in Level 4, plus:
 
-- Routed through **LiteLLM** as the sole LLM gateway (model routing, fallback, cost tracking)
-- Observed via **OpenLLMetry + Langfuse** (LLM-specific telemetry, trace storage, prompt versioning)
-- Evaluated with **DeepEval** (quality metrics), **Promptfoo** (adversarial testing), and **RAGAS** (retrieval evaluation)
-- Guarded by **NeMo Guardrails** (conversational safety) and **Guardrails AI** (structured output validation)
-- Extended with **LLM-specific NFRs** (latency, cost, fallback, safety) and **3 additional CI gates**
+- Install the provider-neutral LLM application contracts:
+
+  ```bash
+  govkit extension add llm-application --target .
+  ```
+
+- Route model calls through an application-owned port with logical model identities, bounded resilience, data policy, and budgets
+- Apply privacy-aware model telemetry with immutable model, prompt, policy, and configuration provenance
+- Define versioned model-quality, adversarial, retrieval, tool-use, and operational evaluation criteria and blocking evidence
+- Apply risk-based input, context, output, and tool-call controls without treating model output as authority
+- Select concrete gateway, telemetry, evaluation, and guardrail products in `TECH_STACK.md` or an ADR; bundled product guides and CI gates are optional implementation profiles
+- Install `skill-oriented-agent-architecture` as a separate extension when the feature uses agents, skills, delegation, or governed agent runtime state
 
 The AI agent operates inside a governed system. Architecture, evaluation, and feature artifacts are the source of truth — not the agent.
 
@@ -510,7 +518,7 @@ See [`cli/stacks/README.md`](cli/stacks/README.md) for the complete guide, inclu
 
 ## Extensions
 
-Govkit ships **optional extension packs** that layer additional architecture contracts on top of the core kit — currently `agentic-skills`, `skill-oriented-agent-architecture`, and `vision-inference`. Add one with `govkit extension add`, or drop the folder in by hand; either way the folder under `extensions/<id>/` in your project *is* the install.
+Govkit ships **optional extension packs** that layer additional architecture contracts on top of the core kit — currently `llm-application`, `skill-oriented-agent-architecture`, `vision-inference`, and the older `agentic-skills` profile. Add one with `govkit extension add`, or drop the folder in by hand; either way the folder under `extensions/<id>/` in your project *is* the install.
 
 ### How to add an extension
 
@@ -518,6 +526,7 @@ The quickest path is the bundled-pack command:
 
 ```bash
 govkit extension list                              # see what's bundled
+govkit extension add llm-application --target .    # provider-neutral LLM contracts
 govkit extension add vision-inference --target .   # copy it into extensions/vision-inference/
 govkit extension add skill-oriented-agent-architecture --target .
 ```
@@ -550,7 +559,7 @@ govkit extension add skill-oriented-agent-architecture --target .
 
 When `extensions/` is absent, govkit behaves exactly as it does without extensions — they are entirely optional.
 
-See `extensions/skill-oriented-agent-architecture/` and `extensions/vision-inference/` in this repository for complete reference examples. The older `agentic-skills/` package remains available for its product-specific skill-family and phase model. Do not install it beside `skill-oriented-agent-architecture`.
+See `extensions/llm-application/`, `extensions/skill-oriented-agent-architecture/`, and `extensions/vision-inference/` in this repository for complete reference examples. Install both `llm-application` and `skill-oriented-agent-architecture` for an agentic system that invokes language models. The older `agentic-skills/` package remains available for its skill-family and phase model; do not install it beside `skill-oriented-agent-architecture`.
 
 ### Authoring an extension
 
@@ -574,21 +583,21 @@ contract_sets:
 
 The extension `id` must match its folder name and the pattern `^[a-z0-9][a-z0-9-]*$`. Every path listed in `contract_sets[].paths` (and `templates[].path`) must exist as a file under the extension folder — `govkit validate` reports missing or out-of-bounds paths.
 
-#### Resolving overlap with core contracts
+#### Resolving overlap with project contracts
 
-When an extension contract covers the same topic as a core govkit contract (e.g. an `AGENT_EVALUATION_CONTRACT.md` extension alongside core `EVALUATION_LLM_CONTRACT.md`), the manifest declares the relationship explicitly via `relates_to`:
+When an extension contract covers the same topic as a core GovKit contract or a contract from another installed extension, the manifest declares the relationship explicitly via `relates_to`:
 
 ```yaml
 contract_sets:
   - id: my_contracts
     paths: [docs/backend/architecture/AGENT_EVALUATION_CONTRACT.md]
     relates_to:
-      extends:    [docs/backend/architecture/EVALUATION_LLM_CONTRACT.md]   # both apply; stricter rule wins
-      supersedes: []                                                        # extension replaces core (requires ADR)
+      extends:    [extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md] # both apply; stricter rule wins
+      supersedes: [] # this set replaces the listed contract in scope (requires ADR)
 ```
 
-- `relates_to.extends` — the extension layers additional constraints on top of the core contract. The agent reads both and applies whichever is stricter on any specific point.
-- `relates_to.supersedes` — the extension replaces the listed core contract for rules in its scope. Requires an ADR in the consuming project.
+- `relates_to.extends` — the extension layers additional constraints on top of the referenced project contract. The agent reads both and applies whichever is stricter on any specific point.
+- `relates_to.supersedes` — the extension replaces the referenced project contract for rules in its scope. Requires an ADR in the consuming project.
 
 **Undeclared overlap is detected.** `govkit validate` and `govkit doctor` run a filename-token heuristic: if an extension contract shares a topic token with a core contract under `docs/backend/architecture/` and `relates_to` does not declare the relationship, the validator emits a WARN (or FAIL under `--strict`) asking the extension author to declare the intent. This prevents silent drift when extension authors and core authors update the same topic area independently.
 
@@ -730,20 +739,28 @@ A: Your predicted FIRST or Virtue average is below 4.0, or a predicted accessibi
 - [SECURITY_AUTH_PATTERNS.md](docs/backend/architecture/SECURITY_AUTH_PATTERNS.md)
 - [TECH_STACK.md](docs/backend/architecture/TECH_STACK.md)
 - [TESTING.md](docs/backend/architecture/TESTING.md)
-- [AGENT_ARCHITECTURE.md](docs/backend/architecture/AGENT_ARCHITECTURE.md) — AI agent design patterns (LangGraph, tools, evaluation)
 - [ERROR_MAPPING.md](docs/backend/architecture/ERROR_MAPPING.md) — Domain exception to HTTP status mapping
 - [OBSERVABILITY_PORT_CONTRACT.md](docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md) — Observability port interface
 - [CROSS_CUTTING_CONCERNS.md](docs/backend/architecture/CROSS_CUTTING_CONCERNS.md) — DTOs, validation, pagination, timestamps
 - [ADR/TEMPLATE.md](docs/backend/architecture/ADR/TEMPLATE.md)
 
-### Backend (GenAI Contracts — Level 5)
+### LLM Application Extension (Optional — Level 5)
 
-- [LLM_GATEWAY_CONTRACT.md](docs/backend/architecture/LLM_GATEWAY_CONTRACT.md) — LiteLLM as sole LLM gateway, provider abstraction, fallback, cost tracking
-- [OBSERVABILITY_LLM_CONTRACT.md](docs/backend/architecture/OBSERVABILITY_LLM_CONTRACT.md) — OpenLLMetry (telemetry emission) + Langfuse (trace storage, prompt versioning)
-- [GUARDRAILS_CONTRACT.md](docs/backend/architecture/GUARDRAILS_CONTRACT.md) — NeMo Guardrails (conversational safety) + Guardrails AI (structured output validation)
-- [EVALUATION_LLM_CONTRACT.md](docs/backend/architecture/EVALUATION_LLM_CONTRACT.md) — DeepEval (quality), Promptfoo (adversarial), RAGAS (retrieval)
+- [LLM_GATEWAY_CONTRACT.md](extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md) — provider-neutral model port, logical routing, resilience, data policy, and budgets
+- [LLM_OBSERVABILITY_CONTRACT.md](extensions/llm-application/docs/backend/architecture/LLM_OBSERVABILITY_CONTRACT.md) — privacy-aware model telemetry, correlation, usage, and immutable provenance
+- [MODEL_GUARDRAILS_CONTRACT.md](extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md) — input, context, output, and tool-call controls with fail-closed behavior
+- [LLM_EVALUATION_CONTRACT.md](extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md) — versioned datasets, oracles, slices, thresholds, gates, and evidence
 
-### Backend (Practical Guides — Level 5)
+### Skill-Oriented Agent Architecture Extension (Optional — Level 5)
+
+- [Extension README](extensions/skill-oriented-agent-architecture/README.md) — scope, installation, progressive contract loading, and LLM-extension relationship
+- [SKILL_ORIENTED_AGENT_ARCHITECTURE.md](extensions/skill-oriented-agent-architecture/docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md) — provider-neutral runtime ownership, responsibility boundaries, proposal/commit separation, and preflight decisions
+- [SKILL_CONTRACT.md](extensions/skill-oriented-agent-architecture/docs/backend/architecture/SKILL_CONTRACT.md) — Agent Skills package profile, authority ceiling, and two-stage validation
+- [EVALUATION_EVIDENCE_AND_COMPLETION_CONTRACT.md](extensions/skill-oriented-agent-architecture/docs/backend/architecture/EVALUATION_EVIDENCE_AND_COMPLETION_CONTRACT.md) — independent verification, durable evidence, and completion control
+
+### Backend (Optional Product Implementation Guides — Level 5)
+
+These guides map concrete products to the provider-neutral `llm-application` ports. They are examples, not architecture mandates.
 
 - [litellm-setup.md](docs/backend/guides/litellm-setup.md) — LiteLLM proxy config, model aliases, fallback chains
 - [openllmetry-setup.md](docs/backend/guides/openllmetry-setup.md) — Auto-instrumentation, export to Langfuse
@@ -809,7 +826,7 @@ A: Your predicted FIRST or Virtue average is below 4.0, or a predicted accessibi
 - [eval_criteria.md](docs/backend/evaluation/eval_criteria.md) — FIRST, 7 Code Virtues, LLM eval, scoring model
 - [FIRST_SCORING_RUBRIC.md](docs/backend/evaluation/FIRST_SCORING_RUBRIC.md) — 1-5 scoring definitions per FIRST principle
 - [VIRTUE_SCORING_RUBRIC.md](docs/backend/evaluation/VIRTUE_SCORING_RUBRIC.md) — 1-5 scoring definitions per virtue
-- [EVAL_STACK.md](docs/backend/evaluation/EVAL_STACK.md) — Evaluation tooling by environment (Langfuse, DeepEval, Promptfoo, RAGAS, home-grown)
+- [EVAL_STACK.md](docs/backend/evaluation/EVAL_STACK.md) — bundled product implementation profile by environment; replace through `TECH_STACK.md` or an ADR
 
 ### Schemas
 
@@ -830,7 +847,7 @@ A: Your predicted FIRST or Virtue average is below 4.0, or a predicted accessibi
 |-------|-----------------|-------|
 | L3 | Architecture-boundary compliance + commit format + lint/security (codebase-wide; no per-feature artifacts) | `l3-quality-gate.yml` (import-linter + sonar/snyk + commit-format) |
 | L4 | L3 + spec completeness, Gherkin structure, NFR coverage, FIRST + 7 Virtue scores, eval_criteria schema | `govkit validate` + `quality-gate.yml` + `eval-gate.yml` |
-| L5 | L4 + LLM quality (DeepEval), adversarial safety (Promptfoo), retrieval quality (RAGAS), guardrails config, multi-agent topology | `govkit validate` + deepeval-gate + promptfoo-gate + guardrails-check + multi-agent-gate |
+| L5 | L4 + declared model quality, adversarial, retrieval, guardrail, operational, and agent-topology evidence | `govkit validate` plus the configured evaluator/guardrail gates; bundled product-profile gates remain available |
 
 ---
 
@@ -874,15 +891,15 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 | **ADR** | Architecture Decision Record — documents and gates architectural changes |
 | **NFR** | Non-Functional Requirement — performance, security, availability, etc. |
 | **Evaluation Prediction** | Predicted FIRST and Virtue scores in `plan.md` — must average >= 4.0 before implementation |
-| **Extension** | An optional, self-describing pack under `extensions/<id>/` that layers extra contracts/templates onto the core kit (drop-in; not CLI-installed) |
+| **Extension** | An optional, self-describing pack under `extensions/<id>/` that layers extra contracts/templates onto the core kit; install with `govkit extension add` or vendor the folder directly |
 | `/govkit-architecture-preflight` | Agent skill that validates a feature against architecture contracts before planning (`$govkit-architecture-preflight` in Codex) |
-| `/govkit-genai-preflight` | L5 agent skill that validates LLM gateway, observability, guardrails, and evaluation decisions (`$govkit-genai-preflight` in Codex) |
-| `/govkit-eval-suite-planning` | L5 agent skill that plans DeepEval, Promptfoo, and RAGAS test suites (`$govkit-eval-suite-planning` in Codex) |
-| **LiteLLM** | L5 sole LLM gateway — model routing, provider abstraction, fallback, cost tracking |
-| **OpenLLMetry** | L5 LLM telemetry emission standard (OpenTelemetry for LLMs) |
-| **Langfuse** | Trace storage, prompt versioning, and production evaluation visibility |
-| **DeepEval** | L5 LLM quality evaluation — faithfulness, relevancy, hallucination metrics |
-| **Promptfoo** | L5 adversarial and regression testing — jailbreak, injection, safety |
-| **RAGAS** | L5 retrieval-specific evaluation — context recall, precision (RAG pipelines only) |
-| **NeMo Guardrails** | L5 conversational safety — dialog flow control, topic boundaries, jailbreak prevention |
-| **Guardrails AI** | L5 structured output validation — JSON schema enforcement on LLM responses |
+| `/govkit-genai-preflight` | L5 agent skill that loads the `llm-application` manifest and validates provider-neutral gateway, observability, guardrail, and evaluation decisions (`$govkit-genai-preflight` in Codex) |
+| `/govkit-eval-suite-planning` | L5 agent skill that plans versioned evaluation subjects, datasets, oracles, slices, thresholds, and evidence for configured evaluator adapters (`$govkit-eval-suite-planning` in Codex) |
+| **LiteLLM** | Gateway option documented by the bundled implementation profile; not required by the `llm-application` contract |
+| **OpenLLMetry** | Model instrumentation option documented by the bundled implementation profile |
+| **Langfuse** | Telemetry and prompt-management option documented by the bundled implementation profile |
+| **DeepEval** | Model-quality evaluator option documented by the bundled implementation profile |
+| **Promptfoo** | Adversarial and regression evaluator option documented by the bundled implementation profile |
+| **RAGAS** | Retrieval evaluator option documented by the bundled implementation profile |
+| **NeMo Guardrails** | Behavioral-safety adapter option documented by the bundled implementation profile |
+| **Guardrails AI** | Structured-output validator option documented by the bundled implementation profile |

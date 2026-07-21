@@ -117,10 +117,9 @@ def copy_entry(
     doc baselines stay in sync. Files skipped (existed when skip_existing was
     set, or refused by edit-protection) do not get the header touched.
 
-    Exclusion (PR 6c): when `exclude_basenames` is supplied, files whose
-    basename matches are silently skipped. Used by L5-only governed docs
-    (AGENT_ARCHITECTURE.md, LLM_GATEWAY_CONTRACT.md, etc.) to keep them
-    out of L3/L4 installs without restructuring the source tree.
+    Exclusion: when `exclude_basenames` is supplied, files whose basename
+    matches are silently skipped. This is available to callers that need to
+    omit selected bundled files while preserving the source tree.
     """
     if not src.exists():
         print(f"Error: source path does not exist: {src}")

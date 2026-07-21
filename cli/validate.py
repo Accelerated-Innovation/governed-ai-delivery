@@ -375,7 +375,11 @@ def check_llm_nfrs(feature_dir: Path) -> tuple[bool, str]:
 
 
 def check_l5_eval_criteria(feature_dir: Path) -> tuple[bool, str]:
-    """Check that eval_criteria.yaml has deepeval_* or promptfoo_* eval_class when mode is llm."""
+    """Check that mode:llm declares at least one model evaluation criterion.
+
+    Evaluator products are selected by an implementation profile or ADR, so
+    validation intentionally does not require a product-specific eval_class.
+    """
     mode_llm = _is_mode_llm(feature_dir)
     if mode_llm is None:
         return False, f"{_EVAL_CRITERIA_YAML} not found"
@@ -383,16 +387,13 @@ def check_l5_eval_criteria(feature_dir: Path) -> tuple[bool, str]:
         return True, "mode is not llm — L5 eval criteria check not applicable"
 
     text = (feature_dir / _EVAL_CRITERIA_YAML).read_text(encoding="utf-8")
-    has_deepeval = bool(re.search(r"eval_class:\s*deepeval_", text))
-    has_promptfoo = bool(re.search(r"eval_class:\s*promptfoo_", text))
-    if not has_deepeval and not has_promptfoo:
-        return False, f"{_EVAL_CRITERIA_YAML} mode is llm but has no deepeval_* or promptfoo_* eval_class"
-    tools = []
-    if has_deepeval:
-        tools.append("deepeval")
-    if has_promptfoo:
-        tools.append("promptfoo")
-    return True, f"L5 eval criteria present ({', '.join(tools)})"
+    has_llm_section = bool(re.search(r"^\s*llm_evaluation:\s*$", text, re.MULTILINE))
+    criterion_count = len(re.findall(r"^\s*eval_class:\s*\S+", text, re.MULTILINE))
+    if not has_llm_section or criterion_count == 0:
+        return False, (
+            f"{_EVAL_CRITERIA_YAML} mode is llm but llm_evaluation has no criteria"
+        )
+    return True, f"L5 eval criteria present ({criterion_count} declared)"
 
 
 def check_l5_preflight_sections(feature_dir: Path) -> tuple[bool, str]:

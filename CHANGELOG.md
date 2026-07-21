@@ -13,9 +13,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added the bundled `skill-oriented-agent-architecture` extension. It translates
   approved SOAA v0.2 decisions into five progressively loaded contract sets for
   core semantics, selection and authority, context and resilience, assurance,
-  and lifecycle interoperability. The package is provider-neutral, supersedes
-  the generic `AGENT_ARCHITECTURE.md` when installed, and includes focused
-  validation and installation tests.
+  and lifecycle interoperability. The package is provider-neutral, owns agent
+  architecture outside the core baseline, and includes focused validation and
+  installation tests.
+- Added the bundled, provider-neutral `llm-application` extension with
+  progressively loaded contracts for model gateway access, model evaluation,
+  model observability, and model guardrails. Coding-agent rules and Level 5
+  preflight/plan templates now load those contracts while concrete gateway,
+  telemetry, evaluator, guardrail, and orchestration products remain optional
+  implementation profiles selected in `TECH_STACK.md` or an ADR.
 
 ### Fixed
 
@@ -31,6 +37,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   advances on upgrade — that is a re-install, and edit-protection depends on it.
 ### Changed
 
+- Removed the duplicate core `AGENT_ARCHITECTURE.md`,
+  `LLM_GATEWAY_CONTRACT.md`, `EVALUATION_LLM_CONTRACT.md`,
+  `OBSERVABILITY_LLM_CONTRACT.md`, and `GUARDRAILS_CONTRACT.md` files. Their
+  maintained guidance now lives in `skill-oriented-agent-architecture` or
+  `llm-application`; core apply/upgrade no longer needs maturity-level filename
+  exclusion logic for those documents.
 - **govkit's layer rules now install under a `govkit/` subdirectory**, so a team's
   own same-named rule survives. claude-code rules move to `.claude/rules/govkit/`
   and copilot's to `.github/instructions/govkit/` — a team that keeps their own

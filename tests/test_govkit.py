@@ -1484,8 +1484,7 @@ class TestCopyEntryEditProtection:
 
 
 class TestCopyEntryExcludeBasenames:
-    """copy_entry with exclude_basenames skips matching files. Used by
-    cmd_apply (PR 6c) to keep L5-only architecture docs out of L3/L4 installs."""
+    """copy_entry with exclude_basenames skips matching files."""
 
     def test_excludes_named_files_at_root(self, tmp_path):
         from cli.fs import copy_entry
@@ -1507,14 +1506,14 @@ class TestCopyEntryExcludeBasenames:
         src = tmp_path / "src"
         sub = src / "nested"
         sub.mkdir(parents=True)
-        (sub / "AGENT_ARCHITECTURE.md").write_text("x", encoding="utf-8")
+        (sub / "EXCLUDED.md").write_text("x", encoding="utf-8")
         (sub / "BOUNDARIES.md").write_text("b", encoding="utf-8")
         dest = tmp_path / "dest"
 
-        copy_entry(src, dest, exclude_basenames={"AGENT_ARCHITECTURE.md"})
+        copy_entry(src, dest, exclude_basenames={"EXCLUDED.md"})
 
         assert (dest / "nested" / "BOUNDARIES.md").is_file()
-        assert not (dest / "nested" / "AGENT_ARCHITECTURE.md").exists()
+        assert not (dest / "nested" / "EXCLUDED.md").exists()
 
     def test_exclude_none_preserves_default_behaviour(self, tmp_path):
         from cli.fs import copy_entry
@@ -1530,36 +1529,10 @@ class TestCopyEntryExcludeBasenames:
         assert (dest / "b.md").is_file()
 
 
-class TestL5OnlyGovernedExclusion:
-    """cmd_apply at L3/L4 must NOT install L5-only architecture contracts
-    (AGENT_ARCHITECTURE.md, LLM_GATEWAY_CONTRACT.md, etc.). L5 installs DO
-    get them. This is what makes doctor's D007 quiet on fresh L4 installs."""
+class TestExtensionOwnedArchitectureContracts:
+    """Core apply does not duplicate contracts owned by optional extensions."""
 
-    def test_l4_apply_excludes_llm_contracts_from_governed(self, tmp_path, monkeypatch):
-        import argparse
-
-        from cli.cmd_apply import cmd_apply
-
-        target = tmp_path / "project"
-        target.mkdir()
-        cmd_apply(argparse.Namespace(
-            agent="claude-code", target=str(target),
-            level="4", type="api", ci="github",
-            stack="python-fastapi", force=False, detect=False,
-        ))
-
-        arch = target / "docs" / "backend" / "architecture"
-        for l5_only in (
-            "AGENT_ARCHITECTURE.md",
-            "LLM_GATEWAY_CONTRACT.md",
-            "GUARDRAILS_CONTRACT.md",
-            "OBSERVABILITY_LLM_CONTRACT.md",
-            "EVALUATION_LLM_CONTRACT.md",
-        ):
-            assert not (arch / l5_only).exists(), \
-                f"L4 install must not ship {l5_only}; doctor D007 will leak"
-
-    def test_l5_apply_includes_llm_contracts(self, tmp_path, monkeypatch):
+    def test_l5_apply_does_not_embed_extension_contracts(self, tmp_path):
         import argparse
 
         from cli.cmd_apply import cmd_apply
@@ -1573,9 +1546,14 @@ class TestL5OnlyGovernedExclusion:
         ))
 
         arch = target / "docs" / "backend" / "architecture"
-        assert (arch / "AGENT_ARCHITECTURE.md").is_file()
-        assert (arch / "LLM_GATEWAY_CONTRACT.md").is_file()
-        assert (arch / "GUARDRAILS_CONTRACT.md").is_file()
+        for extension_owned in (
+            "AGENT_ARCHITECTURE.md",
+            "LLM_GATEWAY_CONTRACT.md",
+            "GUARDRAILS_CONTRACT.md",
+            "OBSERVABILITY_LLM_CONTRACT.md",
+            "EVALUATION_LLM_CONTRACT.md",
+        ):
+            assert not (arch / extension_owned).exists()
 
 
 class TestApplyTypeDataStackDefault:

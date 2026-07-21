@@ -7,9 +7,9 @@
 # See features/schema_contract_example/acceptance.feature for a complete worked example.
 #
 # Level 5 tags:
-#   @llm-eval       — scenario validates LLM output quality (triggers DeepEval)
-#   @adversarial    — scenario tests adversarial resilience (triggers Promptfoo)
-#   @guardrails     — scenario tests guardrail behavior (NeMo or Guardrails AI)
+#   @llm-eval       — scenario validates model output quality with the configured evaluator
+#   @adversarial    — scenario tests adversarial resilience with the configured evaluator
+#   @guardrails     — scenario tests declared model-guardrail behavior
 
 Feature: <feature_name>
 

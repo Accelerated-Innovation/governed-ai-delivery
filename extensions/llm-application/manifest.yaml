@@ -1,0 +1,132 @@
+id: llm-application
+name: LLM Application Extension
+version: 0.1.0
+description: Adds provider-neutral architecture contracts for governed model access, evaluation, observability, and runtime guardrails in LLM-backed applications.
+govkit_min_version: 0.13.0
+extension_type: architecture
+supported_levels:
+  - 5
+supported_project_types:
+  - api
+  - cli
+
+contract_sets:
+  - id: llm_gateway
+    description: Provider-neutral model access, routing, resilience, budgets, data handling, and adapter boundaries.
+    paths:
+      - docs/backend/architecture/LLM_GATEWAY_CONTRACT.md
+    applies_to:
+      - "**/*llm*"
+      - "**/*model*"
+      - "**/*prompt*"
+      - "**/*completion*"
+      - "**/*chat*"
+      - "**/*embed*"
+      - "**/*gateway*"
+      - "**/*provider*"
+    capabilities:
+      - provider-neutral-model-access
+      - logical-model-routing
+      - model-resilience
+      - model-budget-enforcement
+      - model-data-governance
+    relates_to:
+      extends:
+        - docs/backend/architecture/ARCH_CONTRACT.md
+        - docs/backend/architecture/BOUNDARIES.md
+        - docs/backend/architecture/SECURITY_AUTH_PATTERNS.md
+      supersedes: []
+
+  - id: model_guardrails
+    description: Policy-driven input, context, tool-call, and output controls around model execution.
+    paths:
+      - docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md
+    applies_to:
+      - "**/*guardrail*"
+      - "**/*safety*"
+      - "**/*moderation*"
+      - "**/*prompt*"
+      - "**/*tool-call*"
+      - "**/*structured-output*"
+      - "**/*policy*"
+    capabilities:
+      - model-input-policy
+      - prompt-injection-defense
+      - tool-call-validation
+      - structured-output-validation
+      - fail-closed-model-controls
+    relates_to:
+      extends:
+        - extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md
+        - docs/backend/architecture/SECURITY_AUTH_PATTERNS.md
+      supersedes: []
+
+  - id: llm_observability
+    description: Privacy-aware model telemetry, trace correlation, usage accounting, and operational evidence.
+    paths:
+      - docs/backend/architecture/LLM_OBSERVABILITY_CONTRACT.md
+    applies_to:
+      - "**/*llm*"
+      - "**/*model*"
+      - "**/*prompt*"
+      - "**/*telemetr*"
+      - "**/*observab*"
+      - "**/*trace*"
+      - "**/*usage*"
+      - "**/*cost*"
+    capabilities:
+      - model-telemetry
+      - model-trace-correlation
+      - privacy-aware-model-observability
+      - model-usage-accounting
+      - prompt-and-model-provenance
+    relates_to:
+      extends:
+        - extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md
+        - docs/backend/architecture/OBSERVABILITY_PORT_CONTRACT.md
+      supersedes: []
+
+  - id: llm_evaluation
+    description: Versioned evaluation definitions, datasets, oracles, regression gates, and production feedback for model behavior.
+    paths:
+      - docs/backend/architecture/LLM_EVALUATION_CONTRACT.md
+    applies_to:
+      - "**/*llm*"
+      - "**/*model*"
+      - "**/*prompt*"
+      - "**/*eval*"
+      - "**/*quality*"
+      - "**/*red-team*"
+      - "**/*retriev*"
+      - "**/*judge*"
+      - "**/*dataset*"
+    capabilities:
+      - model-quality-evaluation
+      - adversarial-model-evaluation
+      - retrieval-evaluation
+      - evaluation-regression-gates
+      - production-model-feedback
+    relates_to:
+      extends:
+        - extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md
+        - extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md
+        - docs/backend/architecture/TESTING.md
+      supersedes: []
+
+agent_guidance:
+  architecture_preflight:
+    - Read this manifest before planning any feature that invokes, embeds, evaluates, monitors, or constrains a language model.
+    - Load llm_gateway for every model-backed feature, then load only the additional contract sets matched by feature intent and touched files.
+    - Record logical model capabilities, data classifications, trust boundaries, side effects, guardrail policy, evaluation gates, telemetry fields, budgets, and failure behavior.
+    - List every applicable LLM application contract in architecture_preflight.md.
+    - Require an ADR for a provider or product selection, contract exception, or material routing, safety, evaluation, or telemetry policy change.
+  implementation_plan:
+    - Keep model and vendor SDKs inside outbound adapters behind typed application ports.
+    - Separate model proposals from deterministic validation, authorization, persistence, and side-effect commit paths.
+    - Bind runtime events and evaluation evidence to immutable model, prompt, policy, dataset, and configuration identities.
+    - Include failure, fallback, timeout, budget, privacy, adversarial, and regression tests for every affected control boundary.
+  validation:
+    - Validate every declared contract path after extension installation.
+    - Reject direct provider calls outside adapters, hard-coded provider model identifiers in domain code, unvalidated consequential model output, and raw sensitive prompt or response logging.
+    - Verify bounded retries, explicit timeouts, policy-driven guardrails, versioned evaluation sets, blocking thresholds, trace correlation, and redaction.
+    - Treat unavailable or invalid safety and evaluation evidence as blocked or inconclusive, never implicit success.

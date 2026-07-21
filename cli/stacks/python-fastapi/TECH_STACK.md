@@ -80,13 +80,14 @@ docs/backend/architecture/API_CONVENTIONS.md
 
 ---
 
-<!-- §4 Agent Frameworks, §4a LLM Gateway moved to AGENT_ARCHITECTURE.md
-     (L5-only). See `docs/backend/architecture/AGENT_ARCHITECTURE.md`
-     under "Approved LLM Tooling — moved from TECH_STACK". -->
+<!-- Agent-runtime contracts live in the optional skill-oriented-agent-architecture extension.
+     Model gateway contracts live in the optional llm-application extension. -->
 
 ---
 
-# 5. LLM Providers
+# 5. LLM Providers (when `llm-application` is installed)
+
+Contract: `extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
 
 Providers must be accessed through **adapter layers**.
 
@@ -189,9 +190,7 @@ pyproject.toml
 sonar-project.properties
 .github/workflows/
 ```
-Agent interaction rules for development tools are defined in:
-
-`docs/backend/architecture/AGENT_ARCHITECTURE.md`
+AI coding agents may use these tools only within the project's approved task and authority boundaries.
 
 ---
 
@@ -219,7 +218,7 @@ Evaluation includes:
 
 ---
 
-<!-- §10a LLM Evaluation moved to AGENT_ARCHITECTURE.md (L5-only). -->
+<!-- Model evaluation contracts live in the optional llm-application extension. -->
 
 ---
 
@@ -273,8 +272,7 @@ An outbound port (`ObservabilityPort`) must abstract logging and tracing from th
 - Adapter implements the port using `structlog` + OpenTelemetry
 - This keeps the domain layer infrastructure-agnostic (per architecture contract)
 
-<!-- §11 LLM Observability subsection and §11a Runtime Guardrails moved
-     to AGENT_ARCHITECTURE.md (L5-only). -->
+<!-- Model observability and guardrail contracts live in the optional llm-application extension. -->
 
 ---
 
@@ -360,9 +358,6 @@ This technology stack ensures:
 - deterministic testing
 - evaluation-driven AI behavior validation
 - maintainable and portable systems
-
-
-
 
 
 

@@ -100,12 +100,14 @@ def test_every_required_contract_is_declared_once_and_exists():
         assert (EXT_DIR / path).is_file(), f"missing declared contract: {path}"
 
 
-def test_core_profile_supersedes_generic_agent_architecture():
+def test_core_profile_has_no_removed_core_supersession():
     core = next(
         item for item in _manifest()["contract_sets"] if item["id"] == "soaa_core"
     )
-    supersedes = set(core["relates_to"]["supersedes"])
-    assert "docs/backend/architecture/AGENT_ARCHITECTURE.md" in supersedes
+    assert core["relates_to"]["supersedes"] == []
+    assert not (
+        REPO_ROOT / "docs" / "backend" / "architecture" / "AGENT_ARCHITECTURE.md"
+    ).exists()
 
 
 def test_all_core_relationship_paths_exist():
