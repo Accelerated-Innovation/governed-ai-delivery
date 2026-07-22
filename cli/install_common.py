@@ -108,47 +108,6 @@ def install_agent_file(
         copy_entry(src, dest)
 
 
-def write_managed_agent_block(dest: Path, body: str, applied_at: str | None = None) -> None:
-    """Install govkit's governance into `dest` as a managed block.
-
-    For an agent (codex) whose only mechanism is a shared AGENTS.md, govkit
-    cannot move its governance elsewhere, so it fences it between markers and
-    preserves the team's own content in the same file. When the file already
-    exists without a block, it is replaced wholesale only if it is provably
-    govkit's own pre-block copy (byte-identical to the governance body, or
-    untouched since the marker's `applied_at`); otherwise it is treated as the
-    team's and the block is appended below their content.
-    """
-    existing: str | None = None
-    if dest.exists():
-        try:
-            existing = dest.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            existing = None
-    replace_unblocked = False
-    if existing is not None and GOVKIT_BLOCK_BEGIN not in existing:
-        replace_unblocked = existing == body or _unmodified_since(dest, applied_at)
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(
-        upsert_govkit_block(existing, body, replace_unblocked=replace_unblocked),
-        encoding="utf-8",
-    )
-    print(f"  wrote   {dest}  (govkit governance block)")
-
-
-def install_agent_file(
-    agent_dir: Path, entry: dict, target: Path, applied_at: str | None = None,
-) -> None:
-    """Install one agent-file manifest entry: a managed block when the entry
-    opts in (`managed_block`), otherwise a plain overwrite copy."""
-    src = agent_dir / entry["src"]
-    dest = target / entry["dest"]
-    if entry.get("managed_block"):
-        write_managed_agent_block(dest, src.read_text(encoding="utf-8"), applied_at)
-    else:
-        copy_entry(src, dest)
-
-
 def reconcile_legacy_instruction_files(
     target: Path, agent_dir: Path, files: list, applied_at: str | None = None,
 ) -> list:
