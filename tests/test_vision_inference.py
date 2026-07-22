@@ -17,9 +17,7 @@ from cli.extensions import discover_extensions, validate_extension
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EXT_DIR = REPO_ROOT / "extensions" / "vision-inference"
 MANIFEST_PATH = EXT_DIR / "manifest.yaml"
-SCHEMA_PATH = (
-    REPO_ROOT / "extensions" / "agentic-skills" / "schemas" / "extension-manifest.schema.json"
-)
+SCHEMA_PATH = REPO_ROOT / "governance" / "schemas" / "extension-manifest.schema.json"
 ADAPTER_CONTRACT = "docs/backend/architecture/VISION_MODEL_ADAPTER_CONTRACT.md"
 SPINE_CONTRACTS = [
     "docs/backend/architecture/VISION_MODEL_ADAPTER_CONTRACT.md",

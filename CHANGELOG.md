@@ -23,6 +23,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   telemetry, evaluator, guardrail, and orchestration products remain optional
   implementation profiles selected in `TECH_STACK.md` or an ADR.
 
+### Removed
+
+- Removed the deprecated `agentic-skills` extension. It was the predecessor to
+  `skill-oriented-agent-architecture`, which supersedes it; the two were never
+  meant to be installed together. The generic extension-manifest JSON schema it
+  hosted was a shared framework asset used by every extension's tests and has
+  moved to `governance/schemas/extension-manifest.schema.json` (alongside the
+  agent-manifest, marker, and stack-overlay schemas). The agentic-only smoke
+  script `scripts/smoke-extensions.ps1` was removed with it.
+
 ### Fixed
 
 - `govkit upgrade` no longer erases the team's calibration. It wrote the marker

@@ -1931,16 +1931,16 @@ class TestSmokeApply:
         fake_repo = _make_fake_agent(tmp_path)
         target = tmp_path / "target"
         target.mkdir()
-        ext_dir = target / "extensions" / "agentic-skills"
+        ext_dir = target / "extensions" / "demo-ext"
         ext_dir.mkdir(parents=True)
         (ext_dir / "manifest.yaml").write_text(
             textwrap.dedent("""\
-                id: agentic-skills
-                name: Agentic Skills Architecture Extension
+                id: demo-ext
+                name: Demo Architecture Extension
                 version: 0.1.0
                 extension_type: architecture
                 contract_sets:
-                  - id: agentic_skills
+                  - id: demo
                     description: contracts
                     paths: []
                 """),
@@ -1953,7 +1953,7 @@ class TestSmokeApply:
 
         out = capsys.readouterr().out
         assert "Extensions detected" in out
-        assert "agentic-skills v0.1.0" in out
+        assert "demo-ext v0.1.0" in out
 
 
 class TestSmokeInit:
