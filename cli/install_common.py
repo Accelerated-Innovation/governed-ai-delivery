@@ -13,6 +13,7 @@ them inward without duplicating logic or reaching back into cli/govkit.py.
 
 from __future__ import annotations
 
+import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,7 +22,7 @@ from typing import TYPE_CHECKING
 from . import paths
 from .fs import copy_entry
 from .headers import GOVKIT_BLOCK_BEGIN, upsert_govkit_block
-from .marker import read_govkit_marker
+from .marker import _compare_version, read_govkit_marker
 
 if TYPE_CHECKING:
     from .detect import RepoProfile
@@ -169,6 +170,101 @@ def reconcile_legacy_instruction_files(
                 file=sys.stderr,
             )
     return keep
+
+
+# 0.14.0 moved govkit's own agent files into a namespace govkit owns, so a
+# team's same-named rules and skills survive alongside them:
+#   .claude/rules/X.md          -> .claude/rules/govkit/X.md
+#   .github/instructions/X      -> .github/instructions/govkit/X
+#   .claude|.agents/skills/Y/   -> .../skills/govkit-Y/
+# Upgrading a pre-0.14 install writes the new paths but leaves govkit's old
+# copy behind, and the agent auto-loads both — duplicated and, once the two
+# drift, contradictory governance. Both moves are mechanical, so the superseded
+# path is derived rather than enumerated per agent.
+_NAMESPACE_MIGRATION_VERSION = "0.14.0"
+
+
+def _superseded_agent_path(dest: str) -> str | None:
+    """The pre-namespace path `dest` superseded, or None when `dest` is not a
+    namespaced (or `govkit-` prefixed) govkit agent file."""
+    if "/govkit/" in dest:
+        return dest.replace("/govkit/", "/", 1)
+    if "/skills/govkit-" in dest:
+        return dest.replace("/skills/govkit-", "/skills/", 1)
+    return None
+
+
+def _tree_unmodified_since(root: Path, applied_at: str | None) -> bool:
+    """True when every file under `root` is unmodified since `applied_at`.
+
+    One user-touched file protects the whole directory: a skill the team
+    edited is theirs even if they changed only part of it. An empty tree
+    returns False — there is nothing to prove ownership with, so it stays.
+    """
+    contents = [p for p in root.rglob("*") if p.is_file()]
+    return bool(contents) and all(_unmodified_since(p, applied_at) for p in contents)
+
+
+def _is_govkit_pre_namespace_copy(
+    legacy: Path, src: Path, applied_at: str | None,
+) -> bool:
+    """True when `legacy` is provably govkit's own copy rather than the team's.
+
+    A directory qualifies when nothing inside it was touched since the last
+    apply. A file qualifies when it is byte-identical to what govkit installs
+    today (a same-version orphan) or untouched since the last apply (an older
+    govkit version's file the team never edited).
+    """
+    if legacy.is_dir():
+        return _tree_unmodified_since(legacy, applied_at)
+    if src.is_file():
+        try:
+            if legacy.read_text(encoding="utf-8") == src.read_text(encoding="utf-8"):
+                return True
+        except (OSError, UnicodeDecodeError):
+            pass
+    return _unmodified_since(legacy, applied_at)
+
+
+def retire_pre_namespace_agent_files(
+    target: Path, agent_dir: Path, files: list,
+    applied_at: str | None = None, stored_version: str | None = None,
+) -> None:
+    """Remove the pre-namespace rules/skills an upgrade would otherwise orphan.
+
+    Runs only while the marker predates the namespace move, so a same-named
+    file the team authors at an old path *after* migrating is never a
+    candidate. Inside that window a path is removed only when it is provably
+    govkit's own (see `_is_govkit_pre_namespace_copy`); anything else is the
+    team's and is left untouched — govkit's namespaced copy installs alongside
+    it, which is the entire point of the namespace. A failed delete warns and
+    never aborts the upgrade.
+    """
+    if _compare_version(stored_version or "", _NAMESPACE_MIGRATION_VERSION) >= 0:
+        return
+    for entry in files:
+        legacy_rel = _superseded_agent_path(entry["dest"])
+        if legacy_rel is None:
+            continue
+        legacy = target / legacy_rel
+        if not legacy.exists():
+            continue
+        if not _is_govkit_pre_namespace_copy(legacy, agent_dir / entry["src"], applied_at):
+            continue
+        try:
+            if legacy.is_dir():
+                shutil.rmtree(legacy)
+            else:
+                legacy.unlink()
+        except OSError as exc:
+            print(
+                f"  warning: could not remove superseded {legacy_rel} ({exc}); "
+                f"it now duplicates {entry['dest']}. Delete {legacy_rel} manually "
+                "so the agent does not load both copies.",
+                file=sys.stderr,
+            )
+            continue
+        print(f"  retired {legacy_rel}  (superseded by {entry['dest']})")
 
 
 def copy_governed_or_shared(

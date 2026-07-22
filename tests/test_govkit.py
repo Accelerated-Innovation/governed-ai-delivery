@@ -3,6 +3,7 @@
 import argparse
 import json
 import textwrap
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -2607,6 +2608,187 @@ class TestUpgradeMigratesLegacyInstructionFile:
         err = capsys.readouterr().err
         assert "CLAUDE.md" in err
         assert "could not remove" in err
+
+
+def _make_namespaced_repo(tmp_path: Path, agent: str = "test-agent") -> Path:
+    """A repo whose manifest installs one `govkit/`-namespaced rule and one
+    `govkit-`-prefixed skill dir (the post-0.14 agent-file layout)."""
+    agents = tmp_path / "agents" / agent
+    (agents / "rules").mkdir(parents=True, exist_ok=True)
+    (agents / "rules" / "test-first.md").write_text(
+        "# govkit test-first rule (current)\n", encoding="utf-8",
+    )
+    skill = agents / "skills" / "spec-planning"
+    skill.mkdir(parents=True, exist_ok=True)
+    (skill / "SKILL.md").write_text(
+        "---\nname: govkit-spec-planning\ndescription: plan a spec\n---\n", encoding="utf-8",
+    )
+    manifest = {
+        "agent": agent,
+        "description": "namespaced-layout test agent",
+        "options": {
+            "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
+            "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
+            "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
+        },
+        "variants": {
+            "type": {
+                "api": {
+                    "files": [
+                        {"src": "rules/test-first.md",
+                         "dest": ".claude/rules/govkit/test-first.md"},
+                        {"src": "skills/spec-planning",
+                         "dest": ".claude/skills/govkit-spec-planning/"},
+                    ],
+                    "shared": [],
+                    "governed": [],
+                }
+            },
+            "ci": {"github": {"files": [], "shared": [], "governed": []}},
+        },
+        "base_files": [],
+    }
+    (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return tmp_path
+
+
+class TestUpgradeRetiresPreNamespaceAgentFiles:
+    """0.14.0 moved govkit's rules under a `govkit/` namespace and prefixed its
+    skills with `govkit-`. Upgrading a pre-0.14 install must retire the copies
+    govkit itself wrote at the old paths — otherwise the agent auto-loads both
+    and gets duplicated (and, where content drifted, contradictory) governance.
+    A file the team authored at the old path is never removed: coexistence is
+    the whole point of the namespace."""
+
+    APPLIED_AT = "2026-01-01T00:00:00+00:00"
+
+    def _target(self, tmp_path: Path, marker_version: str = "0.13.0") -> Path:
+        target = tmp_path / "project"
+        target.mkdir()
+        marker = {
+            "version": marker_version, "level": "4", "agent": "test-agent",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": self.APPLIED_AT,
+        }
+        (target / ".govkit").mkdir()
+        (target / ".govkit" / "marker.json").write_text(json.dumps(marker), encoding="utf-8")
+        return target
+
+    def _stamp(self, path: Path, when: datetime) -> None:
+        import os
+        ts = when.timestamp()
+        os.utime(path, (ts, ts))
+
+    def _legacy_rule(self, target: Path, body: str, when: datetime) -> Path:
+        rule = target / ".claude" / "rules" / "test-first.md"
+        rule.parent.mkdir(parents=True, exist_ok=True)
+        rule.write_text(body, encoding="utf-8")
+        self._stamp(rule, when)
+        return rule
+
+    def _legacy_skill(self, target: Path, when: datetime) -> Path:
+        skill = target / ".claude" / "skills" / "spec-planning"
+        skill.mkdir(parents=True, exist_ok=True)
+        f = skill / "SKILL.md"
+        f.write_text("---\nname: spec-planning\n---\n", encoding="utf-8")
+        self._stamp(f, when)
+        return skill
+
+    def _run(self, tmp_path, target, monkeypatch, govkit_version="0.14.0"):
+        repo = _make_namespaced_repo(tmp_path)
+        monkeypatch.setattr("cli.paths.AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", repo)
+        monkeypatch.setattr("cli.version.GOVKIT_VERSION", govkit_version)
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+    # -- rules ---------------------------------------------------------------
+
+    def test_removes_untouched_pre_namespace_rule(self, tmp_path, monkeypatch):
+        """A rule at the old path, untouched since applied_at, is govkit's own
+        orphan → removed; the namespaced rule is installed in its place."""
+        target = self._target(tmp_path)
+        legacy = self._legacy_rule(
+            target, "# govkit test-first rule (v0.13)\n",
+            datetime(2025, 12, 1, tzinfo=timezone.utc),
+        )
+        self._run(tmp_path, target, monkeypatch)
+
+        assert not legacy.exists()
+        assert (target / ".claude" / "rules" / "govkit" / "test-first.md").is_file()
+
+    def test_keeps_team_authored_rule_and_still_installs_namespaced(
+        self, tmp_path, monkeypatch,
+    ):
+        """A rule the team edited after applied_at is theirs: kept. The
+        namespaced govkit rule is STILL installed — they coexist by design."""
+        target = self._target(tmp_path)
+        legacy = self._legacy_rule(
+            target, "# ACME house rule\n", datetime(2026, 6, 1, tzinfo=timezone.utc),
+        )
+        self._run(tmp_path, target, monkeypatch)
+
+        assert legacy.read_text(encoding="utf-8") == "# ACME house rule\n"
+        assert (target / ".claude" / "rules" / "govkit" / "test-first.md").is_file()
+
+    # -- skills --------------------------------------------------------------
+
+    def test_removes_untouched_pre_prefix_skill_dir(self, tmp_path, monkeypatch):
+        """An un-prefixed skill dir untouched since applied_at is govkit's
+        orphan → removed; the govkit- prefixed skill is installed."""
+        target = self._target(tmp_path)
+        legacy = self._legacy_skill(target, datetime(2025, 12, 1, tzinfo=timezone.utc))
+        self._run(tmp_path, target, monkeypatch)
+
+        assert not legacy.exists()
+        assert (target / ".claude" / "skills" / "govkit-spec-planning" / "SKILL.md").is_file()
+
+    def test_keeps_skill_dir_the_team_edited(self, tmp_path, monkeypatch):
+        """One user-edited file inside the skill dir protects the whole dir."""
+        target = self._target(tmp_path)
+        legacy = self._legacy_skill(target, datetime(2026, 6, 1, tzinfo=timezone.utc))
+        self._run(tmp_path, target, monkeypatch)
+
+        assert legacy.is_dir()
+        assert (legacy / "SKILL.md").is_file()
+
+    # -- gating + failure safety --------------------------------------------
+
+    def test_skips_when_marker_already_namespaced(self, tmp_path, monkeypatch):
+        """Marker already at/after the namespace version: there is no
+        pre-namespace install to clean, so old paths are never touched — a
+        same-named file there is the team's, even though its mtime predates
+        applied_at. Upgrading 0.14.0 -> 0.15.0 must not delete it."""
+        target = self._target(tmp_path, marker_version="0.14.0")
+        legacy = self._legacy_rule(
+            target, "# ACME rule\n", datetime(2025, 12, 1, tzinfo=timezone.utc),
+        )
+        self._run(tmp_path, target, monkeypatch, govkit_version="0.15.0")
+
+        assert legacy.exists()
+        assert legacy.read_text(encoding="utf-8") == "# ACME rule\n"
+
+    def test_removal_failure_warns_and_continues(self, tmp_path, monkeypatch, capsys):
+        """A failed delete (permissions, sharing violation) must warn, not
+        crash the upgrade."""
+        target = self._target(tmp_path)
+        self._legacy_rule(
+            target, "# govkit test-first rule (v0.13)\n",
+            datetime(2025, 12, 1, tzinfo=timezone.utc),
+        )
+        real_unlink = Path.unlink
+
+        def failing_unlink(self, *args, **kwargs):
+            if self.name == "test-first.md" and "govkit" not in str(self.parent):
+                raise OSError("simulated sharing violation")
+            return real_unlink(self, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "unlink", failing_unlink)
+
+        self._run(tmp_path, target, monkeypatch)  # must not raise
+
+        err = capsys.readouterr().err
+        assert "could not remove" in err
+        assert (target / ".claude" / "rules" / "govkit" / "test-first.md").is_file()
 
 
 class TestCmdUpgradeEditProtection:

@@ -22,6 +22,7 @@ from .install_common import (
     install_agent_file,
     post_install_finalize,
     reconcile_legacy_instruction_files,
+    retire_pre_namespace_agent_files,
 )
 from .manifest import load_manifest, resolve_variant_files
 from .marker import _compare_version, read_govkit_marker, write_govkit_marker
@@ -118,6 +119,12 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     # A6: retire any pre-namespace top-level instruction file (CLAUDE.md etc.)
     # before installing governance into the rules namespace.
     files = reconcile_legacy_instruction_files(target, agent_dir, files, prior_applied_at)
+
+    # Retire the pre-namespace rules/skills a pre-0.14 install left at the old
+    # paths, so the agent does not auto-load govkit's governance twice.
+    retire_pre_namespace_agent_files(
+        target, agent_dir, files, prior_applied_at, stored_version,
+    )
 
     print("Agent files (refreshed):")
     for entry in files:
