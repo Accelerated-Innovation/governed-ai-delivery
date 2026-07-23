@@ -46,6 +46,54 @@ class TestFormatEditableHeader:
         out = format_editable_header(baseline="govkit@0.10.0", see="docs/governance.md")
         assert "see: docs/governance.md" in out
 
+    def test_header_includes_hash_when_provided(self):
+        from cli.headers import format_editable_header
+
+        out = format_editable_header(baseline="govkit@0.10.0", body_hash="a" * 64)
+        assert f"hash: {'a' * 64}" in out
+
+    def test_header_omits_hash_when_not_provided(self):
+        from cli.headers import format_editable_header
+
+        out = format_editable_header(baseline="govkit@0.10.0")
+        assert "hash:" not in out
+
+
+class TestComputeBodyHash:
+    """SHA-256 of the doc body — the content-based ownership signal that
+    replaces mtime comparison in edit-protection."""
+
+    def test_is_sha256_of_utf8_body(self):
+        import hashlib
+
+        from cli.headers import compute_body_hash
+
+        body = "# Doc\n\nBody text.\n"
+        assert compute_body_hash(body) == hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+    def test_full_content_hashes_same_as_bare_body(self):
+        """Check-time callers pass whole file content (header included); the
+        header must be stripped before hashing so the result matches the hash
+        recorded at write time."""
+        from cli.headers import compute_body_hash, format_editable_header
+
+        body = "# Doc\n\nBody text.\n"
+        full = format_editable_header(baseline="govkit@0.10.0") + body
+        assert compute_body_hash(full) == compute_body_hash(body)
+
+    def test_empty_body(self):
+        import hashlib
+
+        from cli.headers import compute_body_hash, format_editable_header
+
+        header_only = format_editable_header(baseline="govkit@0.10.0")
+        assert compute_body_hash(header_only) == hashlib.sha256(b"").hexdigest()
+
+    def test_differs_when_body_differs(self):
+        from cli.headers import compute_body_hash
+
+        assert compute_body_hash("# A\n") != compute_body_hash("# B\n")
+
 
 class TestHasEditableHeader:
     def test_returns_true_when_header_at_top(self):
@@ -132,6 +180,14 @@ class TestParseEditableHeader:
         assert parsed["reason"] == "Default Python baseline."
         assert parsed["see"] == "GOVKIT_SETUP_REVIEW.md"
 
+    def test_roundtrip_includes_hash(self):
+        from cli.headers import format_editable_header, parse_editable_header
+
+        digest = "b" * 64
+        formatted = format_editable_header(baseline="govkit@0.14.0", body_hash=digest)
+        parsed = parse_editable_header(formatted)
+        assert parsed["hash"] == digest
+
 
 class TestPrependHeaderToFile:
     """Convenience writer that adds the header to a doc body."""
@@ -188,6 +244,63 @@ class TestPrependHeaderToFile:
         # Should not raise.
         prepend_header_to_file(missing, baseline="govkit@0.10.0")
         assert not missing.exists()
+
+    def test_records_hash_of_written_body(self, tmp_path):
+        import hashlib
+
+        from cli.headers import parse_editable_header, prepend_header_to_file
+
+        body = "# Technology Stack\n\nContent here.\n"
+        doc = tmp_path / "TECH_STACK.md"
+        doc.write_text(body, encoding="utf-8")
+
+        prepend_header_to_file(doc, baseline="govkit@0.14.0")
+
+        parsed = parse_editable_header(doc.read_text(encoding="utf-8"))
+        assert parsed["hash"] == hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+    def test_reprepend_refreshes_hash(self, tmp_path):
+        """Overwriting a doc (upgrade, --force) rewrites the header; the
+        recorded hash must describe the newly written body, not the old one."""
+        from cli.headers import (
+            compute_body_hash,
+            format_editable_header,
+            parse_editable_header,
+            prepend_header_to_file,
+        )
+
+        stale_header = format_editable_header(
+            baseline="govkit@0.13.0", body_hash=compute_body_hash("# Old body\n"),
+        )
+        doc = tmp_path / "TECH_STACK.md"
+        doc.write_text(stale_header + "# New body\n", encoding="utf-8")
+
+        prepend_header_to_file(doc, baseline="govkit@0.14.0")
+
+        parsed = parse_editable_header(doc.read_text(encoding="utf-8"))
+        assert parsed["hash"] == compute_body_hash("# New body\n")
+
+    def test_body_opening_with_literal_header_hashes_consistently(self, tmp_path):
+        """A body that itself begins with a literal editable-header block must
+        round-trip: the hash recorded at write time has to equal the hash a
+        checker computes from the full file, or the doc reports user-edited
+        forever."""
+        from cli.headers import (
+            compute_body_hash,
+            format_editable_header,
+            parse_editable_header,
+            prepend_header_to_file,
+        )
+
+        body = "<!-- govkit:editable\n  baseline: example@1.0\n-->\n\nActual content.\n"
+        doc = tmp_path / "EXAMPLES.md"
+        doc.write_text(format_editable_header(baseline="govkit@0.13.0") + body, encoding="utf-8")
+
+        prepend_header_to_file(doc, baseline="govkit@0.14.0")
+
+        content = doc.read_text(encoding="utf-8")
+        parsed = parse_editable_header(content)
+        assert parsed["hash"] == compute_body_hash(content)
 
 
 class TestUpsertGovkitBlock:

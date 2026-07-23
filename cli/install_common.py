@@ -206,49 +206,64 @@ def _superseded_agent_path(dest: str) -> str | None:
     return None
 
 
-def _tree_unmodified_since(root: Path, applied_at: str | None) -> bool:
-    """True when every file under `root` is unmodified since `applied_at`.
+def _trees_identical(legacy: Path, src: Path) -> bool:
+    """True when `legacy` contains exactly govkit's bundled `src` tree: the
+    same relative file paths, no extras, every file's content identical.
 
-    One user-touched file protects the whole directory: a skill the team
-    edited is theirs even if they changed only part of it. An empty tree
-    returns False — there is nothing to prove ownership with, so it stays.
+    One extra or differing file protects the whole directory — it is (or may
+    be) the team's work. Content is compared as decoded text so a checkout's
+    line-ending rewrite cannot disguise govkit's own copy. An empty legacy
+    tree proves nothing and returns False, so it stays.
     """
-    contents = [p for p in root.rglob("*") if p.is_file()]
-    return bool(contents) and all(_unmodified_since(p, applied_at) for p in contents)
+    legacy_files = [p for p in legacy.rglob("*") if p.is_file()]
+    if not legacy_files:
+        return False
+    src_files = {p.relative_to(src) for p in src.rglob("*") if p.is_file()}
+    for p in legacy_files:
+        rel = p.relative_to(legacy)
+        if rel not in src_files:
+            return False
+        try:
+            if p.read_text(encoding="utf-8") != (src / rel).read_text(encoding="utf-8"):
+                return False
+        except (OSError, UnicodeDecodeError):
+            return False
+    return True
 
 
-def _is_govkit_pre_namespace_copy(
-    legacy: Path, src: Path, applied_at: str | None,
-) -> bool:
+def _is_govkit_pre_namespace_copy(legacy: Path, src: Path) -> bool:
     """True when `legacy` is provably govkit's own copy rather than the team's.
 
-    A directory qualifies when nothing inside it was touched since the last
-    apply. A file qualifies when it is byte-identical to what govkit installs
-    today (a same-version orphan) or untouched since the last apply (an older
-    govkit version's file the team never edited).
+    Provenance is content, not timestamps: a file qualifies only when it is
+    identical to what govkit installs today; a directory only when its whole
+    tree is (`_trees_identical`). Merely predating the marker's `applied_at`
+    proves nothing — a team file authored before the last apply also has an
+    old mtime, and deleting it would destroy their work. The cost of the
+    stricter test is that an older govkit version's drifted copy is left for
+    the team to remove; the caller prints a note pointing at it.
     """
     if legacy.is_dir():
-        return _tree_unmodified_since(legacy, applied_at)
-    if src.is_file():
-        try:
-            if legacy.read_text(encoding="utf-8") == src.read_text(encoding="utf-8"):
-                return True
-        except (OSError, UnicodeDecodeError):
-            pass
-    return _unmodified_since(legacy, applied_at)
+        return src.is_dir() and _trees_identical(legacy, src)
+    if not src.is_file():
+        return False
+    try:
+        return legacy.read_text(encoding="utf-8") == src.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
 
 
 def retire_pre_namespace_agent_files(
     target: Path, agent_dir: Path, files: list,
-    applied_at: str | None = None, stored_version: str | None = None,
+    stored_version: str | None = None,
 ) -> None:
     """Remove the pre-namespace rules/skills an upgrade would otherwise orphan.
 
     Runs only while the marker predates the namespace move, so a same-named
     file the team authors at an old path *after* migrating is never a
     candidate. Inside that window a path is removed only when it is provably
-    govkit's own (see `_is_govkit_pre_namespace_copy`); anything else is the
-    team's and is left untouched — govkit's namespaced copy installs alongside
+    govkit's own — identical to the bundled source (see
+    `_is_govkit_pre_namespace_copy`); anything else may be the team's and is
+    left in place with a note — govkit's namespaced copy installs alongside
     it, which is the entire point of the namespace. A failed delete warns and
     never aborts the upgrade.
     """
@@ -261,7 +276,13 @@ def retire_pre_namespace_agent_files(
         legacy = target / legacy_rel
         if not legacy.exists():
             continue
-        if not _is_govkit_pre_namespace_copy(legacy, agent_dir / entry["src"], applied_at):
+        if not _is_govkit_pre_namespace_copy(legacy, agent_dir / entry["src"]):
+            print(
+                f"  kept    {legacy_rel}  (cannot verify it is govkit's own "
+                f"copy; if it is a leftover govkit file it duplicates "
+                f"{entry['dest']} — review and remove it manually)",
+                file=sys.stderr,
+            )
             continue
         try:
             if legacy.is_dir():

@@ -19,6 +19,7 @@ The header is a plain markdown comment so it travels in source control and
 renders invisibly in tooling that respects markdown comments.
 """
 
+import hashlib
 from pathlib import Path
 
 _HEADER_START = "<!-- govkit:editable"
@@ -70,18 +71,34 @@ def format_editable_header(
     baseline: str,
     reason: str | None = None,
     see: str = _DEFAULT_SEE,
+    body_hash: str | None = None,
 ) -> str:
     """Produce the editable-header block as a string.
 
     The output ends with a blank line so it slots cleanly above a markdown
-    body when prepended.
+    body when prepended. `body_hash` records the SHA-256 of the doc body so
+    edit-protection can compare content instead of timestamps; headers
+    without it fall back to mtime comparison (pre-hash installs).
     """
     lines = [_HEADER_START, f"  baseline: {baseline}"]
     if reason:
         lines.append(f"  reason: {reason}")
+    if body_hash:
+        lines.append(f"  hash: {body_hash}")
     lines.append(f"  see: {see}")
     lines.append(_HEADER_END)
     return "\n".join(lines) + "\n\n"
+
+
+def compute_body_hash(text: str) -> str:
+    """SHA-256 hex digest of the doc body below the editable header.
+
+    Accepts full file content (any leading header is stripped first) so
+    check-time callers can hash what they read without reassembling the body.
+    Hashing operates on the decoded string, so on-disk line-ending changes
+    (git autocrlf on a fresh clone) never register as edits.
+    """
+    return hashlib.sha256(_strip_existing_header(text).encode("utf-8")).hexdigest()
 
 
 def has_editable_header(content: str) -> bool:
@@ -159,5 +176,11 @@ def prepend_header_to_file(
         return
 
     body = _strip_existing_header(content)
-    header = format_editable_header(baseline=baseline, reason=reason, see=see)
+    # Hash the exact string written below the header — not compute_body_hash,
+    # which would strip again and diverge from check-time hashing whenever the
+    # body itself opens with a literal editable-header block.
+    digest = hashlib.sha256(body.encode("utf-8")).hexdigest()
+    header = format_editable_header(
+        baseline=baseline, reason=reason, see=see, body_hash=digest,
+    )
     path.write_text(header + body, encoding="utf-8")
