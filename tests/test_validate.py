@@ -367,6 +367,73 @@ class TestCheckEvalCriteria:
         assert ok is False
         assert "not found" in msg
 
+    # -- honest schema validation (instance vs installed schema) -------------
+
+    def _install(self, tmp_path, with_schema=True):
+        """A target with features/feat/eval_criteria.yaml and (optionally) an
+        installed governance schema."""
+        feature_dir = tmp_path / "target" / "features" / "feat"
+        write(feature_dir / "eval_criteria.yaml", VALID_EVAL_CRITERIA)
+        schema = tmp_path / "target" / "governance" / "backend" / "schemas" / "eval_criteria.schema.json"
+        if with_schema:
+            write(schema, '{"type": "object"}')
+        return feature_dir, schema
+
+    def test_validates_instance_against_installed_schema(self, tmp_path, monkeypatch):
+        """The instance must be validated AGAINST the installed schema —
+        not --check-metaschema'd, which validates the YAML *as* a schema and
+        is meaningless for an instance file."""
+        feature_dir, schema = self._install(tmp_path)
+        calls = []
+
+        def fake_run(argv, **kwargs):
+            calls.append(argv)
+            return type("R", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+        monkeypatch.setattr("cli.validate.subprocess.run", fake_run)
+
+        ok, msg = check_eval_criteria(feature_dir)
+        assert ok is True
+        assert calls, "check-jsonschema was not invoked"
+        assert "--schemafile" in calls[0]
+        assert str(schema) in calls[0]
+        assert "--check-metaschema" not in calls[0]
+
+    def test_schema_validation_failure_fails(self, tmp_path, monkeypatch):
+        feature_dir, _ = self._install(tmp_path)
+
+        def fake_run(argv, **kwargs):
+            return type("R", (), {
+                "returncode": 1, "stdout": "", "stderr": "criteria[0]: 'threshold' is required",
+            })()
+
+        monkeypatch.setattr("cli.validate.subprocess.run", fake_run)
+
+        ok, msg = check_eval_criteria(feature_dir)
+        assert ok is False
+        assert "eval_criteria.schema.json" in msg
+
+    def test_missing_binary_warns(self, tmp_path, monkeypatch):
+        feature_dir, _ = self._install(tmp_path)
+
+        def fake_run(argv, **kwargs):
+            raise FileNotFoundError("check-jsonschema not on PATH")
+
+        monkeypatch.setattr("cli.validate.subprocess.run", fake_run)
+
+        ok, msg = check_eval_criteria(feature_dir)
+        assert ok is None
+        assert "check-jsonschema" in msg
+
+    def test_no_installed_schema_warns(self, tmp_path):
+        """A type whose install ships no eval schema (data, today) gets a
+        visible WARN instead of a silently green fake validation."""
+        feature_dir, _ = self._install(tmp_path, with_schema=False)
+
+        ok, msg = check_eval_criteria(feature_dir)
+        assert ok is None
+        assert "no eval_criteria schema installed" in msg
+
 
 # ---------------------------------------------------------------------------
 # check_plan_eval_prediction

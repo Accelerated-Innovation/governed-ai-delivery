@@ -47,6 +47,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   the marker's recorded `options.type` — a data repo defaults to the data
   starter, a cli repo to the cli starter — instead of always suggesting
   backend. An explicit `--starter` still wins.
+- `govkit validate` now really validates `eval_criteria.yaml` against the
+  installed schema. Previously it ran `check-jsonschema --check-metaschema`
+  on the instance file — validating the YAML *as a schema*, which proved
+  nothing for any project type. The check now resolves
+  `governance/*/schemas/eval_criteria.schema.json` from the install and runs
+  `check-jsonschema --schemafile <schema> <instance>`; a non-conforming file
+  is a FAIL with the validator's message. When no schema is installed for the
+  project type (data, today) the check WARNs visibly instead of passing.
 
 ## [0.14.0] — 2026-07-22
 

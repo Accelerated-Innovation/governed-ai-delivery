@@ -180,8 +180,27 @@ def check_nfrs_sections(feature_dir: Path) -> tuple[bool | None, str]:
     return True, f"{_NFRS_MD} section contract OK (Repository Scope + Out of scope populated)"
 
 
+def _resolve_eval_schema(feature_dir: Path) -> Path | None:
+    """The installed eval_criteria schema governing this feature, or None.
+
+    Standard layout: feature_dir is <target>/features/<name> and the install
+    put the schema at <target>/governance/<area>/schemas/. Walk a few
+    ancestors so a non-standard nesting still resolves.
+    """
+    for ancestor in list(feature_dir.parents)[:3]:
+        matches = sorted(ancestor.glob("governance/*/schemas/eval_criteria.schema.json"))
+        if matches:
+            return matches[0]
+    return None
+
+
 def check_eval_criteria(feature_dir: Path) -> tuple[bool | None, str]:
-    """Check eval_criteria.yaml for required keys. Full schema validation via check-jsonschema if available."""
+    """Check eval_criteria.yaml required keys, then validate the instance
+    against the installed schema via check-jsonschema.
+
+    WARN (None) when no schema is installed for this project type or the
+    binary is unavailable — visible gaps, not silent green.
+    """
     path = feature_dir / _EVAL_CRITERIA_YAML
     if not path.exists():
         return False, f"{_EVAL_CRITERIA_YAML} not found"
@@ -194,16 +213,24 @@ def check_eval_criteria(feature_dir: Path) -> tuple[bool | None, str]:
     if issues:
         return False, f"{_EVAL_CRITERIA_YAML}: {'; '.join(issues)}"
 
+    schema = _resolve_eval_schema(feature_dir)
+    if schema is None:
+        return None, (
+            f"{_EVAL_CRITERIA_YAML} structure OK — no eval_criteria schema "
+            "installed for this project type; instance validation skipped"
+        )
     try:
         result = subprocess.run(
-            ["check-jsonschema", "--check-metaschema", str(path)],
+            ["check-jsonschema", "--schemafile", str(schema), str(path)],
             capture_output=True, text=True, timeout=10,
         )
-        if result.returncode != 0:
-            return None, f"{_EVAL_CRITERIA_YAML} structure OK — full schema validation requires CI"
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None, f"{_EVAL_CRITERIA_YAML} structure OK — install check-jsonschema for full validation"
-    return True, f"{_EVAL_CRITERIA_YAML} is valid"
+    if result.returncode != 0:
+        detail = (result.stdout or result.stderr or "").strip().splitlines()
+        snippet = detail[-1] if detail else "schema validation failed"
+        return False, f"{_EVAL_CRITERIA_YAML} fails {schema.name}: {snippet}"
+    return True, f"{_EVAL_CRITERIA_YAML} valid against {schema.name}"
 
 
 def check_plan_eval_prediction(feature_dir: Path) -> tuple[bool, str]:
