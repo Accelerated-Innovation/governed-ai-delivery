@@ -152,6 +152,22 @@ class TestIsUserEditedHashBranch:
         assert "refused" in err
         assert "predates content-hash protection" not in err
 
+    def test_naive_applied_at_on_fallback_path_returns_false(self, tmp_path):
+        """A timezone-naive applied_at parses fine but cannot be compared to
+        the aware UTC mtime; unknown history must mean 'not edited', not
+        TypeError (mirrors install_common._unmodified_since)."""
+        from cli.fs import is_user_edited
+        from cli.headers import format_editable_header
+
+        doc = tmp_path / "legacy.md"
+        doc.write_text(
+            format_editable_header(baseline="govkit@0.13.0") + "# Doc\n",
+            encoding="utf-8",
+        )
+
+        assert is_user_edited(doc, "2000-01-01T00:00:00") is False
+        assert is_user_edited(doc, "2099-01-01T00:00:00") is False
+
     def test_unterminated_header_falls_back_without_crash(self, tmp_path):
         """A user edit that deletes the closing --> makes the header
         unparseable (parse returns None). That must degrade to the mtime

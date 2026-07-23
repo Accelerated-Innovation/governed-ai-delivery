@@ -2713,11 +2713,19 @@ class TestUpgradeRetiresPreNamespaceAgentFiles:
         self._stamp(rule, when)
         return rule
 
-    def _legacy_skill(self, target: Path, when: datetime) -> Path:
+    # What _make_namespaced_repo bundles today — byte-identical legacy copies
+    # of these are provably govkit's own.
+    BUNDLED_RULE = "# govkit test-first rule (current)\n"
+    BUNDLED_SKILL_MD = "---\nname: govkit-spec-planning\ndescription: plan a spec\n---\n"
+
+    def _legacy_skill(
+        self, target: Path, when: datetime,
+        body: str = "---\nname: spec-planning\n---\n",
+    ) -> Path:
         skill = target / ".claude" / "skills" / "spec-planning"
         skill.mkdir(parents=True, exist_ok=True)
         f = skill / "SKILL.md"
-        f.write_text("---\nname: spec-planning\n---\n", encoding="utf-8")
+        f.write_text(body, encoding="utf-8")
         self._stamp(f, when)
         return skill
 
@@ -2730,9 +2738,26 @@ class TestUpgradeRetiresPreNamespaceAgentFiles:
 
     # -- rules ---------------------------------------------------------------
 
-    def test_removes_untouched_pre_namespace_rule(self, tmp_path, monkeypatch):
-        """A rule at the old path, untouched since applied_at, is govkit's own
-        orphan → removed; the namespaced rule is installed in its place."""
+    def test_removes_rule_identical_to_bundled_source(self, tmp_path, monkeypatch):
+        """A rule at the old path that is byte-identical to what govkit
+        installs today is provably govkit's own orphan → removed; the
+        namespaced rule is installed in its place."""
+        target = self._target(tmp_path)
+        legacy = self._legacy_rule(
+            target, self.BUNDLED_RULE, datetime(2025, 12, 1, tzinfo=timezone.utc),
+        )
+        self._run(tmp_path, target, monkeypatch)
+
+        assert not legacy.exists()
+        assert (target / ".claude" / "rules" / "govkit" / "test-first.md").is_file()
+
+    def test_keeps_drifted_rule_even_when_untouched_since_apply(
+        self, tmp_path, monkeypatch, capsys,
+    ):
+        """An old-mtime rule whose content does not match the bundled source
+        is NOT deleted — mtime alone is no proof of govkit provenance (a team
+        file authored before the last apply also has an old mtime). It stays,
+        with a note that a possible duplicate remains."""
         target = self._target(tmp_path)
         legacy = self._legacy_rule(
             target, "# govkit test-first rule (v0.13)\n",
@@ -2740,8 +2765,12 @@ class TestUpgradeRetiresPreNamespaceAgentFiles:
         )
         self._run(tmp_path, target, monkeypatch)
 
-        assert not legacy.exists()
+        assert legacy.exists()
+        assert legacy.read_text(encoding="utf-8") == "# govkit test-first rule (v0.13)\n"
         assert (target / ".claude" / "rules" / "govkit" / "test-first.md").is_file()
+        err = capsys.readouterr().err
+        assert "cannot verify" in err
+        assert "remove it manually" in err
 
     def test_keeps_team_authored_rule_and_still_installs_namespaced(
         self, tmp_path, monkeypatch,
@@ -2759,23 +2788,58 @@ class TestUpgradeRetiresPreNamespaceAgentFiles:
 
     # -- skills --------------------------------------------------------------
 
-    def test_removes_untouched_pre_prefix_skill_dir(self, tmp_path, monkeypatch):
-        """An un-prefixed skill dir untouched since applied_at is govkit's
-        orphan → removed; the govkit- prefixed skill is installed."""
+    def test_removes_skill_dir_identical_to_bundled_tree(self, tmp_path, monkeypatch):
+        """An un-prefixed skill dir whose tree exactly matches the bundled
+        source (same paths, same content, no extras) is govkit's orphan →
+        removed — even with a post-apply mtime; provenance is content, not
+        timestamps. The govkit- prefixed skill is installed."""
         target = self._target(tmp_path)
-        legacy = self._legacy_skill(target, datetime(2025, 12, 1, tzinfo=timezone.utc))
+        legacy = self._legacy_skill(
+            target, datetime(2026, 6, 1, tzinfo=timezone.utc),
+            body=self.BUNDLED_SKILL_MD,
+        )
         self._run(tmp_path, target, monkeypatch)
 
         assert not legacy.exists()
         assert (target / ".claude" / "skills" / "govkit-spec-planning" / "SKILL.md").is_file()
 
     def test_keeps_skill_dir_the_team_edited(self, tmp_path, monkeypatch):
-        """One user-edited file inside the skill dir protects the whole dir."""
+        """A drifted file inside the skill dir protects the whole dir."""
         target = self._target(tmp_path)
         legacy = self._legacy_skill(target, datetime(2026, 6, 1, tzinfo=timezone.utc))
         self._run(tmp_path, target, monkeypatch)
 
         assert legacy.is_dir()
+        assert (legacy / "SKILL.md").is_file()
+
+    def test_keeps_old_skill_dir_with_drifted_content(self, tmp_path, monkeypatch):
+        """The data-loss repro: a dir whose files all predate applied_at but
+        whose content is not govkit's (a team skill authored before the last
+        apply) must survive the migration window."""
+        target = self._target(tmp_path)
+        legacy = self._legacy_skill(target, datetime(2025, 12, 1, tzinfo=timezone.utc))
+        self._run(tmp_path, target, monkeypatch)
+
+        assert legacy.is_dir()
+        assert (legacy / "SKILL.md").read_text(encoding="utf-8") == (
+            "---\nname: spec-planning\n---\n"
+        )
+
+    def test_keeps_skill_dir_with_extra_team_file(self, tmp_path, monkeypatch):
+        """A dir matching the bundled tree but carrying an extra team file is
+        not deletable — the extra file is the team's work."""
+        target = self._target(tmp_path)
+        legacy = self._legacy_skill(
+            target, datetime(2025, 12, 1, tzinfo=timezone.utc),
+            body=self.BUNDLED_SKILL_MD,
+        )
+        notes = legacy / "notes.md"
+        notes.write_text("# team notes on this skill\n", encoding="utf-8")
+        self._stamp(notes, datetime(2025, 12, 1, tzinfo=timezone.utc))
+        self._run(tmp_path, target, monkeypatch)
+
+        assert legacy.is_dir()
+        assert notes.read_text(encoding="utf-8") == "# team notes on this skill\n"
         assert (legacy / "SKILL.md").is_file()
 
     # -- gating + failure safety --------------------------------------------
@@ -2836,8 +2900,7 @@ class TestUpgradeRetiresPreNamespaceAgentFiles:
         crash the upgrade."""
         target = self._target(tmp_path)
         self._legacy_rule(
-            target, "# govkit test-first rule (v0.13)\n",
-            datetime(2025, 12, 1, tzinfo=timezone.utc),
+            target, self.BUNDLED_RULE, datetime(2025, 12, 1, tzinfo=timezone.utc),
         )
         real_unlink = Path.unlink
 

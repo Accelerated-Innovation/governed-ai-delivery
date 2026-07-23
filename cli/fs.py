@@ -64,8 +64,17 @@ def is_user_edited(dest: Path, applied_at: str | None) -> bool:
         applied_dt = datetime.fromisoformat(applied_at)
     except (ValueError, TypeError):
         return False
+    # A timezone-naive applied_at cannot be compared to the aware UTC mtime
+    # without TypeError; treat it as unknown history (no protection), same as
+    # install_common._unmodified_since. The comparison is also wrapped as a
+    # final safety net.
+    if applied_dt.tzinfo is None:
+        return False
     mtime_dt = datetime.fromtimestamp(dest.stat().st_mtime, tz=timezone.utc)
-    return mtime_dt > applied_dt
+    try:
+        return mtime_dt > applied_dt
+    except TypeError:
+        return False
 
 
 def _copy_entry_should_refuse(

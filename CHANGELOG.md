@@ -22,6 +22,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   edits are invisible to the hash by design: line-ending-only changes and
   changes confined to the header itself (e.g. tweaking `see:`). Legacy
   agent-file reconciliation (managed instruction blocks) still uses mtime.
+- Pre-namespace retirement no longer uses timestamps as proof of ownership.
+  A legacy rule file is deleted only when identical to the bundled source; a
+  legacy skill directory only when its whole tree matches (same paths, same
+  content, no extra files). Previously a team-authored file or directory
+  merely predating the marker's `applied_at` could be deleted. Unverifiable
+  leftovers are kept, with a note pointing at the possible duplicate.
+- `is_user_edited` no longer raises `TypeError` on the mtime fallback path
+  when the marker's `applied_at` is timezone-naive; unknown history now means
+  no protection triggered, matching the legacy-instruction reconciliation.
 
 ## [0.14.0] — 2026-07-22
 

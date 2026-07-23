@@ -122,9 +122,7 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
 
     # Retire the pre-namespace rules/skills a pre-0.14 install left at the old
     # paths, so the agent does not auto-load govkit's governance twice.
-    retire_pre_namespace_agent_files(
-        target, agent_dir, files, prior_applied_at, stored_version,
-    )
+    retire_pre_namespace_agent_files(target, agent_dir, files, stored_version)
 
     print("Agent files (refreshed):")
     for entry in files:
