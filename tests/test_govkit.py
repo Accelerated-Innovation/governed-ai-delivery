@@ -2001,6 +2001,64 @@ class TestSmokeInit:
         content = (target / "features" / "new-feature" / "acceptance.feature").read_text(encoding="utf-8")
         assert content == "Feature: bundled", "Should use bundled starter, not stale target starter"
 
+    def test_init_defaults_starter_from_marker_type_data(self, tmp_path, monkeypatch):
+        """In a marker-typed data repo, `govkit init` with no --starter and an
+        empty prompt answer scaffolds the data starter — and the prompt shows
+        the detected default."""
+        fake_repo = self._bundled_repo(tmp_path, starter="starter_data")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", fake_repo)
+
+        target = tmp_path / "project"
+        (target / "features").mkdir(parents=True)
+        write_govkit_marker(target, "claude-code", "4", {"type": "data"})
+
+        prompts = []
+
+        def fake_input(prompt=""):
+            prompts.append(prompt)
+            return ""
+
+        monkeypatch.setattr("builtins.input", fake_input)
+
+        cmd_init(argparse.Namespace(
+            feature="my-pipeline", target=str(target), level=None, starter=None,
+        ))
+
+        feature_dir = target / "features" / "my-pipeline"
+        assert (feature_dir / "acceptance.feature").read_text(encoding="utf-8") == "Feature: bundled"
+        assert prompts and "default: data" in prompts[0]
+
+    def test_init_defaults_cli_marker_to_cli_starter(self, tmp_path, monkeypatch):
+        """A cli-typed repo defaults to the cli starter, not backend."""
+        fake_repo = self._bundled_repo(tmp_path, starter="starter_cli")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", fake_repo)
+
+        target = tmp_path / "project"
+        (target / "features").mkdir(parents=True)
+        write_govkit_marker(target, "claude-code", "4", {"type": "cli"})
+        monkeypatch.setattr("builtins.input", lambda prompt="": "")
+
+        cmd_init(argparse.Namespace(
+            feature="my-tool", target=str(target), level=None, starter=None,
+        ))
+
+        assert (target / "features" / "my-tool" / "acceptance.feature").exists()
+
+    def test_init_explicit_starter_beats_marker_type(self, tmp_path, monkeypatch):
+        """--starter always wins over the marker-derived default."""
+        fake_repo = self._bundled_repo(tmp_path, starter="starter_backend")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", fake_repo)
+
+        target = tmp_path / "project"
+        (target / "features").mkdir(parents=True)
+        write_govkit_marker(target, "claude-code", "4", {"type": "data"})
+
+        cmd_init(argparse.Namespace(
+            feature="my-feature", target=str(target), level=None, starter="backend",
+        ))
+
+        assert (target / "features" / "my-feature" / "acceptance.feature").exists()
+
     @pytest.mark.parametrize("ui_starter", ["ui-react", "ui-angular"])
     def test_init_ui_variants_resolve_to_starter_ui(self, tmp_path, monkeypatch, ui_starter):
         """ui-react and ui-angular both map to the framework-agnostic starter_ui dir."""

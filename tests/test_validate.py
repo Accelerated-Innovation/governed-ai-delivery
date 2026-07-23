@@ -625,6 +625,30 @@ class TestCheckGherkinNfrCoverage:
         ok, msg = check_gherkin_nfr_coverage(starter)
         assert ok is True, msg
 
+
+# ---------------------------------------------------------------------------
+# STARTERS registry
+# ---------------------------------------------------------------------------
+
+
+class TestStartersRegistry:
+    def test_starters_covers_every_bundled_starter_dir(self):
+        """validate skips starter dirs by name when scanning a target's
+        features/; a bundled starter missing from STARTERS gets validated as
+        if it were a user feature (and fails — starters omit plan.md by
+        design). Guard so the next starter cannot repeat starter_data's
+        omission."""
+        from cli import paths
+        from cli.validate import STARTERS
+
+        bundled = {
+            p.name
+            for p in (paths.REPO_ROOT / "features").iterdir()
+            if p.is_dir() and p.name.startswith("starter_")
+        }
+        assert bundled, "no bundled starters found — REPO_ROOT misresolved?"
+        assert bundled <= STARTERS, f"STARTERS missing: {sorted(bundled - STARTERS)}"
+
     def test_missing_files(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)

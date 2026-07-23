@@ -69,7 +69,7 @@ FAIL = "\033[31mFAIL\033[0m"
 WARN = "\033[33mWARN\033[0m"
 
 STARTERS = {
-    "starter_backend", "starter_ui", "starter_cli",
+    "starter_backend", "starter_ui", "starter_cli", "starter_data",
     "starter_backend_l5", "starter_cli_l5",
 }
 

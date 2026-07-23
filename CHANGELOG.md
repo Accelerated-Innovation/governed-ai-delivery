@@ -40,6 +40,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   `- ` bullet. Header-and-delimiter-only tables are scaffolding and demand no
   tag. The data starter gains the two tagged scenarios (`@nfr-observability`,
   `@nfr-compliance`) it was missing under its own contract.
+- `govkit validate` no longer misreads the installed `starter_data` directory
+  as a user feature (it was missing from the starter skip-list, so data repos
+  always saw a spurious failure); a guard test now asserts the skip-list
+  covers every bundled starter. `govkit init` derives its prompt default from
+  the marker's recorded `options.type` — a data repo defaults to the data
+  starter, a cli repo to the cli starter — instead of always suggesting
+  backend. An explicit `--starter` still wins.
 
 ## [0.14.0] — 2026-07-22
 
