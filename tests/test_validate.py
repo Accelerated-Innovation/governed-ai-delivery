@@ -489,6 +489,142 @@ class TestCheckGherkinNfrCoverage:
         ok, msg = check_gherkin_nfr_coverage(tmp_path)
         assert ok is True  # no populated categories, so coverage not required
 
+    # -- data-shaped NFRs: @nfr-* headings, table-style sections -------------
+
+    def test_data_table_nfrs_missing_tag_fails(self, tmp_path):
+        """A data nfrs.md populates its categories with table rows under
+        `## @nfr-*` headings; a populated category with no matching tag in
+        acceptance.feature must fail."""
+        write(tmp_path / "nfrs.md", """\
+            ## @nfr-freshness
+
+            | Concern | Target |
+            |---|---|
+            | Schedule | Daily 06:00 UTC |
+
+            ## @nfr-pii
+
+            | Column | Treatment |
+            |---|---|
+            | customer_email | Hashed |
+        """)
+        write(tmp_path / "acceptance.feature", """\
+            Feature: Sample
+
+              @nfr-pii
+              Scenario: Masked outside prod
+                Given an analyst in staging
+                Then customer_email is masked
+        """)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is False
+        assert "@nfr-freshness" in msg
+        assert "@nfr-pii" not in msg
+
+    def test_data_table_nfrs_full_coverage_passes(self, tmp_path):
+        write(tmp_path / "nfrs.md", """\
+            ## @nfr-freshness
+
+            | Concern | Target |
+            |---|---|
+            | Schedule | Daily 06:00 UTC |
+
+            ## @nfr-lineage
+
+            | Concern | Target |
+            |---|---|
+            | Source-to-mart capture | Every prod run |
+        """)
+        write(tmp_path / "acceptance.feature", """\
+            Feature: Sample
+
+              @nfr-freshness
+              Scenario: Fresh by 07:00
+                Given the schedule
+                Then staleness <= 1 hour
+
+              @nfr-lineage
+              Scenario: Lineage captured
+                Given a prod run
+                Then lineage shows the upstream
+        """)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is True
+
+    def test_plain_heading_normalizes_to_category(self, tmp_path):
+        """`## Freshness` and `## @nfr-freshness` are the same category."""
+        write(tmp_path / "nfrs.md", """\
+            ## Freshness
+
+            | Concern | Target |
+            |---|---|
+            | Schedule | Hourly |
+        """)
+        write(tmp_path / "acceptance.feature", VALID_FEATURE)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is False
+        assert "@nfr-freshness" in msg
+
+    def test_new_categories_recognized_in_bullet_form(self, tmp_path):
+        """cost/quality (and the other data categories) are known regardless
+        of section style."""
+        write(tmp_path / "nfrs.md", """\
+            ## Cost
+            - Alert at 2x rolling median credit usage
+
+            ## Quality
+            - customer_id unique, severity error
+        """)
+        write(tmp_path / "acceptance.feature", VALID_FEATURE)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is False
+        assert "@nfr-cost" in msg
+        assert "@nfr-quality" in msg
+
+    def test_header_only_table_is_not_populated(self, tmp_path):
+        """A table with header + separator but no data rows is scaffolding,
+        like a lone TBD bullet — it demands no tag."""
+        write(tmp_path / "nfrs.md", """\
+            ## @nfr-freshness
+
+            | Concern | Target |
+            |---|---|
+        """)
+        write(tmp_path / "acceptance.feature", VALID_FEATURE)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is True
+
+    def test_table_rows_all_tbd_are_not_populated(self, tmp_path):
+        write(tmp_path / "nfrs.md", """\
+            ## @nfr-cost
+
+            | Concern | Target |
+            |---|---|
+            | Baseline | TBD |
+        """)
+        write(tmp_path / "acceptance.feature", VALID_FEATURE)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is True
+
+    def test_checkbox_line_populates_section(self, tmp_path):
+        write(tmp_path / "nfrs.md", """\
+            ## @nfr-compliance
+            - [x] GDPR deletion propagates within 24 hours
+        """)
+        write(tmp_path / "acceptance.feature", VALID_FEATURE)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is False
+        assert "@nfr-compliance" in msg
+
+    def test_bundled_data_starter_has_full_coverage(self):
+        """The worked example must satisfy the contract it demonstrates:
+        every category starter_data/nfrs.md populates has a tagged scenario."""
+        from cli import paths
+
+        starter = paths.REPO_ROOT / "features" / "starter_data"
+        ok, msg = check_gherkin_nfr_coverage(starter)
+        assert ok is True, msg
+
     def test_missing_files(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)

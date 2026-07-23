@@ -31,6 +31,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - `is_user_edited` no longer raises `TypeError` on the mtime fallback path
   when the marker's `applied_at` is timezone-naive; unknown history now means
   no protection triggered, matching the legacy-instruction reconciliation.
+- `govkit validate` now actually checks data NFR coverage, closing the gap
+  against what `l4-data.md` promises. The Gherkin tag check knows the data
+  categories (`freshness`, `quality`, `pii`, `lineage`, `cost`), normalizes
+  `## @nfr-<category>` headings to the same category as plain `## <Category>`
+  headings, and recognizes table-style sections (the data NFR format) — a
+  section now counts as populated on a non-TBD table data row, not just a
+  `- ` bullet. Header-and-delimiter-only tables are scaffolding and demand no
+  tag. The data starter gains the two tagged scenarios (`@nfr-observability`,
+  `@nfr-compliance`) it was missing under its own contract.
 
 ## [0.14.0] — 2026-07-22
 

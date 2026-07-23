@@ -241,8 +241,20 @@ def check_plan_eval_prediction(feature_dir: Path) -> tuple[bool, str]:
     return True, f"{_PLAN_MD} evaluation_prediction averages OK ({', '.join(averages)})"
 
 
+# A markdown table's delimiter row (`|---|:---:|`). Rows before it are the
+# header; rows after it are data. Only data rows prove a section is populated.
+_RE_TABLE_DELIMITER = re.compile(r"^\|(?:\s*:?-+:?\s*\|)+$")
+
+
 def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[bool, str]:
-    """Cross-reference populated NFR categories vs @nfr-* tags in acceptance.feature."""
+    """Cross-reference populated NFR categories vs @nfr-* tags in acceptance.feature.
+
+    A section heading may be either the plain category (`## Freshness`) or the
+    tag form the data starter uses (`## @nfr-freshness`); both normalize to the
+    same category. A section counts as populated when it has a non-TBD bullet
+    (checkbox lines included) or a non-TBD table data row — a header-and-
+    delimiter-only table is scaffolding, like a lone TBD bullet.
+    """
     nfrs_path = feature_dir / _NFRS_MD
     feature_path = feature_dir / _ACCEPTANCE_FEATURE
     if not nfrs_path.exists() or not feature_path.exists():
@@ -253,12 +265,23 @@ def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[bool, str]:
 
     populated = []
     current_heading = None
+    in_table = False
     for line in nfrs_text.splitlines():
         heading_match = re.match(r"^##\s+(.+)", line)
         if heading_match:
             current_heading = heading_match.group(1).strip().lower()
+            current_heading = current_heading.removeprefix("@nfr-")
+            in_table = False
             continue
-        if current_heading and line.strip().startswith("- ") and "TBD" not in line:
+        if current_heading is None:
+            continue
+        stripped = line.strip()
+        if _RE_TABLE_DELIMITER.match(stripped):
+            in_table = True
+            continue
+        is_bullet = stripped.startswith("- ")
+        is_table_row = in_table and stripped.startswith("|")
+        if (is_bullet or is_table_row) and "TBD" not in line:
             populated.append(current_heading)
             current_heading = None
 
@@ -271,6 +294,7 @@ def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[bool, str]:
     known_categories = frozenset({
         "performance", "availability", "security", "compliance",
         "scalability", "observability", "reliability", "compatibility",
+        "freshness", "quality", "pii", "lineage", "cost",
     })
 
     missing_tags = [
