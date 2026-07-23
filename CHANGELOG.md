@@ -31,6 +31,35 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - `is_user_edited` no longer raises `TypeError` on the mtime fallback path
   when the marker's `applied_at` is timezone-naive; unknown history now means
   no protection triggered, matching the legacy-instruction reconciliation.
+- `govkit validate` now actually checks data NFR coverage, closing the gap
+  against what `l4-data.md` promises. The Gherkin tag check knows the data
+  categories (`freshness`, `quality`, `pii`, `lineage`, `cost`), normalizes
+  `## @nfr-<category>` headings to the same category as plain `## <Category>`
+  headings, and recognizes table-style sections (the data NFR format) — a
+  section now counts as populated on a non-TBD table data row, not just a
+  `- ` bullet. Header-and-delimiter-only tables are scaffolding and demand no
+  tag. The data starter gains the two tagged scenarios (`@nfr-observability`,
+  `@nfr-compliance`) it was missing under its own contract.
+- `govkit validate` no longer misreads the installed `starter_data` directory
+  as a user feature (it was missing from the starter skip-list, so data repos
+  always saw a spurious failure); a guard test now asserts the skip-list
+  covers every bundled starter. `govkit init` derives its prompt default from
+  the marker's recorded `options.type` — a data repo defaults to the data
+  starter, a cli repo to the cli starter — instead of always suggesting
+  backend. An explicit `--starter` still wins.
+- `govkit validate` now really validates `eval_criteria.yaml` against the
+  installed schema. Previously it ran `check-jsonschema --check-metaschema`
+  on the instance file — validating the YAML *as a schema*, which proved
+  nothing for any project type. The check now resolves
+  `governance/*/schemas/eval_criteria.schema.json` from the install and runs
+  `check-jsonschema --schemafile <schema> <instance>`; a non-conforming file
+  is a FAIL with the validator's message. When no schema is installed for the
+  project type (data, today) the check WARNs visibly instead of passing.
+  Schema resolution follows the marker's recorded `options.type` (api/cli →
+  backend, ui-* → ui, data → data), so a stale governance tree left by a
+  previous `apply --type` is never validated against; without a marker to
+  choose by, multiple installed schemas WARN as ambiguous rather than
+  silently picking one.
 
 ## [0.14.0] — 2026-07-22
 

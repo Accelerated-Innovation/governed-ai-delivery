@@ -75,3 +75,16 @@ Feature: customer_dim daily refresh
     When a daily refresh completes
     Then the credit usage SHALL be ≤ 2 × X
     And exceedances SHALL alert oncall (warn, not block)
+
+  @nfr-observability
+  Scenario: Pipeline failure alerts oncall
+    Given the customer_dim_daily pipeline fails a scheduled run
+    Then Slack #data-oncall SHALL receive a failure alert
+    And the run SHALL appear in the dbt_observability dashboard with its duration
+
+  @nfr-compliance
+  Scenario: Right-to-be-forgotten propagates through the mart
+    Given a customer exercises GDPR deletion in the source system
+    When the deletion lands in source.customers
+    Then the customer SHALL be absent from marts.customer_dim within 24 hours
+    And the deletion SHALL be recorded in the audit log for 1 year

@@ -29,7 +29,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from .marker import read_govkit_level
+from .marker import read_govkit_level, read_govkit_marker
 
 # ---------------------------------------------------------------------------
 # Artifact file name constants
@@ -69,7 +69,7 @@ FAIL = "\033[31mFAIL\033[0m"
 WARN = "\033[33mWARN\033[0m"
 
 STARTERS = {
-    "starter_backend", "starter_ui", "starter_cli",
+    "starter_backend", "starter_ui", "starter_cli", "starter_data",
     "starter_backend_l5", "starter_cli_l5",
 }
 
@@ -180,8 +180,70 @@ def check_nfrs_sections(feature_dir: Path) -> tuple[bool | None, str]:
     return True, f"{_NFRS_MD} section contract OK (Repository Scope + Out of scope populated)"
 
 
+# Governance area whose schemas govern each marker options.type. data maps to
+# its own area, which ships no schema yet — the resolver then reports the gap
+# instead of consulting another type's (possibly stale) governance tree.
+_TYPE_TO_GOVERNANCE_AREA = {
+    "api": "backend",
+    "cli": "backend",
+    "ui-react": "ui",
+    "ui-angular": "ui",
+    "data": "data",
+}
+
+_NO_SCHEMA_REASON = "no eval_criteria schema installed for this project type"
+
+
+def _resolve_eval_schema(feature_dir: Path) -> tuple[Path | None, str]:
+    """Resolve the installed eval_criteria schema governing this feature.
+
+    Returns (schema, "") when resolved, or (None, reason) when instance
+    validation must be skipped. The marker's options.type decides the
+    governance area — a stale tree left by a previous `apply --type` must
+    not be validated against. Scanning is the fallback for markerless or
+    unknown-type layouts, and it refuses to guess when more than one area
+    ships a schema.
+
+    Standard layout: feature_dir is <target>/features/<name>; the marker and
+    governance/ live at <target>. A few ancestors are walked so a
+    non-standard nesting still resolves.
+    """
+    ancestors = list(feature_dir.parents)[:3]
+    for ancestor in ancestors:
+        marker = read_govkit_marker(ancestor)
+        if not marker:
+            continue
+        area = _TYPE_TO_GOVERNANCE_AREA.get((marker.get("options") or {}).get("type"))
+        if area is None:
+            break  # marker present but type unknown — fall back to scanning
+        schema = ancestor / "governance" / area / "schemas" / "eval_criteria.schema.json"
+        if schema.is_file():
+            return schema, ""
+        return None, _NO_SCHEMA_REASON
+
+    matches: list[Path] = []
+    for ancestor in ancestors:
+        matches = sorted(ancestor.glob("governance/*/schemas/eval_criteria.schema.json"))
+        if matches:
+            break
+    if len(matches) > 1:
+        areas = ", ".join(sorted(p.parent.parent.name for p in matches))
+        return None, (
+            f"ambiguous eval_criteria schemas installed ({areas}) "
+            "and no marker type to choose by"
+        )
+    if matches:
+        return matches[0], ""
+    return None, _NO_SCHEMA_REASON
+
+
 def check_eval_criteria(feature_dir: Path) -> tuple[bool | None, str]:
-    """Check eval_criteria.yaml for required keys. Full schema validation via check-jsonschema if available."""
+    """Check eval_criteria.yaml required keys, then validate the instance
+    against the installed schema via check-jsonschema.
+
+    WARN (None) when no schema is installed for this project type or the
+    binary is unavailable — visible gaps, not silent green.
+    """
     path = feature_dir / _EVAL_CRITERIA_YAML
     if not path.exists():
         return False, f"{_EVAL_CRITERIA_YAML} not found"
@@ -194,16 +256,21 @@ def check_eval_criteria(feature_dir: Path) -> tuple[bool | None, str]:
     if issues:
         return False, f"{_EVAL_CRITERIA_YAML}: {'; '.join(issues)}"
 
+    schema, skip_reason = _resolve_eval_schema(feature_dir)
+    if schema is None:
+        return None, f"{_EVAL_CRITERIA_YAML} structure OK — {skip_reason}; instance validation skipped"
     try:
         result = subprocess.run(
-            ["check-jsonschema", "--check-metaschema", str(path)],
+            ["check-jsonschema", "--schemafile", str(schema), str(path)],
             capture_output=True, text=True, timeout=10,
         )
-        if result.returncode != 0:
-            return None, f"{_EVAL_CRITERIA_YAML} structure OK — full schema validation requires CI"
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None, f"{_EVAL_CRITERIA_YAML} structure OK — install check-jsonschema for full validation"
-    return True, f"{_EVAL_CRITERIA_YAML} is valid"
+    if result.returncode != 0:
+        detail = (result.stdout or result.stderr or "").strip().splitlines()
+        snippet = detail[-1] if detail else "schema validation failed"
+        return False, f"{_EVAL_CRITERIA_YAML} fails {schema.name}: {snippet}"
+    return True, f"{_EVAL_CRITERIA_YAML} valid against {schema.name}"
 
 
 def check_plan_eval_prediction(feature_dir: Path) -> tuple[bool, str]:
@@ -241,8 +308,20 @@ def check_plan_eval_prediction(feature_dir: Path) -> tuple[bool, str]:
     return True, f"{_PLAN_MD} evaluation_prediction averages OK ({', '.join(averages)})"
 
 
+# A markdown table's delimiter row (`|---|:---:|`). Rows before it are the
+# header; rows after it are data. Only data rows prove a section is populated.
+_RE_TABLE_DELIMITER = re.compile(r"^\|(?:\s*:?-+:?\s*\|)+$")
+
+
 def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[bool, str]:
-    """Cross-reference populated NFR categories vs @nfr-* tags in acceptance.feature."""
+    """Cross-reference populated NFR categories vs @nfr-* tags in acceptance.feature.
+
+    A section heading may be either the plain category (`## Freshness`) or the
+    tag form the data starter uses (`## @nfr-freshness`); both normalize to the
+    same category. A section counts as populated when it has a non-TBD bullet
+    (checkbox lines included) or a non-TBD table data row — a header-and-
+    delimiter-only table is scaffolding, like a lone TBD bullet.
+    """
     nfrs_path = feature_dir / _NFRS_MD
     feature_path = feature_dir / _ACCEPTANCE_FEATURE
     if not nfrs_path.exists() or not feature_path.exists():
@@ -253,12 +332,23 @@ def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[bool, str]:
 
     populated = []
     current_heading = None
+    in_table = False
     for line in nfrs_text.splitlines():
         heading_match = re.match(r"^##\s+(.+)", line)
         if heading_match:
             current_heading = heading_match.group(1).strip().lower()
+            current_heading = current_heading.removeprefix("@nfr-")
+            in_table = False
             continue
-        if current_heading and line.strip().startswith("- ") and "TBD" not in line:
+        if current_heading is None:
+            continue
+        stripped = line.strip()
+        if _RE_TABLE_DELIMITER.match(stripped):
+            in_table = True
+            continue
+        is_bullet = stripped.startswith("- ")
+        is_table_row = in_table and stripped.startswith("|")
+        if (is_bullet or is_table_row) and "TBD" not in line:
             populated.append(current_heading)
             current_heading = None
 
@@ -271,6 +361,7 @@ def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[bool, str]:
     known_categories = frozenset({
         "performance", "availability", "security", "compliance",
         "scalability", "observability", "reliability", "compatibility",
+        "freshness", "quality", "pii", "lineage", "cost",
     })
 
     missing_tags = [

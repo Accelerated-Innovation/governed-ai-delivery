@@ -14,16 +14,33 @@ from pathlib import Path
 from . import paths
 from .compat import validate_level_type
 from .fs import copy_entry
-from .marker import read_govkit_level
+from .marker import read_govkit_marker
+
+# The starter each marker options.type implies. The apply-time type choice is
+# recorded precisely so later commands need no re-specification; a data repo
+# defaulting its init prompt to backend contradicts that contract.
+_MARKER_TYPE_TO_STARTER = {
+    "api": "backend",
+    "cli": "cli",
+    "ui-react": "ui-react",
+    "ui-angular": "ui-angular",
+    "data": "data",
+}
 
 
-def _prompt_starter_type() -> str:
+def _default_starter_type(marker_type: str | None) -> str:
+    """The starter implied by the marker's options.type; backend when the
+    marker is absent or carries an unknown type."""
+    return _MARKER_TYPE_TO_STARTER.get(marker_type or "", "backend")
+
+
+def _prompt_starter_type(default: str = "backend") -> str:
     """Interactively prompt for the starter template type."""
     choices = ["backend", "cli", "ui-react", "ui-angular", "data"]
-    prompt_text = f"  Feature type? [{' / '.join(choices)}] (default: backend): "
+    prompt_text = f"  Feature type? [{' / '.join(choices)}] (default: {default}): "
     answer = input(prompt_text).strip().lower()
     if answer == "":
-        answer = "backend"
+        answer = default
     if answer not in choices:
         print(f"Error: invalid choice '{answer}'. Must be one of: {', '.join(choices)}")
         sys.exit(1)
@@ -67,8 +84,10 @@ def cmd_init(args: argparse.Namespace) -> None:
     """Create a new feature folder from the appropriate starter template."""
     target = Path(args.target).resolve()
 
+    stored = read_govkit_marker(target) or {}
+
     # Determine level early so we can gate L3 before any other checks.
-    level = args.level or read_govkit_level(target) or "3"
+    level = args.level or stored.get("level") or "3"
 
     if level == "3":
         print(
@@ -91,7 +110,8 @@ def cmd_init(args: argparse.Namespace) -> None:
         print(f"Error: feature '{feature_name}' already exists at {feature_dir}")
         sys.exit(1)
 
-    starter_type = args.starter or _prompt_starter_type()
+    marker_type = (stored.get("options") or {}).get("type")
+    starter_type = args.starter or _prompt_starter_type(_default_starter_type(marker_type))
     starter_dir = _resolve_starter_dir(starter_type, level)
 
     if not starter_dir.exists():

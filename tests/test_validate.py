@@ -367,6 +367,146 @@ class TestCheckEvalCriteria:
         assert ok is False
         assert "not found" in msg
 
+    # -- honest schema validation (instance vs installed schema) -------------
+
+    def _install(self, tmp_path, with_schema=True, marker_type=None, extra_areas=()):
+        """A target with features/feat/eval_criteria.yaml, an installed
+        backend governance schema (optional), extra governance areas, and a
+        .govkit marker recording options.type (optional)."""
+        target = tmp_path / "target"
+        feature_dir = target / "features" / "feat"
+        write(feature_dir / "eval_criteria.yaml", VALID_EVAL_CRITERIA)
+        schema = target / "governance" / "backend" / "schemas" / "eval_criteria.schema.json"
+        if with_schema:
+            write(schema, '{"type": "object"}')
+        for area in extra_areas:
+            write(
+                target / "governance" / area / "schemas" / "eval_criteria.schema.json",
+                '{"type": "object"}',
+            )
+        if marker_type:
+            (target / ".govkit").mkdir(parents=True, exist_ok=True)
+            (target / ".govkit" / "marker.json").write_text(json.dumps({
+                "version": "0.14.0", "level": "4", "agent": "claude-code",
+                "options": {"type": marker_type, "ci": "github"},
+            }), encoding="utf-8")
+        return feature_dir, schema
+
+    def test_validates_instance_against_installed_schema(self, tmp_path, monkeypatch):
+        """The instance must be validated AGAINST the installed schema —
+        not --check-metaschema'd, which validates the YAML *as* a schema and
+        is meaningless for an instance file."""
+        feature_dir, schema = self._install(tmp_path)
+        calls = []
+
+        def fake_run(argv, **kwargs):
+            calls.append(argv)
+            return type("R", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+        monkeypatch.setattr("cli.validate.subprocess.run", fake_run)
+
+        ok, msg = check_eval_criteria(feature_dir)
+        assert ok is True
+        assert calls, "check-jsonschema was not invoked"
+        assert "--schemafile" in calls[0]
+        assert str(schema) in calls[0]
+        assert "--check-metaschema" not in calls[0]
+
+    def test_schema_validation_failure_fails(self, tmp_path, monkeypatch):
+        feature_dir, _ = self._install(tmp_path)
+
+        def fake_run(argv, **kwargs):
+            return type("R", (), {
+                "returncode": 1, "stdout": "", "stderr": "criteria[0]: 'threshold' is required",
+            })()
+
+        monkeypatch.setattr("cli.validate.subprocess.run", fake_run)
+
+        ok, msg = check_eval_criteria(feature_dir)
+        assert ok is False
+        assert "eval_criteria.schema.json" in msg
+
+    def test_missing_binary_warns(self, tmp_path, monkeypatch):
+        feature_dir, _ = self._install(tmp_path)
+
+        def fake_run(argv, **kwargs):
+            raise FileNotFoundError("check-jsonschema not on PATH")
+
+        monkeypatch.setattr("cli.validate.subprocess.run", fake_run)
+
+        ok, msg = check_eval_criteria(feature_dir)
+        assert ok is None
+        assert "check-jsonschema" in msg
+
+    def test_no_installed_schema_warns(self, tmp_path):
+        """A type whose install ships no eval schema (data, today) gets a
+        visible WARN instead of a silently green fake validation."""
+        feature_dir, _ = self._install(tmp_path, with_schema=False)
+
+        ok, msg = check_eval_criteria(feature_dir)
+        assert ok is None
+        assert "no eval_criteria schema installed" in msg
+
+    # -- marker-type-aware schema resolution ---------------------------------
+
+    def _capture_run(self, monkeypatch, returncode=0):
+        calls = []
+
+        def fake_run(argv, **kwargs):
+            calls.append(argv)
+            return type("R", (), {"returncode": returncode, "stdout": "", "stderr": ""})()
+
+        monkeypatch.setattr("cli.validate.subprocess.run", fake_run)
+        return calls
+
+    def test_marker_type_selects_matching_schema(self, tmp_path, monkeypatch):
+        """When multiple governance areas ship schemas (stale tree from a
+        previous --type), the marker's options.type decides — not
+        lexicographic order."""
+        feature_dir, _ = self._install(tmp_path, marker_type="ui-react", extra_areas=("ui",))
+        calls = self._capture_run(monkeypatch)
+
+        ok, msg = check_eval_criteria(feature_dir)
+
+        assert ok is True
+        ui_schema = tmp_path / "target" / "governance" / "ui" / "schemas" / "eval_criteria.schema.json"
+        assert str(ui_schema) in calls[0]
+
+    def test_backend_marker_selects_backend_schema(self, tmp_path, monkeypatch):
+        feature_dir, backend_schema = self._install(
+            tmp_path, marker_type="api", extra_areas=("ui",),
+        )
+        calls = self._capture_run(monkeypatch)
+
+        ok, msg = check_eval_criteria(feature_dir)
+
+        assert ok is True
+        assert str(backend_schema) in calls[0]
+
+    def test_data_marker_warns_despite_stale_schema_tree(self, tmp_path, monkeypatch):
+        """A data install has no eval schema today; a stale backend
+        governance tree must not be validated against."""
+        feature_dir, _ = self._install(tmp_path, marker_type="data")
+        calls = self._capture_run(monkeypatch)
+
+        ok, msg = check_eval_criteria(feature_dir)
+
+        assert ok is None
+        assert "no eval_criteria schema installed" in msg
+        assert not calls
+
+    def test_ambiguous_schemas_without_marker_warn(self, tmp_path, monkeypatch):
+        """No marker to choose by + multiple schemas installed: refuse to
+        guess, warn instead."""
+        feature_dir, _ = self._install(tmp_path, extra_areas=("ui",))
+        calls = self._capture_run(monkeypatch)
+
+        ok, msg = check_eval_criteria(feature_dir)
+
+        assert ok is None
+        assert "ambiguous" in msg
+        assert not calls
+
 
 # ---------------------------------------------------------------------------
 # check_plan_eval_prediction
@@ -488,6 +628,166 @@ class TestCheckGherkinNfrCoverage:
         write(tmp_path / "acceptance.feature", VALID_FEATURE)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)
         assert ok is True  # no populated categories, so coverage not required
+
+    # -- data-shaped NFRs: @nfr-* headings, table-style sections -------------
+
+    def test_data_table_nfrs_missing_tag_fails(self, tmp_path):
+        """A data nfrs.md populates its categories with table rows under
+        `## @nfr-*` headings; a populated category with no matching tag in
+        acceptance.feature must fail."""
+        write(tmp_path / "nfrs.md", """\
+            ## @nfr-freshness
+
+            | Concern | Target |
+            |---|---|
+            | Schedule | Daily 06:00 UTC |
+
+            ## @nfr-pii
+
+            | Column | Treatment |
+            |---|---|
+            | customer_email | Hashed |
+        """)
+        write(tmp_path / "acceptance.feature", """\
+            Feature: Sample
+
+              @nfr-pii
+              Scenario: Masked outside prod
+                Given an analyst in staging
+                Then customer_email is masked
+        """)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is False
+        assert "@nfr-freshness" in msg
+        assert "@nfr-pii" not in msg
+
+    def test_data_table_nfrs_full_coverage_passes(self, tmp_path):
+        write(tmp_path / "nfrs.md", """\
+            ## @nfr-freshness
+
+            | Concern | Target |
+            |---|---|
+            | Schedule | Daily 06:00 UTC |
+
+            ## @nfr-lineage
+
+            | Concern | Target |
+            |---|---|
+            | Source-to-mart capture | Every prod run |
+        """)
+        write(tmp_path / "acceptance.feature", """\
+            Feature: Sample
+
+              @nfr-freshness
+              Scenario: Fresh by 07:00
+                Given the schedule
+                Then staleness <= 1 hour
+
+              @nfr-lineage
+              Scenario: Lineage captured
+                Given a prod run
+                Then lineage shows the upstream
+        """)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is True
+
+    def test_plain_heading_normalizes_to_category(self, tmp_path):
+        """`## Freshness` and `## @nfr-freshness` are the same category."""
+        write(tmp_path / "nfrs.md", """\
+            ## Freshness
+
+            | Concern | Target |
+            |---|---|
+            | Schedule | Hourly |
+        """)
+        write(tmp_path / "acceptance.feature", VALID_FEATURE)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is False
+        assert "@nfr-freshness" in msg
+
+    def test_new_categories_recognized_in_bullet_form(self, tmp_path):
+        """cost/quality (and the other data categories) are known regardless
+        of section style."""
+        write(tmp_path / "nfrs.md", """\
+            ## Cost
+            - Alert at 2x rolling median credit usage
+
+            ## Quality
+            - customer_id unique, severity error
+        """)
+        write(tmp_path / "acceptance.feature", VALID_FEATURE)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is False
+        assert "@nfr-cost" in msg
+        assert "@nfr-quality" in msg
+
+    def test_header_only_table_is_not_populated(self, tmp_path):
+        """A table with header + separator but no data rows is scaffolding,
+        like a lone TBD bullet — it demands no tag."""
+        write(tmp_path / "nfrs.md", """\
+            ## @nfr-freshness
+
+            | Concern | Target |
+            |---|---|
+        """)
+        write(tmp_path / "acceptance.feature", VALID_FEATURE)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is True
+
+    def test_table_rows_all_tbd_are_not_populated(self, tmp_path):
+        write(tmp_path / "nfrs.md", """\
+            ## @nfr-cost
+
+            | Concern | Target |
+            |---|---|
+            | Baseline | TBD |
+        """)
+        write(tmp_path / "acceptance.feature", VALID_FEATURE)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is True
+
+    def test_checkbox_line_populates_section(self, tmp_path):
+        write(tmp_path / "nfrs.md", """\
+            ## @nfr-compliance
+            - [x] GDPR deletion propagates within 24 hours
+        """)
+        write(tmp_path / "acceptance.feature", VALID_FEATURE)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is False
+        assert "@nfr-compliance" in msg
+
+    def test_bundled_data_starter_has_full_coverage(self):
+        """The worked example must satisfy the contract it demonstrates:
+        every category starter_data/nfrs.md populates has a tagged scenario."""
+        from cli import paths
+
+        starter = paths.REPO_ROOT / "features" / "starter_data"
+        ok, msg = check_gherkin_nfr_coverage(starter)
+        assert ok is True, msg
+
+
+# ---------------------------------------------------------------------------
+# STARTERS registry
+# ---------------------------------------------------------------------------
+
+
+class TestStartersRegistry:
+    def test_starters_covers_every_bundled_starter_dir(self):
+        """validate skips starter dirs by name when scanning a target's
+        features/; a bundled starter missing from STARTERS gets validated as
+        if it were a user feature (and fails — starters omit plan.md by
+        design). Guard so the next starter cannot repeat starter_data's
+        omission."""
+        from cli import paths
+        from cli.validate import STARTERS
+
+        bundled = {
+            p.name
+            for p in (paths.REPO_ROOT / "features").iterdir()
+            if p.is_dir() and p.name.startswith("starter_")
+        }
+        assert bundled, "no bundled starters found — REPO_ROOT misresolved?"
+        assert bundled <= STARTERS, f"STARTERS missing: {sorted(bundled - STARTERS)}"
 
     def test_missing_files(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)
