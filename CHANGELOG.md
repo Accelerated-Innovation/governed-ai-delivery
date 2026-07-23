@@ -55,6 +55,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   `check-jsonschema --schemafile <schema> <instance>`; a non-conforming file
   is a FAIL with the validator's message. When no schema is installed for the
   project type (data, today) the check WARNs visibly instead of passing.
+  Schema resolution follows the marker's recorded `options.type` (api/cli →
+  backend, ui-* → ui, data → data), so a stale governance tree left by a
+  previous `apply --type` is never validated against; without a marker to
+  choose by, multiple installed schemas WARN as ambiguous rather than
+  silently picking one.
 
 ## [0.14.0] — 2026-07-22
 

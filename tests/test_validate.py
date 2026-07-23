@@ -369,14 +369,27 @@ class TestCheckEvalCriteria:
 
     # -- honest schema validation (instance vs installed schema) -------------
 
-    def _install(self, tmp_path, with_schema=True):
-        """A target with features/feat/eval_criteria.yaml and (optionally) an
-        installed governance schema."""
-        feature_dir = tmp_path / "target" / "features" / "feat"
+    def _install(self, tmp_path, with_schema=True, marker_type=None, extra_areas=()):
+        """A target with features/feat/eval_criteria.yaml, an installed
+        backend governance schema (optional), extra governance areas, and a
+        .govkit marker recording options.type (optional)."""
+        target = tmp_path / "target"
+        feature_dir = target / "features" / "feat"
         write(feature_dir / "eval_criteria.yaml", VALID_EVAL_CRITERIA)
-        schema = tmp_path / "target" / "governance" / "backend" / "schemas" / "eval_criteria.schema.json"
+        schema = target / "governance" / "backend" / "schemas" / "eval_criteria.schema.json"
         if with_schema:
             write(schema, '{"type": "object"}')
+        for area in extra_areas:
+            write(
+                target / "governance" / area / "schemas" / "eval_criteria.schema.json",
+                '{"type": "object"}',
+            )
+        if marker_type:
+            (target / ".govkit").mkdir(parents=True, exist_ok=True)
+            (target / ".govkit" / "marker.json").write_text(json.dumps({
+                "version": "0.14.0", "level": "4", "agent": "claude-code",
+                "options": {"type": marker_type, "ci": "github"},
+            }), encoding="utf-8")
         return feature_dir, schema
 
     def test_validates_instance_against_installed_schema(self, tmp_path, monkeypatch):
@@ -433,6 +446,66 @@ class TestCheckEvalCriteria:
         ok, msg = check_eval_criteria(feature_dir)
         assert ok is None
         assert "no eval_criteria schema installed" in msg
+
+    # -- marker-type-aware schema resolution ---------------------------------
+
+    def _capture_run(self, monkeypatch, returncode=0):
+        calls = []
+
+        def fake_run(argv, **kwargs):
+            calls.append(argv)
+            return type("R", (), {"returncode": returncode, "stdout": "", "stderr": ""})()
+
+        monkeypatch.setattr("cli.validate.subprocess.run", fake_run)
+        return calls
+
+    def test_marker_type_selects_matching_schema(self, tmp_path, monkeypatch):
+        """When multiple governance areas ship schemas (stale tree from a
+        previous --type), the marker's options.type decides — not
+        lexicographic order."""
+        feature_dir, _ = self._install(tmp_path, marker_type="ui-react", extra_areas=("ui",))
+        calls = self._capture_run(monkeypatch)
+
+        ok, msg = check_eval_criteria(feature_dir)
+
+        assert ok is True
+        ui_schema = tmp_path / "target" / "governance" / "ui" / "schemas" / "eval_criteria.schema.json"
+        assert str(ui_schema) in calls[0]
+
+    def test_backend_marker_selects_backend_schema(self, tmp_path, monkeypatch):
+        feature_dir, backend_schema = self._install(
+            tmp_path, marker_type="api", extra_areas=("ui",),
+        )
+        calls = self._capture_run(monkeypatch)
+
+        ok, msg = check_eval_criteria(feature_dir)
+
+        assert ok is True
+        assert str(backend_schema) in calls[0]
+
+    def test_data_marker_warns_despite_stale_schema_tree(self, tmp_path, monkeypatch):
+        """A data install has no eval schema today; a stale backend
+        governance tree must not be validated against."""
+        feature_dir, _ = self._install(tmp_path, marker_type="data")
+        calls = self._capture_run(monkeypatch)
+
+        ok, msg = check_eval_criteria(feature_dir)
+
+        assert ok is None
+        assert "no eval_criteria schema installed" in msg
+        assert not calls
+
+    def test_ambiguous_schemas_without_marker_warn(self, tmp_path, monkeypatch):
+        """No marker to choose by + multiple schemas installed: refuse to
+        guess, warn instead."""
+        feature_dir, _ = self._install(tmp_path, extra_areas=("ui",))
+        calls = self._capture_run(monkeypatch)
+
+        ok, msg = check_eval_criteria(feature_dir)
+
+        assert ok is None
+        assert "ambiguous" in msg
+        assert not calls
 
 
 # ---------------------------------------------------------------------------

@@ -29,7 +29,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from .marker import read_govkit_level
+from .marker import read_govkit_level, read_govkit_marker
 
 # ---------------------------------------------------------------------------
 # Artifact file name constants
@@ -180,18 +180,61 @@ def check_nfrs_sections(feature_dir: Path) -> tuple[bool | None, str]:
     return True, f"{_NFRS_MD} section contract OK (Repository Scope + Out of scope populated)"
 
 
-def _resolve_eval_schema(feature_dir: Path) -> Path | None:
-    """The installed eval_criteria schema governing this feature, or None.
+# Governance area whose schemas govern each marker options.type. data maps to
+# its own area, which ships no schema yet — the resolver then reports the gap
+# instead of consulting another type's (possibly stale) governance tree.
+_TYPE_TO_GOVERNANCE_AREA = {
+    "api": "backend",
+    "cli": "backend",
+    "ui-react": "ui",
+    "ui-angular": "ui",
+    "data": "data",
+}
 
-    Standard layout: feature_dir is <target>/features/<name> and the install
-    put the schema at <target>/governance/<area>/schemas/. Walk a few
-    ancestors so a non-standard nesting still resolves.
+_NO_SCHEMA_REASON = "no eval_criteria schema installed for this project type"
+
+
+def _resolve_eval_schema(feature_dir: Path) -> tuple[Path | None, str]:
+    """Resolve the installed eval_criteria schema governing this feature.
+
+    Returns (schema, "") when resolved, or (None, reason) when instance
+    validation must be skipped. The marker's options.type decides the
+    governance area — a stale tree left by a previous `apply --type` must
+    not be validated against. Scanning is the fallback for markerless or
+    unknown-type layouts, and it refuses to guess when more than one area
+    ships a schema.
+
+    Standard layout: feature_dir is <target>/features/<name>; the marker and
+    governance/ live at <target>. A few ancestors are walked so a
+    non-standard nesting still resolves.
     """
-    for ancestor in list(feature_dir.parents)[:3]:
+    ancestors = list(feature_dir.parents)[:3]
+    for ancestor in ancestors:
+        marker = read_govkit_marker(ancestor)
+        if not marker:
+            continue
+        area = _TYPE_TO_GOVERNANCE_AREA.get((marker.get("options") or {}).get("type"))
+        if area is None:
+            break  # marker present but type unknown — fall back to scanning
+        schema = ancestor / "governance" / area / "schemas" / "eval_criteria.schema.json"
+        if schema.is_file():
+            return schema, ""
+        return None, _NO_SCHEMA_REASON
+
+    matches: list[Path] = []
+    for ancestor in ancestors:
         matches = sorted(ancestor.glob("governance/*/schemas/eval_criteria.schema.json"))
         if matches:
-            return matches[0]
-    return None
+            break
+    if len(matches) > 1:
+        areas = ", ".join(sorted(p.parent.parent.name for p in matches))
+        return None, (
+            f"ambiguous eval_criteria schemas installed ({areas}) "
+            "and no marker type to choose by"
+        )
+    if matches:
+        return matches[0], ""
+    return None, _NO_SCHEMA_REASON
 
 
 def check_eval_criteria(feature_dir: Path) -> tuple[bool | None, str]:
@@ -213,12 +256,9 @@ def check_eval_criteria(feature_dir: Path) -> tuple[bool | None, str]:
     if issues:
         return False, f"{_EVAL_CRITERIA_YAML}: {'; '.join(issues)}"
 
-    schema = _resolve_eval_schema(feature_dir)
+    schema, skip_reason = _resolve_eval_schema(feature_dir)
     if schema is None:
-        return None, (
-            f"{_EVAL_CRITERIA_YAML} structure OK — no eval_criteria schema "
-            "installed for this project type; instance validation skipped"
-        )
+        return None, f"{_EVAL_CRITERIA_YAML} structure OK — {skip_reason}; instance validation skipped"
     try:
         result = subprocess.run(
             ["check-jsonschema", "--schemafile", str(schema), str(path)],
