@@ -2929,6 +2929,60 @@ class TestCmdUpgradeEditProtection:
         err = capsys.readouterr().err
         assert "overwriting user edits" in err
 
+    def test_upgrade_refuses_edited_hashed_file_across_consecutive_upgrades(
+        self, tmp_path, monkeypatch, capsys,
+    ):
+        """The amnesia contract: an edited doc installed with a body hash is
+        refused by EVERY subsequent upgrade, not just the first. Upgrade
+        re-stamps applied_at; content-hash protection must not care. (The
+        file's mtime is deliberately older than applied_at, so the legacy
+        mtime signal says 'unedited' — only the hash remembers.)"""
+        import json
+        import os
+        from datetime import datetime, timezone
+
+        from cli.headers import compute_body_hash, format_editable_header
+
+        repo = _make_upgrade_repo(tmp_path)
+        (repo / "docs" / "contract.md").write_text("# Contract v2 (refreshed)\n", encoding="utf-8")
+
+        target = tmp_path / "project"
+        target.mkdir()
+        (target / "CLAUDE.md").write_text("# old\n", encoding="utf-8")
+        contract = target / "docs" / "contract.md"
+        contract.parent.mkdir(parents=True)
+        header = format_editable_header(
+            baseline="govkit@0.1.0", body_hash=compute_body_hash("# Contract v1\n"),
+        )
+        contract.write_text(header + "# Contract user edits\n", encoding="utf-8")
+        old_time = datetime(2026, 5, 27, 9, 0, 0, tzinfo=timezone.utc).timestamp()
+        os.utime(contract, (old_time, old_time))
+
+        applied_at = datetime(2026, 5, 27, 10, 0, 0, tzinfo=timezone.utc).isoformat()
+        marker = {
+            "version": "0.1.0", "level": "4", "agent": "test-agent",
+            "options": {"type": "api", "ci": "github"},
+            "applied_at": applied_at,
+        }
+        marker_dir = target / ".govkit"
+        marker_dir.mkdir()
+        (marker_dir / "marker.json").write_text(json.dumps(marker), encoding="utf-8")
+
+        monkeypatch.setattr("cli.paths.AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", repo)
+
+        monkeypatch.setattr("cli.version.GOVKIT_VERSION", "0.2.0")
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+        assert "refused" in capsys.readouterr().err
+
+        monkeypatch.setattr("cli.version.GOVKIT_VERSION", "0.3.0")
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+        assert "refused" in capsys.readouterr().err
+
+        body = contract.read_text(encoding="utf-8")
+        assert "Contract user edits" in body
+        assert "Contract v2 (refreshed)" not in body
+
     def test_upgrade_refreshes_unedited_headed_file(self, tmp_path, monkeypatch):
         """A headed governed doc that hasn't been edited since applied_at
         gets refreshed normally, with the header regenerated for the new

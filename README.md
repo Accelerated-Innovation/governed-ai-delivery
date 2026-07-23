@@ -483,7 +483,7 @@ If you omit `--stack`, govkit detects your stack from the repo and falls back to
 govkit stack apply java-spring-boot --target .
 ```
 
-Re-applies the new overlay on top of the existing install. Edit-protection respects user changes: any of the 6 stack docs you've modified since the last apply are preserved unless you pass `--force` (your edits are detected via the `govkit:editable` header + file mtime vs. the marker's `applied_at`).
+Re-applies the new overlay on top of the existing install. Edit-protection respects user changes: any of the 6 stack docs you've modified are preserved unless you pass `--force` (your edits are detected by content — the `govkit:editable` header records a hash of the installed body; docs installed before the hash field fall back to file mtime vs. the marker's `applied_at`).
 
 ### Why only 6 files?
 

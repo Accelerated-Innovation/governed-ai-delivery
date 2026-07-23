@@ -8,6 +8,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Edit-protection for governed and shared docs is now content-based. The
+  `govkit:editable` header records a SHA-256 hash of the installed doc body,
+  and a doc counts as user-edited iff its body no longer matches — so team
+  edits survive consecutive upgrades (previously the `applied_at` re-stamp
+  made protection forget edits after one upgrade) and fresh clones no longer
+  trigger mass false refusals (mtime is no longer an ownership signal for
+  hashed docs). Docs installed before the hash field keep the old
+  mtime-vs-`applied_at` comparison until their next overwrite records a hash;
+  refusing such a doc now prints a note about that protection window. Two
+  edits are invisible to the hash by design: line-ending-only changes and
+  changes confined to the header itself (e.g. tweaking `see:`). Legacy
+  agent-file reconciliation (managed instruction blocks) still uses mtime.
+
 ## [0.14.0] — 2026-07-22
 
 ### Added

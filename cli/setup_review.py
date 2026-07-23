@@ -188,9 +188,11 @@ this file — author your notes in ADRs or a separate doc instead.
 ## Next steps
 
 - After reviewing, edit the docs above to match your repo. GovKit detects your
-  edits (via the `govkit:editable` header + file mtime vs. the marker's
-  `applied_at`) and refuses to overwrite them on `govkit upgrade` or
-  `govkit stack apply`. Use `--force` to override.
+  edits by content: the `govkit:editable` header records a hash of each doc's
+  installed body, and a doc whose body no longer matches is refused on
+  `govkit upgrade` or `govkit stack apply`. (Docs installed before the hash
+  field fall back to file mtime vs. the marker's `applied_at`.) Use `--force`
+  to override.
 - GovKit's own agent guidance is refreshed on every upgrade and is not meant to
   be hand-edited — steer it through the architecture docs above and
   `govkit calibrate`, not by editing the installed governance files.
