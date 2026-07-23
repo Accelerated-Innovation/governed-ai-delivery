@@ -62,6 +62,12 @@ _DIRECTORY_MIGRATION_WARNING = _OneTimeWarning("GOVKIT_NO_DIRECTORY_MIGRATION_WA
 def _compare_version(v1: str, v2: str) -> int:
     """Compare dotted version strings. Returns -1, 0, or 1.
 
+    Absent components read as zero, so `0.14` and `0.14.0` compare equal.
+    Markers are not schema-validated, so a hand-edited or truncated version
+    reaches this comparator; comparing the parsed tuples directly made
+    `(0, 14) < (0, 14, 0)`, which would sort a version *before* the release it
+    names and drop callers that gate on it into the wrong branch.
+
     Non-parseable versions (e.g. 'dev', 'unknown') compare equal to anything,
     so development builds and corrupt markers don't trigger the migration
     warning.
@@ -71,6 +77,9 @@ def _compare_version(v1: str, v2: str) -> int:
         t2 = tuple(int(p) for p in v2.split("."))
     except (ValueError, AttributeError):
         return 0
+    width = max(len(t1), len(t2))
+    t1 += (0,) * (width - len(t1))
+    t2 += (0,) * (width - len(t2))
     if t1 < t2:
         return -1
     if t1 > t2:

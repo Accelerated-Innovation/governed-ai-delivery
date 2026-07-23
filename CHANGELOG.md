@@ -8,8 +8,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-07-22
+
 ### Added
 
+- Added a first-class `implementation_profiles` mechanism for extensions. An
+  extension can now ship advisory **default product bindings** — a profile that
+  maps a neutral contract set to concrete products a team may customize —
+  separate from its provider-neutral `contract_sets`. The generic
+  extension-manifest schema documents the key (`id`, `path`, `profiles_for`,
+  `authority`, `product_selection_requires_adr`, and a reserved `gate`), and
+  profiles are validated for path safety while remaining exempt from the
+  contract-neutrality overlap heuristic (a profile is meant to name products).
+  Two profiles ship on top of it: `AGENT_RUNTIME_STACK.md`
+  (`skill-oriented-agent-architecture`) mapping the SOAA runtime
+  responsibilities to default bindings, and `GATEWAY_STACK.md`
+  (`llm-application`) mapping the model-gateway/observability/guardrail ports.
+  Both are advisory, require an ADR to deviate, and wire no blocking CI gate.
 - Added the bundled `skill-oriented-agent-architecture` extension. It translates
   approved SOAA v0.2 decisions into five progressively loaded contract sets for
   core semantics, selection and authority, context and resilience, assurance,
@@ -45,6 +60,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   (`stack.id: null`). `apply`, `stack apply`, and `calibrate` already carried
   these through; `upgrade` was the lone writer that did not. `applied_at` still
   advances on upgrade — that is a re-install, and edit-protection depends on it.
+- `govkit upgrade` now retires the pre-namespace rules and skills it used to
+  leave behind. Moving govkit's rules under `.claude/rules/govkit/` (and
+  `.github/instructions/govkit/`) and prefixing its skills `govkit-` changed
+  where those files install, but upgrade wrote the new paths without removing
+  the copies govkit itself had written at the old ones — so an agent that
+  auto-loads its rules directory recursively ingested both, duplicating
+  governance and contradicting it wherever the two versions had drifted.
+  Upgrade now removes a superseded rule or skill when it is provably govkit's
+  own (byte-identical to what govkit installs today, or untouched since the
+  last apply); a file the team wrote or edited at the old path is kept, and
+  govkit's namespaced copy installs alongside it — which is the point of the
+  namespace. The cleanup runs only while the marker predates the move, and a
+  delete it cannot perform warns instead of aborting the upgrade.
+- `govkit upgrade` no longer crashes when the marker's `applied_at` is
+  timezone-naive, or when a superseded file cannot be deleted. The first
+  raised `TypeError` comparing a naive timestamp against a timezone-aware
+  mtime; both are now treated as unknown history, which never authorizes a
+  delete.
+
 ### Changed
 
 - Removed the duplicate core `AGENT_ARCHITECTURE.md`,
@@ -60,8 +94,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   govkit's `api` rule; both coexist and load. Skill namespacing is not included
   here (it would change how govkit skills are invoked, e.g. `/spec-planning`), and
   codex's nested per-layer `AGENTS.md` files are unchanged for now.
-### Changed
-
 - **govkit's skills are now prefixed `govkit-`**, so a team's own skill that shares
   a bare name with one of govkit's is no longer overwritten. This renames both the
   installed skill directory and its invocation name — e.g. `/spec-planning` becomes
@@ -74,13 +106,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   govkit fences its per-layer guidance in the same `BEGIN/END GOVKIT GOVERNANCE`
   block used for the root `AGENTS.md`, preserving a team's own content in those
   files.
-- **govkit's layer rules now install under a `govkit/` subdirectory**, so a team's
-  own same-named rule survives. claude-code rules move to `.claude/rules/govkit/`
-  and copilot's to `.github/instructions/govkit/` — a team that keeps their own
-  `.claude/rules/api.md` (or `api.instructions.md`) is no longer clobbered by
-  govkit's `api` rule; both coexist and load. Skill namespacing is not included
-  here (it would change how govkit skills are invoked, e.g. `/spec-planning`), and
-  codex's nested per-layer `AGENTS.md` files are unchanged for now.
 - **govkit no longer overwrites your `CLAUDE.md` or `.github/copilot-instructions.md`.**
   Both agents natively auto-load a separate instructions directory, so govkit's
   governance now installs there — `.claude/rules/govkit/governance.md` for
@@ -95,10 +120,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   governance install is skipped (with a warning) so you never get duplicate
   governance. Codex (`AGENTS.md`, which has no native rules directory) is
   unchanged for now.
-  instruction file is retired automatically when it is byte-identical to govkit's
-  governance; if you edited it, it is kept and governance install is skipped
-  (with a warning) so you never get duplicate governance. Codex (`AGENTS.md`,
-  which has no native rules directory) is unchanged for now.
 - `govkit doctor`'s rule-glob check (D001) now scans the rules directory
   recursively, so rules in subdirectories — including govkit's own
   `.claude/rules/govkit/` — are validated instead of silently skipped.
@@ -114,6 +135,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed — internal
 
+- Version comparison now treats absent components as zero, so `0.14` and
+  `0.14.0` compare equal. Comparing the parsed tuples directly made
+  `(0, 14) < (0, 14, 0)`, which sorted a version before the release it names —
+  enough to put a marker on the wrong side of the gates that gate on `0.7.0`
+  and `0.14.0`. Markers are not schema-validated, so abbreviated versions are
+  reachable by hand-editing.
+- `write_managed_agent_block` and `install_agent_file` were each defined twice,
+  byte-identically, in `cli/install_common.py`; the redundant copy is removed.
+  Python kept the second definition and the two matched, so there was no
+  behavior change.
 - The two stack marker records (the `stack.id` assumption and the `stack`
   metadata block) are now built only by `stack_select.build_stack_assumption`
   / `build_stack_meta`; `govkit stack apply` consumes them instead of
