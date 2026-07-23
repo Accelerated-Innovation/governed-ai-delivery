@@ -2610,6 +2610,33 @@ class TestUpgradeMigratesLegacyInstructionFile:
         assert "could not remove" in err
 
 
+class TestCompareVersion:
+    """Marker versions are not schema-validated, so a hand-edited or truncated
+    string like `0.14` reaches the comparator. Components that are absent must
+    read as zero rather than making the shorter string sort first."""
+
+    def test_missing_patch_component_compares_equal(self):
+        from cli.marker import _compare_version
+
+        assert _compare_version("0.14", "0.14.0") == 0
+        assert _compare_version("0.14.0", "0.14") == 0
+        assert _compare_version("1", "1.0.0") == 0
+
+    def test_ordering_is_preserved(self):
+        from cli.marker import _compare_version
+
+        assert _compare_version("0.13.0", "0.14.0") == -1
+        assert _compare_version("0.15.0", "0.14.0") == 1
+        assert _compare_version("0.14.1", "0.14") == 1
+        assert _compare_version("0.9", "0.14.0") == -1
+
+    def test_unparseable_versions_compare_equal(self):
+        from cli.marker import _compare_version
+
+        assert _compare_version("dev", "0.14.0") == 0
+        assert _compare_version("unknown", "0.7.0") == 0
+
+
 def _make_namespaced_repo(tmp_path: Path, agent: str = "test-agent") -> Path:
     """A repo whose manifest installs one `govkit/`-namespaced rule and one
     `govkit-`-prefixed skill dir (the post-0.14 agent-file layout)."""
@@ -2759,6 +2786,43 @@ class TestUpgradeRetiresPreNamespaceAgentFiles:
         same-named file there is the team's, even though its mtime predates
         applied_at. Upgrading 0.14.0 -> 0.15.0 must not delete it."""
         target = self._target(tmp_path, marker_version="0.14.0")
+        legacy = self._legacy_rule(
+            target, "# ACME rule\n", datetime(2025, 12, 1, tzinfo=timezone.utc),
+        )
+        self._run(tmp_path, target, monkeypatch, govkit_version="0.15.0")
+
+        assert legacy.exists()
+        assert legacy.read_text(encoding="utf-8") == "# ACME rule\n"
+
+    def test_governance_entry_is_exempt_from_mechanical_derivation(
+        self, tmp_path, monkeypatch,
+    ):
+        """Governance's superseded location is a top-level CLAUDE.md, which
+        `_LEGACY_INSTRUCTION_DEST` already owns — NOT `.claude/rules/
+        governance.md`. Deriving that path mechanically would let upgrade
+        delete a team file that govkit never wrote."""
+        target = self._target(tmp_path)
+        team = target / ".claude" / "rules" / "governance.md"
+        team.parent.mkdir(parents=True, exist_ok=True)
+        team.write_text("# ACME governance notes\n", encoding="utf-8")
+        # Older than applied_at, so only the exemption keeps it alive.
+        self._stamp(team, datetime(2025, 12, 1, tzinfo=timezone.utc))
+
+        repo, _ = _make_governance_repo(tmp_path)
+        monkeypatch.setattr("cli.paths.AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", repo)
+        monkeypatch.setattr("cli.version.GOVKIT_VERSION", "0.14.0")
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+        assert team.exists()
+        assert team.read_text(encoding="utf-8") == "# ACME governance notes\n"
+
+    def test_abbreviated_marker_version_is_not_pre_migration(self, tmp_path, monkeypatch):
+        """A marker written `0.14` (no patch component) IS the namespace
+        version, not older than it. Comparing raw int tuples made
+        (0, 14) < (0, 14, 0), dropping an already-migrated install back into
+        the cleanup window."""
+        target = self._target(tmp_path, marker_version="0.14")
         legacy = self._legacy_rule(
             target, "# ACME rule\n", datetime(2025, 12, 1, tzinfo=timezone.utc),
         )

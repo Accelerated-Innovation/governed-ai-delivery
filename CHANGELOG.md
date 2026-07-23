@@ -135,6 +135,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed — internal
 
+- Version comparison now treats absent components as zero, so `0.14` and
+  `0.14.0` compare equal. Comparing the parsed tuples directly made
+  `(0, 14) < (0, 14, 0)`, which sorted a version before the release it names —
+  enough to put a marker on the wrong side of the gates that gate on `0.7.0`
+  and `0.14.0`. Markers are not schema-validated, so abbreviated versions are
+  reachable by hand-editing.
 - `write_managed_agent_block` and `install_agent_file` were each defined twice,
   byte-identically, in `cli/install_common.py`; the redundant copy is removed.
   Python kept the second definition and the two matched, so there was no

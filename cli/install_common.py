@@ -186,7 +186,19 @@ _NAMESPACE_MIGRATION_VERSION = "0.14.0"
 
 def _superseded_agent_path(dest: str) -> str | None:
     """The pre-namespace path `dest` superseded, or None when `dest` is not a
-    namespaced (or `govkit-` prefixed) govkit agent file."""
+    namespaced (or `govkit-` prefixed) govkit agent file.
+
+    Governance entries are exempt. Their superseded location is a top-level
+    instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, …) that
+    `_LEGACY_INSTRUCTION_DEST` maps explicitly and
+    `reconcile_legacy_instruction_files` already retires — not the namespaced
+    sibling this derivation would produce. Deriving
+    `.claude/rules/governance.md` from `.claude/rules/govkit/governance.md`
+    would claim a path govkit has never written, so a team's own file sitting
+    there could be deleted.
+    """
+    if dest in _LEGACY_INSTRUCTION_DEST:
+        return None
     if "/govkit/" in dest:
         return dest.replace("/govkit/", "/", 1)
     if "/skills/govkit-" in dest:
