@@ -8,6 +8,40 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- Data installs ship an eval-criteria schema
+  (`governance/data/schemas/eval_criteria.schema.json`): integer `version`,
+  `mode: deterministic | none` (no `llm`), and criteria of
+  `id`/`description`/`measurement`/`threshold`/`severity` where thresholds
+  are query predicates — deliberately not the backend evaluator-tool shape.
+  The data starter conforms, all 3 agents install the schema at data L4, and
+  local `govkit validate` on a data repo goes from WARN to real instance
+  validation.
+- The dbt CI gate (`dbt-gate`, github + azure) now statically blocks a PR
+  when a model under `models/marts/` lacks an enforced model contract
+  (`contract: {enforced: true}`) or appears in no `exposures:` entry. On
+  dbt-core < 1.5 the contract check downgrades to a warning with an upgrade
+  pointer. `dbt-project-evaluator` layer-boundary enforcement is documented
+  as an opt-in, and the python-dbt overlay docs (v0.11.0) document model
+  contracts, `deprecation_date`, and model versions as the mart
+  change-control mechanism.
+- Stack overlays can ship agent rules (`rules:` in `overlay.yaml`),
+  replacing the type defaults for the entries they name.
+  `databricks-lakehouse` (v0.11.0) ships medallion-worded bronze/silver/gold
+  layer rules for all three agents — byte-identical bodies, `**/bronze/**`
+  style globs still templated via `layers.*` — while `python-dbt` keeps the
+  dbt rules. `govkit stack apply` now also refreshes the agent rule files
+  and runs the full post-install finalize, so swapped rules are re-templated
+  (previously stack apply never re-templated rules).
+- The architecture-preflight skill gains a `3.7 Data Impact` block —
+  Pipeline / Contract / PII / Lineage Impact sections a data report adds
+  (backend/UI reports skip them) — and spec-planning gains a `Data projects`
+  note covering the data NFR categories and deterministic eval-criteria
+  shape. Both blocks are byte-identical across the three agents and the
+  data starter's worked preflight example mirrors the skill's report
+  sections by construction.
+
 ### Changed
 
 - The planning skills (`adr-author`, `spec-planning`, `architecture-preflight`,
@@ -20,6 +54,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   cite `docs/data/architecture/`; backend and UI installs are unchanged. When
   the marker type is missing or unknown the token is left in place and the
   new doctor check D015 flags it (identical for all three agents).
+- Team-tunable values left the rule bodies. The PII keyword list lives in
+  `.govkit/skill_context.yaml` (`pii.keyword_list`, seeded with the default
+  seven keywords; a team-tuned list survives the regeneration upgrades
+  perform) and is rendered into installed rules at install time; the
+  dbt-gate's PII regex is documented as mirroring the same seed.
+  Materialization and naming defaults moved from the layer rule bodies to a
+  `MODEL_LAYERING.md` citation — the doc is editable, the rules are not.
+- Data features no longer require a `plan.md` `evaluation_prediction` block
+  (ADR-0001, shipped under `docs/data/architecture/ADR/`): the FIRST/Virtue
+  rubrics score application code, and the data starter's copy had drifted
+  into an uncalibrated vocabulary. `govkit validate` skips the prediction
+  check when the marker records `type: data`; backend and UI are unchanged.
+  The data starter's plan drops the forked block.
 
 ### Fixed
 
