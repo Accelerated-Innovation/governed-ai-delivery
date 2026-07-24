@@ -2,5 +2,19 @@
 # Full deterministic suite: the fast loop first, then the e2e tier.
 # Equivalent coverage to CI's plain `pytest`.
 set -e
+
+# Same guard as run_tests: the marker expression is wrapper-owned (the e2e
+# phase below sets its own -m), and the wrapper's -m comes AFTER "$@" as a
+# backstop so it cannot be overridden.
+for arg in "$@"; do
+  case "$arg" in
+    -m|-m?*|--markexpr|--markexpr=*)
+      echo "full_test: -m/--markexpr is owned by this wrapper (fast loop, then -m e2e)." >&2
+      echo "Call pytest directly for a custom marker expression." >&2
+      exit 2
+      ;;
+  esac
+done
+
 "$(dirname "$0")/run_tests" "$@"
-exec python -m pytest -m e2e "$@"
+exec python -m pytest "$@" -m e2e
