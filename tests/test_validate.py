@@ -765,6 +765,12 @@ class TestCheckGherkinNfrCoverage:
         ok, msg = check_gherkin_nfr_coverage(starter)
         assert ok is True, msg
 
+    def test_missing_files(self, tmp_path):
+        tmp_path.mkdir(exist_ok=True)
+        ok, msg = check_gherkin_nfr_coverage(tmp_path)
+        assert ok is False
+        assert "missing" in msg
+
 
 # ---------------------------------------------------------------------------
 # Data prediction gate (ADR-0001)
@@ -832,36 +838,6 @@ class TestDataPredictionGate:
 
 
 # ---------------------------------------------------------------------------
-# STARTERS registry
-# ---------------------------------------------------------------------------
-
-
-class TestStartersRegistry:
-    def test_starters_covers_every_bundled_starter_dir(self):
-        """validate skips starter dirs by name when scanning a target's
-        features/; a bundled starter missing from STARTERS gets validated as
-        if it were a user feature (and fails — starters omit plan.md by
-        design). Guard so the next starter cannot repeat starter_data's
-        omission."""
-        from cli import paths
-        from cli.validate import STARTERS
-
-        bundled = {
-            p.name
-            for p in (paths.REPO_ROOT / "features").iterdir()
-            if p.is_dir() and p.name.startswith("starter_")
-        }
-        assert bundled, "no bundled starters found — REPO_ROOT misresolved?"
-        assert bundled <= STARTERS, f"STARTERS missing: {sorted(bundled - STARTERS)}"
-
-    def test_missing_files(self, tmp_path):
-        tmp_path.mkdir(exist_ok=True)
-        ok, msg = check_gherkin_nfr_coverage(tmp_path)
-        assert ok is False
-        assert "missing" in msg
-
-
-# ---------------------------------------------------------------------------
 # run_validation
 # ---------------------------------------------------------------------------
 
@@ -921,6 +897,18 @@ class TestRunValidation:
             """,
         })
         result = run_validation(tmp_path)
+        assert result == 0
+
+    def test_skips_any_starter_named_dir(self, tmp_path):
+        """Any dir matching the starter grammar is govkit's, not the team's.
+        validate must skip starters it has never heard of — upgrade already
+        does — so a starter shipped by a future govkit cannot fail a target's
+        validation. (An incomplete starter-named dir would fail if scanned.)"""
+        features = tmp_path / "features"
+        incomplete = features / "starter_custom"
+        incomplete.mkdir(parents=True)
+        write(incomplete / "acceptance.feature", VALID_FEATURE)
+        result = run_validation(tmp_path, level="4")
         assert result == 0
 
     def test_missing_target_returns_one(self, tmp_path):

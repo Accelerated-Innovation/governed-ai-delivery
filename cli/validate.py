@@ -29,6 +29,7 @@ import re
 import subprocess
 from pathlib import Path
 
+from .features import list_user_features
 from .marker import TYPE_AREA, read_govkit_marker
 
 # ---------------------------------------------------------------------------
@@ -67,11 +68,6 @@ REQUIRED_ARTIFACTS = L4_REQUIRED_ARTIFACTS
 PASS = "\033[32mPASS\033[0m"
 FAIL = "\033[31mFAIL\033[0m"
 WARN = "\033[33mWARN\033[0m"
-
-STARTERS = {
-    "starter_backend", "starter_ui", "starter_cli", "starter_data",
-    "starter_backend_l5", "starter_cli_l5",
-}
 
 
 # ---------------------------------------------------------------------------
@@ -636,10 +632,7 @@ def run_validation(target: Path, level: str | None = None, strict: bool = False)
 
     _, checks = _build_checks(level, (marker.get("options") or {}).get("type"))
 
-    feature_dirs = sorted(
-        d for d in features_dir.iterdir()
-        if d.is_dir() and d.name not in STARTERS and not d.name.startswith(".")
-    )
+    feature_dirs = list_user_features(features_dir)
 
     if not feature_dirs:
         print("No feature directories found to validate.")
