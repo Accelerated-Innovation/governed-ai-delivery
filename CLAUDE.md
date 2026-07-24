@@ -17,7 +17,8 @@ When a task says "fix the API conventions" or "update the spec-planning skill," 
 
 ```bash
 pip install -e ".[test]"      # dev install (extra is [test]; CONTRIBUTING.md's ".[dev]" is stale — [dev] doesn't exist)
-pytest                        # full suite (~765 tests across tests/)
+pytest                        # full suite (~1200 tests across tests/; what CI runs)
+pytest -m "not e2e"           # fast loop (~20s) — skips the full-install e2e tier (test_fixtures.py, test_stack_rules.py)
 pytest tests/test_doctor.py                          # one file
 pytest tests/test_doctor.py::TestRunDoctor           # one class
 pytest -k parity                                     # by keyword (parity checks span several files)
