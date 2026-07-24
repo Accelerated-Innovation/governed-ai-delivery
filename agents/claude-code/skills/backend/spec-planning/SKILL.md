@@ -14,10 +14,10 @@ Feature specs:
 - Acceptance: `features/<feature_name>/acceptance.feature`
 
 Architecture standards:
-- `docs/backend/architecture/` (all files)
+- `docs/{{docs_area}}/architecture/` (all files)
 
 Evaluation standards:
-- `docs/backend/evaluation/eval_criteria.md`
+- `docs/{{docs_area}}/evaluation/eval_criteria.md`
 
 Existing artifacts (read if present, update if needed):
 - `features/<feature_name>/eval_criteria.yaml`
@@ -34,7 +34,7 @@ Existing artifacts (read if present, update if needed):
 3. Identify required design elements per **this project's architecture**:
    - Read `.govkit/skill_context.yaml` for the architecture style and the
      folder hints under `architecture.layers` (inbound / outbound / domain).
-   - Read `docs/backend/architecture/BOUNDARIES.md` for the canonical layer
+   - Read `docs/{{docs_area}}/architecture/BOUNDARIES.md` for the canonical layer
      contract and `LAYER_IMPLEMENTATION.md` for the layer-by-layer guidance.
    - List the inbound entry points, domain logic modules, outbound
      dependencies, and any infrastructure adapters the feature needs —
@@ -57,7 +57,7 @@ Write `features/<feature_name>/plan.md` with:
 
 ## Output B: Feature Eval Criteria
 
-Write or update `features/<feature_name>/eval_criteria.yaml` conforming to `docs/backend/evaluation/eval_criteria.md`. Include at minimum:
+Write or update `features/<feature_name>/eval_criteria.yaml` conforming to `docs/{{docs_area}}/evaluation/eval_criteria.md`. Include at minimum:
 - FIRST enforcement settings
 - 7 Virtues enforcement settings
 - Any LLM-specific dimensions required by this feature

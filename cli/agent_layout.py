@@ -34,6 +34,7 @@ class AgentLayout:
     rules_glob: str | None
     frontmatter_glob_key: str | None
     glob_value_shape: Literal["list", "comma-string"] | None
+    skills_dir: str | None = None
 
 
 AGENT_LAYOUTS: dict[str, AgentLayout] = {
@@ -43,6 +44,7 @@ AGENT_LAYOUTS: dict[str, AgentLayout] = {
         rules_glob=".claude/rules/*.md",
         frontmatter_glob_key="paths",
         glob_value_shape="list",
+        skills_dir=".claude/skills",
     ),
     "copilot": AgentLayout(
         instruction_file=".github/copilot-instructions.md",
@@ -50,6 +52,7 @@ AGENT_LAYOUTS: dict[str, AgentLayout] = {
         rules_glob=".github/instructions/*.instructions.md",
         frontmatter_glob_key="applyTo",
         glob_value_shape="comma-string",
+        skills_dir=".github/skills",
     ),
     "codex": AgentLayout(
         instruction_file="AGENTS.md",
@@ -57,5 +60,6 @@ AGENT_LAYOUTS: dict[str, AgentLayout] = {
         rules_glob=None,
         frontmatter_glob_key=None,
         glob_value_shape=None,
+        skills_dir=".agents/skills",
     ),
 }

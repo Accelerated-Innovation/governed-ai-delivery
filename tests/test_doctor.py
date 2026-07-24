@@ -94,6 +94,48 @@ class TestRunDoctor:
 
 
 # ---------------------------------------------------------------------------
+# D015 — unexpanded skill tokens
+# ---------------------------------------------------------------------------
+
+
+class TestUnexpandedSkillTokens:
+    def test_flags_unexpanded_docs_area_token_in_installed_skill(self, tmp_path):
+        """Skill templating degrades by leaving {{docs_area}} in place when
+        the marker type is unknown; doctor must surface the leftover."""
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path)
+        skill = tmp_path / ".claude" / "skills" / "govkit-spec-planning"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text(
+            "---\nname: govkit-spec-planning\ndescription: x\n---\n"
+            "Read docs/{{docs_area}}/architecture/ first.\n",
+            encoding="utf-8",
+        )
+
+        findings = run_doctor(tmp_path)
+        hits = [f for f in findings if f.id == "D015"]
+        assert hits
+        assert hits[0].severity == "warning"
+        assert "{{docs_area}}" in hits[0].message
+
+    def test_expanded_skill_files_are_clean(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path)
+        skill = tmp_path / ".claude" / "skills" / "govkit-spec-planning"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text(
+            "---\nname: govkit-spec-planning\ndescription: x\n---\n"
+            "Read docs/backend/architecture/ first.\n",
+            encoding="utf-8",
+        )
+
+        findings = run_doctor(tmp_path)
+        assert [f for f in findings if f.id == "D015"] == []
+
+
+# ---------------------------------------------------------------------------
 # cmd_doctor — CLI dispatch + exit codes + monorepo discovery (A9)
 # ---------------------------------------------------------------------------
 

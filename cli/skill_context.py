@@ -20,6 +20,8 @@ from typing import TYPE_CHECKING
 
 import yaml
 
+from .marker import TYPE_AREA
+
 if TYPE_CHECKING:
     from .detect import RepoProfile
 
@@ -93,6 +95,7 @@ class SkillContext:
     unit_test: str | None
     bdd_test: str | None
     ci: str | None
+    docs_area: str
     llm: bool
     extensions: list[dict] = field(default_factory=list)
 
@@ -193,6 +196,10 @@ def build_skill_context(target: Path, marker: dict, profile: RepoProfile | None 
         },
         "stack": _stack_facts(marker),
         "ci": _CI_NAME.get(options.get("ci"), options.get("ci")),
+        # The docs tree this install's type reads (docs/<area>/architecture/).
+        # Empty when the type is missing/unknown — skill templating then
+        # leaves its tokens unexpanded and doctor flags them.
+        "docs_area": TYPE_AREA.get(options.get("type"), ""),
         "llm": level == "5",
         "extensions": _extension_facts(target),
     }
@@ -297,6 +304,7 @@ def load_skill_context(target: Path) -> SkillContext | None:
         unit_test=stack.get("unit_test") if isinstance(stack.get("unit_test"), str) else None,
         bdd_test=stack.get("bdd_test") if isinstance(stack.get("bdd_test"), str) else None,
         ci=data.get("ci") if isinstance(data.get("ci"), str) else None,
+        docs_area=data.get("docs_area") if isinstance(data.get("docs_area"), str) else "",
         llm=bool(data.get("llm")),
         extensions=[e for e in extensions if isinstance(e, dict)] if isinstance(extensions, list) else [],
     )

@@ -17,6 +17,7 @@ directories under cwd so monorepos get checked per-app.
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -607,6 +608,53 @@ def _classify_extension_message(message: str) -> tuple[str, Severity]:
     if "relates_to" in message:
         return "D014", "warning"
     return "D013", "error"
+
+
+@_register_check("D015")
+def _check_unexpanded_skill_tokens(target: Path, marker: dict) -> list[ValidationFinding]:
+    """D015 — installed skill files must not carry unexpanded {{...}} tokens.
+
+    Skill templating (cli/skill_templating.py) expands `{{docs_area}}` at
+    install time and degrades by leaving the token in place when the marker
+    type is missing/unknown. A leftover token means the skill cites a docs
+    path no agent can follow — surface it rather than let it fail silently
+    at skill runtime.
+    """
+    agent = marker.get("agent", "claude-code")
+    layout = AGENT_LAYOUTS.get(agent)
+    if layout is None or layout.skills_dir is None:
+        return []
+    skills_root = target / layout.skills_dir
+    if not skills_root.is_dir():
+        return []
+
+    findings: list[ValidationFinding] = []
+    for skill_file in sorted(skills_root.rglob("*.md")):
+        try:
+            text = skill_file.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        tokens = sorted(set(re.findall(r"\{\{[a-z_.]+\}\}", text)))
+        if not tokens:
+            continue
+        try:
+            rel_file = skill_file.relative_to(target)
+        except ValueError:
+            rel_file = skill_file
+        findings.append(ValidationFinding(
+            id="D015",
+            severity="warning",
+            category="skill-token",
+            file=str(rel_file).replace("\\", "/"),
+            message=f"unexpanded skill token(s) {', '.join(tokens)} — the marker's "
+                    "options.type could not be mapped to a docs area at install time",
+            suggested_action=(
+                "re-run `govkit apply` with a valid --type (or fix options.type in "
+                ".govkit/marker.json and run `govkit upgrade --force`) so skill "
+                "templating can resolve the token"
+            ),
+        ))
+    return findings
 
 
 @_register_check("D013")

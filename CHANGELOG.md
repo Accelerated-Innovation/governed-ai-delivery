@@ -8,6 +8,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+
+- The planning skills (`adr-author`, `spec-planning`, `architecture-preflight`,
+  `implementation-plan`) now resolve the docs tree from the install instead of
+  hardcoding `docs/backend/`. Skill sources reference
+  `docs/{{docs_area}}/...`, and the token is expanded at install time —
+  mirroring rule-glob templating — from a new `docs_area` fact in
+  `.govkit/skill_context.yaml` derived from the marker's `options.type`
+  (api/cli → backend, ui-* → ui, data → data). A data install's skills now
+  cite `docs/data/architecture/`; backend and UI installs are unchanged. When
+  the marker type is missing or unknown the token is left in place and the
+  new doctor check D015 flags it (identical for all three agents).
+
 ### Fixed
 
 - Edit-protection for governed and shared docs is now content-based. The

@@ -19,10 +19,10 @@ Before generating any code or detailed plan, produce an Architecture Preflight R
 
 For each of the following, state which architectural rules apply (cite file and section):
 
-- Layering (from `docs/backend/architecture/ARCH_CONTRACT.md`)
-- API conventions (from `docs/backend/architecture/API_CONVENTIONS.md`)
-- Auth/security patterns (from `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`)
-- NFR section contract (from `docs/backend/architecture/NFRS_CONVENTIONS.md`)
+- Layering (from `docs/{{docs_area}}/architecture/ARCH_CONTRACT.md`)
+- API conventions (from `docs/{{docs_area}}/architecture/API_CONVENTIONS.md`)
+- Auth/security patterns (from `docs/{{docs_area}}/architecture/SECURITY_AUTH_PATTERNS.md`)
+- NFR section contract (from `docs/{{docs_area}}/architecture/NFRS_CONVENTIONS.md`)
 - Error model and response shape
 - Logging and observability expectations
 
@@ -47,7 +47,7 @@ For each of the following, state which architectural rules apply (cite file and 
 ## 3. Boundary Analysis
 
 - What modules or services will this code touch?
-- Are any boundary rules at risk of violation? (from `docs/backend/architecture/BOUNDARIES.md`)
+- Are any boundary rules at risk of violation? (from `docs/{{docs_area}}/architecture/BOUNDARIES.md`)
 - Does this require a new interface between services?
 
 ## 3.5 Repository Scope Analysis

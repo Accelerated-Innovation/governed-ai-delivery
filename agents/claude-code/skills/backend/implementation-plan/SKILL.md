@@ -15,8 +15,8 @@ Read these artifacts before planning:
 - `features/<feature_name>/acceptance.feature`
 - `features/<feature_name>/eval_criteria.yaml`
 - `features/<feature_name>/architecture_preflight.md`
-- `docs/backend/evaluation/eval_criteria.md`
-- `docs/backend/architecture/` (all files)
+- `docs/{{docs_area}}/evaluation/eval_criteria.md`
+- `docs/{{docs_area}}/architecture/` (all files)
 
 ## Planning Requirements
 
@@ -24,7 +24,7 @@ The plan must:
 
 - Follow **this project's architecture** — read `.govkit/skill_context.yaml`
   for `architecture.style` and the layer-to-folder mapping under
-  `architecture.layers`. Cite `docs/backend/architecture/BOUNDARIES.md` for
+  `architecture.layers`. Cite `docs/{{docs_area}}/architecture/BOUNDARIES.md` for
   the canonical layer contract.
 - Enforce FIRST principles for unit tests
 - Enforce 7 Code Virtues for implementation
@@ -42,7 +42,7 @@ The plan must:
 Map the work to the layers in `.govkit/skill_context.yaml` under
 `architecture.layers` (inbound / outbound / domain). Cite the actual
 folder names this project uses (per `skill_context.architecture.layers.*`
-and `docs/backend/architecture/BOUNDARIES.md`). Explicitly confirm no
+and `docs/{{docs_area}}/architecture/BOUNDARIES.md`). Explicitly confirm no
 boundary violations.
 
 ### Task Breakdown (Ordered Checklist)

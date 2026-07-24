@@ -29,7 +29,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from .marker import read_govkit_level, read_govkit_marker
+from .marker import TYPE_AREA, read_govkit_level, read_govkit_marker
 
 # ---------------------------------------------------------------------------
 # Artifact file name constants
@@ -180,17 +180,9 @@ def check_nfrs_sections(feature_dir: Path) -> tuple[bool | None, str]:
     return True, f"{_NFRS_MD} section contract OK (Repository Scope + Out of scope populated)"
 
 
-# Governance area whose schemas govern each marker options.type. data maps to
-# its own area, which ships no schema yet — the resolver then reports the gap
+# marker.TYPE_AREA maps options.type to its governance area. data maps to its
+# own area, which ships no schema yet — the resolver then reports the gap
 # instead of consulting another type's (possibly stale) governance tree.
-_TYPE_TO_GOVERNANCE_AREA = {
-    "api": "backend",
-    "cli": "backend",
-    "ui-react": "ui",
-    "ui-angular": "ui",
-    "data": "data",
-}
-
 _NO_SCHEMA_REASON = "no eval_criteria schema installed for this project type"
 
 
@@ -213,7 +205,7 @@ def _resolve_eval_schema(feature_dir: Path) -> tuple[Path | None, str]:
         marker = read_govkit_marker(ancestor)
         if not marker:
             continue
-        area = _TYPE_TO_GOVERNANCE_AREA.get((marker.get("options") or {}).get("type"))
+        area = TYPE_AREA.get((marker.get("options") or {}).get("type"))
         if area is None:
             break  # marker present but type unknown — fall back to scanning
         schema = ancestor / "governance" / area / "schemas" / "eval_criteria.schema.json"
