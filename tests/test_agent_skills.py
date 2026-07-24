@@ -84,3 +84,94 @@ def test_section_25_parity_across_all_skills():
     assert not mismatches, (
         f"Section 2.5 must be identical across all SKILL.md files; mismatches: {mismatches}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Data-native preflight sections (hardening plan Increment 6)
+# ---------------------------------------------------------------------------
+
+BACKEND_PREFLIGHT_PATHS = [
+    REPO_ROOT / "agents" / agent / "skills" / "backend" / "architecture-preflight" / "SKILL.md"
+    for agent in ("claude-code", "codex", "copilot")
+]
+BACKEND_SPEC_PLANNING_PATHS = [
+    REPO_ROOT / "agents" / agent / "skills" / "backend" / "spec-planning" / "SKILL.md"
+    for agent in ("claude-code", "codex", "copilot")
+]
+
+DATA_IMPACT_HEADING = "## 3.7 Data Impact"
+DATA_IMPACT_SUBSECTIONS = [
+    "### Pipeline Impact",
+    "### Contract Impact",
+    "### PII Impact",
+    "### Lineage Impact",
+]
+SPEC_PLANNING_DATA_HEADING = "### Data projects"
+
+
+@pytest.mark.parametrize(
+    "skill_path", BACKEND_PREFLIGHT_PATHS, ids=lambda p: p.parent.parent.parent.parent.name,
+)
+def test_preflight_has_data_impact_block(skill_path: Path):
+    """Data installs receive the backend preflight source; it must carry the
+    data-native impact sections (backend/UI reports skip them)."""
+    text = skill_path.read_text(encoding="utf-8")
+    assert DATA_IMPACT_HEADING in text
+    section = _extract_section(text, DATA_IMPACT_HEADING)
+    missing = [s for s in DATA_IMPACT_SUBSECTIONS if s not in section]
+    assert not missing, f"{skill_path.relative_to(REPO_ROOT)} missing: {missing}"
+
+
+def test_data_impact_block_parity_across_agents():
+    sections = {
+        p: _extract_section(p.read_text(encoding="utf-8"), DATA_IMPACT_HEADING)
+        for p in BACKEND_PREFLIGHT_PATHS
+    }
+    canonical = sections[BACKEND_PREFLIGHT_PATHS[0]]
+    mismatches = [
+        str(p.relative_to(REPO_ROOT)) for p, s in sections.items() if s != canonical
+    ]
+    assert not mismatches, f"Data Impact block must be identical: {mismatches}"
+
+
+@pytest.mark.parametrize(
+    "skill_path", BACKEND_SPEC_PLANNING_PATHS, ids=lambda p: p.parent.parent.parent.parent.name,
+)
+def test_spec_planning_has_data_projects_note(skill_path: Path):
+    """spec-planning must tell data projects which NFR categories to tag and
+    that data eval criteria are deterministic (no LLM evaluator tools)."""
+    text = skill_path.read_text(encoding="utf-8")
+    assert SPEC_PLANNING_DATA_HEADING in text
+    section = _extract_section(text, SPEC_PLANNING_DATA_HEADING)
+    for phrase in ("freshness", "quality", "pii", "lineage", "cost", "deterministic"):
+        assert phrase in section, (skill_path.relative_to(REPO_ROOT), phrase)
+
+
+def test_spec_planning_data_note_parity_across_agents():
+    sections = {
+        p: _extract_section(p.read_text(encoding="utf-8"), SPEC_PLANNING_DATA_HEADING)
+        for p in BACKEND_SPEC_PLANNING_PATHS
+    }
+    canonical = sections[BACKEND_SPEC_PLANNING_PATHS[0]]
+    mismatches = [
+        str(p.relative_to(REPO_ROOT)) for p, s in sections.items() if s != canonical
+    ]
+    assert not mismatches, f"Data projects note must be identical: {mismatches}"
+
+
+def test_starter_data_preflight_mirrors_skill_sections():
+    """The worked example must be exactly what the shipped skill produces:
+    every data-impact section the skill prescribes appears in the starter,
+    and the starter uses the skill's report section set."""
+    starter = (
+        REPO_ROOT / "features" / "starter_data" / "architecture_preflight.md"
+    ).read_text(encoding="utf-8")
+    for heading in DATA_IMPACT_SUBSECTIONS:
+        assert heading in starter, heading
+    for heading in (
+        "## 1. Summary", "## 2. Standards Check", "## 2.6 Extension Discovery",
+        "## 3. Boundary Analysis", "## 3.5 Repository Scope Analysis",
+        "## 3.7 Data Impact", "## 4. ADR Decision", "## 5. Tests Required",
+        "## 6. Risks & Unknowns",
+    ):
+        assert heading in starter, heading

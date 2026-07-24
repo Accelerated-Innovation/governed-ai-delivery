@@ -65,3 +65,17 @@ Write or update `features/<feature_name>/eval_criteria.yaml` conforming to `docs
 - Fail-on-regression behavior
 
 Output A first, then Output B. No implementation code in this step.
+
+### Data projects
+
+For data projects (marker `type: data`), adjust the spec outputs:
+
+- NFR categories are `freshness`, `quality`, `pii`, `lineage`, `cost`
+  (plus `reliability`, `observability`, `compliance` where relevant).
+  Tag scenarios `@nfr-<category>` — the eval gate cross-checks every
+  populated category against the tags.
+- `eval_criteria.yaml` uses the data schema: `mode: deterministic` (or
+  `none`), and each criterion's `measurement` names a query or CI check
+  with `threshold` as a predicate string. No LLM evaluator tools.
+- Cite the data quality, freshness, and lineage contracts under
+  `docs/data/architecture/` instead of API conventions and auth patterns.
