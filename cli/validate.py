@@ -29,7 +29,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from .marker import TYPE_AREA, read_govkit_level, read_govkit_marker
+from .marker import TYPE_AREA, read_govkit_marker
 
 # ---------------------------------------------------------------------------
 # Artifact file name constants
@@ -511,13 +511,27 @@ def check_l5_preflight_sections(feature_dir: Path) -> tuple[bool, str]:
 # Runner
 # ---------------------------------------------------------------------------
 
-def _build_checks(level: str) -> tuple[list[str], list]:
+def _data_prediction_not_required(feature_dir: Path) -> tuple[bool, str]:
+    """Data features carry no FIRST/Virtue self-prediction (ADR-0001 under
+    docs/data/architecture/ADR/): enforcement is artifact completeness, the
+    data eval-criteria schema, NFR tag coverage, and the mart-contract gate."""
+    return True, (
+        "evaluation prediction not required for data features "
+        "(docs/data/architecture/ADR/0001-data-features-skip-prediction-gate.md)"
+    )
+
+
+def _build_checks(level: str, marker_type: str | None = None) -> tuple[list[str], list]:
     """Return the artifact list and check functions for a given level.
 
     L3 is handled by an early no-op return in run_validation() and never reaches
     this function. L4 enforces the 5-artifact governed contract; L5 layers in
-    LLM-specific checks on top.
+    LLM-specific checks on top. `marker_type` swaps the type-specific checks —
+    data features skip the evaluation-prediction gate (ADR-0001).
     """
+    prediction_check = (
+        _data_prediction_not_required if marker_type == "data" else check_plan_eval_prediction
+    )
     artifacts = L4_REQUIRED_ARTIFACTS
     if level == "5":
         checks = [
@@ -526,7 +540,7 @@ def _build_checks(level: str) -> tuple[list[str], list]:
             check_nfrs_no_tbd,
             check_nfrs_sections,
             check_eval_criteria,
-            check_plan_eval_prediction,
+            prediction_check,
             check_gherkin_nfr_coverage,
             check_llm_nfrs,
             check_l5_eval_criteria,
@@ -542,7 +556,7 @@ def _build_checks(level: str) -> tuple[list[str], list]:
             check_nfrs_no_tbd,
             check_nfrs_sections,
             check_eval_criteria,
-            check_plan_eval_prediction,
+            prediction_check,
             check_gherkin_nfr_coverage,
         ]
     return artifacts, checks
@@ -597,8 +611,9 @@ def run_validation(target: Path, level: str | None = None, strict: bool = False)
         print(f"Error: target directory '{target}' does not exist.")
         return 1
 
+    marker = read_govkit_marker(target) or {}
     if level is None:
-        level = read_govkit_level(target) or "3"
+        level = marker.get("level") or "3"
 
     ext_exit = _run_extension_checks(target, strict)
 
@@ -619,7 +634,7 @@ def run_validation(target: Path, level: str | None = None, strict: bool = False)
         print(f"Error: no features/ directory found in '{target}'.")
         return 1
 
-    _, checks = _build_checks(level)
+    _, checks = _build_checks(level, (marker.get("options") or {}).get("type"))
 
     feature_dirs = sorted(
         d for d in features_dir.iterdir()
