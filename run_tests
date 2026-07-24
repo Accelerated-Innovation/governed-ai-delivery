@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Fast feedback loop — must stay under 30 seconds total.
+# Skips the full-install e2e tier (see the e2e marker in pyproject.toml).
+set -e
+exec python -m pytest -m "not e2e" "$@"

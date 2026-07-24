@@ -1064,6 +1064,29 @@ class TestMarkerDirectoryLayout:
         assert read_govkit_level(tmp_path) == "5"
 
 
+class TestMarkerDegradation:
+    """A corrupt or incomplete .govkit install must read as markerless
+    (None) — commands then degrade cleanly (validate falls back to its
+    default level, upgrade asks for a fresh apply) instead of crashing on
+    a broken install."""
+
+    def test_corrupt_marker_json_reads_as_markerless(self, tmp_path):
+        from cli.marker import read_govkit_marker
+
+        marker_dir = tmp_path / ".govkit"
+        marker_dir.mkdir()
+        (marker_dir / "marker.json").write_text("{not valid json", encoding="utf-8")
+
+        assert read_govkit_marker(tmp_path) is None
+
+    def test_marker_directory_without_marker_json_reads_as_markerless(self, tmp_path):
+        from cli.marker import read_govkit_marker
+
+        (tmp_path / ".govkit").mkdir()
+
+        assert read_govkit_marker(tmp_path) is None
+
+
 class TestMarkerMigrationDurability:
     """Legacy-file → directory migration must never leave the repo with no
     marker. The original sequence (unlink → mkdir → write) could lose the
@@ -2532,6 +2555,29 @@ class TestWriteManagedAgentBlock:
         assert "# ACME rules" in out
         assert "Use pnpm." in out
         assert out.index("ACME") < out.index("BEGIN GOVKIT GOVERNANCE")
+
+
+class TestUnmodifiedSince:
+    """`_unmodified_since` authorizes deleting a file as govkit's own
+    untouched copy. Unknown history must never authorize a delete: an
+    applied_at that is missing, unparseable, or timezone-naive returns
+    False, so the file is treated as the team's and kept."""
+
+    def test_unparseable_applied_at_never_authorizes_delete(self, tmp_path):
+        from cli.install_common import _unmodified_since
+
+        doc = tmp_path / "CLAUDE.md"
+        doc.write_text("content", encoding="utf-8")
+        assert _unmodified_since(doc, "not-a-timestamp") is False
+
+    def test_naive_applied_at_never_authorizes_delete(self, tmp_path):
+        from cli.install_common import _unmodified_since
+
+        doc = tmp_path / "CLAUDE.md"
+        doc.write_text("content", encoding="utf-8")
+        # No UTC offset — cannot be compared to the aware mtime; treated as
+        # unknown history rather than raising TypeError.
+        assert _unmodified_since(doc, "2026-01-01T00:00:00") is False
 
 
 class TestUpgradeMigratesLegacyInstructionFile:

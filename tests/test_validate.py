@@ -105,6 +105,35 @@ def make_full_feature(feature_dir: Path, **overrides) -> None:
 # ---------------------------------------------------------------------------
 
 
+class TestCmdValidateWiring:
+    """The `govkit validate` subcommand must hand every CLI argument to
+    run_validation and exit with its return code — a dropped flag (e.g.
+    --strict not reaching the domain layer) is invisible to every other
+    test in this file."""
+
+    def test_wires_args_and_propagates_exit_code(self, tmp_path, monkeypatch):
+        import argparse
+
+        import pytest
+
+        from cli.cmd_validate import cmd_validate
+
+        seen = {}
+
+        def fake_run_validation(target, level=None, strict=False):
+            seen.update(target=target, level=level, strict=strict)
+            return 3
+
+        monkeypatch.setattr("cli.cmd_validate.run_validation", fake_run_validation)
+        args = argparse.Namespace(target=str(tmp_path), level="5", strict=True)
+
+        with pytest.raises(SystemExit) as excinfo:
+            cmd_validate(args)
+
+        assert excinfo.value.code == 3
+        assert seen == {"target": tmp_path.resolve(), "level": "5", "strict": True}
+
+
 class TestCheckStatus:
     """The check-outcome vocabulary: every check returns an explicit
     tri-state, replacing the bool|None protocol where None meant WARN."""

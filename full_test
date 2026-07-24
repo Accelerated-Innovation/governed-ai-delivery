@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Full deterministic suite: the fast loop first, then the e2e tier.
+# Equivalent coverage to CI's plain `pytest`.
+set -e
+"$(dirname "$0")/run_tests" "$@"
+exec python -m pytest -m e2e "$@"

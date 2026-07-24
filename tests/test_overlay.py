@@ -152,6 +152,43 @@ class TestLoadOverlay:
         assert ov is not None
         assert ov.supported_types == []
 
+    def test_missing_overlay_yaml_treated_as_absent(self, tmp_path, monkeypatch):
+        (tmp_path / "broken-stack").mkdir()
+        monkeypatch.setattr("cli.overlay.STACKS_DIR", tmp_path)
+        from cli.overlay import load_overlay
+
+        assert load_overlay("broken-stack") is None
+
+    def test_invalid_yaml_syntax_treated_as_absent(self, tmp_path, monkeypatch):
+        stack_dir = tmp_path / "broken-stack"
+        stack_dir.mkdir()
+        (stack_dir / "overlay.yaml").write_text("id: [unclosed\n", encoding="utf-8")
+        monkeypatch.setattr("cli.overlay.STACKS_DIR", tmp_path)
+        from cli.overlay import load_overlay
+
+        assert load_overlay("broken-stack") is None
+
+    def test_non_mapping_yaml_treated_as_absent(self, tmp_path, monkeypatch):
+        stack_dir = tmp_path / "broken-stack"
+        stack_dir.mkdir()
+        (stack_dir / "overlay.yaml").write_text("- just\n- a list\n", encoding="utf-8")
+        monkeypatch.setattr("cli.overlay.STACKS_DIR", tmp_path)
+        from cli.overlay import load_overlay
+
+        assert load_overlay("broken-stack") is None
+
+    def test_missing_required_field_treated_as_absent(self, tmp_path, monkeypatch):
+        stack_dir = tmp_path / "broken-stack"
+        stack_dir.mkdir()
+        # No `version:` — one of the three required identity fields.
+        (stack_dir / "overlay.yaml").write_text(
+            'id: broken-stack\ndisplay_name: "Broken"\n', encoding="utf-8"
+        )
+        monkeypatch.setattr("cli.overlay.STACKS_DIR", tmp_path)
+        from cli.overlay import load_overlay
+
+        assert load_overlay("broken-stack") is None
+
     def test_databricks_lakehouse_overlay_metadata(self):
         from cli.overlay import load_overlay
 
