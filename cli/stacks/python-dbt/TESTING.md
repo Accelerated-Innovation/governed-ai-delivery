@@ -151,6 +151,23 @@ worked example.
 
 ---
 
+# 7.5 Static Mart Checks the CI Gate Runs
+
+Independent of warehouse execution, the `dbt-gate` CI workflow statically
+blocks a PR when a model under `models/marts/` either:
+
+- lacks an enforced model contract (`contract: {enforced: true}` — the
+  machine form of "marts are the public API"; see `MODEL_LAYERING.md` §4),
+  or
+- appears in no `exposures:` entry (no exposure means dead code or an
+  undocumented consumer).
+
+On dbt-core < 1.5 (no model contracts) the contract check downgrades to a
+warning with an upgrade pointer. Layer-boundary enforcement via
+`dbt-project-evaluator` is available as a documented opt-in in the gate.
+
+---
+
 # 8. What NOT to Test
 
 - Source data quality (that's the upstream owner's responsibility — flag via
