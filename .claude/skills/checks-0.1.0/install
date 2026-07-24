@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Install: copies this tool into <target> so <target> can run its own
+# ./check / ./check-llm. Copies (not symlinks) check, the check-llm
+# symlink, and .checks/lib/ -- these are vendored, not customized in
+# place. Never touches <target>/.checks/checks.d/ if it already exists:
+# that directory is the target project's own content. Safe to re-run to
+# pick up harness updates without disturbing an existing checks.d/.
+set -uo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
+
+target="${1:-}"
+if [ -z "$target" ] || [ ! -d "$target" ]; then
+  echo "usage: $0 <target-directory>" >&2
+  exit 2
+fi
+target="$(cd "$target" && pwd)"
+
+install -m 0755 "$here/check" "$target/check"
+ln -sf check "$target/check-llm"
+
+mkdir -p "$target/.checks/lib"
+install -m 0644 "$here/.checks/lib/check-common.sh" "$target/.checks/lib/check-common.sh"
+
+if [ -d "$target/.checks/checks.d" ]; then
+  echo "$target/.checks/checks.d/ already exists -- left as-is."
+else
+  mkdir -p "$target/.checks/checks.d"
+  echo "Created $target/.checks/checks.d/ (empty)."
+  echo "See $here/checks.d.example/ for a worked reference."
+fi
+
+install -m 0644 "$here/SKILL.md" "$target/.checks/SKILL.md"
+
+source_ref="unknown"
+if [ -f "$here/VERSION" ]; then
+  source_ref="$(cat "$here/VERSION")"
+elif git -C "$here" rev-parse --short HEAD >/dev/null 2>&1; then
+  source_ref="$(git -C "$here" rev-parse --short HEAD)"
+fi
+printf 'source=%s\ninstalled_at=%s\n' "$source_ref" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  > "$target/.checks/INSTALLED_FROM"
+
+echo "OK: installed check/check-llm into $target"

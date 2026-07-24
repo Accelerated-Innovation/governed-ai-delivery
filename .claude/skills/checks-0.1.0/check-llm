@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# Checker: runs every check registered in .checks/checks.d/ to completion
+# -- nothing here short-circuits on an earlier failure -- and reports the
+# results in one of two formats:
+#
+#   ./check          human-readable: "==> name" + raw output per check
+#   ./check-llm      one JSON object on stdout, for an LLM to parse
+#
+# check-llm is a symlink to this same file (like gunzip -> gzip): there is
+# exactly one implementation of "iterate the checks and run them," so it
+# can't drift between a human path and an LLM path. The invoked name
+# ($0's basename) selects the default format; --human/--llm override it
+# explicitly, e.g. if this file is copied under a different name.
+#
+# Exit code is non-zero iff any *blocking* check failed, in both formats.
+#
+# Portable by design: this script and .checks/lib/check-common.sh assume
+# nothing beyond bash (+ POSIX tr, see check-common.sh). Everything
+# language- or tool-specific (ruff, pytest, eslint, go vet, whatever) lives
+# in .checks/checks.d/, owned by the project this is installed into -- not
+# by this tool. See checks.d.example/ for a worked reference (this repo's
+# own Python example), not a definition of what a check must be.
+set -uo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=.checks/lib/check-common.sh
+source "$here/.checks/lib/check-common.sh"
+
+case "$(basename "$0")" in
+  *llm*) format="json" ;;
+  *) format="human" ;;
+esac
+for arg in "$@"; do
+  case "$arg" in
+    --llm) format="json" ;;
+    --human) format="human" ;;
+    *)
+      echo "usage: $0 [--llm|--human]" >&2
+      exit 2
+      ;;
+  esac
+done
+
+checks_dir="${CHECKS_DIR:-$here/.checks/checks.d}"
+if [ ! -d "$checks_dir" ]; then
+  echo "No checks.d/ found at $checks_dir." >&2
+  echo "This tool has no checks of its own -- see checks.d.example/ for a" >&2
+  echo "worked reference, and set up your own .checks/checks.d/ (or CHECKS_DIR)." >&2
+  exit 1
+fi
+load_checks "$checks_dir"
+
+if [ "${#CHECKS_NAMES[@]}" -eq 0 ]; then
+  echo "checks.d/ ($checks_dir) exists but registered no checks." >&2
+  exit 1
+fi
+
+overall_status=0
+json="["
+first=true
+for i in "${!CHECKS_NAMES[@]}"; do
+  name="${CHECKS_NAMES[$i]}"
+  summarizer="${CHECKS_SUMMARIZERS[$i]}"
+  cmd="${CHECKS_COMMANDS[$i]}"
+  blocking="${CHECKS_BLOCKING[$i]}"
+
+  if [ "$format" = "human" ]; then
+    echo "==> $name"
+  fi
+  run_check_capture "$cmd"
+  if [ "$CHECK_EXIT" -eq 0 ]; then
+    passed="true"
+  else
+    passed="false"
+    if [ "$blocking" = "true" ]; then
+      overall_status=1
+    fi
+  fi
+
+  if [ "$format" = "human" ]; then
+    echo "$CHECK_OUTPUT"
+    if [ "$passed" = "false" ] && [ "$blocking" != "true" ]; then
+      echo "(advisory: $name failed but does not block)"
+    fi
+  else
+    summary="$("$summarizer" "$CHECK_OUTPUT")"
+    if [ "$first" = "false" ]; then
+      json+=","
+    fi
+    first=false
+    json+="{\"name\":\"$(json_escape "$name")\""
+    json+=",\"passed\":$passed"
+    json+=",\"blocking\":$blocking"
+    json+=",\"exit_code\":$CHECK_EXIT"
+    json+=",\"summary\":\"$(json_escape "$summary")\""
+    json+=",\"output\":\"$(json_escape "$CHECK_OUTPUT")\"}"
+  fi
+done
+
+if [ "$format" = "human" ]; then
+  if [ "$overall_status" -ne 0 ]; then
+    echo "FAIL: check found issues"
+  else
+    echo "OK: check passed"
+  fi
+else
+  json+="]"
+  overall_passed="true"
+  [ "$overall_status" -ne 0 ] && overall_passed="false"
+  printf '{"passed":%s,"checks":%s}\n' "$overall_passed" "$json"
+fi
+
+exit "$overall_status"

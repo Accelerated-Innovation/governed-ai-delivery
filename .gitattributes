@@ -2,3 +2,9 @@
 # and break them under Git Bash / CI.
 run_tests text eol=lf
 full_test text eol=lf
+
+# Skill-bundled shell scripts break the same way.
+.claude/skills/**/*.sh text eol=lf
+.claude/skills/**/install text eol=lf
+.claude/skills/checks-0.1.0/check text eol=lf
+.claude/skills/checks-0.1.0/check-llm text eol=lf
