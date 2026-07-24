@@ -100,8 +100,14 @@ def install_agent_file(
     agent_dir: Path, entry: dict, target: Path, applied_at: str | None = None,
 ) -> None:
     """Install one agent-file manifest entry: a managed block when the entry
-    opts in (`managed_block`), otherwise a plain overwrite copy."""
-    src = agent_dir / entry["src"]
+    opts in (`managed_block`), otherwise a plain overwrite copy.
+
+    `src_root` (in-memory only — stack rule overrides set it, manifests
+    never do) points the src at a different bundle root, e.g. the active
+    stack overlay's directory.
+    """
+    src_root = Path(entry["src_root"]) if entry.get("src_root") else agent_dir
+    src = src_root / entry["src"]
     dest = target / entry["dest"]
     if entry.get("managed_block"):
         write_managed_agent_block(dest, src.read_text(encoding="utf-8"), applied_at)

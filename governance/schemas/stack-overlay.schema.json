@@ -61,6 +61,22 @@
         }
       }
     },
+    "rules": {
+      "type": "array",
+      "description": "Agent rule sources this stack ships. Each entry replaces the type-default rule entry whose manifest src equals `replaces` (when present) and installs `src` (relative to the overlay dir) at `dest` (relative to the target). Rule files are govkit-owned: refreshed unconditionally on apply/upgrade/stack apply.",
+      "items": {
+        "type": "object",
+        "required": ["agent", "src", "dest"],
+        "additionalProperties": false,
+        "properties": {
+          "agent": {"type": "string", "minLength": 1},
+          "src": {"type": "string", "minLength": 1},
+          "dest": {"type": "string", "minLength": 1},
+          "replaces": {"type": "string", "minLength": 1},
+          "managed_block": {"type": "boolean"}
+        }
+      }
+    },
     "skill_context": {
       "type": "object",
       "description": "Stack facts merged into .govkit/skill_context.yaml under `stack` for skill consumers. Keys vary per stack (language, api_framework, unit_test, bdd_test, package_files, source_folder_hint, ...)."

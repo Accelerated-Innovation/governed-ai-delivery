@@ -11,10 +11,11 @@ import argparse
 import sys
 from pathlib import Path
 
+from . import paths
+from .install_common import install_agent_file, post_install_finalize
+from .manifest import load_manifest, resolve_variant_files
 from .marker import read_govkit_marker, write_govkit_marker
-from .overlay import apply_overlay, list_overlays, load_overlay
-from .setup_review import print_review_checklist, write_setup_review
-from .skill_context import write_skill_context
+from .overlay import apply_overlay, apply_rule_overrides, list_overlays, load_overlay
 from .stack_select import STACK_ID_ASSUMPTION, build_stack_assumption, build_stack_meta
 
 
@@ -82,6 +83,18 @@ def cmd_stack_apply(args: argparse.Namespace) -> None:
     print(f"  {overlay.display_name}\n")
     apply_overlay(overlay, target, applied_at=prior_applied_at, force=args.force)
 
+    # Agent rule files are govkit-owned and stack-scoped: the swap reinstalls
+    # the resolved set — the new stack's rule overrides, or the type defaults
+    # when it declares none — so rules always match the active stack.
+    manifest = load_manifest(agent)
+    if "variants" in manifest:
+        files, _, _ = resolve_variant_files(manifest, options)
+        files = apply_rule_overrides(files, overlay, agent)
+        agent_dir = paths.AGENTS_DIR / agent
+        print("\nAgent files (refreshed for the stack):")
+        for entry in files:
+            install_agent_file(agent_dir, entry, target, prior_applied_at)
+
     stack_meta = build_stack_meta(overlay)
     # Replace any prior stack.id assumption; keep the rest. The stack id is
     # an explicit CLI argument here, so source/confidence mirror the --stack
@@ -98,11 +111,10 @@ def cmd_stack_apply(args: argparse.Namespace) -> None:
         calibration=stored.get("calibration"),
     )
 
-    new_marker = read_govkit_marker(target)
-    if new_marker is not None:
-        write_setup_review(target, new_marker)
-        write_skill_context(target, new_marker)
-        print_review_checklist(target, new_marker)
+    # Full finalize (setup review, skill_context, rule + skill templating,
+    # checklist) — the reinstalled rule files carry template frontmatter that
+    # must be expanded for the new stack's layers.
+    post_install_finalize(target, agent)
 
     print(f"\nDone. Stack '{overlay.id}' applied to {target}")
 
