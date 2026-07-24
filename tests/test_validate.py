@@ -5,6 +5,7 @@ import textwrap
 from pathlib import Path
 
 from cli.validate import (
+    CheckStatus,
     check_agent_topology_exists,
     check_agent_topology_sections,
     check_completeness,
@@ -104,25 +105,54 @@ def make_full_feature(feature_dir: Path, **overrides) -> None:
 # ---------------------------------------------------------------------------
 
 
+class TestCheckStatus:
+    """The check-outcome vocabulary: every check returns an explicit
+    tri-state, replacing the bool|None protocol where None meant WARN."""
+
+    def test_three_outcomes(self):
+        assert {s.name for s in CheckStatus} == {"PASS", "FAIL", "WARN"}
+
+    def test_pass_status(self, tmp_path):
+        make_full_feature(tmp_path / "f")
+        status, _ = check_completeness(tmp_path / "f")
+        assert status is CheckStatus.PASS
+
+    def test_fail_status(self, tmp_path):
+        (tmp_path / "f").mkdir()
+        status, _ = check_completeness(tmp_path / "f")
+        assert status is CheckStatus.FAIL
+
+    def test_warn_status(self, tmp_path):
+        # Repository Scope populated, Out of scope absent — advisory WARN,
+        # previously encoded as None.
+        write(tmp_path / "nfrs.md", """\
+            ## Repository Scope
+
+            **Scope:** `single-repo`
+        """)
+        status, _ = check_nfrs_sections(tmp_path)
+        assert status is CheckStatus.WARN
+
+
 class TestCheckCompleteness:
     def test_all_present(self, tmp_path):
         make_full_feature(tmp_path)
         ok, msg = check_completeness(tmp_path)
-        assert ok is True
+        assert ok is CheckStatus.PASS
         assert "5/5" in msg
 
     def test_missing_artifact(self, tmp_path):
         make_full_feature(tmp_path)
         (tmp_path / "plan.md").unlink()
         ok, msg = check_completeness(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "missing: plan.md" in msg
 
     def test_empty_artifact(self, tmp_path):
         make_full_feature(tmp_path)
         (tmp_path / "nfrs.md").write_text("", encoding="utf-8")
         ok, msg = check_completeness(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "empty: nfrs.md" in msg
 
     def test_multiple_missing(self, tmp_path):
@@ -130,7 +160,7 @@ class TestCheckCompleteness:
         (tmp_path / "plan.md").unlink()
         (tmp_path / "nfrs.md").unlink()
         ok, msg = check_completeness(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "3/5" in msg
 
 
@@ -143,12 +173,12 @@ class TestCheckGherkinSyntax:
     def test_valid_gherkin(self, tmp_path):
         write(tmp_path / "acceptance.feature", VALID_FEATURE)
         ok, msg = check_gherkin_syntax(tmp_path)
-        assert ok is True
+        assert ok is CheckStatus.PASS
 
     def test_missing_file(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)
         ok, msg = check_gherkin_syntax(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "not found" in msg
 
     def test_missing_feature_keyword(self, tmp_path):
@@ -159,7 +189,7 @@ class TestCheckGherkinSyntax:
               Then result
         """)
         ok, msg = check_gherkin_syntax(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "Feature:" in msg
 
     def test_missing_scenario_keyword(self, tmp_path):
@@ -170,7 +200,7 @@ class TestCheckGherkinSyntax:
               Then result
         """)
         ok, msg = check_gherkin_syntax(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "Scenario:" in msg
 
     def test_missing_steps(self, tmp_path):
@@ -179,7 +209,7 @@ class TestCheckGherkinSyntax:
               Scenario: Empty scenario
         """)
         ok, msg = check_gherkin_syntax(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "Given/When/Then" in msg
 
     def test_comments_ignored_for_steps(self, tmp_path):
@@ -191,7 +221,7 @@ class TestCheckGherkinSyntax:
                 # Then result
         """)
         ok, msg = check_gherkin_syntax(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "Given/When/Then" in msg
 
 
@@ -204,7 +234,7 @@ class TestCheckNfrsNoTbd:
     def test_no_tbd(self, tmp_path):
         write(tmp_path / "nfrs.md", VALID_NFRS)
         ok, msg = check_nfrs_no_tbd(tmp_path)
-        assert ok is True
+        assert ok is CheckStatus.PASS
 
     def test_has_tbd(self, tmp_path):
         write(tmp_path / "nfrs.md", """\
@@ -212,13 +242,13 @@ class TestCheckNfrsNoTbd:
             - TBD
         """)
         ok, msg = check_nfrs_no_tbd(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "TBD" in msg
 
     def test_missing_file(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)
         ok, msg = check_nfrs_no_tbd(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "not found" in msg
 
     def test_tbd_in_word_ignored(self, tmp_path):
@@ -227,7 +257,7 @@ class TestCheckNfrsNoTbd:
             - The TBDATA format is used
         """)
         ok, msg = check_nfrs_no_tbd(tmp_path)
-        assert ok is True  # \bTBD\b won't match TBDATA
+        assert ok is CheckStatus.PASS  # \bTBD\b won't match TBDATA
 
 
 # ---------------------------------------------------------------------------
@@ -249,7 +279,7 @@ class TestCheckNfrsSections:
             - Response time < 200ms
         """)
         result, msg = check_nfrs_sections(tmp_path)
-        assert result is True
+        assert result is CheckStatus.PASS
         assert "section contract OK" in msg
 
     def test_missing_out_of_scope_warns(self, tmp_path):
@@ -262,7 +292,7 @@ class TestCheckNfrsSections:
             - Response time < 200ms
         """)
         result, msg = check_nfrs_sections(tmp_path)
-        assert result is None  # WARN, not FAIL — plan will infer
+        assert result is CheckStatus.WARN  # WARN, not FAIL — plan will infer
         assert "Out of scope" in msg
         assert "infer" in msg
 
@@ -279,7 +309,7 @@ class TestCheckNfrsSections:
             - Response time < 200ms
         """)
         result, msg = check_nfrs_sections(tmp_path)
-        assert result is None
+        assert result is CheckStatus.WARN
         assert "Out of scope" in msg
         assert "empty" in msg
 
@@ -297,7 +327,7 @@ class TestCheckNfrsSections:
             - Response time < 200ms
         """)
         result, msg = check_nfrs_sections(tmp_path)
-        assert result is None
+        assert result is CheckStatus.WARN
         assert "Out of scope" in msg
 
     def test_missing_repository_scope_warns(self, tmp_path):
@@ -309,7 +339,7 @@ class TestCheckNfrsSections:
             - Response time < 200ms
         """)
         result, msg = check_nfrs_sections(tmp_path)
-        assert result is None  # WARN — hard-gated by repo-scope-check/preflight
+        assert result is CheckStatus.WARN  # WARN — hard-gated by repo-scope-check/preflight
         assert "Repository Scope" in msg
 
     def test_out_of_scope_with_suffix_matches(self, tmp_path):
@@ -323,13 +353,13 @@ class TestCheckNfrsSections:
             - Source system reliability (owned elsewhere)
         """)
         result, msg = check_nfrs_sections(tmp_path)
-        assert result is True
+        assert result is CheckStatus.PASS
         assert "section contract OK" in msg
 
     def test_missing_file(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)
         result, msg = check_nfrs_sections(tmp_path)
-        assert result is False
+        assert result is CheckStatus.FAIL
         assert "not found" in msg
 
 
@@ -342,15 +372,15 @@ class TestCheckEvalCriteria:
     def test_valid_criteria(self, tmp_path):
         write(tmp_path / "eval_criteria.yaml", VALID_EVAL_CRITERIA)
         result, msg = check_eval_criteria(tmp_path)
-        # Result is True or None depending on check-jsonschema availability
-        assert result is not False
+        # Result is PASS or WARN depending on check-jsonschema availability
+        assert result is not CheckStatus.FAIL
 
     def test_missing_version(self, tmp_path):
         write(tmp_path / "eval_criteria.yaml", """\
             mode: deterministic
         """)
         ok, msg = check_eval_criteria(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "version" in msg
 
     def test_missing_mode(self, tmp_path):
@@ -358,13 +388,13 @@ class TestCheckEvalCriteria:
             version: "1"
         """)
         ok, msg = check_eval_criteria(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "mode" in msg
 
     def test_missing_file(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)
         ok, msg = check_eval_criteria(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "not found" in msg
 
     # -- honest schema validation (instance vs installed schema) -------------
@@ -406,7 +436,7 @@ class TestCheckEvalCriteria:
         monkeypatch.setattr("cli.validate.subprocess.run", fake_run)
 
         ok, msg = check_eval_criteria(feature_dir)
-        assert ok is True
+        assert ok is CheckStatus.PASS
         assert calls, "check-jsonschema was not invoked"
         assert "--schemafile" in calls[0]
         assert str(schema) in calls[0]
@@ -423,7 +453,7 @@ class TestCheckEvalCriteria:
         monkeypatch.setattr("cli.validate.subprocess.run", fake_run)
 
         ok, msg = check_eval_criteria(feature_dir)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "eval_criteria.schema.json" in msg
 
     def test_missing_binary_warns(self, tmp_path, monkeypatch):
@@ -435,7 +465,7 @@ class TestCheckEvalCriteria:
         monkeypatch.setattr("cli.validate.subprocess.run", fake_run)
 
         ok, msg = check_eval_criteria(feature_dir)
-        assert ok is None
+        assert ok is CheckStatus.WARN
         assert "check-jsonschema" in msg
 
     def test_no_installed_schema_warns(self, tmp_path):
@@ -444,7 +474,7 @@ class TestCheckEvalCriteria:
         feature_dir, _ = self._install(tmp_path, with_schema=False)
 
         ok, msg = check_eval_criteria(feature_dir)
-        assert ok is None
+        assert ok is CheckStatus.WARN
         assert "no eval_criteria schema installed" in msg
 
     # -- marker-type-aware schema resolution ---------------------------------
@@ -468,7 +498,7 @@ class TestCheckEvalCriteria:
 
         ok, msg = check_eval_criteria(feature_dir)
 
-        assert ok is True
+        assert ok is CheckStatus.PASS
         ui_schema = tmp_path / "target" / "governance" / "ui" / "schemas" / "eval_criteria.schema.json"
         assert str(ui_schema) in calls[0]
 
@@ -480,7 +510,7 @@ class TestCheckEvalCriteria:
 
         ok, msg = check_eval_criteria(feature_dir)
 
-        assert ok is True
+        assert ok is CheckStatus.PASS
         assert str(backend_schema) in calls[0]
 
     def test_data_marker_warns_despite_stale_schema_tree(self, tmp_path, monkeypatch):
@@ -491,7 +521,7 @@ class TestCheckEvalCriteria:
 
         ok, msg = check_eval_criteria(feature_dir)
 
-        assert ok is None
+        assert ok is CheckStatus.WARN
         assert "no eval_criteria schema installed" in msg
         assert not calls
 
@@ -503,7 +533,7 @@ class TestCheckEvalCriteria:
 
         ok, msg = check_eval_criteria(feature_dir)
 
-        assert ok is None
+        assert ok is CheckStatus.WARN
         assert "ambiguous" in msg
         assert not calls
 
@@ -517,14 +547,14 @@ class TestCheckPlanEvalPrediction:
     def test_valid_prediction(self, tmp_path):
         write(tmp_path / "plan.md", VALID_PLAN)
         ok, msg = check_plan_eval_prediction(tmp_path)
-        assert ok is True
+        assert ok is CheckStatus.PASS
         assert "4.6" in msg
         assert "4.4" in msg
 
     def test_missing_prediction_block(self, tmp_path):
         write(tmp_path / "plan.md", "# Plan\nNo prediction here.\n")
         ok, msg = check_plan_eval_prediction(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "missing evaluation_prediction" in msg
 
     def test_null_values(self, tmp_path):
@@ -539,7 +569,7 @@ class TestCheckPlanEvalPrediction:
             ```
         """)
         ok, msg = check_plan_eval_prediction(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "null" in msg
 
     def test_below_threshold(self, tmp_path):
@@ -555,13 +585,13 @@ class TestCheckPlanEvalPrediction:
             ```
         """)
         ok, msg = check_plan_eval_prediction(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "3.5" in msg
 
     def test_missing_file(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)
         ok, msg = check_plan_eval_prediction(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "not found" in msg
 
     def test_missing_averages(self, tmp_path):
@@ -575,7 +605,7 @@ class TestCheckPlanEvalPrediction:
             ```
         """)
         ok, msg = check_plan_eval_prediction(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "missing average" in msg
 
 
@@ -603,7 +633,7 @@ class TestCheckGherkinNfrCoverage:
                 Then authorized
         """)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)
-        assert ok is True
+        assert ok is CheckStatus.PASS
 
     def test_missing_nfr_tag(self, tmp_path):
         write(tmp_path / "nfrs.md", VALID_NFRS)
@@ -617,7 +647,7 @@ class TestCheckGherkinNfrCoverage:
                 Then fast
         """)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "@nfr-security" in msg
 
     def test_no_populated_nfrs(self, tmp_path):
@@ -627,7 +657,7 @@ class TestCheckGherkinNfrCoverage:
         """)
         write(tmp_path / "acceptance.feature", VALID_FEATURE)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)
-        assert ok is True  # no populated categories, so coverage not required
+        assert ok is CheckStatus.PASS  # no populated categories, so coverage not required
 
     # -- data-shaped NFRs: @nfr-* headings, table-style sections -------------
 
@@ -657,7 +687,7 @@ class TestCheckGherkinNfrCoverage:
                 Then customer_email is masked
         """)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "@nfr-freshness" in msg
         assert "@nfr-pii" not in msg
 
@@ -689,7 +719,7 @@ class TestCheckGherkinNfrCoverage:
                 Then lineage shows the upstream
         """)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)
-        assert ok is True
+        assert ok is CheckStatus.PASS
 
     def test_plain_heading_normalizes_to_category(self, tmp_path):
         """`## Freshness` and `## @nfr-freshness` are the same category."""
@@ -702,7 +732,7 @@ class TestCheckGherkinNfrCoverage:
         """)
         write(tmp_path / "acceptance.feature", VALID_FEATURE)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "@nfr-freshness" in msg
 
     def test_new_categories_recognized_in_bullet_form(self, tmp_path):
@@ -717,7 +747,7 @@ class TestCheckGherkinNfrCoverage:
         """)
         write(tmp_path / "acceptance.feature", VALID_FEATURE)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "@nfr-cost" in msg
         assert "@nfr-quality" in msg
 
@@ -732,7 +762,7 @@ class TestCheckGherkinNfrCoverage:
         """)
         write(tmp_path / "acceptance.feature", VALID_FEATURE)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)
-        assert ok is True
+        assert ok is CheckStatus.PASS
 
     def test_table_rows_all_tbd_are_not_populated(self, tmp_path):
         write(tmp_path / "nfrs.md", """\
@@ -744,7 +774,7 @@ class TestCheckGherkinNfrCoverage:
         """)
         write(tmp_path / "acceptance.feature", VALID_FEATURE)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)
-        assert ok is True
+        assert ok is CheckStatus.PASS
 
     def test_checkbox_line_populates_section(self, tmp_path):
         write(tmp_path / "nfrs.md", """\
@@ -753,7 +783,7 @@ class TestCheckGherkinNfrCoverage:
         """)
         write(tmp_path / "acceptance.feature", VALID_FEATURE)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "@nfr-compliance" in msg
 
     def test_bundled_data_starter_has_full_coverage(self):
@@ -763,12 +793,12 @@ class TestCheckGherkinNfrCoverage:
 
         starter = paths.REPO_ROOT / "features" / "starter_data"
         ok, msg = check_gherkin_nfr_coverage(starter)
-        assert ok is True, msg
+        assert ok is CheckStatus.PASS, msg
 
     def test_missing_files(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)
         ok, msg = check_gherkin_nfr_coverage(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "missing" in msg
 
 
@@ -1294,14 +1324,14 @@ class TestMultiAgentValidation:
         write(tmp_path / "eval_criteria.yaml", MULTI_AGENT_EVAL_CRITERIA)
         write(tmp_path / "agent_topology.md", VALID_AGENT_TOPOLOGY)
         ok, msg = check_agent_topology_exists(tmp_path)
-        assert ok is True
+        assert ok is CheckStatus.PASS
         assert "agent_topology.md present" in msg
 
     def test_topology_exists_missing_fails(self, tmp_path):
         """check_agent_topology_exists fails when multi_agent: true but file missing."""
         write(tmp_path / "eval_criteria.yaml", MULTI_AGENT_EVAL_CRITERIA)
         ok, msg = check_agent_topology_exists(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "missing" in msg
 
     def test_topology_exists_empty_fails(self, tmp_path):
@@ -1309,20 +1339,20 @@ class TestMultiAgentValidation:
         write(tmp_path / "eval_criteria.yaml", MULTI_AGENT_EVAL_CRITERIA)
         (tmp_path / "agent_topology.md").write_text("", encoding="utf-8")
         ok, msg = check_agent_topology_exists(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "empty" in msg
 
     def test_topology_exists_not_declared_skips(self, tmp_path):
         """check_agent_topology_exists skips when multi_agent not declared."""
         write(tmp_path / "eval_criteria.yaml", "version: 1\nmode: llm\n")
         ok, msg = check_agent_topology_exists(tmp_path)
-        assert ok is True
+        assert ok is CheckStatus.PASS
         assert "not applicable" in msg
 
     def test_topology_exists_no_eval_criteria_skips(self, tmp_path):
         """check_agent_topology_exists skips when eval_criteria.yaml is missing."""
         ok, msg = check_agent_topology_exists(tmp_path)
-        assert ok is True
+        assert ok is CheckStatus.PASS
         assert "not applicable" in msg
 
     def test_topology_sections_pass(self, tmp_path):
@@ -1330,7 +1360,7 @@ class TestMultiAgentValidation:
         write(tmp_path / "eval_criteria.yaml", MULTI_AGENT_EVAL_CRITERIA)
         write(tmp_path / "agent_topology.md", VALID_AGENT_TOPOLOGY)
         ok, msg = check_agent_topology_sections(tmp_path)
-        assert ok is True
+        assert ok is CheckStatus.PASS
         assert "all required sections" in msg
 
     def test_topology_sections_missing_one_fails(self, tmp_path):
@@ -1352,21 +1382,21 @@ class TestMultiAgentValidation:
             # Missing Failure Modes section
         """)
         ok, msg = check_agent_topology_sections(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "Failure Modes" in msg
 
     def test_topology_sections_not_declared_skips(self, tmp_path):
         """check_agent_topology_sections skips when multi_agent not declared."""
         write(tmp_path / "eval_criteria.yaml", "version: 1\nmode: llm\n")
         ok, msg = check_agent_topology_sections(tmp_path)
-        assert ok is True
+        assert ok is CheckStatus.PASS
         assert "not applicable" in msg
 
     def test_topology_sections_file_missing_fails(self, tmp_path):
         """check_agent_topology_sections fails when file is missing (multi_agent declared)."""
         write(tmp_path / "eval_criteria.yaml", MULTI_AGENT_EVAL_CRITERIA)
         ok, msg = check_agent_topology_sections(tmp_path)
-        assert ok is False
+        assert ok is CheckStatus.FAIL
         assert "not found" in msg
 
     def test_l5_multi_agent_full_pass(self, tmp_path):
