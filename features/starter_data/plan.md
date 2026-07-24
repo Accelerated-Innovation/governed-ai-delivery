@@ -81,35 +81,6 @@ marts). No cross-layer shortcuts.
 
 ---
 
-## Predicted FIRST + Virtue scoring
-
-This section is required at L4+ before implementation begins. Replace TBD
-with predictions calibrated to your team's scoring rubric.
-
-```yaml
-evaluation_prediction:
-  first:
-    fast: TBD       # dbt test runtime
-    independent: TBD # test isolation (per-model schemas in CI)
-    repeatable: TBD
-    self-checking: TBD
-    timely: TBD
-    average: TBD    # must be >= 4.0 to proceed
-  virtues:
-    correctness: TBD
-    clarity: TBD
-    composability: TBD
-    coverage: TBD
-    consistency: TBD
-    cost: TBD
-    care: TBD
-    average: TBD    # must be >= 4.0 to proceed
-```
-
-If either average is below 4.0, revise the plan before writing code.
-
----
-
 ## Risks + Open Questions
 
 - **Source schema drift** — Stripe occasionally renames columns silently;

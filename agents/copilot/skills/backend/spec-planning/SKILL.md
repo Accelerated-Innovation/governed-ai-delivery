@@ -12,10 +12,10 @@ Feature specs:
 - Acceptance: `features/<feature_name>/acceptance.feature`
 
 Architecture standards:
-- `docs/backend/architecture/**`
+- `docs/{{docs_area}}/architecture/**`
 
 Evaluation standards:
-- Global evaluation contract: `docs/backend/evaluation/eval_criteria.md`
+- Global evaluation contract: `docs/{{docs_area}}/evaluation/eval_criteria.md`
 
 Existing artifacts (read if present, update if needed):
 - Feature eval config: `features/<feature_name>/eval_criteria.yaml`
@@ -56,7 +56,7 @@ Create `features/<feature_name>/plan.md` content with:
 
 ### Output B: Feature Eval Criteria (YAML)
 Create or update `features/<feature_name>/eval_criteria.yaml` to conform to:
-- `docs/backend/evaluation/eval_criteria.md` schema and thresholds
+- `docs/{{docs_area}}/evaluation/eval_criteria.md` schema and thresholds
 Include, at minimum:
 - FIRST enforcement settings
 - 7 virtues enforcement settings
@@ -68,8 +68,8 @@ Include, at minimum:
 
 plan.md must include an Evaluation Compliance Summary with predicted FIRST and Virtue scores. Use the scoring rubrics for reference:
 
-- FIRST rubric: `docs/backend/evaluation/FIRST_SCORING_RUBRIC.md`
-- Virtue rubric: `docs/backend/evaluation/VIRTUE_SCORING_RUBRIC.md`
+- FIRST rubric: `docs/{{docs_area}}/evaluation/FIRST_SCORING_RUBRIC.md`
+- Virtue rubric: `docs/{{docs_area}}/evaluation/VIRTUE_SCORING_RUBRIC.md`
 
 Do not proceed if predicted FIRST average or Virtue average is below 4.0.
 
@@ -80,3 +80,17 @@ Do not proceed if predicted FIRST average or Virtue average is below 4.0.
 - No implementation code in this step.
 
 This output will feed `/govkit-implementation-plan`.
+
+### Data projects
+
+For data projects (marker `type: data`), adjust the spec outputs:
+
+- NFR categories are `freshness`, `quality`, `pii`, `lineage`, `cost`
+  (plus `reliability`, `observability`, `compliance` where relevant).
+  Tag scenarios `@nfr-<category>` — the eval gate cross-checks every
+  populated category against the tags.
+- `eval_criteria.yaml` uses the data schema: `mode: deterministic` (or
+  `none`), and each criterion's `measurement` names a query or CI check
+  with `threshold` as a predicate string. No LLM evaluator tools.
+- Cite the data quality, freshness, and lineage contracts under
+  `docs/data/architecture/` instead of API conventions and auth patterns.

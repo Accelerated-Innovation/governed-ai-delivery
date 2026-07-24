@@ -20,6 +20,8 @@ from typing import TYPE_CHECKING
 
 import yaml
 
+from .marker import TYPE_AREA
+
 if TYPE_CHECKING:
     from .detect import RepoProfile
 
@@ -70,6 +72,12 @@ _STYLE_LAYERS = {
 # CI option in marker → friendlier CI id used in skill_context.
 _CI_NAME = {"github": "github-actions", "azure": "azure-pipelines"}
 
+# Default PII keyword list — the single source the data rules and the
+# dbt-gate's PII regex are seeded from. Teams tune it by editing
+# pii.keyword_list in .govkit/skill_context.yaml; the edited list survives
+# re-writes (see _pii_facts).
+_DEFAULT_PII_KEYWORDS = ["email", "phone", "ssn", "dob", "birth", "address", "name"]
+
 
 @dataclass
 class SkillContext:
@@ -93,7 +101,9 @@ class SkillContext:
     unit_test: str | None
     bdd_test: str | None
     ci: str | None
+    docs_area: str
     llm: bool
+    pii_keywords: list[str] = field(default_factory=list)
     extensions: list[dict] = field(default_factory=list)
 
 
@@ -141,6 +151,28 @@ def _extension_facts(target: Path) -> list[dict]:
             "contract_paths": _extract_contract_paths(manifest),
         })
     return out
+
+
+def _pii_facts(target: Path) -> dict:
+    """Seed the tunable PII keyword list, preserving a team's edited list.
+
+    write_skill_context regenerates the file on every apply/upgrade/stack
+    apply; a non-empty keyword_list the team tuned must survive that, so the
+    existing value wins over the default seed.
+    """
+    path = target / ".govkit" / "skill_context.yaml"
+    if path.is_file():
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, yaml.YAMLError):
+            data = None
+        if isinstance(data, dict) and isinstance(data.get("pii"), dict):
+            keywords = data["pii"].get("keyword_list")
+            if isinstance(keywords, list):
+                cleaned = [k for k in keywords if isinstance(k, str) and k]
+                if cleaned:
+                    return {"keyword_list": cleaned}
+    return {"keyword_list": list(_DEFAULT_PII_KEYWORDS)}
 
 
 def _stack_facts(marker: dict) -> dict:
@@ -193,7 +225,12 @@ def build_skill_context(target: Path, marker: dict, profile: RepoProfile | None 
         },
         "stack": _stack_facts(marker),
         "ci": _CI_NAME.get(options.get("ci"), options.get("ci")),
+        # The docs tree this install's type reads (docs/<area>/architecture/).
+        # Empty when the type is missing/unknown — skill templating then
+        # leaves its tokens unexpanded and doctor flags them.
+        "docs_area": TYPE_AREA.get(options.get("type"), ""),
         "llm": level == "5",
+        "pii": _pii_facts(target),
         "extensions": _extension_facts(target),
     }
 
@@ -297,6 +334,8 @@ def load_skill_context(target: Path) -> SkillContext | None:
         unit_test=stack.get("unit_test") if isinstance(stack.get("unit_test"), str) else None,
         bdd_test=stack.get("bdd_test") if isinstance(stack.get("bdd_test"), str) else None,
         ci=data.get("ci") if isinstance(data.get("ci"), str) else None,
+        docs_area=data.get("docs_area") if isinstance(data.get("docs_area"), str) else "",
         llm=bool(data.get("llm")),
+        pii_keywords=_safe_str_list(_safe_dict(data.get("pii")).get("keyword_list")),
         extensions=[e for e in extensions if isinstance(e, dict)] if isinstance(extensions, list) else [],
     )

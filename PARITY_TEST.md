@@ -114,6 +114,29 @@ For high-confidence verification of the loader behavior, open a UI sandbox in ea
 
 ---
 
+## Data-native skill block parity (hardening plan Increments 5–6)
+
+The backend planning skills are the ones a `--type data` install receives, so
+they carry data-awareness in two enforced-identical blocks per agent:
+
+- `## 3.7 Data Impact` in `skills/backend/architecture-preflight/SKILL.md` —
+  the Pipeline / Contract / PII / Lineage Impact sections a data preflight
+  report adds (backend/UI reports skip them). Byte-identical across the 3
+  agents: `tests/test_agent_skills.py::test_data_impact_block_parity_across_agents`.
+- `### Data projects` in `skills/backend/spec-planning/SKILL.md` — data NFR
+  categories + deterministic eval-criteria guidance. Byte-identical across
+  the 3 agents:
+  `tests/test_agent_skills.py::test_spec_planning_data_note_parity_across_agents`.
+
+Doc paths in these skills are tokenized (`docs/{{docs_area}}/...`) and
+expanded at install time from the marker's `options.type`
+(`tests/test_skill_templating.py` pins sources and installs in both
+directions). `features/starter_data/architecture_preflight.md` mirrors the
+skill's report sections by construction
+(`tests/test_agent_skills.py::test_starter_data_preflight_mirrors_skill_sections`).
+
+---
+
 ## v0.7 Language-Agnostic Parity (still in force)
 
 The earlier v0.7 refactor moved language-specific content out of agent rules and into `docs/backend/architecture/`. Rules reference docs; rules don't embed FastAPI / .NET / Java / Go specifics. The default docs ship FastAPI-by-default; switch stacks by copying from `docs/stacks/<stack>/` into `docs/backend/architecture/` (see README "Switching Tech Stacks").

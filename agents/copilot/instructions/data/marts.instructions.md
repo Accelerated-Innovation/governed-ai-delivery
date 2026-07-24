@@ -17,10 +17,9 @@ the column list as a public API.
 
 - Reads from `intermediate/` or other `marts/` only — never staging, never
   raw warehouse, never sources directly
-- Materialization: `table` (small) or `incremental` (large; requires a
-  documented unique key + ADR if new)
-- Naming: `dim_*` (dimension), `fct_*` (fact), or domain-shaped
-  (`customer_360`)
+- Naming and materialization follow
+  `docs/data/architecture/MODEL_LAYERING.md` (stack overlay); a new `incremental`
+  materialization requires a documented unique key + ADR
 - Primary key: `unique` + `not_null` tests required (per
   `DATA_QUALITY_CONTRACT.md`)
 - Every column described in `_<model>.yml`

@@ -314,7 +314,9 @@
           "shared": [
             "features/starter_data/"
           ],
-          "governed": []
+          "governed": [
+            "governance/data/schemas/"
+          ]
         }
       }
     },

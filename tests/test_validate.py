@@ -767,6 +767,71 @@ class TestCheckGherkinNfrCoverage:
 
 
 # ---------------------------------------------------------------------------
+# Data prediction gate (ADR-0001)
+# ---------------------------------------------------------------------------
+
+
+class TestDataPredictionGate:
+    def _data_target(self, tmp_path, marker_type="data"):
+        target = tmp_path / "target"
+        feature = target / "features" / "feat"
+        write(feature / "acceptance.feature", """\
+            Feature: Sample
+
+              @nfr-performance
+              Scenario: Fast
+                Given load
+                When request
+                Then fast
+
+              @nfr-security
+              Scenario: Secure
+                Given auth
+                When request
+                Then authorized
+        """)
+        write(feature / "nfrs.md", VALID_NFRS)
+        write(feature / "eval_criteria.yaml", VALID_EVAL_CRITERIA)
+        write(feature / "architecture_preflight.md", "# Preflight\n\nDone.\n")
+        write(feature / "plan.md", "# Plan\n\nSteps only — no prediction block.\n")
+        (target / ".govkit").mkdir(parents=True, exist_ok=True)
+        (target / ".govkit" / "marker.json").write_text(json.dumps({
+            "version": "0.14.0", "level": "4", "agent": "claude-code",
+            "options": {"type": marker_type, "ci": "github"},
+        }), encoding="utf-8")
+        return target
+
+    def test_data_feature_passes_without_prediction_block(self, tmp_path):
+        """ADR-0001: data features carry no FIRST/Virtue self-prediction."""
+        target = self._data_target(tmp_path)
+        assert run_validation(target, level="4") == 0
+
+    def test_backend_feature_still_requires_prediction(self, tmp_path):
+        target = self._data_target(tmp_path, marker_type="api")
+        assert run_validation(target, level="4") == 1
+
+    def test_starter_plan_has_no_prediction_block(self):
+        """The starter must not re-introduce the (drifted) prediction
+        vocabulary the ADR retired."""
+        from cli import paths
+
+        text = (paths.REPO_ROOT / "features" / "starter_data" / "plan.md").read_text(
+            encoding="utf-8",
+        )
+        assert "evaluation_prediction" not in text
+
+    def test_adr_ships_in_payload(self):
+        from cli import paths
+
+        adr = (
+            paths.REPO_ROOT / "docs" / "data" / "architecture" / "ADR"
+            / "0001-data-features-skip-prediction-gate.md"
+        )
+        assert adr.is_file()
+        assert "Accepted" in adr.read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
 # STARTERS registry
 # ---------------------------------------------------------------------------
 

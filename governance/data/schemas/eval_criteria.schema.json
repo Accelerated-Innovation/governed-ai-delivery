@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:governed-ai-delivery:schemas:data-eval_criteria",
+  "title": "Data Eval Criteria Schema",
+  "description": "Evaluation criteria for data (--type data) features. Deliberately not the backend criterion shape: data criteria are checked by query results and CI test outcomes, so thresholds are predicate strings and there are no evaluator tools or LLM modes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "mode"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "Schema version for the eval_criteria.yaml instance.",
+      "minimum": 1
+    },
+    "mode": {
+      "type": "string",
+      "description": "deterministic: criteria checked by queries + CI outcomes. none: no evaluation applies (requires rationale). LLM evaluation is not a data mode.",
+      "enum": ["deterministic", "none"]
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Required when mode is none. Explains why evaluation is not applicable."
+    },
+    "feature": {
+      "type": "string",
+      "description": "Optional. The feature name this eval_criteria.yaml belongs to."
+    },
+    "owner": {
+      "type": "string",
+      "description": "Optional. Team or role responsible for keeping criteria accurate."
+    },
+    "criteria": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/criterion" }
+    }
+  },
+
+  "allOf": [
+    {
+      "if": {
+        "properties": { "mode": { "const": "none" } },
+        "required": ["mode"]
+      },
+      "then": {
+        "required": ["rationale"],
+        "properties": { "criteria": { "maxItems": 0 } }
+      }
+    },
+    {
+      "if": {
+        "properties": { "mode": { "const": "deterministic" } },
+        "required": ["mode"]
+      },
+      "then": {
+        "required": ["criteria"],
+        "properties": { "criteria": { "minItems": 1 } }
+      }
+    }
+  ],
+
+  "$defs": {
+    "criterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "measurement", "threshold", "severity"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Kebab-case identifier for the criterion."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "One sentence: what is being checked."
+        },
+        "measurement": {
+          "type": "string",
+          "minLength": 1,
+          "description": "How it is measured — a query, dbt test, CI script, or metric."
+        },
+        "threshold": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Pass/fail boundary as a predicate string (data thresholds are query predicates, not 0-1 floats)."
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["error", "warn"],
+          "description": "error blocks merge; warn surfaces in the PR summary."
+        },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

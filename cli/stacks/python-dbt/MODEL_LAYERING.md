@@ -121,6 +121,37 @@ exposures:
 
 `dbt docs` then surfaces "what breaks if I change this mart" automatically.
 
+## Model contracts are the machine form of this section
+
+Every mart model declares an enforced dbt model contract (dbt-core >= 1.5)
+so the column list is checked at build time, not by convention:
+
+```yaml
+models:
+  - name: dim_customers
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: customer_id
+        data_type: string
+```
+
+The CI gate (`dbt-gate`) blocks a PR when a model under `models/marts/`
+lacks `contract: {enforced: true}` or appears in no `exposures:` entry —
+no exposure means dead code or an undocumented consumer. (On dbt-core
+< 1.5 the contract check downgrades to a warning with an upgrade pointer.)
+
+## Change control: deprecation and model versions
+
+- **Deprecating a mart or column**: set `deprecation_date:` on the model
+  and keep the deprecation notice in `description:` for one release cycle;
+  coordinate with the consumers listed in `_exposures.yml`.
+- **Breaking change** (rename/removal/type change): ship it as a new model
+  version (`versions:` with `latest_version:`) so existing consumers keep
+  resolving the old shape while they migrate, and record the migration
+  plan in an ADR. Retire the old version at its `deprecation_date`.
+
 ---
 
 # 5. Snapshots (SCD2)

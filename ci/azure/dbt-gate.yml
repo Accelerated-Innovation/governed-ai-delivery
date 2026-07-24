@@ -11,6 +11,8 @@
 # - dbt compile
 # - SQLFluff lint when SQLFluff is configured
 # - static model YAML checks for descriptions, primary-key tests, and PII meta
+# - mart model contract enforcement (contract: {enforced: true}) and
+#   exposure coverage for every model under models/marts/
 #
 # Opt-in only:
 # - dbt test --select state:modified+
@@ -128,6 +130,9 @@ stages:
                     print("FAIL: no model YAML files found under models/.")
                     sys.exit(1)
 
+                # Single source: this keyword list mirrors the default seed of
+                # pii.keyword_list in .govkit/skill_context.yaml. Teams tuning the
+                # list edit skill_context and update this regex to match.
                 pii_name = re.compile(r"(email|phone|ssn|dob|birth|address|name)", re.I)
                 errors: list[str] = []
 
@@ -177,6 +182,83 @@ stages:
                                 f"{path}: model {model_name} needs one primary key column with unique and not_null tests"
                             )
 
+                # Mart contract + exposure enforcement (MODEL_LAYERING.md): marts are the
+                # public API. Every mart model must declare an enforced dbt model contract
+                # and appear in at least one exposure - no exposure means dead code or an
+                # undocumented consumer. Contract enforcement needs dbt-core >= 1.5; older
+                # projects get a warning with an upgrade pointer, not a failure.
+                marts_sql = sorted(pathlib.Path("models/marts").rglob("*.sql"))
+                if marts_sql:
+                    mart_names = sorted({p.stem for p in marts_sql})
+
+                    try:
+                        project = yaml.safe_load(
+                            pathlib.Path("dbt_project.yml").read_text(encoding="utf-8")
+                        ) or {}
+                    except (OSError, yaml.YAMLError):
+                        project = {}
+
+                    yaml_docs = []
+                    for path in model_files:
+                        try:
+                            yaml_docs.append((path, yaml.safe_load(path.read_text(encoding="utf-8")) or {}))
+                        except yaml.YAMLError:
+                            continue
+
+                    def _supports_contracts() -> bool:
+                        for _, data in yaml_docs:
+                            for model in data.get("models") or []:
+                                if "contract" in (model.get("config") or {}) or "contract" in model:
+                                    return True
+                        req = project.get("require-dbt-version")
+                        for entry in req if isinstance(req, list) else [req] if req else []:
+                            match = re.search(r"(\d+)\.(\d+)", str(entry))
+                            if match and (int(match.group(1)), int(match.group(2))) >= (1, 5):
+                                return True
+                        return False
+
+                    mart_entries = {}
+                    for path, data in yaml_docs:
+                        if "marts" not in path.parts:
+                            continue
+                        for model in data.get("models") or []:
+                            mart_entries[str(model.get("name"))] = (path, model)
+
+                    if _supports_contracts():
+                        for name in mart_names:
+                            entry = mart_entries.get(name)
+                            if entry is None:
+                                errors.append(
+                                    f"models/marts: mart {name} has no model YAML entry - "
+                                    "declare it with contract: {enforced: true}"
+                                )
+                                continue
+                            entry_path, model = entry
+                            contract = (model.get("config") or {}).get("contract") or model.get("contract") or {}
+                            if not (isinstance(contract, dict) and contract.get("enforced") is True):
+                                errors.append(
+                                    f"{entry_path}: mart {name} must declare contract: "
+                                    "{enforced: true} - marts are the public API"
+                                )
+                    else:
+                        print(
+                            "WARN: mart model contracts not checked - dbt-core >= 1.5 required. "
+                            "Pin require-dbt-version: '>=1.5' in dbt_project.yml (and upgrade "
+                            "dbt-core) to enforce mart column contracts."
+                        )
+
+                    exposure_refs = set()
+                    for _, data in yaml_docs:
+                        for exposure in data.get("exposures") or []:
+                            for dep in exposure.get("depends_on") or []:
+                                exposure_refs.add(str(dep))
+                    for name in mart_names:
+                        if not any(name in ref for ref in exposure_refs):
+                            errors.append(
+                                f"models/marts: mart {name} appears in no exposures: entry - "
+                                "no exposure means dead code or an undocumented consumer"
+                            )
+
                 if errors:
                     print("dbt static model checks failed:")
                     for error in errors:
@@ -196,6 +278,8 @@ stages:
                 - dbt test --select state:modified+
                 - dbt source freshness
                 - warehouse-backed model build and warehouse-backed data-quality checks
+                - dbt-project-evaluator for layer-boundary enforcement
+                  (machine-checks BOUNDARIES.md section 1's allowed-reads table)
 
                 Enable these only after CI has a safe profile, secrets, target schema,
                 cost controls, and warehouse isolation.

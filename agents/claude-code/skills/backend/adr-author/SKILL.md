@@ -7,7 +7,7 @@ description: Author an Architecture Decision Record for a new pattern, exception
 
 You are writing an Architecture Decision Record (ADR). Determine the ADR title from the user's request; if it is not provided, ask before proceeding.
 
-Follow the template at `docs/backend/architecture/ADR/TEMPLATE.md`. Produce a complete ADR using these sections:
+Follow the template at `docs/{{docs_area}}/architecture/ADR/TEMPLATE.md`. Produce a complete ADR using these sections:
 
 ## Title
 
@@ -52,4 +52,4 @@ Required reviewers (team lead, architect, or security lead based on scope) and l
 
 ---
 
-Write the ADR to `docs/backend/architecture/ADR/<slug>.md`. If required information is missing, stop and ask before drafting.
+Write the ADR to `docs/{{docs_area}}/architecture/ADR/<slug>.md`. If required information is missing, stop and ask before drafting.

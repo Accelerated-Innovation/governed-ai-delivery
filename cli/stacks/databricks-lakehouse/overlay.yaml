@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=../../../governance/schemas/stack-overlay.schema.json
 id: databricks-lakehouse
-version: "0.10.0"
+version: "0.11.0"
 display_name: "Databricks Lakehouse (Unity Catalog / Delta / Asset Bundles)"
 summary: "Databricks-native data delivery with Unity Catalog, Delta tables, Asset Bundles, Jobs, Lakeflow Pipelines, PySpark, SQL, and notebooks"
 supported_types: [data]
@@ -37,6 +37,49 @@ docs:
   - src: LINEAGE_OBSERVABILITY.md
     dest: docs/data/architecture/LINEAGE_OBSERVABILITY.md
     editable: true
+rules:
+  # Medallion-worded layer rules replace the dbt-worded type defaults for
+  # the overlapping layer slots. claude-code/copilot keep the default dest
+  # filenames (the layer *slot*), so `stack apply` swaps content in place.
+  # codex's dbt defaults are folder-scoped nested AGENTS.md blocks under
+  # models/, which a medallion repo does not have — its medallion rules
+  # install as plain .agents/rules files instead.
+  - agent: claude-code
+    src: rules/claude-code/bronze.md
+    dest: .claude/rules/govkit/staging.md
+    replaces: rules/data/staging.md
+  - agent: claude-code
+    src: rules/claude-code/silver.md
+    dest: .claude/rules/govkit/intermediate.md
+    replaces: rules/data/intermediate.md
+  - agent: claude-code
+    src: rules/claude-code/gold.md
+    dest: .claude/rules/govkit/marts.md
+    replaces: rules/data/marts.md
+  - agent: copilot
+    src: rules/copilot/bronze.instructions.md
+    dest: .github/instructions/govkit/staging.instructions.md
+    replaces: instructions/data/staging.instructions.md
+  - agent: copilot
+    src: rules/copilot/silver.instructions.md
+    dest: .github/instructions/govkit/intermediate.instructions.md
+    replaces: instructions/data/intermediate.instructions.md
+  - agent: copilot
+    src: rules/copilot/gold.instructions.md
+    dest: .github/instructions/govkit/marts.instructions.md
+    replaces: instructions/data/marts.instructions.md
+  - agent: codex
+    src: rules/codex/bronze.md
+    dest: .agents/rules/bronze.md
+    replaces: rules/data/staging.md
+  - agent: codex
+    src: rules/codex/silver.md
+    dest: .agents/rules/silver.md
+    replaces: rules/data/intermediate.md
+  - agent: codex
+    src: rules/codex/gold.md
+    dest: .agents/rules/gold.md
+    replaces: rules/data/marts.md
 skill_context:
   language: python
   framework: databricks-lakehouse

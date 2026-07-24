@@ -742,3 +742,93 @@ def test_overlay_has_yaml_language_server_modeline(stack_id):
     first_line = overlay_path.read_text(encoding="utf-8").splitlines()[0]
     assert first_line.startswith("# yaml-language-server: $schema=")
     assert "stack-overlay.schema.json" in first_line
+
+
+# ---------------------------------------------------------------------------
+# Data eval_criteria schema (hardening plan Increment 7)
+# ---------------------------------------------------------------------------
+
+DATA_EVAL_SCHEMA_PATH = REPO_ROOT / "governance" / "data" / "schemas" / "eval_criteria.schema.json"
+BACKEND_EVAL_SCHEMA_PATH = REPO_ROOT / "governance" / "backend" / "schemas" / "eval_criteria.schema.json"
+
+
+class TestDataEvalCriteriaSchema:
+    """Data eval criteria are checked by queries and CI outcomes, not
+    evaluator tools — deliberately not the backend criterion shape."""
+
+    def _schema(self) -> dict:
+        return json.loads(DATA_EVAL_SCHEMA_PATH.read_text(encoding="utf-8"))
+
+    def _valid_criterion(self) -> dict:
+        return {
+            "id": "pk-uniqueness",
+            "description": "customer_id is unique",
+            "measurement": "dbt schema test (unique)",
+            "threshold": "zero rows with duplicate customer_id",
+            "severity": "error",
+        }
+
+    def test_schema_is_valid_json_schema(self):
+        Draft202012Validator.check_schema(self._schema())
+
+    def test_data_starter_validates(self):
+        import yaml
+
+        instance = yaml.safe_load(
+            (REPO_ROOT / "features" / "starter_data" / "eval_criteria.yaml")
+            .read_text(encoding="utf-8"),
+        )
+        errors = list(Draft202012Validator(self._schema()).iter_errors(instance))
+        assert not errors, "\n".join(e.message for e in errors)
+
+    def test_backend_starter_still_validates_against_backend_schema(self):
+        import yaml
+
+        schema = json.loads(BACKEND_EVAL_SCHEMA_PATH.read_text(encoding="utf-8"))
+        instance = yaml.safe_load(
+            (REPO_ROOT / "features" / "starter_backend" / "eval_criteria.yaml")
+            .read_text(encoding="utf-8"),
+        )
+        errors = list(Draft202012Validator(schema).iter_errors(instance))
+        assert not errors, "\n".join(e.message for e in errors)
+
+    def test_rejects_llm_mode(self):
+        instance = {"version": 1, "mode": "llm", "criteria": [self._valid_criterion()]}
+        assert list(Draft202012Validator(self._schema()).iter_errors(instance))
+
+    def test_rejects_string_version(self):
+        instance = {"version": "1", "mode": "deterministic", "criteria": [self._valid_criterion()]}
+        assert list(Draft202012Validator(self._schema()).iter_errors(instance))
+
+    def test_rejects_numeric_threshold(self):
+        crit = self._valid_criterion()
+        crit["threshold"] = 0.9
+        instance = {"version": 1, "mode": "deterministic", "criteria": [crit]}
+        assert list(Draft202012Validator(self._schema()).iter_errors(instance))
+
+    def test_rejects_backend_criterion_shape(self):
+        instance = {
+            "version": 1, "mode": "deterministic",
+            "criteria": [{
+                "name": "output_structure", "eval_class": "structure_validator",
+                "threshold": 0.9, "fail_on": "below_threshold",
+            }],
+        }
+        assert list(Draft202012Validator(self._schema()).iter_errors(instance))
+
+    def test_mode_none_requires_rationale(self):
+        validator = Draft202012Validator(self._schema())
+        assert list(validator.iter_errors({"version": 1, "mode": "none"}))
+        assert not list(validator.iter_errors(
+            {"version": 1, "mode": "none", "rationale": "no data outputs in this feature"},
+        ))
+
+    @pytest.mark.parametrize("agent", _all_agents())
+    def test_data_variant_installs_schema_dir(self, agent):
+        """The data L4 install must ship the schema so local validate goes
+        from WARN to real instance validation."""
+        manifest = _load_manifest(agent)
+        governed = (
+            manifest["variants"]["type"]["data"].get("level_4", {}).get("governed", [])
+        )
+        assert "governance/data/schemas/" in governed, agent

@@ -21,6 +21,7 @@ from .install_common import (
 )
 from .manifest import load_manifest, resolve_options, resolve_variant_files
 from .marker import read_govkit_marker, write_govkit_marker
+from .overlay import apply_rule_overrides, load_overlay
 from .stack_select import apply_stack_overlay, print_detection_summary, resolve_stack_choice
 
 if TYPE_CHECKING:
@@ -108,6 +109,11 @@ def _apply_variant_install(
 
     print(f"\n  Configuration: {options}\n")
     files, shared, governed = resolve_variant_files(manifest, options)
+
+    # Stack rule overrides: when the active overlay ships rules, they
+    # replace the type defaults for the overlapping entries before install.
+    stack_overlay = load_overlay((stack_meta or {}).get("id", "")) if stack_meta else None
+    files = apply_rule_overrides(files, stack_overlay, args.agent)
 
     print("Agent files:")
     for entry in files:

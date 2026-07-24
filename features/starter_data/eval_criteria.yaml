@@ -11,7 +11,7 @@
 #   threshold   — pass/fail boundary
 #   severity    — error blocks merge; warn surfaces in PR summary
 
-version: "1"
+version: 1
 mode: deterministic
 
 criteria:

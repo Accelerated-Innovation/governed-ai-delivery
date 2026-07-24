@@ -56,8 +56,43 @@ class TestWriteSkillContext:
         assert "architecture" in data
         assert "stack" in data
         assert "ci" in data
+        assert "docs_area" in data
         assert "llm" in data
         assert "extensions" in data
+
+    def test_docs_area_derived_from_marker_type(self, tmp_path):
+        """docs_area follows options.type so installed skills can be
+        templated to the type's docs tree (docs/<area>/architecture/)."""
+        import yaml
+
+        from cli.skill_context import write_skill_context
+
+        for marker_type, expected in [
+            ("api", "backend"), ("cli", "backend"),
+            ("ui-react", "ui"), ("ui-angular", "ui"),
+            ("data", "data"),
+        ]:
+            marker = _write_marker(
+                tmp_path, options={"type": marker_type, "ci": "github"},
+            )
+            write_skill_context(tmp_path, marker)
+            data = yaml.safe_load(
+                (tmp_path / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8"),
+            )
+            assert data["docs_area"] == expected, marker_type
+
+    def test_docs_area_empty_when_type_missing_or_unknown(self, tmp_path):
+        import yaml
+
+        from cli.skill_context import write_skill_context
+
+        for options in ({"ci": "github"}, {"type": "mainframe", "ci": "github"}):
+            marker = _write_marker(tmp_path, options=options)
+            write_skill_context(tmp_path, marker)
+            data = yaml.safe_load(
+                (tmp_path / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8"),
+            )
+            assert data["docs_area"] == "", options
 
     def test_stack_section_pulls_from_marker_and_overlay(self, tmp_path):
         import yaml
@@ -396,3 +431,74 @@ class TestLoadSkillContextMalformedBlocks:
         assert isinstance(ctx.extensions, list)
         # Same anti-splat rule: characters are not extensions.
         assert all(isinstance(e, dict) for e in ctx.extensions)
+
+
+class TestLoadSkillContextDocsArea:
+    def _write(self, target: Path, text: str) -> None:
+        (target / ".govkit").mkdir(parents=True, exist_ok=True)
+        (target / ".govkit" / "skill_context.yaml").write_text(text, encoding="utf-8")
+
+    def test_docs_area_round_trips(self, tmp_path):
+        from cli.skill_context import load_skill_context
+        self._write(tmp_path, "architecture:\n  style: hexagonal\nstack: {}\ndocs_area: data\n")
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.docs_area == "data"
+
+    def test_docs_area_missing_or_malformed_is_empty(self, tmp_path):
+        from cli.skill_context import load_skill_context
+        for body in (
+            "architecture:\n  style: hexagonal\nstack: {}\n",
+            "architecture:\n  style: hexagonal\nstack: {}\ndocs_area: [data]\n",
+        ):
+            self._write(tmp_path, body)
+            ctx = load_skill_context(tmp_path)
+            assert ctx is not None
+            assert ctx.docs_area == ""
+
+
+class TestPiiKeywordList:
+    def test_write_seeds_default_keyword_list(self, tmp_path):
+        import yaml
+
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        write_skill_context(tmp_path, marker)
+        data = yaml.safe_load(
+            (tmp_path / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8"),
+        )
+        assert data["pii"]["keyword_list"] == [
+            "email", "phone", "ssn", "dob", "birth", "address", "name",
+        ]
+
+    def test_rewrite_preserves_team_tuned_list(self, tmp_path):
+        """upgrade/stack apply regenerate skill_context.yaml; a tuned
+        keyword_list must survive the rewrite."""
+        import yaml
+
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        write_skill_context(tmp_path, marker)
+        path = tmp_path / ".govkit" / "skill_context.yaml"
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        data["pii"]["keyword_list"] = ["email", "iban", "national_id"]
+        path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+
+        write_skill_context(tmp_path, marker)
+
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        assert data["pii"]["keyword_list"] == ["email", "iban", "national_id"]
+
+    def test_load_returns_pii_keywords(self, tmp_path):
+        from cli.skill_context import load_skill_context
+
+        (tmp_path / ".govkit").mkdir(parents=True)
+        (tmp_path / ".govkit" / "skill_context.yaml").write_text(
+            "architecture: {}\nstack: {}\npii:\n  keyword_list: [email, iban]\n",
+            encoding="utf-8",
+        )
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.pii_keywords == ["email", "iban"]

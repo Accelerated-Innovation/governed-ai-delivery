@@ -28,6 +28,18 @@ from . import version
 MARKER_DIRNAME = ".govkit"
 MARKER_FILENAME = "marker.json"
 
+# The docs/governance area implied by each marker options.type — the <area>
+# in docs/<area>/architecture/ and governance/<area>/schemas/. Shared by
+# validate (schema resolution) and skill_context (docs_area fact) so the two
+# interpretations of options.type cannot drift.
+TYPE_AREA = {
+    "api": "backend",
+    "cli": "backend",
+    "ui-react": "ui",
+    "ui-angular": "ui",
+    "data": "data",
+}
+
 
 # ---------------------------------------------------------------------------
 # Version comparison + one-time migration warnings (v0.7.0 swap onward)

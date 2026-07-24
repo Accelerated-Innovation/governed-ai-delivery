@@ -15,8 +15,8 @@ Read these artifacts before planning:
 - `features/<feature_name>/acceptance.feature`
 - `features/<feature_name>/eval_criteria.yaml`
 - `features/<feature_name>/architecture_preflight.md`
-- `docs/backend/evaluation/eval_criteria.md`
-- `docs/backend/architecture/` (all files)
+- `docs/{{docs_area}}/evaluation/eval_criteria.md`
+- `docs/{{docs_area}}/architecture/` (all files)
 
 ## Planning Requirements
 

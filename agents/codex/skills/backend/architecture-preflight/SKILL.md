@@ -19,10 +19,10 @@ Before generating any code or detailed plan, produce an Architecture Preflight R
 
 For each of the following, state which architectural rules apply (cite file and section):
 
-- Layering (from `docs/backend/architecture/ARCH_CONTRACT.md`)
-- API conventions (from `docs/backend/architecture/API_CONVENTIONS.md`)
-- Auth/security patterns (from `docs/backend/architecture/SECURITY_AUTH_PATTERNS.md`)
-- NFR section contract (from `docs/backend/architecture/NFRS_CONVENTIONS.md`)
+- Layering (from `docs/{{docs_area}}/architecture/ARCH_CONTRACT.md`)
+- API conventions (from `docs/{{docs_area}}/architecture/API_CONVENTIONS.md`)
+- Auth/security patterns (from `docs/{{docs_area}}/architecture/SECURITY_AUTH_PATTERNS.md`)
+- NFR section contract (from `docs/{{docs_area}}/architecture/NFRS_CONVENTIONS.md`)
 - Error model and response shape
 - Logging and observability expectations
 
@@ -47,7 +47,7 @@ For each of the following, state which architectural rules apply (cite file and 
 ## 3. Boundary Analysis
 
 - What modules or services will this code touch?
-- Are any boundary rules at risk of violation? (from `docs/backend/architecture/BOUNDARIES.md`)
+- Are any boundary rules at risk of violation? (from `docs/{{docs_area}}/architecture/BOUNDARIES.md`)
 - Does this require a new interface between services?
 
 ## 3.5 Repository Scope Analysis
@@ -83,6 +83,43 @@ If **no** (missing or empty): note "Spec planning will infer Out-of-scope and la
 This is informational and does not block planning.
 
 ---
+
+## 3.7 Data Impact  (data projects only)
+
+When the project type is data (the marker records `type: data` and the
+architecture contracts live under `docs/data/architecture/`), the standards
+set for Section 2 is the data one — layering (`BOUNDARIES.md`), query
+conventions (`QUERY_CONVENTIONS.md`, stack overlay), data quality tiers
+(`DATA_QUALITY_CONTRACT.md`), PII handling (`PII_HANDLING_CONTRACT.md`),
+lineage (`LINEAGE_CONTRACT.md`), and environments (`ENVIRONMENTS.md`) —
+rather than API conventions and auth/security patterns. Add the four
+sections below to the report. Backend and UI reports skip this section.
+
+### Pipeline Impact
+
+- Schedule or SLA changes: run cadence, freshness targets, alert/block
+  thresholds affected by this feature
+- Backfill: required? Window strategy and idempotency expectations
+- Orchestration dependencies: upstream sources and downstream jobs affected
+
+### Contract Impact
+
+- Mart schema changes: added, renamed, or removed columns — renames and
+  removals are breaking per the mart layer rule's breaking-change table;
+  they require a deprecation notice and consumer coordination
+- Downstream exposures affected (check the exposures file for consumers)
+
+### PII Impact
+
+- New or reclassified PII columns and their categories
+- Masking treatment per `PII_HANDLING_CONTRACT.md`, including non-prod
+  environments
+
+### Lineage Impact
+
+- Source-to-mart lineage changes introduced by this feature
+- Column-level lineage entries required for PII-tagged columns
+- Exposure or lineage-tool entries to add or update
 
 ## 4. ADR Decision
 

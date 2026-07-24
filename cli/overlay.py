@@ -42,6 +42,7 @@ class Overlay:
     supported_types: list = field(default_factory=list)
     default_assumptions: list = field(default_factory=list)
     docs: list = field(default_factory=list)
+    rules: list = field(default_factory=list)
     skill_context: dict = field(default_factory=dict)
     review_checklist: list = field(default_factory=list)
 
@@ -82,6 +83,7 @@ def _build_overlay(stack_dir: Path) -> Overlay | None:
         supported_types=data.get("supported_types") or [],
         default_assumptions=data.get("default_assumptions") or [],
         docs=data.get("docs") or [],
+        rules=data.get("rules") or [],
         skill_context=data.get("skill_context") or {},
         review_checklist=data.get("review_checklist") or [],
     )
@@ -109,6 +111,39 @@ def list_overlays() -> list[Overlay]:
         if ov is not None:
             overlays.append(ov)
     return overlays
+
+
+def apply_rule_overrides(files: list, overlay: Overlay | None, agent: str) -> list:
+    """Replace type-default agent rule entries with the stack's own.
+
+    An overlay `rules:` entry for `agent` drops the resolved files entry
+    whose src equals its `replaces` and appends itself with `src_root`
+    pointing into the stack bundle, so install_agent_file reads the rule
+    from the overlay instead of the agent dir. Entries whose src is missing
+    from the bundle are skipped entirely — the type default then stays
+    installed rather than leaving the slot empty. Rule files are
+    govkit-owned (no editable header), so unconditional refresh on
+    apply/upgrade/stack apply is the intended semantics.
+    """
+    if overlay is None or not overlay.rules:
+        return files
+    out = list(files)
+    for rule in overlay.rules:
+        if not isinstance(rule, dict) or rule.get("agent") != agent:
+            continue
+        src, dest = rule.get("src"), rule.get("dest")
+        if not (isinstance(src, str) and isinstance(dest, str)):
+            continue
+        if not (overlay.root / src).is_file():
+            continue
+        replaces = rule.get("replaces")
+        if replaces:
+            out = [e for e in out if e.get("src") != replaces]
+        entry: dict = {"src": src, "dest": dest, "src_root": str(overlay.root)}
+        if rule.get("managed_block"):
+            entry["managed_block"] = True
+        out.append(entry)
+    return out
 
 
 def apply_overlay(

@@ -21,17 +21,17 @@
 
 ## 2. Standards Check
 
-For each, cite the contract file + section:
+Data project — the standards set is the data one (see §3.7):
 
 - **Layering** — `docs/data/architecture/BOUNDARIES.md` §1 (staging may
   read sources only; marts may read intermediate + other marts; no
   cross-layer shortcuts)
 - **Query conventions** — `docs/data/architecture/QUERY_CONVENTIONS.md`
   (stack overlay; CTE skeleton, naming `stg_<source>__<table>`)
-- **Test discipline** — `docs/data/architecture/DATA_QUALITY_CONTRACT.md`
+- **Data quality tiers** — `docs/data/architecture/DATA_QUALITY_CONTRACT.md`
   §1 (schema tests `error`; distribution tests start `warn`)
-- **PII** — `docs/data/architecture/PII_HANDLING_CONTRACT.md` §1-4 (tag
-  + mask via `mask_pii()` macro per overlay's `PII_HANDLING.md`)
+- **PII handling** — `docs/data/architecture/PII_HANDLING_CONTRACT.md` §1-4
+  (tag + mask via `mask_pii()` macro per overlay's `PII_HANDLING.md`)
 - **Lineage** — `docs/data/architecture/LINEAGE_CONTRACT.md` §3 (column
   lineage required for PII-tagged columns)
 - **Environments** — `docs/data/architecture/ENVIRONMENTS.md` §3-4 (PII
@@ -75,6 +75,56 @@ side, monitored on ours.)
 
 ---
 
+## 3.6 Scope Boundary Source Check
+
+- [x] `nfrs.md` has a non-empty `## Out of scope` section
+
+Out-of-scope is author-declared — spec planning carries it into the plan
+verbatim.
+
+---
+
+## 3.7 Data Impact
+
+### Pipeline Impact
+
+- **Schedule / SLA:** new daily 06:00 UTC run; freshness target 1 hour
+  after scheduled completion, alert at 2×, block at 4× (per `nfrs.md`
+  `@nfr-freshness`).
+- **Backfill:** required for the initial load; re-runs of the same date
+  range must be idempotent (identical output row counts).
+- **Orchestration dependencies:** upstream `stripe.customers` source
+  freshness (24 h SLA, owned by stripe-sync); downstream Looker refresh
+  and the Hightouch reverse-ETL job consume `dim_customers`.
+
+### Contract Impact
+
+- **Mart schema changes:** new mart — no renames or removals of existing
+  columns, so no breaking change under the mart layer rule's
+  breaking-change table. Future column removals require deprecation
+  notice + consumer coordination.
+- **Exposures affected:** add `dim_customers` entries for Looker and
+  Hightouch to `models/marts/_exposures.yml`.
+
+### PII Impact
+
+- **Columns:** `customer_email`, `customer_phone` (contact),
+  `billing_address` (identity), `tax_id_last4` (sensitive) — categories
+  per `nfrs.md` `@nfr-pii`; no new PII category introduced.
+- **Masking:** `mask_pii()` macro per
+  `docs/data/architecture/PII_HANDLING_CONTRACT.md`; hashed/synthetic in
+  all non-prod environments.
+
+### Lineage Impact
+
+- **Source-to-mart:** new edges `stripe.customers → stg → int →
+  dim_customers`, captured on every prod run.
+- **Column-level lineage:** required for the four PII-tagged columns.
+- **Tool entries:** register the two exposures; lineage destination TBD
+  (Datahub / OpenLineage / dbt Cloud — pick one).
+
+---
+
 ## 4. ADR Decision
 
 - TBD: ADR required if `dim_customers` materialization is **incremental**
@@ -101,34 +151,12 @@ Per `eval_criteria.yaml`:
 
 ---
 
-## 6. Evaluation Impact
+## 6. Risks & Unknowns
 
-The mart is downstream-facing — every change carries breaking-change risk
-for Looker + Hightouch consumers. Per `MODEL_LAYERING.md` (overlay) §4:
-"removing or renaming mart columns requires deprecation notice + consumer
-coordination."
-
-No L5 LLM evaluation applies (no generated text in this feature).
-
----
-
-## 7. ADR Determination
-
-See §4. Default: no ADR.
-
----
-
-## 8. Shared Contract Analysis
-
-- `source('stripe', 'customers')` — owned by the stripe-sync team; we
-  inherit their freshness contract. Document the dependency.
-- `mask_pii()` macro — shared across the project; no change needed.
-
----
-
-## 9. Preflight Conclusion
-
-Proceed with the plan in `plan.md`. No new contracts needed; no ADR
-required (assuming default `table` materialization). Confirm lineage
-tool choice with leadership before the lineage capture step (item 10 in
-the plan).
+- Lineage tool choice is open (Datahub / OpenLineage / dbt Cloud) —
+  confirm with leadership before the lineage capture step.
+- `stripe.customers` freshness SLA is inherited, not controlled here; a
+  breach upstream shows as our staleness alert.
+- Every `dim_customers` change is downstream-facing (Looker + Hightouch)
+  — breaking-change risk is carried by the Contract Impact checklist
+  above, not by an API review.

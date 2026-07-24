@@ -18,8 +18,8 @@ This is WHERE business logic lives — not in staging, not in marts.
 
 - Reads from staging models OR other intermediate models, via `{{ ref(...) }}`
 - May NOT read from `marts/` (creates cycles + downstream dependencies)
-- Materialization: `ephemeral` (default) or `view`
-- Naming: `int_<business_concept>__<verb>.sql`
+- Naming and materialization follow
+  `docs/data/architecture/MODEL_LAYERING.md` (stack overlay)
 - Cross-source joins go HERE, not in staging
 
 ## Required documentation
