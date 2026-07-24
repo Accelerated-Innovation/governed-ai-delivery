@@ -1,0 +1,4 @@
+# The loop scripts are bash; a CRLF checkout would put \r in the shebang
+# and break them under Git Bash / CI.
+run_tests text eol=lf
+full_test text eol=lf
