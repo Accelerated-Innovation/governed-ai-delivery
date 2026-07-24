@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
-## [Unreleased]
+## [0.15.0] — 2026-07-24
 
 ### Added
 
@@ -44,6 +44,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- `govkit validate` now skips any `features/` directory whose name matches
+  the starter grammar (`starter_*`), matching `upgrade`'s behavior. The
+  definition of "starter feature" has a single owner (`cli/features.py`);
+  previously validate excluded only a hard-coded list of known starters, so
+  a starter shipped by a newer govkit could be mis-validated as a user
+  feature.
+- Internal: validate's check outcomes are an explicit `CheckStatus`
+  (PASS/FAIL/WARN) instead of `bool | None` with `None` meaning warn, and
+  the skip-on-failure file read has a single owner (`fs.read_text_or_none`)
+  instead of 21 inline try/excepts. CLI output is unchanged.
 - The planning skills (`adr-author`, `spec-planning`, `architecture-preflight`,
   `implementation-plan`) now resolve the docs tree from the install instead of
   hardcoding `docs/backend/`. Skill sources reference
