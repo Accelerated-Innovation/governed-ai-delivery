@@ -3321,7 +3321,7 @@ class TestCmdApplyStackOverlay:
         marker = read_govkit_marker(target)
         assert marker["stack"] is not None
         assert marker["stack"]["id"] == "dotnet-aspnet"
-        assert marker["stack"]["version"] == "0.10.0"
+        assert marker["stack"]["version"] == "0.11.0"
         assert marker["stack"]["display_name"].startswith("C# 12")
         assert marker["options"]["stack"] == "dotnet-aspnet"
 

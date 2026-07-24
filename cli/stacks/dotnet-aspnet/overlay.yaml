@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=../../../governance/schemas/stack-overlay.schema.json
 id: dotnet-aspnet
-version: "0.10.0"
+version: "0.11.0"
 display_name: "C# 12 / .NET 8 / ASP.NET Core Minimal APIs"
-summary: "ASP.NET Core Minimal APIs, xUnit, Moq, optional SpecFlow/Reqnroll for L4 BDD"
+summary: "ASP.NET Core Minimal APIs, xUnit, Moq, optional Reqnroll for L4 BDD"
 supported_types: [api, cli]
 default_assumptions:
   - id: stack.language
@@ -12,7 +12,7 @@ default_assumptions:
   - id: testing.unit
     value: xunit
   - id: testing.bdd
-    value: specflow
+    value: reqnroll
     review_required: true
 docs:
   - src: TECH_STACK.md
@@ -37,11 +37,11 @@ skill_context:
   language: csharp
   api_framework: aspnet-core
   unit_test: xunit
-  bdd_test: specflow
+  bdd_test: reqnroll
   package_files: ["*.csproj", "Directory.Packages.props", "global.json"]
   source_folder_hint: ["src/", "Source/"]
 review_checklist:
   - "Confirm target framework (net8.0 / net9.0) in TECH_STACK.md §1"
-  - "Confirm SpecFlow vs Reqnroll (its successor) in TESTING.md; set BDD to 'none' if your team does not practise BDD"
+  - "Confirm Reqnroll vs legacy SpecFlow in TESTING.md; set BDD to 'none' if your team does not practise BDD"
   - "Confirm Minimal APIs vs controller-based — TESTING.md and API_CONVENTIONS.md assume minimal APIs"
   - "If your repo uses Clean Architecture (Application/, Domain/, Infrastructure/) or layered (Controllers/, Services/), update BOUNDARIES.md and folder mappings"

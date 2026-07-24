@@ -146,7 +146,7 @@ Primary testing tools:
 xUnit                                  — unit and integration tests
 NSubstitute                            — dependency mocking
 Microsoft.AspNetCore.Mvc.Testing       — API integration tests (TestServer)
-SpecFlow                               — BDD / Gherkin integration tests
+Reqnroll                               — BDD / Gherkin integration tests
 FluentAssertions                       — expressive assertions
 Bogus                                  — test data generation
 ```

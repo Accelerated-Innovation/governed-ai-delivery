@@ -75,7 +75,7 @@ class TestLoadOverlay:
         assert ov is not None
         assert ov.id == "dotnet-aspnet"
         assert "ASP.NET Core" in ov.display_name
-        assert ov.version == "0.10.0"
+        assert ov.version == "0.11.0"
 
     def test_returns_none_for_unknown_overlay(self):
         from cli.overlay import load_overlay
