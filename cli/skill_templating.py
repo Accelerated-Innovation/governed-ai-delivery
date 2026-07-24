@@ -25,6 +25,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .agent_layout import AGENT_LAYOUTS
+from .fs import read_text_or_none
 
 _DOCS_AREA_TOKEN = "{{docs_area}}"
 _PII_KEYWORDS_TOKEN = "{{pii_keywords}}"
@@ -76,9 +77,8 @@ def template_installed_rule_bodies(target: Path, agent: str, pii_keywords: list[
 
     modified = 0
     for path in candidates:
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+        text = read_text_or_none(path)
+        if text is None:
             continue
         if _PII_KEYWORDS_TOKEN not in text:
             continue
@@ -103,9 +103,8 @@ def template_installed_skills(target: Path, agent: str, docs_area: str) -> int:
 
     modified = 0
     for path in sorted(skills_root.rglob("*.md")):
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+        text = read_text_or_none(path)
+        if text is None:
             continue
         expanded = expand_skill_tokens(text, docs_area)
         if expanded != text:

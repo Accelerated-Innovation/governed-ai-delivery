@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from . import paths
-from .fs import copy_entry
+from .fs import copy_entry, read_text_or_none
 from .headers import GOVKIT_BLOCK_BEGIN, upsert_govkit_block
 from .marker import _compare_version, read_govkit_marker
 
@@ -79,12 +79,7 @@ def write_managed_agent_block(dest: Path, body: str, applied_at: str | None = No
     untouched since the marker's `applied_at`); otherwise it is treated as the
     team's and the block is appended below their content.
     """
-    existing: str | None = None
-    if dest.exists():
-        try:
-            existing = dest.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            existing = None
+    existing = read_text_or_none(dest)
     replace_unblocked = False
     if existing is not None and GOVKIT_BLOCK_BEGIN not in existing:
         replace_unblocked = existing == body or _unmodified_since(dest, applied_at)
@@ -144,10 +139,7 @@ def reconcile_legacy_instruction_files(
             keep.append(entry)
             continue
         govkit_body = (agent_dir / entry["src"]).read_text(encoding="utf-8")
-        try:
-            legacy_body = legacy.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            legacy_body = None
+        legacy_body = read_text_or_none(legacy)
         is_govkit_orphan = legacy_body == govkit_body or _unmodified_since(legacy, applied_at)
         if is_govkit_orphan:
             try:
@@ -229,10 +221,8 @@ def _trees_identical(legacy: Path, src: Path) -> bool:
         rel = p.relative_to(legacy)
         if rel not in src_files:
             return False
-        try:
-            if p.read_text(encoding="utf-8") != (src / rel).read_text(encoding="utf-8"):
-                return False
-        except (OSError, UnicodeDecodeError):
+        legacy_text = read_text_or_none(p)
+        if legacy_text is None or legacy_text != read_text_or_none(src / rel):
             return False
     return True
 
@@ -252,10 +242,8 @@ def _is_govkit_pre_namespace_copy(legacy: Path, src: Path) -> bool:
         return src.is_dir() and _trees_identical(legacy, src)
     if not src.is_file():
         return False
-    try:
-        return legacy.read_text(encoding="utf-8") == src.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        return False
+    legacy_text = read_text_or_none(legacy)
+    return legacy_text is not None and legacy_text == read_text_or_none(src)
 
 
 def retire_pre_namespace_agent_files(

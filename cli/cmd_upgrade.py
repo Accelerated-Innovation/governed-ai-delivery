@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 
 from . import paths, version
+from .features import list_user_features
 from .install_common import (
     copy_governed_or_shared,
     install_agent_file,
@@ -213,18 +214,6 @@ TBD
 """
 
 
-def _list_user_features(features_dir: Path) -> list[Path]:
-    """Return sorted feature directories, excluding starters and dotfiles."""
-    if not features_dir.exists():
-        return []
-    return sorted(
-        d for d in features_dir.iterdir()
-        if d.is_dir()
-        and not d.name.startswith("starter_")
-        and not d.name.startswith(".")
-    )
-
-
 def _cmd_upgrade_migrate_levels(
     target: Path, stored_version: str, stored_level: str,
     agent: str, stored_options: dict,
@@ -342,7 +331,7 @@ def _migrate_l3_interactive(
 ) -> int:
     """Interactive 4-option prompt for v0.6 L3 (3-artifact) projects."""
     features_dir = target / "features"
-    feature_dirs = _list_user_features(features_dir)
+    feature_dirs = list_user_features(features_dir)
 
     _print_l3_migration_menu(stored_version, feature_dirs)
     choice = input("  Choice [1-4]: ").strip()

@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 
-from .fs import copy_entry
+from .fs import copy_entry, read_text_or_none
 
 # STACKS_DIR resolves to the bundled cli/stacks/ directory, mirroring how
 # AGENTS_DIR resolves AGENTS in cli/govkit.py. The repo-checkout vs
@@ -48,9 +48,8 @@ class Overlay:
 
 
 def _parse_overlay_yaml(overlay_path: Path) -> dict | None:
-    try:
-        text = overlay_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+    text = read_text_or_none(overlay_path)
+    if text is None:
         return None
     try:
         data = yaml.safe_load(text)

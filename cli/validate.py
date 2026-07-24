@@ -27,8 +27,10 @@ eval_criteria.yaml is deferred to CI or `check-jsonschema` if installed.
 
 import re
 import subprocess
+from enum import Enum
 from pathlib import Path
 
+from .features import list_user_features
 from .marker import TYPE_AREA, read_govkit_marker
 
 # ---------------------------------------------------------------------------
@@ -68,9 +70,20 @@ PASS = "\033[32mPASS\033[0m"
 FAIL = "\033[31mFAIL\033[0m"
 WARN = "\033[33mWARN\033[0m"
 
-STARTERS = {
-    "starter_backend", "starter_ui", "starter_cli", "starter_data",
-    "starter_backend_l5", "starter_cli_l5",
+
+class CheckStatus(Enum):
+    """Outcome of one governance check on a feature. WARN surfaces a visible
+    gap without failing the run."""
+
+    PASS = "pass"
+    FAIL = "fail"
+    WARN = "warn"
+
+
+_STATUS_LABEL = {
+    CheckStatus.PASS: PASS,
+    CheckStatus.FAIL: FAIL,
+    CheckStatus.WARN: WARN,
 }
 
 
@@ -78,7 +91,7 @@ STARTERS = {
 # Individual checks
 # ---------------------------------------------------------------------------
 
-def check_completeness(feature_dir: Path, artifacts: list[str] | None = None) -> tuple[bool, str]:
+def check_completeness(feature_dir: Path, artifacts: list[str] | None = None) -> tuple[CheckStatus, str]:
     """Check that all required artifacts exist and are non-empty."""
     if artifacts is None:
         artifacts = L4_REQUIRED_ARTIFACTS
@@ -97,15 +110,15 @@ def check_completeness(feature_dir: Path, artifacts: list[str] | None = None) ->
         if empty:
             parts.append(f"empty: {', '.join(empty)}")
         present = len(artifacts) - len(missing)
-        return False, f"{present}/{len(artifacts)} artifacts — {'; '.join(parts)}"
-    return True, f"{len(artifacts)}/{len(artifacts)} required artifacts present"
+        return CheckStatus.FAIL, f"{present}/{len(artifacts)} artifacts — {'; '.join(parts)}"
+    return CheckStatus.PASS, f"{len(artifacts)}/{len(artifacts)} required artifacts present"
 
 
-def check_gherkin_syntax(feature_dir: Path) -> tuple[bool, str]:
+def check_gherkin_syntax(feature_dir: Path) -> tuple[CheckStatus, str]:
     """Basic Gherkin structure validation using text matching."""
     path = feature_dir / _ACCEPTANCE_FEATURE
     if not path.exists():
-        return False, f"{_ACCEPTANCE_FEATURE} not found"
+        return CheckStatus.FAIL, f"{_ACCEPTANCE_FEATURE} not found"
     text = path.read_text(encoding="utf-8")
     issues = []
     if not re.search(r"^Feature:", text, re.MULTILINE):
@@ -117,23 +130,23 @@ def check_gherkin_syntax(feature_dir: Path) -> tuple[bool, str]:
     if not re.search(r"^\s*(Given|When|Then)", active_text, re.MULTILINE):
         issues.append("no Given/When/Then steps found")
     if issues:
-        return False, f"{_ACCEPTANCE_FEATURE}: {'; '.join(issues)}"
-    return True, f"{_ACCEPTANCE_FEATURE} has valid Gherkin structure"
+        return CheckStatus.FAIL, f"{_ACCEPTANCE_FEATURE}: {'; '.join(issues)}"
+    return CheckStatus.PASS, f"{_ACCEPTANCE_FEATURE} has valid Gherkin structure"
 
 
-def check_nfrs_no_tbd(feature_dir: Path) -> tuple[bool, str]:
+def check_nfrs_no_tbd(feature_dir: Path) -> tuple[CheckStatus, str]:
     """Check that nfrs.md has no remaining TBD entries."""
     path = feature_dir / _NFRS_MD
     if not path.exists():
-        return False, f"{_NFRS_MD} not found"
+        return CheckStatus.FAIL, f"{_NFRS_MD} not found"
     lines = path.read_text(encoding="utf-8").splitlines()
     tbd_lines = [i + 1 for i, ln in enumerate(lines) if re.search(r"\bTBD\b", ln)]
     if tbd_lines:
-        return False, f"{_NFRS_MD} contains TBD entries (lines {', '.join(map(str, tbd_lines))})"
-    return True, f"{_NFRS_MD} has no TBD entries"
+        return CheckStatus.FAIL, f"{_NFRS_MD} contains TBD entries (lines {', '.join(map(str, tbd_lines))})"
+    return CheckStatus.PASS, f"{_NFRS_MD} has no TBD entries"
 
 
-def check_nfrs_sections(feature_dir: Path) -> tuple[bool | None, str]:
+def check_nfrs_sections(feature_dir: Path) -> tuple[CheckStatus, str]:
     """Advisory check of the nfrs.md section contract (see NFRS_CONVENTIONS.md).
 
     Required sections (Repository Scope) are hard-gated elsewhere — repo-scope-check CI
@@ -145,12 +158,12 @@ def check_nfrs_sections(feature_dir: Path) -> tuple[bool | None, str]:
     whitespace-only lines and HTML comments are stripped. An empty `## Out of scope` — header
     only, or header plus a placeholder comment — is treated as missing, matching
     spec-planning's "missing or empty -> infer and label" behaviour (otherwise the validator
-    would say OK while the plan still inserts an INFERRED marker). Returns True when the full
+    would say OK while the plan still inserts an INFERRED marker). Returns PASS when the full
     contract is met.
     """
     path = feature_dir / _NFRS_MD
     if not path.exists():
-        return False, f"{_NFRS_MD} not found"
+        return CheckStatus.FAIL, f"{_NFRS_MD} not found"
     text = path.read_text(encoding="utf-8")
 
     def _populated(section: str) -> bool:
@@ -168,16 +181,16 @@ def check_nfrs_sections(feature_dir: Path) -> tuple[bool | None, str]:
     missing_required = [s for s in NFRS_REQUIRED_SECTIONS if not _populated(s)]
     if missing_required:
         sections = ", ".join(f"## {s}" for s in missing_required)
-        return None, (f"{_NFRS_MD} missing or empty required section(s) {sections} "
+        return CheckStatus.WARN, (f"{_NFRS_MD} missing or empty required section(s) {sections} "
                       f"(NFRS_CONVENTIONS.md) — hard-gated by repo-scope-check/preflight")
 
     missing_recommended = [s for s in NFRS_RECOMMENDED_SECTIONS if not _populated(s)]
     if missing_recommended:
         sections = ", ".join(f"## {s}" for s in missing_recommended)
-        return None, (f"{_NFRS_MD} {sections} missing or empty — "
+        return CheckStatus.WARN, (f"{_NFRS_MD} {sections} missing or empty — "
                       f"spec planning will infer deferrals (NFRS_CONVENTIONS.md)")
 
-    return True, f"{_NFRS_MD} section contract OK (Repository Scope + Out of scope populated)"
+    return CheckStatus.PASS, f"{_NFRS_MD} section contract OK (Repository Scope + Out of scope populated)"
 
 
 # marker.TYPE_AREA maps options.type to its governance area. data maps to its
@@ -229,16 +242,16 @@ def _resolve_eval_schema(feature_dir: Path) -> tuple[Path | None, str]:
     return None, _NO_SCHEMA_REASON
 
 
-def check_eval_criteria(feature_dir: Path) -> tuple[bool | None, str]:
+def check_eval_criteria(feature_dir: Path) -> tuple[CheckStatus, str]:
     """Check eval_criteria.yaml required keys, then validate the instance
     against the installed schema via check-jsonschema.
 
-    WARN (None) when no schema is installed for this project type or the
-    binary is unavailable — visible gaps, not silent green.
+    WARN when no schema is installed for this project type or the binary is
+    unavailable — visible gaps, not silent green.
     """
     path = feature_dir / _EVAL_CRITERIA_YAML
     if not path.exists():
-        return False, f"{_EVAL_CRITERIA_YAML} not found"
+        return CheckStatus.FAIL, f"{_EVAL_CRITERIA_YAML} not found"
     text = path.read_text(encoding="utf-8")
     issues = []
     if not re.search(r"^version:", text, re.MULTILINE):
@@ -246,30 +259,30 @@ def check_eval_criteria(feature_dir: Path) -> tuple[bool | None, str]:
     if not re.search(r"^mode:", text, re.MULTILINE):
         issues.append("missing 'mode' key")
     if issues:
-        return False, f"{_EVAL_CRITERIA_YAML}: {'; '.join(issues)}"
+        return CheckStatus.FAIL, f"{_EVAL_CRITERIA_YAML}: {'; '.join(issues)}"
 
     schema, skip_reason = _resolve_eval_schema(feature_dir)
     if schema is None:
-        return None, f"{_EVAL_CRITERIA_YAML} structure OK — {skip_reason}; instance validation skipped"
+        return CheckStatus.WARN, f"{_EVAL_CRITERIA_YAML} structure OK — {skip_reason}; instance validation skipped"
     try:
         result = subprocess.run(
             ["check-jsonschema", "--schemafile", str(schema), str(path)],
             capture_output=True, text=True, timeout=10,
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
-        return None, f"{_EVAL_CRITERIA_YAML} structure OK — install check-jsonschema for full validation"
+        return CheckStatus.WARN, f"{_EVAL_CRITERIA_YAML} structure OK — install check-jsonschema for full validation"
     if result.returncode != 0:
         detail = (result.stdout or result.stderr or "").strip().splitlines()
         snippet = detail[-1] if detail else "schema validation failed"
-        return False, f"{_EVAL_CRITERIA_YAML} fails {schema.name}: {snippet}"
-    return True, f"{_EVAL_CRITERIA_YAML} valid against {schema.name}"
+        return CheckStatus.FAIL, f"{_EVAL_CRITERIA_YAML} fails {schema.name}: {snippet}"
+    return CheckStatus.PASS, f"{_EVAL_CRITERIA_YAML} valid against {schema.name}"
 
 
-def check_plan_eval_prediction(feature_dir: Path) -> tuple[bool, str]:
+def check_plan_eval_prediction(feature_dir: Path) -> tuple[CheckStatus, str]:
     """Check that plan.md has an evaluation_prediction block with averages >= 4.0."""
     path = feature_dir / _PLAN_MD
     if not path.exists():
-        return False, f"{_PLAN_MD} not found"
+        return CheckStatus.FAIL, f"{_PLAN_MD} not found"
     text = path.read_text(encoding="utf-8")
 
     block_match = re.search(
@@ -277,17 +290,17 @@ def check_plan_eval_prediction(feature_dir: Path) -> tuple[bool, str]:
         text, re.DOTALL,
     )
     if not block_match:
-        return False, f"{_PLAN_MD} missing evaluation_prediction block"
+        return CheckStatus.FAIL, f"{_PLAN_MD} missing evaluation_prediction block"
 
     block = block_match.group(1)
 
     null_matches = re.findall(r":\s*null\b", block)
     if null_matches:
-        return False, f"{_PLAN_MD} evaluation_prediction has {len(null_matches)} null value(s) — all must be populated"
+        return CheckStatus.FAIL, f"{_PLAN_MD} evaluation_prediction has {len(null_matches)} null value(s) — all must be populated"
 
     averages = re.findall(r"average:\s*([\d.]+)", block)
     if not averages:
-        return False, f"{_PLAN_MD} evaluation_prediction missing average values"
+        return CheckStatus.FAIL, f"{_PLAN_MD} evaluation_prediction missing average values"
 
     below_threshold = []
     for avg_str in averages:
@@ -296,8 +309,8 @@ def check_plan_eval_prediction(feature_dir: Path) -> tuple[bool, str]:
             below_threshold.append(avg_str)
 
     if below_threshold:
-        return False, f"{_PLAN_MD} evaluation_prediction average(s) below 4.0: {', '.join(below_threshold)}"
-    return True, f"{_PLAN_MD} evaluation_prediction averages OK ({', '.join(averages)})"
+        return CheckStatus.FAIL, f"{_PLAN_MD} evaluation_prediction average(s) below 4.0: {', '.join(below_threshold)}"
+    return CheckStatus.PASS, f"{_PLAN_MD} evaluation_prediction averages OK ({', '.join(averages)})"
 
 
 # A markdown table's delimiter row (`|---|:---:|`). Rows before it are the
@@ -305,7 +318,7 @@ def check_plan_eval_prediction(feature_dir: Path) -> tuple[bool, str]:
 _RE_TABLE_DELIMITER = re.compile(r"^\|(?:\s*:?-+:?\s*\|)+$")
 
 
-def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[bool, str]:
+def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[CheckStatus, str]:
     """Cross-reference populated NFR categories vs @nfr-* tags in acceptance.feature.
 
     A section heading may be either the plain category (`## Freshness`) or the
@@ -317,7 +330,7 @@ def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[bool, str]:
     nfrs_path = feature_dir / _NFRS_MD
     feature_path = feature_dir / _ACCEPTANCE_FEATURE
     if not nfrs_path.exists() or not feature_path.exists():
-        return False, f"cannot check NFR coverage — missing {_NFRS_MD} or {_ACCEPTANCE_FEATURE}"
+        return CheckStatus.FAIL, f"cannot check NFR coverage — missing {_NFRS_MD} or {_ACCEPTANCE_FEATURE}"
 
     nfrs_text = nfrs_path.read_text(encoding="utf-8")
     feature_text = feature_path.read_text(encoding="utf-8")
@@ -345,7 +358,7 @@ def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[bool, str]:
             current_heading = None
 
     if not populated:
-        return True, "no populated NFR categories — tag coverage not required"
+        return CheckStatus.PASS, "no populated NFR categories — tag coverage not required"
 
     tags_found = set(re.findall(r"@nfr-(\w+)", feature_text))
 
@@ -363,8 +376,8 @@ def check_gherkin_nfr_coverage(feature_dir: Path) -> tuple[bool, str]:
     ]
 
     if missing_tags:
-        return False, f"Gherkin missing NFR tags: {', '.join(missing_tags)}"
-    return True, "Gherkin @nfr-* tag coverage matches populated NFR categories"
+        return CheckStatus.FAIL, f"Gherkin missing NFR tags: {', '.join(missing_tags)}"
+    return CheckStatus.PASS, "Gherkin @nfr-* tag coverage matches populated NFR categories"
 
 
 # ---------------------------------------------------------------------------
@@ -382,27 +395,27 @@ def _is_multi_agent(feature_dir: Path) -> bool | None:
     return bool(re.search(_RE_MULTI_AGENT, eval_path.read_text(encoding="utf-8"), re.MULTILINE))
 
 
-def check_agent_topology_exists(feature_dir: Path) -> tuple[bool, str]:
+def check_agent_topology_exists(feature_dir: Path) -> tuple[CheckStatus, str]:
     """When multi_agent: true, agent_topology.md must exist and be non-empty."""
     is_ma = _is_multi_agent(feature_dir)
     if not is_ma:
-        return True, "multi_agent not declared — agent topology check not applicable"
+        return CheckStatus.PASS, "multi_agent not declared — agent topology check not applicable"
     path = feature_dir / _AGENT_TOPOLOGY_MD
     if not path.exists():
-        return False, f"{_AGENT_TOPOLOGY_MD} missing — required when multi_agent: true"
+        return CheckStatus.FAIL, f"{_AGENT_TOPOLOGY_MD} missing — required when multi_agent: true"
     if path.stat().st_size == 0:
-        return False, f"{_AGENT_TOPOLOGY_MD} is empty"
-    return True, f"{_AGENT_TOPOLOGY_MD} present"
+        return CheckStatus.FAIL, f"{_AGENT_TOPOLOGY_MD} is empty"
+    return CheckStatus.PASS, f"{_AGENT_TOPOLOGY_MD} present"
 
 
-def check_agent_topology_sections(feature_dir: Path) -> tuple[bool, str]:
+def check_agent_topology_sections(feature_dir: Path) -> tuple[CheckStatus, str]:
     """When multi_agent: true, agent_topology.md must have all required sections."""
     is_ma = _is_multi_agent(feature_dir)
     if not is_ma:
-        return True, "multi_agent not declared — agent topology sections check not applicable"
+        return CheckStatus.PASS, "multi_agent not declared — agent topology sections check not applicable"
     path = feature_dir / _AGENT_TOPOLOGY_MD
     if not path.exists():
-        return False, f"{_AGENT_TOPOLOGY_MD} not found"
+        return CheckStatus.FAIL, f"{_AGENT_TOPOLOGY_MD} not found"
     text = path.read_text(encoding="utf-8")
     required = [
         (r"^##\s+Orchestrator", "Orchestrator"),
@@ -413,8 +426,8 @@ def check_agent_topology_sections(feature_dir: Path) -> tuple[bool, str]:
     missing = [name for pattern, name in required
                if not re.search(pattern, text, re.MULTILINE)]
     if missing:
-        return False, f"{_AGENT_TOPOLOGY_MD} missing sections: {', '.join(missing)}"
-    return True, f"{_AGENT_TOPOLOGY_MD} has all required sections"
+        return CheckStatus.FAIL, f"{_AGENT_TOPOLOGY_MD} missing sections: {', '.join(missing)}"
+    return CheckStatus.PASS, f"{_AGENT_TOPOLOGY_MD} has all required sections"
 
 
 def _is_mode_llm(feature_dir: Path) -> bool | None:
@@ -426,17 +439,17 @@ def _is_mode_llm(feature_dir: Path) -> bool | None:
     return bool(re.search(_RE_MODE_LLM, text, re.MULTILINE))
 
 
-def check_llm_nfrs(feature_dir: Path) -> tuple[bool, str]:
+def check_llm_nfrs(feature_dir: Path) -> tuple[CheckStatus, str]:
     """Check that nfrs.md has populated LLM-specific NFR categories when mode is llm."""
     mode_llm = _is_mode_llm(feature_dir)
     if mode_llm is None:
-        return False, f"{_EVAL_CRITERIA_YAML} not found — cannot check LLM NFRs"
+        return CheckStatus.FAIL, f"{_EVAL_CRITERIA_YAML} not found — cannot check LLM NFRs"
     if not mode_llm:
-        return True, "mode is not llm — LLM NFR check not applicable"
+        return CheckStatus.PASS, "mode is not llm — LLM NFR check not applicable"
 
     nfrs_path = feature_dir / _NFRS_MD
     if not nfrs_path.exists():
-        return False, f"{_NFRS_MD} not found"
+        return CheckStatus.FAIL, f"{_NFRS_MD} not found"
     nfrs_text = nfrs_path.read_text(encoding="utf-8")
 
     missing = []
@@ -453,11 +466,11 @@ def check_llm_nfrs(feature_dir: Path) -> tuple[bool, str]:
             missing.append(f"{category} (TBD)")
 
     if missing:
-        return False, f"LLM NFR categories incomplete: {', '.join(missing)}"
-    return True, "LLM NFR categories populated (latency, cost, fallback, safety)"
+        return CheckStatus.FAIL, f"LLM NFR categories incomplete: {', '.join(missing)}"
+    return CheckStatus.PASS, "LLM NFR categories populated (latency, cost, fallback, safety)"
 
 
-def check_l5_eval_criteria(feature_dir: Path) -> tuple[bool, str]:
+def check_l5_eval_criteria(feature_dir: Path) -> tuple[CheckStatus, str]:
     """Check that mode:llm declares at least one model evaluation criterion.
 
     Evaluator products are selected by an implementation profile or ADR, so
@@ -465,29 +478,29 @@ def check_l5_eval_criteria(feature_dir: Path) -> tuple[bool, str]:
     """
     mode_llm = _is_mode_llm(feature_dir)
     if mode_llm is None:
-        return False, f"{_EVAL_CRITERIA_YAML} not found"
+        return CheckStatus.FAIL, f"{_EVAL_CRITERIA_YAML} not found"
     if not mode_llm:
-        return True, "mode is not llm — L5 eval criteria check not applicable"
+        return CheckStatus.PASS, "mode is not llm — L5 eval criteria check not applicable"
 
     text = (feature_dir / _EVAL_CRITERIA_YAML).read_text(encoding="utf-8")
     has_llm_section = bool(re.search(r"^\s*llm_evaluation:\s*$", text, re.MULTILINE))
     criterion_count = len(re.findall(r"^\s*eval_class:\s*\S+", text, re.MULTILINE))
     if not has_llm_section or criterion_count == 0:
-        return False, (
+        return CheckStatus.FAIL, (
             f"{_EVAL_CRITERIA_YAML} mode is llm but llm_evaluation has no criteria"
         )
-    return True, f"L5 eval criteria present ({criterion_count} declared)"
+    return CheckStatus.PASS, f"L5 eval criteria present ({criterion_count} declared)"
 
 
-def check_l5_preflight_sections(feature_dir: Path) -> tuple[bool, str]:
+def check_l5_preflight_sections(feature_dir: Path) -> tuple[CheckStatus, str]:
     """Check that architecture_preflight.md has L5 sections (10-14) when mode is llm."""
     mode_llm = _is_mode_llm(feature_dir)
     if mode_llm is not None and not mode_llm:
-        return True, "mode is not llm — L5 preflight sections not required"
+        return CheckStatus.PASS, "mode is not llm — L5 preflight sections not required"
 
     path = feature_dir / _ARCH_PREFLIGHT_MD
     if not path.exists():
-        return False, f"{_ARCH_PREFLIGHT_MD} not found"
+        return CheckStatus.FAIL, f"{_ARCH_PREFLIGHT_MD} not found"
     text = path.read_text(encoding="utf-8")
 
     required_sections = [
@@ -503,19 +516,19 @@ def check_l5_preflight_sections(feature_dir: Path) -> tuple[bool, str]:
             missing.append(name)
 
     if missing:
-        return False, f"{_ARCH_PREFLIGHT_MD} missing L5 sections: {', '.join(missing)}"
-    return True, f"{_ARCH_PREFLIGHT_MD} has all L5 sections (10-14)"
+        return CheckStatus.FAIL, f"{_ARCH_PREFLIGHT_MD} missing L5 sections: {', '.join(missing)}"
+    return CheckStatus.PASS, f"{_ARCH_PREFLIGHT_MD} has all L5 sections (10-14)"
 
 
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
-def _data_prediction_not_required(feature_dir: Path) -> tuple[bool, str]:
+def _data_prediction_not_required(feature_dir: Path) -> tuple[CheckStatus, str]:
     """Data features carry no FIRST/Virtue self-prediction (ADR-0001 under
     docs/data/architecture/ADR/): enforcement is artifact completeness, the
     data eval-criteria schema, NFR tag coverage, and the mart-contract gate."""
-    return True, (
+    return CheckStatus.PASS, (
         "evaluation prediction not required for data features "
         "(docs/data/architecture/ADR/0001-data-features-skip-prediction-gate.md)"
     )
@@ -567,14 +580,10 @@ def _run_feature_checks(feature_dir: Path, checks: list) -> bool:
     feature_ok = True
     print(f"features/{feature_dir.name}/")
     for check_fn in checks:
-        result, message = check_fn(feature_dir)
-        if result is True:
-            print(f"  {PASS}  {message}")
-        elif result is False:
-            print(f"  {FAIL}  {message}")
+        status, message = check_fn(feature_dir)
+        print(f"  {_STATUS_LABEL[status]}  {message}")
+        if status is CheckStatus.FAIL:
             feature_ok = False
-        else:
-            print(f"  {WARN}  {message}")
     print()
     return feature_ok
 
@@ -636,10 +645,7 @@ def run_validation(target: Path, level: str | None = None, strict: bool = False)
 
     _, checks = _build_checks(level, (marker.get("options") or {}).get("type"))
 
-    feature_dirs = sorted(
-        d for d in features_dir.iterdir()
-        if d.is_dir() and d.name not in STARTERS and not d.name.startswith(".")
-    )
+    feature_dirs = list_user_features(features_dir)
 
     if not feature_dirs:
         print("No feature directories found to validate.")

@@ -27,6 +27,7 @@ from typing import Literal
 # Finding model
 # ---------------------------------------------------------------------------
 from .agent_layout import AGENT_LAYOUTS
+from .fs import read_text_or_none
 from .marker import MARKER_DIRNAME, MARKER_FILENAME, read_govkit_marker
 
 Severity = Literal["error", "warning", "info"]
@@ -157,9 +158,8 @@ def _check_rule_globs_resolve(target: Path, marker: dict) -> list[ValidationFind
 
     findings: list[ValidationFinding] = []
     for rule_file in _iter_rule_files(target, rules_dir):
-        try:
-            text = rule_file.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+        text = read_text_or_none(rule_file)
+        if text is None:
             continue
         fm = _parse_frontmatter(text)
         if not isinstance(fm, dict):
@@ -310,9 +310,8 @@ def _scan_baseline_headers(target: Path) -> list[tuple[Path, str, str]]:
         return []
     out: list[tuple[Path, str, str]] = []
     for md in docs_root.rglob("*.md"):
-        try:
-            text = md.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+        text = read_text_or_none(md)
+        if text is None:
             continue
         fm = parse_editable_header(text)
         if not fm:
@@ -387,9 +386,8 @@ def _check_llm_leakage_in_non_l5(target: Path, marker: dict) -> list[ValidationF
         return []
     findings: list[ValidationFinding] = []
     for md in sorted(arch_dir.glob("*.md")):
-        try:
-            text = md.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+        text = read_text_or_none(md)
+        if text is None:
             continue
         hits = [kw for kw in _LLM_LEAKAGE_KEYWORDS if kw in text]
         if not hits:
@@ -459,23 +457,16 @@ _DEP_MANIFESTS = (
 )
 
 
-def _read_lower(path: Path) -> str:
-    try:
-        return path.read_text(encoding="utf-8").lower()
-    except (OSError, UnicodeDecodeError):
-        return ""
-
-
 def _collect_dep_text(target: Path) -> str:
     """Concatenate every dep-manifest text we find under target's root."""
     chunks: list[str] = []
     for name in _DEP_MANIFESTS:
         for path in list(target.glob(name)) + list(target.rglob(name)):
             if path.is_file():
-                chunks.append(_read_lower(path))
+                chunks.append((read_text_or_none(path) or "").lower())
     for csproj in target.rglob("*.csproj"):
         if csproj.is_file():
-            chunks.append(_read_lower(csproj))
+            chunks.append((read_text_or_none(csproj) or "").lower())
     return "\n".join(c for c in chunks if c)
 
 
@@ -493,10 +484,10 @@ def _check_testing_framework_mismatch(target: Path, marker: dict) -> list[Valida
     testing_md = target / "docs" / "backend" / "architecture" / "TESTING.md"
     if not testing_md.is_file():
         return []
-    try:
-        testing_text = testing_md.read_text(encoding="utf-8").lower()
-    except (OSError, UnicodeDecodeError):
+    testing_text = read_text_or_none(testing_md)
+    if testing_text is None:
         return []
+    testing_text = testing_text.lower()
 
     dep_text = _collect_dep_text(target)
     if not dep_text.strip():
@@ -630,9 +621,8 @@ def _check_unexpanded_skill_tokens(target: Path, marker: dict) -> list[Validatio
 
     findings: list[ValidationFinding] = []
     for skill_file in sorted(skills_root.rglob("*.md")):
-        try:
-            text = skill_file.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+        text = read_text_or_none(skill_file)
+        if text is None:
             continue
         tokens = sorted(set(re.findall(r"\{\{[a-z_.]+\}\}", text)))
         if not tokens:
