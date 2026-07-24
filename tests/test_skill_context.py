@@ -455,3 +455,50 @@ class TestLoadSkillContextDocsArea:
             ctx = load_skill_context(tmp_path)
             assert ctx is not None
             assert ctx.docs_area == ""
+
+
+class TestPiiKeywordList:
+    def test_write_seeds_default_keyword_list(self, tmp_path):
+        import yaml
+
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        write_skill_context(tmp_path, marker)
+        data = yaml.safe_load(
+            (tmp_path / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8"),
+        )
+        assert data["pii"]["keyword_list"] == [
+            "email", "phone", "ssn", "dob", "birth", "address", "name",
+        ]
+
+    def test_rewrite_preserves_team_tuned_list(self, tmp_path):
+        """upgrade/stack apply regenerate skill_context.yaml; a tuned
+        keyword_list must survive the rewrite."""
+        import yaml
+
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        write_skill_context(tmp_path, marker)
+        path = tmp_path / ".govkit" / "skill_context.yaml"
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        data["pii"]["keyword_list"] = ["email", "iban", "national_id"]
+        path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+
+        write_skill_context(tmp_path, marker)
+
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        assert data["pii"]["keyword_list"] == ["email", "iban", "national_id"]
+
+    def test_load_returns_pii_keywords(self, tmp_path):
+        from cli.skill_context import load_skill_context
+
+        (tmp_path / ".govkit").mkdir(parents=True)
+        (tmp_path / ".govkit" / "skill_context.yaml").write_text(
+            "architecture: {}\nstack: {}\npii:\n  keyword_list: [email, iban]\n",
+            encoding="utf-8",
+        )
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.pii_keywords == ["email", "iban"]

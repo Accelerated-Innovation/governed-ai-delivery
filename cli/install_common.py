@@ -352,11 +352,12 @@ def post_install_finalize(
     from .rule_templating import template_installed_rules
     from .setup_review import print_review_checklist, write_setup_review
     from .skill_context import load_skill_context, write_skill_context
-    from .skill_templating import template_installed_skills
+    from .skill_templating import template_installed_rule_bodies, template_installed_skills
     write_setup_review(target, marker)
     write_skill_context(target, marker, profile=profile)
     sc = load_skill_context(target)
     if sc is not None:
         template_installed_rules(target, agent, sc.layers)
         template_installed_skills(target, agent, sc.docs_area)
+        template_installed_rule_bodies(target, agent, sc.pii_keywords)
     print_review_checklist(target, marker)

@@ -118,6 +118,9 @@ jobs:
               print("FAIL: no model YAML files found under models/.")
               sys.exit(1)
 
+          # Single source: this keyword list mirrors the default seed of
+          # pii.keyword_list in .govkit/skill_context.yaml. Teams tuning the
+          # list edit skill_context and update this regex to match.
           pii_name = re.compile(r"(email|phone|ssn|dob|birth|address|name)", re.I)
           errors: list[str] = []
 

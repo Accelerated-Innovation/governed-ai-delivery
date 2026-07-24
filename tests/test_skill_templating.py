@@ -139,6 +139,121 @@ class TestSkillSourcesTokenized:
             assert "{{docs_area}}" in text, (agent, skill)
 
 
+class TestPiiKeywordTemplating:
+    """Increment 10: the PII keyword list lives in skill_context, and rule
+    bodies carry {{pii_keywords}} rendered at install time."""
+
+    def test_render_pii_keywords(self):
+        from cli.skill_templating import render_pii_keywords
+
+        assert render_pii_keywords(["email", "ssn"]) == "`email`, `ssn`"
+
+    def test_expands_token_in_rules_dir(self, tmp_path):
+        from cli.skill_templating import template_installed_rule_bodies
+
+        rule = tmp_path / ".claude" / "rules" / "govkit" / "staging.md"
+        rule.parent.mkdir(parents=True)
+        rule.write_text("PII list ({{pii_keywords}}) MUST be tagged\n", encoding="utf-8")
+
+        count = template_installed_rule_bodies(tmp_path, "claude-code", ["email", "dob"])
+
+        assert count == 1
+        text = rule.read_text(encoding="utf-8")
+        assert "`email`, `dob`" in text
+        assert "{{pii_keywords}}" not in text
+
+    def test_expands_codex_nested_blocks_and_plain_rules(self, tmp_path):
+        from cli.skill_templating import template_installed_rule_bodies
+
+        nested = tmp_path / "models" / "staging" / "AGENTS.md"
+        nested.parent.mkdir(parents=True)
+        nested.write_text("list ({{pii_keywords}})\n", encoding="utf-8")
+        plain = tmp_path / ".agents" / "rules" / "bronze.md"
+        plain.parent.mkdir(parents=True)
+        plain.write_text("list ({{pii_keywords}})\n", encoding="utf-8")
+
+        count = template_installed_rule_bodies(tmp_path, "codex", ["email"])
+
+        assert count == 2
+        assert "`email`" in nested.read_text(encoding="utf-8")
+        assert "`email`" in plain.read_text(encoding="utf-8")
+
+    def test_empty_keyword_list_leaves_token(self, tmp_path):
+        from cli.skill_templating import template_installed_rule_bodies
+
+        rule = tmp_path / ".claude" / "rules" / "govkit" / "staging.md"
+        rule.parent.mkdir(parents=True)
+        rule.write_text("({{pii_keywords}})\n", encoding="utf-8")
+
+        assert template_installed_rule_bodies(tmp_path, "claude-code", []) == 0
+        assert "{{pii_keywords}}" in rule.read_text(encoding="utf-8")
+
+    @pytest.mark.parametrize(
+        "src",
+        [
+            "agents/claude-code/rules/data/staging.md",
+            "agents/codex/rules/data/staging.md",
+            "agents/copilot/instructions/data/staging.instructions.md",
+        ],
+    )
+    def test_staging_sources_carry_token_not_literal_list(self, src):
+        from cli import paths
+
+        text = (paths.REPO_ROOT / src).read_text(encoding="utf-8")
+        assert "{{pii_keywords}}" in text
+        assert "`ssn`,\n`dob`" not in text
+
+    def test_data_install_renders_pii_list_claude(self, tmp_path):
+        import argparse
+
+        from cli.cmd_apply import cmd_apply
+
+        target = tmp_path / "p"
+        target.mkdir()
+        cmd_apply(
+            argparse.Namespace(
+                agent="claude-code",
+                target=str(target),
+                level="4",
+                type="data",
+                ci="github",
+                stack="python-dbt",
+                force=False,
+                detect=False,
+            )
+        )
+
+        staging = (target / ".claude" / "rules" / "govkit" / "staging.md").read_text(
+            encoding="utf-8"
+        )
+        assert "`email`, `phone`, `ssn`, `dob`, `birth`, `address`, `name`" in staging
+        assert "{{pii_keywords}}" not in staging
+
+    def test_data_install_renders_pii_list_codex_nested_block(self, tmp_path):
+        import argparse
+
+        from cli.cmd_apply import cmd_apply
+
+        target = tmp_path / "p"
+        target.mkdir()
+        cmd_apply(
+            argparse.Namespace(
+                agent="codex",
+                target=str(target),
+                level="4",
+                type="data",
+                ci="github",
+                stack="python-dbt",
+                force=False,
+                detect=False,
+            )
+        )
+
+        nested = (target / "models" / "staging" / "AGENTS.md").read_text(encoding="utf-8")
+        assert "`email`, `phone`, `ssn`" in nested
+        assert "{{pii_keywords}}" not in nested
+
+
 class TestApplyExpandsSkillDocsArea:
     @pytest.mark.parametrize("agent,skills_dir", AGENT_SKILLS_DIRS)
     def test_data_install_skills_cite_data_docs(self, tmp_path, agent, skills_dir):

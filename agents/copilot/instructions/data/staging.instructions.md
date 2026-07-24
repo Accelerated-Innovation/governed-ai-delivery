@@ -19,13 +19,13 @@ business logic happens.
 - Allowed transformations: renames, type casts, light value cleanup
   (`lower(email)`, `trim(name)`), filtering NULL primary keys
 - Forbidden: joins across sources, aggregations, business-logic conditionals
-- Model name pattern: `stg_<source>__<table>.sql`
-- Materialization: `view` (default)
+- Naming and materialization follow
+  `docs/data/architecture/MODEL_LAYERING.md` (stack overlay)
 
 ## PII at the staging boundary
 
-Every column matching the team's PII keyword list (`email`, `phone`, `ssn`,
-`dob`, `name`, `address` by default) MUST be:
+Every column matching the team's PII keyword list ({{pii_keywords}} — tunable via
+`pii.keyword_list` in `.govkit/skill_context.yaml`) MUST be:
 1. Tagged with `meta.contains_pii: true` in the `_<model>.yml`
 2. Wrapped in the project's masking macro per
    `docs/data/architecture/PII_HANDLING.md` (stack overlay)

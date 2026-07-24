@@ -27,7 +27,9 @@ They are NOT where business logic happens.
 
 ## PII at the bronze boundary
 
-Every column matching the team's PII keyword list MUST be tagged and masked
+Every column matching the team's PII keyword list ({{pii_keywords}} —
+tunable via `pii.keyword_list` in `.govkit/skill_context.yaml`) MUST be
+tagged and masked
 per `docs/data/architecture/PII_HANDLING.md` (stack overlay) before the data
 is readable outside the ingest schema. Generating a bronze asset that
 exposes raw PII fails the PII check in CI.

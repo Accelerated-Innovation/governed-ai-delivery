@@ -72,6 +72,12 @@ _STYLE_LAYERS = {
 # CI option in marker → friendlier CI id used in skill_context.
 _CI_NAME = {"github": "github-actions", "azure": "azure-pipelines"}
 
+# Default PII keyword list — the single source the data rules and the
+# dbt-gate's PII regex are seeded from. Teams tune it by editing
+# pii.keyword_list in .govkit/skill_context.yaml; the edited list survives
+# re-writes (see _pii_facts).
+_DEFAULT_PII_KEYWORDS = ["email", "phone", "ssn", "dob", "birth", "address", "name"]
+
 
 @dataclass
 class SkillContext:
@@ -97,6 +103,7 @@ class SkillContext:
     ci: str | None
     docs_area: str
     llm: bool
+    pii_keywords: list[str] = field(default_factory=list)
     extensions: list[dict] = field(default_factory=list)
 
 
@@ -144,6 +151,28 @@ def _extension_facts(target: Path) -> list[dict]:
             "contract_paths": _extract_contract_paths(manifest),
         })
     return out
+
+
+def _pii_facts(target: Path) -> dict:
+    """Seed the tunable PII keyword list, preserving a team's edited list.
+
+    write_skill_context regenerates the file on every apply/upgrade/stack
+    apply; a non-empty keyword_list the team tuned must survive that, so the
+    existing value wins over the default seed.
+    """
+    path = target / ".govkit" / "skill_context.yaml"
+    if path.is_file():
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, yaml.YAMLError):
+            data = None
+        if isinstance(data, dict) and isinstance(data.get("pii"), dict):
+            keywords = data["pii"].get("keyword_list")
+            if isinstance(keywords, list):
+                cleaned = [k for k in keywords if isinstance(k, str) and k]
+                if cleaned:
+                    return {"keyword_list": cleaned}
+    return {"keyword_list": list(_DEFAULT_PII_KEYWORDS)}
 
 
 def _stack_facts(marker: dict) -> dict:
@@ -201,6 +230,7 @@ def build_skill_context(target: Path, marker: dict, profile: RepoProfile | None 
         # leaves its tokens unexpanded and doctor flags them.
         "docs_area": TYPE_AREA.get(options.get("type"), ""),
         "llm": level == "5",
+        "pii": _pii_facts(target),
         "extensions": _extension_facts(target),
     }
 
@@ -306,5 +336,6 @@ def load_skill_context(target: Path) -> SkillContext | None:
         ci=data.get("ci") if isinstance(data.get("ci"), str) else None,
         docs_area=data.get("docs_area") if isinstance(data.get("docs_area"), str) else "",
         llm=bool(data.get("llm")),
+        pii_keywords=_safe_str_list(_safe_dict(data.get("pii")).get("keyword_list")),
         extensions=[e for e in extensions if isinstance(e, dict)] if isinstance(extensions, list) else [],
     )

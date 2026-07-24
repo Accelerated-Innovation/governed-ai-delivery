@@ -27,6 +27,7 @@ from pathlib import Path
 from .agent_layout import AGENT_LAYOUTS
 
 _DOCS_AREA_TOKEN = "{{docs_area}}"
+_PII_KEYWORDS_TOKEN = "{{pii_keywords}}"
 
 
 def expand_skill_tokens(text: str, docs_area: str) -> str:
@@ -39,6 +40,51 @@ def expand_skill_tokens(text: str, docs_area: str) -> str:
     if not docs_area:
         return text
     return text.replace(_DOCS_AREA_TOKEN, docs_area)
+
+
+def render_pii_keywords(keywords: list[str]) -> str:
+    """Render the PII keyword list for prose insertion: `email`, `phone`, ..."""
+    return ", ".join(f"`{k}`" for k in keywords)
+
+
+def template_installed_rule_bodies(target: Path, agent: str, pii_keywords: list[str]) -> int:
+    """Expand `{{pii_keywords}}` in installed rule bodies.
+
+    Rule bodies embed no team-tunable literals — the tunables live in
+    skill_context (`pii.keyword_list`) and are rendered in at install time,
+    so the rules and the CI gate's PII check share one source. Walks the
+    agent's rules dir; codex additionally gets `.agents/rules` plus any
+    AGENTS.md carrying the token (its dbt layer rules install as nested
+    managed blocks). An empty list leaves tokens in place (doctor's skill
+    token check pattern: unknown context stays visible).
+    """
+    if not pii_keywords:
+        return 0
+    layout = AGENT_LAYOUTS.get(agent)
+    if layout is None:
+        return 0
+    rendered = render_pii_keywords(pii_keywords)
+
+    candidates: list[Path] = []
+    if layout.rules_dir and (target / layout.rules_dir).is_dir():
+        candidates.extend(sorted((target / layout.rules_dir).rglob("*.md")))
+    if agent == "codex":
+        agents_rules = target / ".agents" / "rules"
+        if agents_rules.is_dir():
+            candidates.extend(sorted(agents_rules.rglob("*.md")))
+        candidates.extend(sorted(target.rglob("AGENTS.md")))
+
+    modified = 0
+    for path in candidates:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if _PII_KEYWORDS_TOKEN not in text:
+            continue
+        path.write_text(text.replace(_PII_KEYWORDS_TOKEN, rendered), encoding="utf-8")
+        modified += 1
+    return modified
 
 
 def template_installed_skills(target: Path, agent: str, docs_area: str) -> int:

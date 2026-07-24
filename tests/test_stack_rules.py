@@ -19,11 +19,18 @@ STACK_DIR = REPO_ROOT / "cli" / "stacks" / "databricks-lakehouse"
 def _apply(target: Path, agent: str, stack: str) -> None:
     from cli.cmd_apply import cmd_apply
 
-    cmd_apply(argparse.Namespace(
-        agent=agent, target=str(target),
-        level="4", type="data", ci="github",
-        stack=stack, force=False, detect=False,
-    ))
+    cmd_apply(
+        argparse.Namespace(
+            agent=agent,
+            target=str(target),
+            level="4",
+            type="data",
+            ci="github",
+            stack=stack,
+            force=False,
+            detect=False,
+        )
+    )
 
 
 class TestApplyRuleOverrides:
@@ -33,19 +40,28 @@ class TestApplyRuleOverrides:
         root = tmp_path / "stack"
         root.mkdir(exist_ok=True)
         return Overlay(
-            id="test-stack", root=root, version="0.1.0",
-            display_name="Test", summary="", rules=rules,
+            id="test-stack",
+            root=root,
+            version="0.1.0",
+            display_name="Test",
+            summary="",
+            rules=rules,
         )
 
     def test_replaces_matching_entry_and_points_at_overlay(self, tmp_path):
         from cli.overlay import apply_rule_overrides
 
-        overlay = self._overlay(tmp_path, [{
-            "agent": "claude-code",
-            "src": "rules/bronze.md",
-            "dest": ".claude/rules/govkit/staging.md",
-            "replaces": "rules/data/staging.md",
-        }])
+        overlay = self._overlay(
+            tmp_path,
+            [
+                {
+                    "agent": "claude-code",
+                    "src": "rules/bronze.md",
+                    "dest": ".claude/rules/govkit/staging.md",
+                    "replaces": "rules/data/staging.md",
+                }
+            ],
+        )
         (overlay.root / "rules").mkdir()
         (overlay.root / "rules" / "bronze.md").write_text("# Bronze\n", encoding="utf-8")
 
@@ -65,12 +81,17 @@ class TestApplyRuleOverrides:
     def test_missing_overlay_source_keeps_type_default(self, tmp_path):
         from cli.overlay import apply_rule_overrides
 
-        overlay = self._overlay(tmp_path, [{
-            "agent": "claude-code",
-            "src": "rules/not-there.md",
-            "dest": ".claude/rules/govkit/staging.md",
-            "replaces": "rules/data/staging.md",
-        }])
+        overlay = self._overlay(
+            tmp_path,
+            [
+                {
+                    "agent": "claude-code",
+                    "src": "rules/not-there.md",
+                    "dest": ".claude/rules/govkit/staging.md",
+                    "replaces": "rules/data/staging.md",
+                }
+            ],
+        )
         files = [{"src": "rules/data/staging.md", "dest": ".claude/rules/govkit/staging.md"}]
 
         out = apply_rule_overrides(files, overlay, "claude-code")
@@ -79,9 +100,16 @@ class TestApplyRuleOverrides:
     def test_other_agents_entries_are_ignored(self, tmp_path):
         from cli.overlay import apply_rule_overrides
 
-        overlay = self._overlay(tmp_path, [{
-            "agent": "codex", "src": "rules/bronze.md", "dest": ".agents/rules/bronze.md",
-        }])
+        overlay = self._overlay(
+            tmp_path,
+            [
+                {
+                    "agent": "codex",
+                    "src": "rules/bronze.md",
+                    "dest": ".agents/rules/bronze.md",
+                }
+            ],
+        )
         files = [{"src": "rules/data/staging.md", "dest": ".claude/rules/govkit/staging.md"}]
 
         assert apply_rule_overrides(files, overlay, "claude-code") == files
@@ -105,8 +133,12 @@ class TestMedallionSourcesParity:
     @pytest.mark.parametrize("layer", LAYERS)
     def test_bodies_identical_across_agents(self, layer):
         texts = {
-            "claude-code": (STACK_DIR / "rules" / "claude-code" / f"{layer}.md").read_text(encoding="utf-8"),
-            "copilot": (STACK_DIR / "rules" / "copilot" / f"{layer}.instructions.md").read_text(encoding="utf-8"),
+            "claude-code": (STACK_DIR / "rules" / "claude-code" / f"{layer}.md").read_text(
+                encoding="utf-8"
+            ),
+            "copilot": (STACK_DIR / "rules" / "copilot" / f"{layer}.instructions.md").read_text(
+                encoding="utf-8"
+            ),
             "codex": (STACK_DIR / "rules" / "codex" / f"{layer}.md").read_text(encoding="utf-8"),
         }
         bodies = {agent: self._body(t) for agent, t in texts.items()}
@@ -125,7 +157,9 @@ class TestDataInstallStackRules:
         target.mkdir()
         _apply(target, "claude-code", "databricks-lakehouse")
 
-        staging = (target / ".claude" / "rules" / "govkit" / "staging.md").read_text(encoding="utf-8")
+        staging = (target / ".claude" / "rules" / "govkit" / "staging.md").read_text(
+            encoding="utf-8"
+        )
         assert "Bronze Layer" in staging
         assert "{{ source(" not in staging
         assert "**/bronze/**" in staging
@@ -159,7 +193,9 @@ class TestDataInstallStackRules:
         target.mkdir()
         _apply(target, "claude-code", "python-dbt")
 
-        staging = (target / ".claude" / "rules" / "govkit" / "staging.md").read_text(encoding="utf-8")
+        staging = (target / ".claude" / "rules" / "govkit" / "staging.md").read_text(
+            encoding="utf-8"
+        )
         assert "{{ source(" in staging
         assert "Bronze" not in staging
 
@@ -174,14 +210,22 @@ class TestStackApplySwapsRules:
         staging = target / ".claude" / "rules" / "govkit" / "staging.md"
         assert "{{ source(" in staging.read_text(encoding="utf-8")
 
-        cmd_stack_apply(argparse.Namespace(
-            stack_id="databricks-lakehouse", target=str(target), force=False,
-        ))
+        cmd_stack_apply(
+            argparse.Namespace(
+                stack_id="databricks-lakehouse",
+                target=str(target),
+                force=False,
+            )
+        )
         assert "Bronze Layer" in staging.read_text(encoding="utf-8")
 
-        cmd_stack_apply(argparse.Namespace(
-            stack_id="python-dbt", target=str(target), force=False,
-        ))
+        cmd_stack_apply(
+            argparse.Namespace(
+                stack_id="python-dbt",
+                target=str(target),
+                force=False,
+            )
+        )
         text = staging.read_text(encoding="utf-8")
         assert "{{ source(" in text
         assert "Bronze Layer" not in text
