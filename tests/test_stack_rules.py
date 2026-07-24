@@ -12,6 +12,10 @@ from pathlib import Path
 
 import pytest
 
+# Full apply + stack-swap cycles over the real bundle — the slow tier.
+# The fast loop (`pytest -m "not e2e"`) skips this module.
+pytestmark = pytest.mark.e2e
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 STACK_DIR = REPO_ROOT / "cli" / "stacks" / "databricks-lakehouse"
 

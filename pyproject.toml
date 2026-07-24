@@ -97,12 +97,13 @@ python_files = [
     "test_*.py"
 ]
 
-addopts = "-ra"
+addopts = "-ra --strict-markers"
 
 markers = [
     "unit: unit tests",
     "bdd: BDD integration tests",
-    "contract: contract tests"
+    "contract: contract tests",
+    "e2e: full-install end-to-end tests (apply/doctor/calibrate cycles over real bundle trees); excluded from the fast loop via -m 'not e2e'",
 ]
 
 # Note: import-linter config below is a reference template for target projects.

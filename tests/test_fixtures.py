@@ -23,6 +23,10 @@ from pathlib import Path
 import pytest
 import yaml
 
+# Full apply/doctor/calibrate cycles over real fixture repos — the slow tier.
+# The fast loop (`pytest -m "not e2e"`) skips this module.
+pytestmark = pytest.mark.e2e
+
 FIXTURES = Path(__file__).parent / "fixtures"
 
 

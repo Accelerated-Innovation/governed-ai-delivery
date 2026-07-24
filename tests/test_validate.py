@@ -372,8 +372,11 @@ class TestCheckEvalCriteria:
     def test_valid_criteria(self, tmp_path):
         write(tmp_path / "eval_criteria.yaml", VALID_EVAL_CRITERIA)
         result, msg = check_eval_criteria(tmp_path)
-        # Result is PASS or WARN depending on check-jsonschema availability
-        assert result is not CheckStatus.FAIL
+        # No governance tree can resolve under tmp_path, so the structure-OK
+        # path deterministically WARNs (schema validation skipped) — it must
+        # never silently PASS.
+        assert result is CheckStatus.WARN
+        assert "instance validation skipped" in msg
 
     def test_missing_version(self, tmp_path):
         write(tmp_path / "eval_criteria.yaml", """\
