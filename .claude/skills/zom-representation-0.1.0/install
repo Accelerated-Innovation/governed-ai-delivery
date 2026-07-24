@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Installs the zom-representation skill into <target-dir>/.claude/skills/.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  echo "usage: install <target-dir>" >&2
+  exit 2
+}
+
+[ $# -eq 1 ] || usage
+target="$1"
+[ -d "$target" ] || { echo "error: not a directory: $target" >&2; exit 1; }
+
+skill_dir="$target/.claude/skills/zom-representation"
+mkdir -p "$skill_dir"
+install -m 0644 "$here/SKILL.md" "$skill_dir/SKILL.md"
+
+version="unknown"
+if [ -f "$here/VERSION" ]; then
+  version="$(cat "$here/VERSION")"
+elif command -v git >/dev/null 2>&1 && git -C "$here" rev-parse --short HEAD >/dev/null 2>&1; then
+  version="$(git -C "$here" rev-parse --short HEAD)"
+fi
+
+{
+  echo "source=$version"
+  echo "installed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+} > "$skill_dir/INSTALLED_FROM"
+
+echo "OK: installed zom-representation into $skill_dir"
