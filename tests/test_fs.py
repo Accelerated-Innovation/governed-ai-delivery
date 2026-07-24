@@ -28,6 +28,35 @@ def _write_hashed_doc(path, body, recorded_body=None):
     path.write_text(header + body, encoding="utf-8")
 
 
+class TestReadTextOrNone:
+    """The single owner of govkit's skip-on-failure file read: text on
+    success, None when the file is missing, unreadable, or not UTF-8."""
+
+    def test_reads_utf8_text(self, tmp_path):
+        from cli.fs import read_text_or_none
+
+        doc = tmp_path / "doc.md"
+        doc.write_text("# Héading\n", encoding="utf-8")
+        assert read_text_or_none(doc) == "# Héading\n"
+
+    def test_missing_file_returns_none(self, tmp_path):
+        from cli.fs import read_text_or_none
+
+        assert read_text_or_none(tmp_path / "absent.md") is None
+
+    def test_directory_returns_none(self, tmp_path):
+        from cli.fs import read_text_or_none
+
+        assert read_text_or_none(tmp_path) is None
+
+    def test_invalid_utf8_returns_none(self, tmp_path):
+        from cli.fs import read_text_or_none
+
+        blob = tmp_path / "binary.md"
+        blob.write_bytes(b"\xff\xfe\x00garbage")
+        assert read_text_or_none(blob) is None
+
+
 class TestIsUserEditedHashBranch:
     def test_edited_body_detected_despite_restamped_applied_at(self, tmp_path):
         """The amnesia repro: upgrade re-stamps applied_at to now, so the

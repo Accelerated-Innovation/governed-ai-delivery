@@ -28,6 +28,7 @@ from pathlib import Path
 import yaml
 
 from .agent_layout import AGENT_LAYOUTS
+from .fs import read_text_or_none
 
 # Each agent uses its own frontmatter shape:
 #   claude-code → paths_template: layers.<k>  →  paths: [<globs>]      (list)
@@ -136,9 +137,8 @@ def template_installed_rules(
         return 0
     modified = 0
     for md in rules_root.rglob("*.md"):
-        try:
-            text = md.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+        text = read_text_or_none(md)
+        if text is None:
             continue
         new_text = expand_rule_template(text, layers)
         if new_text != text:

@@ -27,6 +27,16 @@ from .headers import (
 )
 
 
+def read_text_or_none(path: Path) -> str | None:
+    """The file's UTF-8 text, or None when it cannot be read — missing,
+    unreadable, or not valid UTF-8. govkit's skip-on-failure read: callers
+    treat an unreadable file as absent rather than crash."""
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
 def is_user_edited(dest: Path, applied_at: str | None) -> bool:
     """True if `dest` carries a govkit:editable header and its body no longer
     matches the content govkit installed. Used by edit-protection (A2) to
@@ -51,9 +61,8 @@ def is_user_edited(dest: Path, applied_at: str | None) -> bool:
         return False
     if not dest.is_file():
         return False
-    try:
-        content = dest.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+    content = read_text_or_none(dest)
+    if content is None:
         return False
     if not has_editable_header(content):
         return False
@@ -95,10 +104,8 @@ def _copy_entry_should_refuse(
         )
         # A refused pre-hash file keeps mtime-only protection, which a future
         # upgrade's applied_at re-stamp resets — warn about the window.
-        try:
-            fields = parse_editable_header(dest.read_text(encoding="utf-8"))
-        except (OSError, UnicodeDecodeError):
-            fields = None
+        text = read_text_or_none(dest)
+        fields = parse_editable_header(text) if text is not None else None
         if not fields or "hash" not in fields:
             print(
                 f"  note: {dest} predates content-hash protection; its edits "

@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from .fs import read_text_or_none
 
 # ---------------------------------------------------------------------------
 # Signal definitions
@@ -147,10 +148,9 @@ def _find_recursive(target: Path, pattern: str, max_depth: int = 4) -> list[Path
 
 
 def _read_text(path: Path) -> str:
-    try:
-        return path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        return ""
+    """read_text_or_none with detection's empty-string default: an unreadable
+    file simply contributes no signals."""
+    return read_text_or_none(path) or ""
 
 
 # ---------------------------------------------------------------------------
