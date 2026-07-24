@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- The dotnet-aspnet stack overlay (v0.11.0) recommends **Reqnroll** for BDD
+  in place of the discontinued SpecFlow: TESTING.md and TECH_STACK.md name
+  Reqnroll, and the overlay's `testing.bdd` default assumption and
+  `skill_context.bdd_test` are now `reqnroll` (still `review_required` —
+  the checklist asks teams on legacy SpecFlow to confirm). Doctor's D009
+  framework check already recognizes both.
+
 ## [0.15.0] — 2026-07-24
 
 ### Added

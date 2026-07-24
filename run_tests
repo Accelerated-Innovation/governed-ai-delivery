@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Fast feedback loop — must stay under 30 seconds total.
+# Skips the full-install e2e tier (see the e2e marker in pyproject.toml).
+set -e
+
+# The marker expression is this wrapper's whole job; a user -m would compete
+# with it (pytest lets the last -m win). Reject it rather than silently
+# discard either side. The wrapper's own -m also comes AFTER "$@" as a
+# backstop, so no spelling that slips past the guard can override it.
+for arg in "$@"; do
+  case "$arg" in
+    -m|-m?*|--markexpr|--markexpr=*)
+      echo "run_tests: -m/--markexpr is owned by this wrapper (fast loop = -m 'not e2e')." >&2
+      echo "Call pytest directly for a custom marker expression." >&2
+      exit 2
+      ;;
+  esac
+done
+
+exec python -m pytest "$@" -m "not e2e"

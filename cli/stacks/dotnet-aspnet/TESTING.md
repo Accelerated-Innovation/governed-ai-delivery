@@ -95,7 +95,7 @@ should have a corresponding automated test.
 
 BDD tests verify **observable system behavior**, not internal implementation details.
 
-**Tooling:** Use **SpecFlow** to bind Gherkin scenarios to C# step definitions.
+**Tooling:** Use **Reqnroll** to bind Gherkin scenarios to C# step definitions.
 
 ---
 
@@ -249,7 +249,7 @@ Tests may ONLY be changed when:
 
 # 6. BDD Integration Testing
 
-BDD integration tests should be derived from Gherkin scenarios using **SpecFlow**.
+BDD integration tests should be derived from Gherkin scenarios using **Reqnroll**.
 
 Example step definition:
 
