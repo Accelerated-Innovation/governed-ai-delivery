@@ -159,7 +159,7 @@ govkit apply --type ui-react --level 4 --target <path>
 
 Level 4 layers the following on top of Level 3:
 
-- `features/<name>/` directory model with the 5-artifact governed contract
+- `features/<name>/` directory model with the six-artifact UI contract
   (separate from `src/features/`)
 - `/govkit-ui-spec-planning`, `/govkit-ui-architecture-preflight`, `/govkit-ui-implementation-plan`
   skills

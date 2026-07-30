@@ -34,6 +34,12 @@ Copy the relevant templates for your project type:
 | `l3-quality-gate.yml` (L3 only) | ✓ | ✓ | — | — |
 | `ui-quality-gate.yml` | — | — | ✓ | — |
 | `ui-eval-gate.yml` (L4+) | — | — | ✓ | — |
+| `l3-ui-nextjs-quality-gate.yml` | — | — | Next.js L3 | — |
+| `ui-nextjs-quality-gate.yml` | — | — | Next.js L4/L5 | — |
+| `ui-nextjs-eval-gate.yml` | — | — | Next.js L4/L5 | — |
+| `l3-ui-nextjs-quality-gate.yml` | — | — | Next.js L3 | — |
+| `ui-nextjs-quality-gate.yml` | — | — | Next.js L4/L5 | — |
+| `ui-nextjs-eval-gate.yml` | — | — | Next.js L4/L5 | — |
 | `data-common-gate.yml` | — | — | — | ✓ |
 | `dbt-gate.yml` | — | — | — | `python-dbt` |
 | `databricks-gate.yml` | — | — | — | `databricks-lakehouse` |
@@ -57,6 +63,12 @@ Copy the relevant templates for your project type:
 | `eval-gate.yml` | — | FIRST/Virtue prediction thresholds, LLM eval |
 | `ui-quality-gate.yml` | — | Type check, ESLint, component tests, bundle size |
 | `ui-eval-gate.yml` | — | FIRST/Virtue prediction, Playwright E2E, axe scans |
+| `l3-ui-nextjs-quality-gate.yml` | Next.js typecheck, lint, tests, build, and API/database boundary | — |
+| `ui-nextjs-quality-gate.yml` | — | Next.js typecheck, lint, tests, build, feature validation, and API/database boundary |
+| `ui-nextjs-eval-gate.yml` | — | Next.js Playwright + axe, with opt-in stable screenshot comparisons |
+| `l3-ui-nextjs-quality-gate.yml` | Next.js typecheck, lint, tests, build, and API/database boundary | — |
+| `ui-nextjs-quality-gate.yml` | — | Next.js typecheck, lint, tests, build, feature validation, and API/database boundary |
+| `ui-nextjs-eval-gate.yml` | — | Next.js Playwright + axe, with opt-in stable screenshot comparisons |
 | `data-common-gate.yml` | Static governance artifact, PII policy, and `govkit validate` checks | Static governance artifact, PII policy, and `govkit validate` checks |
 | `dbt-gate.yml` | dbt dependency install, `dbt deps`, `dbt parse`, `dbt compile`, SQLFluff when configured, static model YAML checks | Same conservative checks; warehouse-backed test/source freshness execution remains opt-in |
 | `databricks-gate.yml` | Databricks bundle/config static checks, optional `databricks bundle validate` when CLI auth exists, secret/path/PII scans, pytest when configured | Same conservative checks; deploys, jobs, pipelines, and warehouse-backed data-quality checks remain opt-in |

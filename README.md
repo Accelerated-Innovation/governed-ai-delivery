@@ -78,12 +78,12 @@ Each `govkit apply` configures **one project shape**. Pick one value per flag:
 | Flag | Options | Pick this if… |
 |---|---|---|
 | `--agent` | `claude-code` · `copilot` · `codex` | …matches the AI tool your team uses |
-| `--type` | `api` · `cli` · `ui-react` · `ui-angular` · `data` | …describes this repo (or subdir) — backend service, CLI, React/Angular UI, or governed data project |
+| `--type` | `api` · `cli` · `ui-react` · `ui-angular` · `ui-nextjs` · `data` | …describes this repo (or subdir) — backend service, CLI, standalone UI framework, or governed data project |
 | `--level` | `3` · `4` · `5` | …`3` governed foundations (default) · `4` spec-driven delivery · `5` GenAI operations — see [Maturity Levels](#maturity-levels) |
 | `--ci` | `github` · `azure` | …your CI platform |
 | `--stack` | `python-fastapi` · `dotnet-aspnet` · `java-spring-boot` · `nodejs-fastify` · `go-gin` · `python-dbt` · `databricks-lakehouse` | …backend/data only; auto-detected, defaults by type (`python-fastapi` for `api` / `cli`, `python-dbt` for `data`). See [Switching Tech Stacks](#switching-tech-stacks) |
 
-Running `govkit apply` with no `--type`/`--ci`/`--stack` flags prompts interactively and auto-detects sensible defaults from your repo, including `python-dbt` from `dbt_project.yml` and `databricks-lakehouse` from `databricks.yml` / `databricks.yaml`. A `.govkit` marker records every choice so later commands (`calibrate`, `validate`, `upgrade`, `doctor`) need no re-specification.
+Running `govkit apply` with no `--type`/`--ci`/`--stack` flags prompts interactively and auto-detects sensible defaults from your repo, including Next.js from `package.json`, `python-dbt` from `dbt_project.yml`, and `databricks-lakehouse` from `databricks.yml` / `databricks.yaml`. UI types are standalone and do not accept `--stack`. A `.govkit` marker records every choice so later commands (`calibrate`, `validate`, `upgrade`, `doctor`) need no re-specification.
 
 <details>
 <summary><b>Full example commands for every combination</b></summary>
@@ -92,7 +92,7 @@ Running `govkit apply` with no `--type`/`--ci`/`--stack` flags prompts interacti
 # Level 3: Governed AI Delivery (Foundations) — agent rules + architecture docs only (default)
 govkit apply --agent claude-code --level 3 --type api --ci github --target .
 
-# Level 4: Spec-Driven Add-On — adds the features/ directory and 5-artifact contract
+# Level 4: Spec-Driven Add-On — adds governed per-feature artifacts
 govkit apply --agent claude-code --level 4 --type api --ci github --target .
 
 # Level 5: GenAI Operations plus provider-neutral LLM application contracts
@@ -107,6 +107,9 @@ govkit apply --agent copilot --level 4 --type ui-react --ci github --target .
 
 # Angular UI project (L4) on OpenAI Codex
 govkit apply --agent codex --level 4 --type ui-angular --ci github --target .
+
+# Next.js App Router + Tailwind CSS UI project (L4)
+govkit apply --agent codex --level 4 --type ui-nextjs --ci github --target .
 
 # Data project (L4) — dbt-layered, python-dbt stack inferred from dbt_project.yml
 govkit apply --agent claude-code --level 4 --type data --ci github --target .
@@ -141,7 +144,7 @@ your-project/
 
 > **govkit does not create or overwrite a top-level `CLAUDE.md` / `.github/copilot-instructions.md`.** Its governance loads from the `govkit/` namespace above (Claude Code and Copilot both auto-load those directories), so your own instruction file is left untouched. Copilot's equivalents live under `.github/instructions/govkit/` (rules) and `.github/skills/govkit-*` (skills). Codex has no rules directory, so its governance installs as a **managed block** inside `AGENTS.md` — at the root and per layer (`api/AGENTS.md`, `services/AGENTS.md`, …) — fenced by `<!-- BEGIN/END GOVKIT GOVERNANCE -->` and preserving whatever you wrote around it; Codex skills go under `.agents/skills/govkit-*`.
 
-**UI shape** (`--type ui-react` or `--type ui-angular`):
+**UI shape** (`--type ui-react`, `--type ui-angular`, or `--type ui-nextjs`):
 
 ```
 your-project/
@@ -152,15 +155,24 @@ your-project/
 ├── .claude/skills/
 │   └── govkit-ui-architecture-preflight/, govkit-ui-spec-planning/, govkit-ui-implementation-plan/, govkit-ui-adr-author/
 ├── docs/ui/
-│   ├── architecture/   — MVVM_CONTRACT, ACCESSIBILITY_STANDARDS, react|angular subdirs
+│   ├── architecture/   — shared contracts plus react|angular|nextjs subdirs
+│   ├── design/         — editable BRAND.md visual-direction contract
 │   └── evaluation/     — eval_criteria.md, scoring rubrics
 ├── governance/ui/      — schemas, templates
-└── ci/github/ (or azure/)  — l3-ui-quality-gate.yml + L4/L5 UI gates
+└── ci/github/ (or azure/)  — framework-aware UI quality/evaluation gates
 ```
 
 > As with the backend shape, no top-level `CLAUDE.md` / `copilot-instructions.md` is created. Copilot installs the same content under `.github/instructions/govkit/` (with `applyTo:` globs, `src/**`-scoped for the layer rules); Codex uses managed blocks in `AGENTS.md` at the root and under `src/`.
 
-Backend installs ship no UI artifacts; UI installs ship no backend artifacts. The CI dispatch is type-aware: backend types get `l3-quality-gate.yml`, UI types get `l3-ui-quality-gate.yml`. For fullstack monorepos, run one `govkit apply` per app subdirectory — see the [monorepo pattern](docs/MONOREPO_PATTERN.md).
+For `ui-nextjs`, the payload is server-first and API-first: App Router and
+Server Components by default, typed backend API adapters, Tailwind CSS v4, and
+a hard prohibition on direct SQL, database clients/ORMs, migrations, and
+connection strings. Route Handlers and Server Actions may form a thin BFF for
+session/token/protocol/limited aggregation concerns, but never own business
+logic. `govkit doctor` enforces the statically detectable parts of this
+boundary.
+
+Backend installs ship no UI artifacts; UI installs ship no backend artifacts. The CI dispatch is type-aware: backend types get backend gates, React/Angular get their existing UI gates, and Next.js gets dedicated Next-aware gates. For fullstack monorepos, run one `govkit apply` per app subdirectory — see the [monorepo pattern](docs/MONOREPO_PATTERN.md).
 
 > **Starter templates and worked examples** are bundled inside the govkit package, not copied into your project by `govkit apply`. Use `govkit init <feature-name>` to scaffold a new feature from the appropriate starter, or run `govkit list` to see what is available.
 
@@ -171,8 +183,8 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 | Command | What it does |
 |---|---|
 | `govkit apply` | Install / scaffold governance into your project. Detects your stack, writes the `.govkit` marker. |
-| `govkit calibrate` | Guided 9-step review to make the installed generic defaults match your repo. `--non-interactive` writes a checklist file; `--only <step>` revisits one decision. |
-| `govkit doctor` | Read-only **governance-fit** checks (rule globs resolve, CI/stack/language match, stale baselines, extension manifests). Run once you have source code, and in CI. Monorepo-aware. |
+| `govkit calibrate` | Guided, type-aware review to make installed defaults match your repo. UI reviews include brand readiness; `--non-interactive` writes a checklist file and `--only <step>` revisits one decision. |
+| `govkit doctor` | Read-only **governance-fit** checks (rule globs, CI/stack/language/framework fit, stale baselines, extensions, and the Next.js database boundary). Run once you have source code, and in CI. Monorepo-aware. |
 | `govkit validate` | Level-aware **per-feature** compliance check (artifact existence, Gherkin structure, NFR coverage, eval-criteria schema, prediction thresholds). No-op at L3. |
 | `govkit init <feature>` | Scaffold a new feature folder from the appropriate starter (L4+). |
 | `govkit stack` | `stack list` shows bundled tech-stack overlays; `stack apply <id>` swaps the stack on an existing install. |
@@ -191,7 +203,7 @@ govkit supports three operating levels in an additive ladder. Each level commits
 | Level | Name | What it ships | What the team commits to |
 |-------|------|---------------|--------------------------|
 | **Level 3** | Governed AI Delivery (Foundations) | Agent rules, architecture contracts under `docs/*/architecture/`, `/govkit-adr-author` skill, lean CI gate (commit-format + import-linter + sonar/snyk). **No `features/` directory, no per-feature artifacts.** | "Our AI agents follow our architecture contracts." Lowest-friction entry; no project-structure change required. |
-| **Level 4** | Spec-Driven Add-On | Adds the `features/<name>/` 5-artifact contract (`acceptance.feature`, `nfrs.md`, `eval_criteria.yaml`, `plan.md`, `architecture_preflight.md`), feature-coupled skills (`/govkit-spec-planning`, `/govkit-architecture-preflight`, `/govkit-implementation-plan`), test-first + spec-compliance rules (binding), governance CI jobs, and per-feature evaluation prediction (FIRST + 7 Virtues, average ≥ 4.0). | "We adopt spec-first, test-first feature delivery on top of L3." `govkit init` becomes meaningful here. |
+| **Level 4** | Spec-Driven Add-On | Adds the five common `features/<name>/` artifacts (`acceptance.feature`, `nfrs.md`, `eval_criteria.yaml`, `plan.md`, `architecture_preflight.md`); UI features add `design.md` as a sixth. Also adds feature-coupled skills, test-first + spec-compliance rules, governance CI jobs, and per-feature evaluation prediction. | "We adopt spec-first, test-first feature delivery on top of L3." `govkit init` becomes meaningful here. |
 | **Level 5** | GenAI Operations | LLM-specific NFRs, evaluation and safety gates, extension-aware coding-agent rules, and optional implementation-profile CI templates. Add `llm-application` for provider-neutral gateway, evaluation, observability, and model-guardrail contracts; add `skill-oriented-agent-architecture` for agent runtime and skills. | "Our model-backed features are governed (routing, evaluation, telemetry, safety)." Builds on L4. |
 
 **Start at Level 3 (default)** if you want governed AI agents without restructuring your codebase. **Move to Level 4** when your team is ready to commit to spec-first feature delivery. **Move to Level 5** when shipping LLM-powered features that need governed model routing, evaluation, and safety.
@@ -270,7 +282,7 @@ Or specify the starter type explicitly:
 govkit init my_feature --starter backend --target .
 ```
 
-The command auto-detects your maturity level from `.govkit`. **`govkit init` requires Level 4 or higher** — Level 3 (Foundations) ships agent rules and architecture contracts only and has no `features/` directory model. Running `govkit init` at L3 errors with a pointer to `govkit apply --level 4`. At L4 the bundled starter has all 5 artifacts; at L5 the starter adds `agent_topology.md` for multi-agent features.
+The command auto-detects your maturity level from `.govkit`. **`govkit init` requires Level 4 or higher** — Level 3 (Foundations) ships agent rules and architecture contracts only and has no `features/` directory model. Running `govkit init` at L3 errors with a pointer to `govkit apply --level 4`. At L4 backend/data starters have the five common artifacts and UI starters add `design.md`; at L5 applicable starters add `agent_topology.md` for multi-agent features.
 
 For Level 4 projects, each starter's `eval_criteria.yaml` includes mode selection instructions at the top. Set the `mode` field to match your feature type: `llm` (LLM generation/retrieval), `deterministic` (pure logic), or `none` (configuration artifacts). If the mode is `deterministic` or `none`, delete the `llm_evaluation` section.
 
@@ -395,6 +407,31 @@ The 8-step lifecycle above applies to all project types. Key differences by type
 
 **CI gates:** `ci/github/ui-quality-gate.yml`, `ci/github/ui-eval-gate.yml`
 
+### Next.js UI
+
+**Architecture:** Server-first, API-first layered App Router architecture.
+Server Components are the default. Feature slices separate
+`application/`, `api/`, `components/`, and `types/`; `src/app/` composes them.
+See `docs/ui/architecture/nextjs/`.
+
+**Data and business boundary:** The UI consumes backend-owned APIs. Direct SQL,
+database drivers/clients, ORMs, migrations, schemas, and connection strings are
+forbidden. Thin BFF code is limited to session handling, token protection,
+protocol adaptation, and limited aggregation; it contains no business rules.
+This rule cannot be waived by ADR.
+
+**Visual direction:** Tailwind CSS v4 maps semantic tokens from
+`docs/ui/design/BRAND.md`. Each L4+ feature includes `design.md` and an
+advisory `design/references/` folder for screenshots, sketches, and mockups.
+
+**Implementation order:** contracts/types → backend API adapter → application
+use case/view model → Server Component composition → minimal Client Components
+→ Playwright.
+
+**CI gates:** `ci/github/ui-nextjs-quality-gate.yml` and
+`ci/github/ui-nextjs-eval-gate.yml` (plus an L3 gate and Azure equivalents). Visual
+regression is opt-in.
+
 ### Data
 
 **Architecture:** governed data delivery — Staging → Intermediate → Marts for dbt projects, or Bronze → Silver → Gold / curated Delta layers for Databricks lakehouse projects. Staging/Bronze cleans source data, Intermediate/Silver holds joins and business logic, and Marts/Gold are the downstream contracts. See `docs/data/architecture/BOUNDARIES.md` plus the selected stack overlay's layering guidance.
@@ -436,7 +473,7 @@ Each `govkit apply` configures **one project shape**. There is no `--type fullst
 
 ```bash
 govkit apply --agent claude-code --type api      --level 4 --ci github --target apps/api
-govkit apply --agent claude-code --type ui-react --level 4 --ci github --target apps/web
+govkit apply --agent claude-code --type ui-nextjs --level 4 --ci github --target apps/web
 ```
 
 Each subdir becomes a self-contained govkit install — separate `.govkit` marker, separate `features/`, separate CI gates. The three agents all support subpath governance natively:
@@ -455,7 +492,7 @@ If your backend and UI live in **separate repositories** instead of subdirectori
 
 ## Switching Tech Stacks
 
-GovKit ships **stack overlays** — small bundles of 6 stack-specific architecture docs plus metadata. Pick one at install time with `--stack`, or swap later with `govkit stack apply`. Stack overlays apply to backend types (`api`, `cli`) and the `data` type; UI installs ignore `--stack`. The 6 docs vary per shape:
+GovKit ships **stack overlays** — small bundles of 6 stack-specific architecture docs plus metadata. Pick one at install time with `--stack`, or swap later with `govkit stack apply`. Stack overlays apply to backend types (`api`, `cli`) and the `data` type; standalone UI types reject `--stack` and `govkit stack apply`. The 6 docs vary per shape:
 
 - **Backend stacks** (`python-fastapi`, `dotnet-aspnet`, `java-spring-boot`, `nodejs-fastify`, `go-gin`): `TECH_STACK.md`, `API_CONVENTIONS.md`, `TESTING.md`, `LAYER_IMPLEMENTATION.md`, `SECURITY_AUTH_PATTERNS.md`, `OBSERVABILITY_PORT_CONTRACT.md`.
 - **Data stacks** (`python-dbt`, `databricks-lakehouse`): `TECH_STACK.md`, `TESTING.md`, `MODEL_LAYERING.md`, `PII_HANDLING.md`, `LINEAGE_OBSERVABILITY.md`, plus stack-specific query or pipeline contracts.

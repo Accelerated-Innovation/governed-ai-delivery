@@ -1,0 +1,58 @@
+# Azure DevOps L4/L5 Playwright, accessibility, and opt-in visual regression gate.
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: NextjsEvaluation
+    displayName: Next.js UI evaluation
+    jobs:
+      - job: Playwright
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.9'
+            displayName: Set up Node.js
+
+          - script: |
+              npm ci
+              npx playwright install --with-deps chromium
+              npm run build
+            displayName: Prepare application and browsers
+
+          # Configure playwright.config.ts webServer to run:
+          #   npm run start -- -p 3000
+          - script: npx playwright test
+            displayName: Run user-flow and axe tests
+            env:
+              PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+
+          # Set pipeline variable ENABLE_VISUAL_REGRESSION=true and tag stable
+          # screenshot tests with @visual to enable this extra gate.
+          - script: |
+              if [ "$(ENABLE_VISUAL_REGRESSION)" = "true" ]; then
+                npx playwright test --grep @visual
+              else
+                echo "Visual regression is not enabled."
+              fi
+            displayName: Optional visual regression
+            env:
+              PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+
+          - publish: playwright-report/
+            artifact: nextjs-playwright-report
+            condition: always()
+            displayName: Upload Playwright report
+
+          - publish: test-results/
+            artifact: nextjs-visual-diffs
+            condition: failed()
+            displayName: Upload visual diffs

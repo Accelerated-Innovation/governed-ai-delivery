@@ -2098,6 +2098,28 @@ class TestSmokeInit:
         feature_dir = target / "features" / "my-ui-feature"
         assert (feature_dir / "acceptance.feature").read_text(encoding="utf-8") == "Feature: bundled"
 
+    def test_init_nextjs_resolves_to_dedicated_starter(self, tmp_path, monkeypatch):
+        fake_repo = self._bundled_repo(tmp_path, starter="starter_ui_nextjs")
+        (fake_repo / "features" / "starter_ui_nextjs" / "design.md").write_text(
+            "# Design", encoding="utf-8",
+        )
+        monkeypatch.setattr("cli.paths.REPO_ROOT", fake_repo)
+
+        target = tmp_path / "project"
+        (target / "features").mkdir(parents=True)
+        write_govkit_marker(target, "codex", "4", {"type": "ui-nextjs"})
+
+        cmd_init(argparse.Namespace(
+            feature="dashboard",
+            target=str(target),
+            level=None,
+            starter="ui-nextjs",
+        ))
+
+        feature_dir = target / "features" / "dashboard"
+        assert (feature_dir / "acceptance.feature").read_text(encoding="utf-8") == "Feature: bundled"
+        assert (feature_dir / "design.md").exists()
+
     @pytest.mark.parametrize("ui_starter,level", [
         ("ui-react", "4"), ("ui-react", "5"),
         ("ui-angular", "4"), ("ui-angular", "5"),
@@ -2112,6 +2134,15 @@ class TestSmokeInit:
         assert result.name == "starter_ui", (
             f"--starter {ui_starter} --level {level} must resolve to starter_ui, got {result.name}"
         )
+
+    @pytest.mark.parametrize("level", ["4", "5"])
+    def test_resolve_starter_dir_nextjs(self, tmp_path, monkeypatch, level):
+        from cli.cmd_init import _resolve_starter_dir
+
+        fake_repo = self._bundled_repo(tmp_path, starter="starter_ui_nextjs")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", fake_repo)
+
+        assert _resolve_starter_dir("ui-nextjs", level).name == "starter_ui_nextjs"
 
 
 # ---------------------------------------------------------------------------
@@ -3363,9 +3394,8 @@ class TestCmdApplyStackOverlay:
         assert stack_assumption["value"] == "python-fastapi"
         assert stack_assumption["source"] == "default"
 
-    def test_ui_type_does_not_apply_stack_overlay(self, tmp_path, monkeypatch):
-        """UI installs target docs/ui/architecture/, not docs/backend/. Stack
-        overlays only ship backend docs, so they must be a no-op for UI types."""
+    def test_ui_type_rejects_stack_overlay(self, tmp_path, monkeypatch, capsys):
+        """Standalone UI types reject --stack instead of silently ignoring it."""
 
         agent = "ui-test-agent"
         agents = tmp_path / "agents" / agent
@@ -3402,13 +3432,16 @@ class TestCmdApplyStackOverlay:
         monkeypatch.setattr("cli.paths.AGENTS_DIR", tmp_path / "agents")
         monkeypatch.setattr("cli.paths.REPO_ROOT", tmp_path)
 
-        cmd_apply(argparse.Namespace(
-            agent=agent, target=str(target),
-            level="4", type="ui-react", ci="github", stack="dotnet-aspnet", force=False,
-        ))
+        with pytest.raises(SystemExit):
+            cmd_apply(argparse.Namespace(
+                agent=agent, target=str(target),
+                level="4", type="ui-react", ci="github",
+                stack="dotnet-aspnet", force=False,
+            ))
 
-        # No backend architecture docs should have been written for ui-react.
+        assert "standalone UI project type" in capsys.readouterr().err
         assert not (target / "docs" / "backend" / "architecture" / "TECH_STACK.md").exists()
+        assert not (target / ".govkit").exists()
 
 
 class TestCmdApplyDetection:
@@ -3427,7 +3460,11 @@ class TestCmdApplyDetection:
             "description": "detection test agent",
             "options": {
                 "level": {"prompt": "Level?", "choices": ["3", "4", "5"], "default": "4"},
-                "type": {"prompt": "Type?", "choices": ["api"], "default": "api"},
+                "type": {
+                    "prompt": "Type?",
+                    "choices": ["api", "data", "ui-react"],
+                    "default": "api",
+                },
                 "ci": {"prompt": "CI?", "choices": ["github"], "default": "github"},
                 "stack": {
                     "choices": ["python-fastapi", "dotnet-aspnet", "java-spring-boot",
@@ -3441,7 +3478,12 @@ class TestCmdApplyDetection:
                         "files": [{"src": "CLAUDE.md", "dest": "CLAUDE.md"}],
                         "shared": [],
                         "governed": ["docs/"],
-                    }
+                    },
+                    "ui-react": {
+                        "files": [{"src": "CLAUDE.md", "dest": "CLAUDE.md"}],
+                        "shared": [],
+                        "governed": [],
+                    },
                 }
             },
             "base_files": [],
@@ -3449,6 +3491,28 @@ class TestCmdApplyDetection:
         (agents / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
         (agents / "CLAUDE.md").write_text("# Agent", encoding="utf-8")
         return tmp_path
+
+    def test_ui_marker_strips_manifest_stack_default(self, tmp_path, monkeypatch):
+        repo = self._agent_with_stack(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        monkeypatch.setattr("cli.paths.AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent",
+            target=str(target),
+            level="4",
+            type="ui-react",
+            ci="github",
+            stack=None,
+            force=False,
+        ))
+
+        marker = read_govkit_marker(target)
+        assert marker is not None
+        assert marker["options"] == {"type": "ui-react", "ci": "github"}
+        assert marker["stack"] is None
 
     def test_dotnet_target_with_no_stack_flag_infers_dotnet_aspnet(self, tmp_path, monkeypatch):
 
@@ -3715,6 +3779,30 @@ class TestCmdApplyDetectFlag:
             "--detect must not report python-fastapi as detected when --type data was requested"
         )
 
+    def test_detect_flag_for_ui_reports_stack_not_applicable(
+        self, tmp_path, monkeypatch, capsys,
+    ):
+        repo = self._agent(tmp_path)
+        target = tmp_path / "project"
+        target.mkdir()
+        (target / "package.json").write_text(
+            '{"devDependencies":{"typescript":"^5.0.0"}}',
+            encoding="utf-8",
+        )
+        monkeypatch.setattr("cli.paths.AGENTS_DIR", repo / "agents")
+        monkeypatch.setattr("cli.paths.REPO_ROOT", repo)
+
+        cmd_apply(argparse.Namespace(
+            agent="test-agent", target=str(target),
+            level="4", type="ui-react", ci="github", stack=None, force=False,
+            detect=True,
+        ))
+
+        out = capsys.readouterr().out
+        assert "stack:  (not applicable" in out
+        assert "python-fastapi" not in out
+        assert not (target / ".govkit").exists()
+
 
 class TestCmdStackList:
     """PR 2 / Chunk F: govkit stack list enumerates bundled stack overlays."""
@@ -3809,6 +3897,26 @@ class TestCmdStackApply:
             cmd_stack_apply(argparse.Namespace(
                 stack_id="no-such-stack", target=str(target), force=False,
             ))
+
+    def test_stack_apply_rejects_standalone_ui_target(self, tmp_path, capsys):
+        from cli.cmd_stack import cmd_stack_apply
+
+        target = tmp_path / "ui-project"
+        target.mkdir()
+        write_govkit_marker(
+            target, "codex", "4",
+            {"type": "ui-react", "ci": "github"},
+        )
+
+        with pytest.raises(SystemExit):
+            cmd_stack_apply(argparse.Namespace(
+                stack_id="python-fastapi", target=str(target), force=False,
+            ))
+
+        assert "standalone UI project type" in capsys.readouterr().err
+        assert not (
+            target / "docs" / "backend" / "architecture" / "TECH_STACK.md"
+        ).exists()
 
     def test_stack_apply_respects_edit_protection(self, tmp_path, monkeypatch, capsys):
         """User edits to a stack doc since the last applied_at must survive
@@ -4055,10 +4163,38 @@ class TestNoUiDimensionInManifests:
         manifest_path = AGENTS_DIR / agent / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         type_choices = manifest["options"]["type"]["choices"]
-        for expected in ("api", "cli", "ui-react", "ui-angular"):
+        for expected in ("api", "cli", "ui-react", "ui-angular", "ui-nextjs"):
             assert expected in type_choices, (
                 f"{agent}: options.type.choices must include '{expected}'"
             )
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    def test_nextjs_type_is_isolated_and_complete(self, agent):
+        from cli.paths import AGENTS_DIR
+
+        manifest = json.loads(
+            (AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8")
+        )
+        variant = manifest["variants"]["type"]["ui-nextjs"]
+
+        assert "docs/ui/architecture/nextjs/" in variant["governed"]
+        assert "docs/ui/design/" in variant["governed"]
+        assert "docs/ui/architecture/react/" not in variant["governed"]
+        assert "docs/ui/architecture/angular/" not in variant["governed"]
+        assert variant["level_4"]["shared"] == ["features/starter_ui_nextjs/"]
+        assert "features/ui_task_dashboard/" not in variant["level_4"]["shared"]
+        assert "level_5" in variant
+
+        for platform in ("github", "azure"):
+            ci = manifest["variants"]["ci"][platform]
+            assert "ui-nextjs" in ci["by_type"]
+            assert "ui-nextjs" in ci["level_4"]["by_type"]
+            assert "ui-nextjs" in ci["level_5"]["by_type"]
+
+        for existing_type in ("ui-react", "ui-angular"):
+            existing = manifest["variants"]["type"][existing_type]
+            assert "docs/ui/architecture/nextjs/" not in existing["governed"]
+            assert "features/starter_ui_nextjs/" not in existing["level_4"]["shared"]
 
     @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
     def test_data_type_parity_across_agents(self, agent):

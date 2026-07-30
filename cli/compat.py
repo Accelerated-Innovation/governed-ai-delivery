@@ -9,6 +9,13 @@ from __future__ import annotations
 
 import sys
 
+UI_TYPES = frozenset({"ui-react", "ui-angular", "ui-nextjs"})
+
+
+def is_ui_type(type_value: str | None) -> bool:
+    """Return whether ``type_value`` identifies a standalone UI project."""
+    return type_value in UI_TYPES
+
 
 _SUPPORTED_LEVELS_BY_TYPE = {
     "data": {"3", "4"},

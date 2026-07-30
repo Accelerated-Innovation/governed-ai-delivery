@@ -93,6 +93,7 @@ def make_full_feature(feature_dir: Path, **overrides) -> None:
         "eval_criteria.yaml": VALID_EVAL_CRITERIA,
         "plan.md": VALID_PLAN,
         "architecture_preflight.md": "# Architecture Preflight\nAll checks passed.\n",
+        "design.md": "# Feature Design\nApproved.\n",
     }
     defaults.update(overrides)
     feature_dir.mkdir(parents=True, exist_ok=True)
@@ -1480,11 +1481,10 @@ def _write_ui_marker(target: Path, level: str, ui_type: str = "ui-react") -> Non
 
 
 class TestValidateUiShapes:
-    """v0.8 UI shapes (--type ui-react / ui-angular) must validate identically to backend.
+    """UI shapes validate with the common five-artifact hard gate.
 
-    Validate logic is stack-agnostic — the 5-artifact contract, FIRST/Virtue
-    prediction, and Gherkin coverage rules apply regardless of `type`. These
-    tests lock that in for UI markers per plan §8.2.
+    The design brief is scaffolded and reviewed during preflight, but remains
+    advisory to the CLI completeness check in this increment.
     """
 
     def test_ui_react_l3_no_op(self, tmp_path, monkeypatch):
@@ -1495,7 +1495,7 @@ class TestValidateUiShapes:
         assert result == 0, "L3 UI install must short-circuit and return 0"
 
     def test_ui_react_l4_5_artifact_passes(self, tmp_path, monkeypatch):
-        """L4 UI install with a complete 5-artifact feature validates clean."""
+        """L4 UI install with a complete five-artifact feature validates clean."""
         monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
         _write_ui_marker(tmp_path, level="4", ui_type="ui-react")
         features = tmp_path / "features"
@@ -1518,7 +1518,7 @@ class TestValidateUiShapes:
             """,
         })
         result = run_validation(tmp_path)
-        assert result == 0, "L4 UI install with 5-artifact feature must validate clean"
+        assert result == 0, "L4 UI install with five-artifact feature must validate clean"
 
     def test_ui_angular_l4_5_artifact_passes(self, tmp_path, monkeypatch):
         """Same as the react case but with ui-angular marker — type is opaque to validate."""
@@ -1544,7 +1544,31 @@ class TestValidateUiShapes:
             """,
         })
         result = run_validation(tmp_path)
-        assert result == 0, "L4 UI install (angular) with 5-artifact feature must validate clean"
+        assert result == 0, "L4 UI install (angular) with five-artifact feature must validate clean"
+
+    def test_ui_nextjs_design_artifact_is_advisory_to_completeness(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setenv("GOVKIT_NO_SHAPE_MIGRATION_WARNING", "1")
+        _write_ui_marker(tmp_path, level="4", ui_type="ui-nextjs")
+        feature = tmp_path / "features" / "dashboard"
+        make_full_feature(feature, **{
+            "nfrs.md": "## Performance\n- LCP under 2500ms on 4G\n",
+            "acceptance.feature": """\
+                Feature: Dashboard
+
+                  @e2e @nfr-performance
+                  Scenario: Page meets LCP target
+                    Given the dashboard is loaded
+                    When Core Web Vitals are measured
+                    Then LCP is below 2500ms
+            """,
+        })
+        (feature / "design.md").unlink()
+
+        result = run_validation(tmp_path)
+
+        assert result == 0
 
     def test_ui_marker_read_does_not_crash(self, tmp_path, monkeypatch):
         """`.govkit` carrying `type: ui-react` is read tolerantly by validate's marker path.

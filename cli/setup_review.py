@@ -14,6 +14,7 @@ shape and a generic checklist so the discipline starts on day one.
 from pathlib import Path
 
 from .agent_layout import AGENT_LAYOUTS, AgentLayout
+from .compat import is_ui_type
 
 
 def _layout_for(agent: str) -> AgentLayout:
@@ -24,7 +25,13 @@ def _layout_for(agent: str) -> AgentLayout:
 
 def _architecture_root(type_value: str) -> str:
     """Map project type to its docs architecture root."""
-    if type_value in ("ui-react", "ui-angular"):
+    if type_value == "ui-nextjs":
+        return "docs/ui/architecture/nextjs"
+    if type_value == "ui-react":
+        return "docs/ui/architecture/react"
+    if type_value == "ui-angular":
+        return "docs/ui/architecture/angular"
+    if is_ui_type(type_value):
         return "docs/ui/architecture"
     if type_value == "data":
         return "docs/data/architecture"
@@ -73,19 +80,34 @@ def _format_review_checklist(agent: str, type_value: str) -> str:
     agent/type; the items themselves are stable for PR 1."""
     arch = _architecture_root(type_value)
     layout = _layout_for(agent)
-    items = [
-        (f"{arch}/TECH_STACK.md",
-         "Confirm the language, framework, persistence, messaging, observability, "
-         "and approved library versions match your repo."),
-        (f"{arch}/BOUNDARIES.md",
-         "Confirm the architecture style (hexagonal / clean / layered / vertical-slice) "
-         "and the folder mappings (which folders are inbound, outbound, domain)."),
-        (f"{arch}/API_CONVENTIONS.md",
-         "Confirm REST/GraphQL/gRPC conventions, versioning policy, and error envelope."),
-        (f"{arch}/TESTING.md",
-         "Confirm the unit/BDD framework, mocking library, and any framework-as-L4-gate "
-         "decisions (set BDD to 'none' if your team does not practise BDD)."),
-    ]
+    if type_value == "ui-nextjs":
+        items = [
+            (f"{arch}/TECH_STACK.md", "Confirm Next.js, React, Node, Tailwind, and test versions."),
+            (f"{arch}/APPLICATION_STRUCTURE.md", "Confirm App Router and feature-layer mappings."),
+            (f"{arch}/API_BOUNDARY.md", "Confirm the API-only business/data boundary and thin-BFF limits."),
+            (f"{arch}/TESTING.md", "Confirm Vitest, Playwright, accessibility, and visual-test policy."),
+            ("docs/ui/design/BRAND.md", "Complete and approve the visual direction before UI generation."),
+        ]
+    elif is_ui_type(type_value):
+        items = [
+            (f"{arch}/TECH_STACK.md", "Confirm framework and approved library versions."),
+            ("docs/ui/architecture/MVVM_CONTRACT.md", "Confirm layer and backend API boundaries."),
+            (f"{arch}/COMPONENT_CONVENTIONS.md", "Confirm component and folder conventions."),
+            ("docs/ui/evaluation/eval_criteria.md", "Confirm test and accessibility thresholds."),
+            ("docs/ui/design/BRAND.md", "Complete and approve the visual direction before UI generation."),
+        ]
+    else:
+        items = [
+            (f"{arch}/TECH_STACK.md",
+             "Confirm the language, framework, persistence, messaging, observability, "
+             "and approved library versions match your repo."),
+            (f"{arch}/BOUNDARIES.md",
+             "Confirm the architecture style and folder mappings."),
+            (f"{arch}/API_CONVENTIONS.md",
+             "Confirm REST/GraphQL/gRPC conventions, versioning policy, and error envelope."),
+            (f"{arch}/TESTING.md",
+             "Confirm the unit/BDD framework, mocking library, and L4-gate decisions."),
+        ]
     # Agents with a native rules dir (claude-code, copilot) get govkit's
     # governance in that auto-loaded namespace — govkit owns and refreshes it,
     # so it is NOT a team-editable review item. Teams steer it through the
@@ -149,12 +171,15 @@ def write_setup_review(target: Path, marker: dict) -> None:
     assumptions = marker.get("assumptions", []) or []
     calibration = marker.get("calibration")
 
-    stack_line = (
-        f"`{stack.get('id')}@{stack.get('version', '?')}` ({stack.get('display_name', '')})"
-        if stack
-        else "_(not yet selected — first-class `--stack` support arrives in a later release; "
-             "for now, edit installed docs to match your repo)_"
-    )
+    if is_ui_type(type_value):
+        stack_line = "_not applicable — standalone UI project type_"
+    elif stack:
+        stack_line = (
+            f"`{stack.get('id')}@{stack.get('version', '?')}` "
+            f"({stack.get('display_name', '')})"
+        )
+    else:
+        stack_line = "_not selected_"
 
     body = f"""# GovKit Setup Review
 
@@ -220,6 +245,27 @@ def print_review_checklist(target: Path, marker: dict) -> None:
     )
 
     bar = "-" * 77
+    if type_value == "ui-nextjs":
+        highlights = [
+            f"{arch}/TECH_STACK.md",
+            f"{arch}/API_BOUNDARY.md",
+            f"{arch}/TESTING.md",
+            "docs/ui/design/BRAND.md",
+        ]
+    elif is_ui_type(type_value):
+        highlights = [
+            f"{arch}/TECH_STACK.md",
+            "docs/ui/architecture/MVVM_CONTRACT.md",
+            "docs/ui/evaluation/eval_criteria.md",
+            "docs/ui/design/BRAND.md",
+        ]
+    else:
+        highlights = [
+            f"{arch}/TECH_STACK.md",
+            f"{arch}/BOUNDARIES.md",
+            f"{arch}/TESTING.md",
+        ]
+
     lines = [
         "",
         bar,
@@ -228,15 +274,16 @@ def print_review_checklist(target: Path, marker: dict) -> None:
         "  See GOVKIT_SETUP_REVIEW.md (just written) for the full checklist.",
         "",
         "  Confirm these match your repo (GovKit governs against them):",
-        f"    1. {arch}/TECH_STACK.md      — language / framework / libraries",
-        f"    2. {arch}/BOUNDARIES.md      — architecture style + folder mappings",
-        f"    3. {arch}/TESTING.md         — test framework + BDD policy",
     ]
+    for index, path in enumerate(highlights, start=1):
+        lines.append(f"    {index}. {path}")
     # Codex has no auto-loaded rules dir, so its governance lives in AGENTS.md,
     # which the team reviews. claude-code/copilot governance is govkit-owned in
     # the rules namespace and isn't a team-review item.
     if layout.rules_dir is None:
-        lines.append(f"    4. {layout.instruction_file:32s} — top-level agent guidance")
+        lines.append(
+            f"    {len(highlights) + 1}. {layout.instruction_file} — top-level agent guidance"
+        )
     if needs_review_count:
         lines.append("")
         lines.append(

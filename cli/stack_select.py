@@ -21,6 +21,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .compat import is_ui_type
 from .detect import RepoProfile
 
 # The marker assumption id under which the chosen stack is recorded. Consumed
@@ -78,6 +79,8 @@ def resolve_stack_choice(
     it). The manifest's silent `stack` default is deliberately NOT consulted
     here so it can't shadow the per-type default.
     """
+    if is_ui_type(type_value):
+        return "", "not-applicable", "none", []
     if cli_stack:
         return cli_stack, "flag", "high", []
     if (inferred_stack
@@ -191,9 +194,24 @@ def apply_stack_overlay(
     `profile` is threaded back to the caller so `_post_install_finalize` can
     pass it to `write_skill_context` without re-walking the target tree.
 
-    No-op for UI types (returns Nones + original options + None profile).
+    Standalone UI types do not use stack overlays. Passing ``--stack`` for a
+    UI install is a user error; an omitted stack remains a clean no-op.
     """
     type_value = options.get("type", "")
+    if is_ui_type(type_value):
+        if cli_stack:
+            print(
+                f"Error: --type {type_value} is a standalone UI project type "
+                "and does not support --stack. Select the UI framework with "
+                "--type only.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        # Production manifests still expose a backend/data stack option. Strip
+        # its resolved default so standalone UI markers never carry a phantom
+        # backend stack in options.
+        ui_options = {key: value for key, value in options.items() if key != "stack"}
+        return None, None, ui_options, None
     if type_value not in ("api", "cli", "data"):
         return None, None, options, None
 

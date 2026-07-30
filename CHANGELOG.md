@@ -8,6 +8,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-07-30
+
+### Added
+
+- Added `ui-nextjs` as a standalone project type for Next.js 16 App Router,
+  React 19, strict TypeScript, and Tailwind CSS v4. It installs separately
+  from `ui-react` and `ui-angular`, rejects stack overlays, ships server-first
+  API-first architecture guidance for all three agents, and includes dedicated
+  GitHub Actions/Azure DevOps gates.
+- Added an editable UI brand contract and per-feature `design.md` with an
+  advisory screenshot/mockup reference workflow. UI validation now requires
+  this sixth feature artifact.
+- Added `govkit doctor` enforcement for forbidden database packages/imports,
+  SQL/migration artifacts, and connection-string keys in `ui-nextjs`
+  projects. Direct database access and UI-owned business logic cannot be
+  authorized by ADR.
+
 ### Changed
 
 - The dotnet-aspnet stack overlay (v0.11.0) recommends **Reqnroll** for BDD

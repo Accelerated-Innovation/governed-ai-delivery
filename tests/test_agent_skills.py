@@ -175,3 +175,36 @@ def test_starter_data_preflight_mirrors_skill_sections():
         "## 6. Risks & Unknowns",
     ):
         assert heading in starter, heading
+
+
+UI_SKILLS = [
+    REPO_ROOT / "agents" / agent / "skills" / "ui" / skill / "SKILL.md"
+    for agent in ("claude-code", "codex", "copilot")
+    for skill in ("adr-author", "architecture-preflight", "spec-planning", "implementation-plan")
+]
+
+
+@pytest.mark.parametrize(
+    "skill_path", UI_SKILLS,
+    ids=lambda p: f"{p.parents[3].name}/{p.parent.name}",
+)
+def test_ui_skills_enforce_nextjs_boundary_and_design(skill_path: Path):
+    text = skill_path.read_text(encoding="utf-8")
+    assert "database" in text.lower()
+    if skill_path.parent.name != "adr-author":
+        assert "design.md" in text
+
+
+@pytest.mark.parametrize(
+    "skill", ("adr-author", "architecture-preflight", "spec-planning", "implementation-plan"),
+)
+def test_ui_nextjs_skill_content_parity(skill: str):
+    texts = [
+        (
+            REPO_ROOT / "agents" / agent / "skills" / "ui" / skill / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        for agent in ("claude-code", "codex", "copilot")
+    ]
+    assert all(text == texts[0] for text in texts[1:]), (
+        f"{skill} drifted across agents"
+    )

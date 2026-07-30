@@ -170,6 +170,44 @@ class TestFrameworkDetection:
         prof = build_profile(tmp_path)
         assert "fastify" in prof.detected_frameworks
 
+    def test_nextjs_detected_without_backend_stack_mapping(self, tmp_path):
+        from cli.detect import build_profile, infer_stack
+
+        (tmp_path / "package.json").write_text(
+            '{"dependencies":{"next":"^16.0.0","react":"^19.0.0"}}',
+            encoding="utf-8",
+        )
+        prof = build_profile(tmp_path)
+        assert "nextjs" in prof.detected_frameworks
+        assert infer_stack(prof)[0] != "nextjs"
+
+    def test_react_vite_detected(self, tmp_path):
+        from cli.detect import build_profile
+
+        (tmp_path / "package.json").write_text(
+            '{"dependencies":{"react":"^19.0.0"},"devDependencies":{"vite":"^7.0.0"}}',
+            encoding="utf-8",
+        )
+        prof = build_profile(tmp_path)
+        assert "react-vite" in prof.detected_frameworks
+
+    def test_angular_detected_from_package_or_workspace_file(self, tmp_path):
+        from cli.detect import build_profile
+
+        (tmp_path / "angular.json").write_text("{}", encoding="utf-8")
+        prof = build_profile(tmp_path)
+        assert "angular" in prof.detected_frameworks
+
+    def test_tailwindcss_detected(self, tmp_path):
+        from cli.detect import build_profile
+
+        (tmp_path / "package.json").write_text(
+            '{"devDependencies":{"tailwindcss":"^4","@tailwindcss/postcss":"^4"}}',
+            encoding="utf-8",
+        )
+        prof = build_profile(tmp_path)
+        assert "tailwindcss" in prof.detected_frameworks
+
     def test_spring_boot_detected_in_pom(self, tmp_path):
         from cli.detect import build_profile
 

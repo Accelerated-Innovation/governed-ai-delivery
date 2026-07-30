@@ -1,14 +1,19 @@
-# MVVM Architecture Contract — UI
+# UI Architecture Contract
 
-This document defines the architectural contract for all UI projects governed by this kit, regardless of framework. All violations require an accepted ADR.
+This document defines the shared architectural boundary for all UI projects
+governed by this kit. React/Vite and Angular use the MVVM layer model below.
+Next.js uses the server-first API-first layered model in
+`docs/ui/architecture/nextjs/`. Framework-specific architecture rules take
+precedence when they are more specific.
 
 For framework-specific implementation rules see:
 - React: `docs/ui/architecture/react/`
 - Angular: `docs/ui/architecture/angular/`
+- Next.js: `docs/ui/architecture/nextjs/`
 
 ---
 
-## 1. Layer Model
+## 1. React/Vite and Angular Layer Model
 
 ```
 ┌─────────────────────────────────────┐
@@ -87,4 +92,31 @@ Never duplicate server data into the client state store. Never put UI-only state
 
 ## 5. Backend Boundary
 
-The UI owns nothing in the backend. The API layer consumes contracts defined by the backend team. If a required endpoint does not exist, an ADR is required to negotiate and document the contract before UI implementation begins.
+The UI owns nothing in the backend. All UI variants consume backend-owned API
+contracts. Direct database access, ORM or database-driver dependencies, SQL,
+migrations, and connection strings are forbidden in UI repositories.
+
+If a required endpoint does not exist, stop UI implementation for that
+capability and negotiate the API contract with the backend owner. An ADR may
+document the agreed integration shape, but an ADR cannot waive the database
+boundary.
+
+## 6. Next.js Layer Mapping
+
+Next.js is not forced into client-side MVVM terminology. Its equivalent
+responsibilities are:
+
+| Responsibility | Next.js location |
+|---|---|
+| Composition and routing | `src/app/` |
+| Feature UI | `src/features/<feature>/components/` |
+| Use-case orchestration and view models | `src/features/<feature>/application/` |
+| Typed backend API access | `src/features/<feature>/api/` |
+| Feature contracts | `src/features/<feature>/types/` |
+| Reusable primitives and infrastructure | `src/shared/` |
+
+Server Components are the default composition boundary. Client Components are
+used only where browser APIs or interaction require them. Route Handlers and
+Server Actions may form a thin BFF for session handling, token protection,
+protocol adaptation, or limited response aggregation; they may not contain
+domain rules or access a database.

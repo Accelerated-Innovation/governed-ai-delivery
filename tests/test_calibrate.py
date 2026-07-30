@@ -108,6 +108,23 @@ class TestBuildChecklist:
         assert any("docs/ui/architecture" in p for p in paths)
         assert not any("docs/backend/architecture" in p for p in paths)
 
+    def test_nextjs_steps_reference_real_contracts_and_brand(self, tmp_path):
+        from cli.calibrate import build_checklist
+
+        marker = _write_marker(
+            tmp_path,
+            options={"type": "ui-nextjs", "ci": "github"},
+            stack=None,
+        )
+        steps = build_checklist(tmp_path, marker)
+        paths = {step.file_path for step in steps if step.file_path}
+
+        assert "docs/ui/architecture/nextjs/APPLICATION_STRUCTURE.md" in paths
+        assert "docs/ui/architecture/nextjs/API_BOUNDARY.md" in paths
+        assert "docs/ui/architecture/nextjs/TESTING.md" in paths
+        assert "docs/ui/design/BRAND.md" in paths
+        assert len(steps) == 10
+
     def test_no_internal_pr_references_in_user_facing_text(self, tmp_path):
         """Calibration steps are user-facing; they must not leak internal
         roadmap/PR references (e.g. "PR 5+", "PR 6a wires the consumers")."""

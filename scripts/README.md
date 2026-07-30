@@ -7,7 +7,7 @@ PowerShell scripts that exercise `govkit apply` and `govkit validate` across the
 | Script | Matrix | Output dir |
 |---|---|---|
 | `smoke.ps1` | 3 agents × 3 levels (`--type api`) | `scripts/projects/` |
-| `smoke-ui.ps1` | 3 agents × 2 UI shapes × 3 levels (`--type ui-react\|ui-angular`) | `scripts/projects-ui/` |
+| `smoke-ui.ps1` | 3 agents × 3 standalone UI shapes × 3 levels (`ui-react`, `ui-angular`, `ui-nextjs`) | `scripts/projects-ui/` |
 | `smoke-dotnet.ps1` | 3 agents × 3 levels (`--type api`, .NET-realistic feature content) | `scripts/projects-dotnet/` |
 | `smoke-inspect.ps1` | Visual inspection helper (no apply/validate) | Reads from `scripts/projects*/` |
 
@@ -52,7 +52,8 @@ Subset of the matrix:
 | `-Levels` | `3,4,5` | Restrict to a subset of maturity levels. |
 | `-Force` | (off) | Delete existing sandbox dirs before recreating. Without this, existing dirs are skipped. |
 
-`smoke-ui.ps1` also accepts `-Types ui-react,ui-angular` for the UI shape dimension.
+`smoke-ui.ps1` also accepts `-Types ui-react,ui-angular,ui-nextjs` for the UI
+shape dimension.
 
 ## Redirecting output to an external sandbox
 
@@ -124,4 +125,5 @@ They shouldn't be — the `.gitignore` covers them. If they show up in `git stat
 
 ## Related plans
 
-- [plans/PROJECT_SHAPE_REFACTOR_PLAN.md](../plans/PROJECT_SHAPE_REFACTOR_PLAN.md) — these scripts are baseline tooling for the v0.8.0 refactor. `smoke-inspect.ps1` is the visual-inspection helper (Inc 0b). `smoke.ps1` / `smoke-ui.ps1` / `smoke-dotnet.ps1` now use the flat `--type {api,cli,ui-react,ui-angular}` enumeration (Inc 11 dropped the legacy `--ui` cross-product).
+- [plans/PROJECT_SHAPE_REFACTOR_PLAN.md](../plans/PROJECT_SHAPE_REFACTOR_PLAN.md) — baseline tooling for the flat project-shape model.
+- [plans/UI_NEXTJS_STANDALONE_PLAN.md](../plans/UI_NEXTJS_STANDALONE_PLAN.md) — `ui-nextjs` architecture, boundary, visual-input, and smoke expectations.

@@ -1,6 +1,9 @@
 # Monorepo Pattern — One Repo, Multiple Shapes
 
-govkit v0.8's flat `--type` model treats each install as **one project shape**: backend (`api` / `cli`) or UI (`ui-react` / `ui-angular`). The cross-product UI sidecar from v0.7 is gone — there's no "fullstack" shape.
+GovKit's flat `--type` model treats each install as **one project shape**:
+backend (`api` / `cli`), data, or one standalone UI framework (`ui-react`,
+`ui-angular`, or `ui-nextjs`). There is no "fullstack" shape and UI types do
+not merge or overlap.
 
 For teams that need both backend and UI in the same repository, the supported pattern is **one `govkit apply` per subdirectory** of a monorepo. Each subdir becomes a complete, self-contained govkit install. The three agents all support subpath governance natively — no install-time changes required.
 
@@ -64,9 +67,12 @@ govkit apply --agent claude-code --type api --level 4 --ci github --target apps/
 # React UI
 govkit apply --agent claude-code --type ui-react --level 4 --ci github --target apps/web
 
+# Or a standalone Next.js App Router UI
+govkit apply --agent claude-code --type ui-nextjs --level 4 --ci github --target apps/web
+
 # Or use a different agent per app if your team mixes them
 govkit apply --agent codex   --type api      --level 4 --ci github --target apps/api
-govkit apply --agent copilot --type ui-react --level 4 --ci github --target apps/web
+govkit apply --agent copilot --type ui-nextjs --level 4 --ci github --target apps/web
 ```
 
 `--target` accepts any path. The relative path you point at becomes the install root for that shape.

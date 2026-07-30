@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 from . import paths
+from .compat import is_ui_type
 from .install_common import install_agent_file, post_install_finalize
 from .manifest import load_manifest, resolve_variant_files
 from .marker import read_govkit_marker, write_govkit_marker
@@ -60,6 +61,16 @@ def cmd_stack_apply(args: argparse.Namespace) -> None:
         print(
             "Error: no .govkit marker found. Run 'govkit apply' first to "
             "establish a baseline before swapping stacks.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    stored_type = (stored.get("options") or {}).get("type")
+    if is_ui_type(stored_type):
+        print(
+            f"Error: target type {stored_type!r} is a standalone UI project "
+            "type and does not support stack overlays. Select UI frameworks "
+            "with `govkit apply --type <ui-type>`.",
             file=sys.stderr,
         )
         sys.exit(1)

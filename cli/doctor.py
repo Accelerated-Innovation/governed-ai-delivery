@@ -5,8 +5,8 @@
 # you may not use this file except in compliance with the License.
 """govkit doctor — read-only governance fit validator.
 
-PR 4. Loads .govkit/marker.json, builds a RepoProfile, runs checks
-D001-D014, emits ValidationFindings, exits non-zero on errors. Designed
+Loads .govkit/marker.json, builds a RepoProfile, runs registered checks,
+emits ValidationFindings, and exits non-zero on errors. Designed
 to run in CI alongside `govkit validate` (which covers per-feature
 compliance; doctor covers governance fit).
 
@@ -675,6 +675,68 @@ def _check_extension_contracts(target: Path, marker: dict) -> list[ValidationFin
                 ),
             ))
     return findings
+
+
+@_register_check("D016")
+def _check_nextjs_api_database_boundary(
+    target: Path, marker: dict,
+) -> list[ValidationFinding]:
+    """D016 — ui-nextjs must not contain direct database-access artifacts."""
+    if marker.get("options", {}).get("type") != "ui-nextjs":
+        return []
+
+    from .ui_boundary import scan_ui_boundary
+
+    return [
+        ValidationFinding(
+            id="D016",
+            severity="error",
+            category="ui-api-boundary",
+            file=violation.file,
+            message=violation.detail,
+            suggested_action=(
+                "remove the database artifact and consume the capability through "
+                "a typed backend API; this boundary cannot be waived by ADR"
+            ),
+        )
+        for violation in scan_ui_boundary(target)
+    ]
+
+
+@_register_check("D017")
+def _check_ui_framework_matches_type(
+    target: Path, marker: dict,
+) -> list[ValidationFinding]:
+    """D017 — surface a declared UI type that conflicts with repo signals."""
+    declared = marker.get("options", {}).get("type")
+    expected = {
+        "ui-nextjs": "nextjs",
+        "ui-react": "react-vite",
+        "ui-angular": "angular",
+    }.get(declared)
+    if expected is None:
+        return []
+
+    from .detect import build_profile
+
+    detected = set(build_profile(target).detected_frameworks)
+    ui_signals = detected & {"nextjs", "react-vite", "angular"}
+    if not ui_signals or expected in ui_signals:
+        return []
+    return [ValidationFinding(
+        id="D017",
+        severity="warning",
+        category="ui-framework-mismatch",
+        file="package.json",
+        message=(
+            f"marker declares type={declared!r}, but repository signals indicate "
+            f"{', '.join(sorted(ui_signals))}"
+        ),
+        suggested_action=(
+            f"confirm the intended standalone UI type and re-run `govkit apply "
+            f"--type {declared}` only if it matches this application"
+        ),
+    )]
 
 
 # D002 (rule body mentions an absent folder name) is intentionally deferred.

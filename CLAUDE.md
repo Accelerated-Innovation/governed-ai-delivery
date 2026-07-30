@@ -61,15 +61,20 @@ Skills follow the **Open Skills** standard: frontmatter is `name`+`description` 
 
 ### Variant manifests
 
-Each agent's `manifest.json` declares install sets as **variants** keyed by options (`level` ∈ {3,4,5}, `type` ∈ {api,cli,ui-react,ui-angular,data}, `ci` ∈ {github,azure}). `manifest.py` merges/replaces variant declarations (`by_type`, `by_stack`) into a concrete `(files, shared, governed)` list. A flat `files` format is retained for legacy/custom agents (`_apply_legacy_install`). The chosen options are recorded in the target's `.govkit/marker.json` so later commands (`calibrate`, `doctor`, `validate`, `upgrade`) need no re-specification.
+Each agent's `manifest.json` declares install sets as **variants** keyed by options (`level` ∈ {3,4,5}, `type` ∈ {api,cli,ui-react,ui-angular,ui-nextjs,data}, `ci` ∈ {github,azure}). `manifest.py` merges/replaces variant declarations (`by_type`, `by_stack`) into a concrete `(files, shared, governed)` list. A flat `files` format is retained for legacy/custom agents (`_apply_legacy_install`). The chosen options are recorded in the target's `.govkit/marker.json` so later commands (`calibrate`, `doctor`, `validate`, `upgrade`) need no re-specification.
 
 ### Maturity levels are additive
 
-L3 ⊂ L4 ⊂ L5. **L3** = agent rules + architecture contracts, no `features/` dir (`govkit init` errors, `validate` no-ops). **L4** adds the `features/<name>/` 5-artifact contract and FIRST/7-Virtue prediction (avg ≥ 4.0). **L5** adds GenAI-ops contracts via `extensions/`. Only the governance file is re-issued per level; lower-level files are never replaced by higher levels.
+L3 ⊂ L4 ⊂ L5. **L3** = agent rules + architecture contracts, no `features/` dir (`govkit init` errors, `validate` no-ops). **L4** adds five common feature artifacts; UI types require `design.md` as a sixth. **L5** adds GenAI-ops contracts via `extensions/`. Only the governance file is re-issued per level; lower-level files are never replaced by higher levels.
 
 ### Stack overlays
 
 Only 6 architecture docs vary per backend/data stack (`TECH_STACK.md`, `API_CONVENTIONS.md`, `TESTING.md`, `LAYER_IMPLEMENTATION.md`, `SECURITY_AUTH_PATTERNS.md`, `OBSERVABILITY_PORT_CONTRACT.md`). They live in `cli/stacks/<id>/` with an `overlay.yaml`. Everything else in `docs/` is stack-agnostic baseline. `govkit stack apply <id>` swaps overlays post-install, respecting edit-protection.
+
+UI project types are standalone and reject both `--stack` and
+`govkit stack apply`. `ui-nextjs` uses its own server-first API-first payload;
+direct SQL/database dependencies are a non-waivable boundary enforced by
+doctor D016.
 
 ## When changing behavior, keep the payload internally consistent
 

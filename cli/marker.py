@@ -37,6 +37,7 @@ TYPE_AREA = {
     "cli": "backend",
     "ui-react": "ui",
     "ui-angular": "ui",
+    "ui-nextjs": "ui",
     "data": "data",
 }
 
@@ -135,8 +136,9 @@ def _maybe_warn_shape_migration(options: dict | None) -> None:
     _SHAPE_MIGRATION_WARNING.warn(
         "warning: .govkit marker carries the legacy 'ui' option. "
         "The project-shape model changed in 0.8.0. The `ui` option is no "
-        "longer supported. Re-run 'govkit apply --type ui-react' (or "
-        "'ui-angular') to switch to a UI shape, or 'govkit apply --type api' "
+        "longer supported. Re-run 'govkit apply --type ui-react', "
+        "'ui-angular', or 'ui-nextjs' to switch to a UI shape, or "
+        "'govkit apply --type api' "
         "to keep the current backend shape. "
         "(Set GOVKIT_NO_SHAPE_MIGRATION_WARNING=1 to suppress.)"
     )

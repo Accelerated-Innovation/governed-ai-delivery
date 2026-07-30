@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from . import paths, version
-from .compat import validate_level_type
+from .compat import is_ui_type, validate_level_type
 from .install_common import (
     copy_governed_or_shared,
     install_agent_file,
@@ -54,9 +54,18 @@ def _cmd_apply_detect_dry_run(target: Path, args: argparse.Namespace) -> None:
     type_display = cli_type or f"{default_type} (default)"
     validate_level_type(getattr(args, "level", None), type_value)
 
+    cli_stack = getattr(args, "stack", None)
+    if is_ui_type(type_value) and cli_stack:
+        print(
+            f"Error: --type {type_value} is a standalone UI project type "
+            "and does not support --stack. Select the UI framework with "
+            "--type only.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     chosen_stack, stack_source, _, _ = resolve_stack_choice(
-        getattr(args, "stack", None), type_value,
-        profile, inferred_stack, inferred_confidence, target,
+        cli_stack, type_value, profile, inferred_stack, inferred_confidence, target,
     )
 
     print(f"\n[dry-run --detect] govkit apply would target: {target}\n")
@@ -69,7 +78,10 @@ def _cmd_apply_detect_dry_run(target: Path, args: argparse.Namespace) -> None:
     print(f"  level:  {getattr(args, 'level', None) or '(prompted)'}")
     print(f"  type:   {type_display}")
     print(f"  ci:     {getattr(args, 'ci', None) or '(prompted)'}")
-    print(f"  stack:  {chosen_stack}  (source: {stack_source})")
+    if is_ui_type(type_value):
+        print("  stack:  (not applicable — standalone UI type)")
+    else:
+        print(f"  stack:  {chosen_stack}  (source: {stack_source})")
     print("\nNo files written. Re-run without --detect to apply.")
 
 
@@ -205,7 +217,7 @@ def register(subparsers) -> None:
     p.add_argument("--target", required=True, help=paths.TARGET_HELP)
     p.add_argument("--level", choices=["3", "4", "5"], default=None,
                    help="Maturity level (default: prompted)")
-    p.add_argument("--type", choices=["api", "cli", "ui-react", "ui-angular", "data"], default=None,
+    p.add_argument("--type", choices=["api", "cli", "ui-react", "ui-angular", "ui-nextjs", "data"], default=None,
                    help="Project type (default: prompted)")
     p.add_argument("--ci", choices=["github", "azure"], default=None,
                    help="CI platform (default: prompted)")
