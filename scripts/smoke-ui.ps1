@@ -4,7 +4,7 @@
 
 .DESCRIPTION
   Parallel to smoke.ps1 but exercises the flat UI shape enumeration
-  (--type ui-react / --type ui-angular). For each (agent, type, level)
+  (--type ui-react / --type ui-angular / --type ui-nextjs). For each (agent, type, level)
   combination, creates a fresh sandbox, runs `govkit apply --type <ui-shape>`,
   drops in the 3 spec inputs (acceptance.feature, nfrs.md, eval_criteria.yaml)
   of a minimal hello_world_ui feature for L4+, and runs `govkit validate`.
@@ -28,7 +28,7 @@
   Agents to test. Default: all three (claude-code, codex, copilot).
 
 .PARAMETER Types
-  UI shapes to test. Default: ui-react, ui-angular.
+  UI shapes to test. Default: ui-react, ui-angular, ui-nextjs.
 
 .PARAMETER Levels
   Levels to test. Default: 3, 4, 5.
@@ -47,7 +47,7 @@ param(
     [string]$SandboxRoot = $PSScriptRoot,
     [string]$RepoPath    = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
     [string[]]$Agents    = @("claude-code", "codex", "copilot"),
-    [string[]]$Types     = @("ui-react", "ui-angular"),
+    [string[]]$Types     = @("ui-react", "ui-angular", "ui-nextjs"),
     [string[]]$Levels    = @("3", "4", "5"),
     [switch]$Force
 )
@@ -138,6 +138,15 @@ code_quality:
   minimum_virtue_average: 4
 '@
 
+$featureDesign = @'
+# Feature Design: Hello World UI Card
+
+- Required state: default greeting
+- Responsive behavior: preserve readable line length on narrow screens
+- Brand application: use semantic project tokens
+- References: none; absence of mockups is explicit and allowed
+'@
+
 function Write-HelloUiFeature {
     param([string]$ProjectRoot)
     $dir = Join-Path $ProjectRoot "features\hello_world_ui"
@@ -145,6 +154,7 @@ function Write-HelloUiFeature {
     Set-Content -Path (Join-Path $dir "acceptance.feature") -Value $featureAcceptance -Encoding utf8
     Set-Content -Path (Join-Path $dir "nfrs.md")            -Value $featureNfrs       -Encoding utf8
     Set-Content -Path (Join-Path $dir "eval_criteria.yaml") -Value $featureEval       -Encoding utf8
+    Set-Content -Path (Join-Path $dir "design.md")          -Value $featureDesign     -Encoding utf8
 }
 
 # ----------------------------------------------------------------------------

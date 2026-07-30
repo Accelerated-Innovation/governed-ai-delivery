@@ -1,0 +1,59 @@
+# Next.js L4/L5 Playwright, accessibility, and optional visual-regression gate.
+name: Next.js UI Evaluation Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.9'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Next.js
+        run: npm run build
+
+      # Configure playwright.config.ts webServer to run:
+      #   npm run start -- -p 3000
+      - name: Run user-flow and axe tests
+        run: npx playwright test
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+
+      # Opt in with repository variable ENABLE_VISUAL_REGRESSION=true and tag
+      # stable screenshot tests with @visual.
+      - name: Run visual regression tests
+        if: vars.ENABLE_VISUAL_REGRESSION == 'true'
+        run: npx playwright test --grep @visual
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload visual diffs
+        if: failure() && vars.ENABLE_VISUAL_REGRESSION == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-visual-diffs
+          path: test-results/
+          retention-days: 7

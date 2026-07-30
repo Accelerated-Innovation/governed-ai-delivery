@@ -26,6 +26,18 @@ def _profile(tmp_path, frameworks=None, languages=None, signals=None):
 
 
 class TestResolveStackChoiceTypeCompatibility:
+    def test_ui_type_has_no_stack_choice(self, tmp_path):
+        chosen, source, confidence, evidence = resolve_stack_choice(
+            None, "ui-react",
+            _profile(tmp_path, languages=["typescript"]),
+            inferred_stack="nodejs-fastify", inferred_confidence="high",
+            target=tmp_path,
+        )
+        assert chosen == ""
+        assert source == "not-applicable"
+        assert confidence == "none"
+        assert evidence == []
+
     def test_explicit_stack_flag_always_wins(self, tmp_path):
         chosen, source, _, _ = resolve_stack_choice(
             "java-spring-boot", "data",

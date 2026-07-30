@@ -11,12 +11,19 @@ Read the following before proceeding:
 
 - `features/<feature_name>/plan.md`
 - `features/<feature_name>/architecture_preflight.md`
+- `features/<feature_name>/design.md`
 - `docs/ui/architecture/MVVM_CONTRACT.md`
+- `docs/ui/architecture/nextjs/` for `ui-nextjs`
 - `docs/ui/architecture/*/STATE_MANAGEMENT.md`
 
 ---
 
 Produce an ordered implementation checklist. Sequence must follow MVVM layer order: API → ViewModel → View.
+
+For `ui-nextjs`, use: contracts/types → backend API adapter → application use
+case/view model → Server Component composition → minimal Client Components.
+Never include SQL, database packages, ORM/migration work, connection strings,
+or business logic in Next.js server code.
 
 ## Implementation Order
 
@@ -54,6 +61,9 @@ Produce an ordered implementation checklist. Sequence must follow MVVM layer ord
 - [ ] Zero critical axe violations
 - [ ] All Playwright E2E scenarios pass
 - [ ] Bundle size within budget (if configured)
+- [ ] `govkit doctor --target .` passes the API/database boundary check
+- [ ] Approved brand and `design.md` are reflected in every required state
+- [ ] Visual regression runs only when explicitly enabled for stable references
 
 ---
 

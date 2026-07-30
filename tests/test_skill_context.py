@@ -69,7 +69,7 @@ class TestWriteSkillContext:
 
         for marker_type, expected in [
             ("api", "backend"), ("cli", "backend"),
-            ("ui-react", "ui"), ("ui-angular", "ui"),
+            ("ui-react", "ui"), ("ui-angular", "ui"), ("ui-nextjs", "ui"),
             ("data", "data"),
         ]:
             marker = _write_marker(

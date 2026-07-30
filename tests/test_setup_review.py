@@ -64,6 +64,21 @@ class TestWriteSetupReview:
 
         assert "docs/ui/architecture" in content
 
+    def test_nextjs_review_uses_real_specific_docs_and_brand(self, tmp_path):
+        from cli.setup_review import write_setup_review
+
+        write_setup_review(
+            tmp_path,
+            self._marker(options={"type": "ui-nextjs", "ci": "github"}),
+        )
+        content = (tmp_path / "GOVKIT_SETUP_REVIEW.md").read_text(encoding="utf-8")
+
+        assert "docs/ui/architecture/nextjs/API_BOUNDARY.md" in content
+        assert "docs/ui/architecture/nextjs/TESTING.md" in content
+        assert "docs/ui/design/BRAND.md" in content
+        assert "not applicable — standalone UI project type" in content
+        assert "BOUNDARIES.md" not in content
+
     def test_review_paths_match_copilot_agent(self, tmp_path):
         """Copilot governance lives in the govkit-owned .github/instructions/govkit/
         namespace, so the review lists the team-editable architecture docs and

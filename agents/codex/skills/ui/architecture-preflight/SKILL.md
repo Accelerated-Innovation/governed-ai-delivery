@@ -13,31 +13,49 @@ Feature specs:
 - `features/<feature_name>/nfrs.md`
 - `features/<feature_name>/acceptance.feature`
 - `features/<feature_name>/eval_criteria.yaml`
+- `features/<feature_name>/design.md`
 
 Architecture standards:
 - `docs/ui/architecture/MVVM_CONTRACT.md`
+- `docs/ui/architecture/nextjs/` when `.govkit/marker.json` has `type: ui-nextjs`
 - `docs/ui/architecture/NFRS_CONVENTIONS.md`
 - `docs/ui/architecture/*/COMPONENT_CONVENTIONS.md`
 - `docs/ui/architecture/*/STATE_MANAGEMENT.md`
 - `docs/ui/evaluation/eval_criteria.md`
+- `docs/ui/design/BRAND.md`
 - All accepted ADRs in `docs/ui/architecture/ADR/`
 
 ---
 
 Produce `features/<feature_name>/architecture_preflight.md` for this feature covering:
 
-## 1. MVVM Layer Impact
+## 1. Architecture Layer Impact
 
-Which layers does this feature touch? For each:
+For React/Vite or Angular, identify the MVVM layers this feature touches:
 - View (components): what new components are required?
 - ViewModel (hooks/store): what server state and client state is needed?
 - Model (API): what backend endpoints are consumed?
+
+For `ui-nextjs`, use the server-first mapping instead:
+- App Router composition and Server Components
+- Feature application use cases and view models
+- Typed backend API adapters
+- Feature components and any justified Client Components
+- Shared primitives/infrastructure
 
 ## 2. Backend Contract Analysis
 
 - Which backend API endpoints does this feature consume?
 - Are those endpoints already available or do they need to be built first?
 - If a new contract is required from the backend team, flag it — this blocks UI implementation until the contract is accepted
+- Confirm there is no direct SQL, database client/driver, ORM, migration,
+  database schema, or connection string in the UI
+- For Next.js, confirm Route Handlers and Server Actions are a thin BFF only
+  for session, token protection, protocol adaptation, or limited aggregation;
+  they contain no business logic
+
+**HALT on any direct database access.** The database boundary cannot be waived
+by ADR.
 
 ## 2.5 Repository Scope Analysis
 
@@ -109,6 +127,17 @@ This is informational and does not block planning.
 - What WCAG 2.1 AA requirements apply to this feature?
 - Are there any interaction patterns (modals, dynamic updates, custom controls) that need specific accessibility handling?
 
+## 5.5 Brand and Design References
+
+- Confirm `docs/ui/design/BRAND.md` is complete for the visual decisions this
+  feature needs
+- Review `features/<feature_name>/design.md`
+- Inventory files under `features/<feature_name>/design/references/`
+- Treat screenshots and mockups as advisory unless `design.md` explicitly
+  promotes a named property to an accepted requirement
+- Record loading, empty, error, success, responsive, keyboard, focus, and
+  reduced-motion states
+
 ## 6. ADR Determination
 
 Is an ADR required? An ADR is required if:
@@ -116,6 +145,9 @@ Is an ADR required? An ADR is required if:
 - Cross-feature state is needed
 - A backend contract does not exist yet and must be negotiated
 - Any MVVM boundary rule is intentionally violated
+
+An ADR cannot permit direct database access or move backend-owned business
+logic into the UI.
 
 If yes: do not proceed to Spec Planning until the ADR is Accepted.
 

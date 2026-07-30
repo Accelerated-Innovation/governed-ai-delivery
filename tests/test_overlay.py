@@ -50,7 +50,7 @@ class TestListOverlays:
         --type, so the contract requires a non-empty declaration."""
         from cli.overlay import list_overlays
 
-        known_types = {"api", "cli", "data", "ui-react", "ui-angular"}
+        known_types = {"api", "cli", "data"}
         for ov in list_overlays():
             assert ov.supported_types, f"{ov.id} missing supported_types"
             unknown = set(ov.supported_types) - known_types

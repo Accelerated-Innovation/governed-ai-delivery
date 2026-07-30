@@ -1,0 +1,48 @@
+# Next.js App Router L4/L5 quality gate for standalone --type ui-nextjs projects.
+name: Next.js UI Quality Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.9'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Enforce API and database boundary
+        run: govkit doctor --target .
+
+      - name: Validate governed feature artifacts
+        if: hashFiles('features/*/acceptance.feature') != ''
+        run: govkit validate --target .
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit and component tests
+        run: npm run test:ci --if-present
+
+      - name: Production build
+        run: npm run build
+
+      - name: Upload coverage
+        if: always() && hashFiles('coverage/**') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-coverage
+          path: coverage/

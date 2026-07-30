@@ -1,0 +1,54 @@
+# Azure DevOps L4/L5 quality gate for standalone --type ui-nextjs projects.
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: NextjsQuality
+    displayName: Next.js UI quality
+    jobs:
+      - job: Quality
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.9'
+            displayName: Set up Node.js
+
+          - script: npm ci
+            displayName: Install dependencies
+
+          - script: govkit doctor --target .
+            displayName: Enforce API and database boundary
+
+          - script: |
+              if find features -mindepth 2 -name acceptance.feature -print -quit 2>/dev/null | grep -q .; then
+                govkit validate --target .
+              else
+                echo "No governed feature artifacts at this maturity level."
+              fi
+            displayName: Validate governed feature artifacts
+
+          - script: npx tsc --noEmit
+            displayName: Type check
+
+          - script: npm run lint
+            displayName: Lint
+
+          - script: npm run test:ci --if-present
+            displayName: Unit and component tests
+
+          - script: npm run build
+            displayName: Production build
+
+          - publish: coverage/
+            artifact: nextjs-coverage
+            condition: always()
+            displayName: Upload coverage

@@ -4,6 +4,10 @@ This directory contains GovKit's bundled stack overlays. Each overlay is a small
 
 These overlays ship inside the GovKit Python wheel under `cli/stacks/`. Client repos never see this directory directly - they receive only the docs from the selected overlay, copied into their own `docs/backend/architecture/` or `docs/data/architecture/`.
 
+Stack overlays apply only to `api`, `cli`, and `data` project types. UI
+frameworks are standalone project types (`ui-react`, `ui-angular`, and
+`ui-nextjs`) and reject `--stack` so framework payloads cannot overlap.
+
 ---
 
 ## Picking an overlay

@@ -67,6 +67,7 @@ Every feature must live under `features/<feature_name>/` with these artifacts:
 * `eval_criteria.yaml` (with configured quality/adversarial/retrieval evaluators criteria for `mode: llm`)
 * `plan.md`
 * `architecture_preflight.md`
+* `design.md`
 
 Implementation must not begin unless all artifacts exist and are complete.
 

@@ -448,7 +448,7 @@ class TestSchemaAcceptsNewShapes:
         errors = list(validator.iter_errors(manifest))
         assert errors, "Unknown keys inside by_stack_entry must be rejected"
 
-    @pytest.mark.parametrize("ui_type", ["ui-react", "ui-angular"])
+    @pytest.mark.parametrize("ui_type", ["ui-react", "ui-angular", "ui-nextjs"])
     def test_accepts_new_ui_type_in_choices_and_variants(self, ui_type):
         # v0.8 introduces the flat ui-react / ui-angular type values. The
         # schema must accept them in type.choices and as variants.type keys.
@@ -457,7 +457,7 @@ class TestSchemaAcceptsNewShapes:
             "agent": "x",
             "description": "y",
             "options": {
-                "type": {"prompt": "Type?", "choices": ["api", "cli", "ui-react", "ui-angular"]},
+                "type": {"prompt": "Type?", "choices": ["api", "cli", "ui-react", "ui-angular", "ui-nextjs"]},
             },
             "variants": {
                 "type": {
@@ -713,6 +713,23 @@ def _bundled_stack_ids() -> list[str]:
 def test_stack_overlay_schema_is_a_valid_json_schema():
     schema = json.loads(STACK_OVERLAY_SCHEMA_PATH.read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
+
+
+@pytest.mark.parametrize("ui_type", ["ui-react", "ui-angular", "ui-nextjs"])
+def test_stack_overlay_schema_rejects_standalone_ui_types(ui_type):
+    schema = json.loads(STACK_OVERLAY_SCHEMA_PATH.read_text(encoding="utf-8"))
+    overlay = {
+        "id": "invalid-ui-overlay",
+        "version": "1.0.0",
+        "display_name": "Invalid UI Overlay",
+        "summary": "UI frameworks are standalone project types.",
+        "supported_types": [ui_type],
+        "docs": [{"src": "TECH_STACK.md", "dest": "docs/ui/TECH_STACK.md"}],
+    }
+
+    errors = list(Draft202012Validator(schema).iter_errors(overlay))
+    assert errors
+    assert any(list(error.absolute_path) == ["supported_types", 0] for error in errors)
 
 
 @pytest.mark.parametrize("stack_id", _bundled_stack_ids())

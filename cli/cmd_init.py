@@ -24,6 +24,7 @@ _MARKER_TYPE_TO_STARTER = {
     "cli": "cli",
     "ui-react": "ui-react",
     "ui-angular": "ui-angular",
+    "ui-nextjs": "ui-nextjs",
     "data": "data",
 }
 
@@ -36,7 +37,7 @@ def _default_starter_type(marker_type: str | None) -> str:
 
 def _prompt_starter_type(default: str = "backend") -> str:
     """Interactively prompt for the starter template type."""
-    choices = ["backend", "cli", "ui-react", "ui-angular", "data"]
+    choices = ["backend", "cli", "ui-react", "ui-angular", "ui-nextjs", "data"]
     prompt_text = f"  Feature type? [{' / '.join(choices)}] (default: {default}): "
     answer = input(prompt_text).strip().lower()
     if answer == "":
@@ -50,14 +51,15 @@ def _prompt_starter_type(default: str = "backend") -> str:
 def _starter_dir_slug(starter_type: str) -> str:
     """Map a starter_type to its bundled directory slug.
 
-    Most types map 1:1 (backend → starter_backend). UI variants currently
-    share a single framework-agnostic starter — both ui-react and ui-angular
-    resolve to starter_ui. If they diverge later, separate starter_ui_react
-    and starter_ui_angular dirs can be added without resolver changes (the
-    1:1 path is the default).
+    Most types map 1:1 (backend → starter_backend). The Vite React and Angular
+    variants share the framework-agnostic starter_ui template. Next.js has a
+    dedicated starter_ui_nextjs template because its server-first App Router
+    architecture and API boundary are intentionally different.
     """
     if starter_type in ("ui-react", "ui-angular"):
         return "ui"
+    if starter_type == "ui-nextjs":
+        return "ui_nextjs"
     return starter_type
 
 
@@ -127,12 +129,16 @@ def cmd_init(args: argparse.Namespace) -> None:
     print("\nNext steps:")
     print(f"  1. Edit {feature_dir / 'acceptance.feature'} — write your Gherkin scenarios")
     print(f"  2. Edit {feature_dir / 'nfrs.md'} — replace all TBD entries")
+    next_step = 3
+    if starter_type in ("ui-react", "ui-angular", "ui-nextjs"):
+        print(f"  3. Edit {feature_dir / 'design.md'} — define screens, states, and brand use")
+        next_step = 4
     if level == "5":
-        print(f"  3. Run /architecture-preflight {feature_name}")
-        print(f"  4. Run /genai-preflight {feature_name}")
+        print(f"  {next_step}. Run /architecture-preflight {feature_name}")
+        print(f"  {next_step + 1}. Run /genai-preflight {feature_name}")
     else:  # L4
-        print(f"  3. Run /architecture-preflight {feature_name}")
-        print(f"  4. Run /spec-planning {feature_name}")
+        print(f"  {next_step}. Run /architecture-preflight {feature_name}")
+        print(f"  {next_step + 1}. Run /spec-planning {feature_name}")
 
 
 def register(subparsers) -> None:
@@ -141,7 +147,7 @@ def register(subparsers) -> None:
     p.add_argument("feature", help="Feature name (e.g. user-auth, schema-publish)")
     p.add_argument("--target", default=".",
                    help="Path to the target project root (default: current directory)")
-    p.add_argument("--starter", choices=["backend", "cli", "ui-react", "ui-angular", "data"], default=None,
+    p.add_argument("--starter", choices=["backend", "cli", "ui-react", "ui-angular", "ui-nextjs", "data"], default=None,
                    help="Starter template type (default: prompted)")
     p.add_argument("--level", choices=["3", "4", "5"], default=None,
                    help="Maturity level (default: read from .govkit or 4)")

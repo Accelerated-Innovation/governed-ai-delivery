@@ -28,6 +28,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .agent_layout import AGENT_LAYOUTS
+from .compat import is_ui_type
 from .marker import read_govkit_marker, write_govkit_marker
 from .stack_select import STACK_ID_ASSUMPTION
 
@@ -75,8 +76,12 @@ class CalibrationResult:
 
 
 def _architecture_root(type_value: str) -> str:
-    if type_value in ("ui-react", "ui-angular"):
-        return "docs/ui/architecture"
+    if type_value == "ui-nextjs":
+        return "docs/ui/architecture/nextjs"
+    if type_value == "ui-react":
+        return "docs/ui/architecture/react"
+    if type_value == "ui-angular":
+        return "docs/ui/architecture/angular"
     if type_value == "data":
         return "docs/data/architecture"
     return "docs/backend/architecture"
@@ -156,8 +161,30 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
         assumption_id=STACK_ID_ASSUMPTION,
     ))
 
-    # 3. BOUNDARIES.md
-    if type_value == "data":
+    # 3. Architecture structure / boundaries
+    if type_value == "ui-nextjs":
+        boundaries_path = f"{arch}/APPLICATION_STRUCTURE.md"
+        boundaries_title = "Application structure"
+        boundaries_description = "App Router composition and feature-layer mappings."
+        boundaries_summary = "server-first API-first feature slices"
+        boundaries_suggestion = (
+            "Confirm src/app, feature application/api/components/types, and "
+            "shared mappings match this repo. Server Components remain the default."
+        )
+    elif is_ui_type(type_value):
+        boundaries_path = "docs/ui/architecture/MVVM_CONTRACT.md"
+        boundaries_title = "UI architecture boundaries"
+        boundaries_description = "UI layer, feature, shared-code, and backend API boundaries."
+        boundaries_summary = "MVVM vertical slices"
+        boundaries_suggestion = (
+            "Confirm the framework-specific source layout and external backend "
+            "API boundary match this repository."
+        )
+    elif type_value == "data":
+        boundaries_path = f"{arch}/BOUNDARIES.md"
+        boundaries_title = "Architecture boundaries"
+        boundaries_description = "Data layers and folder mappings."
+        boundaries_summary = "dbt-layered"
         boundaries_suggestion = (
             "Confirm the layering matches your dbt project. The dbt-layered "
             "default is staging → intermediate → marts. Teams using medallion "
@@ -166,6 +193,10 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
             "PIPELINE_CONTRACT.md."
         )
     else:
+        boundaries_path = f"{arch}/BOUNDARIES.md"
+        boundaries_title = "Architecture boundaries"
+        boundaries_description = "Architecture style and folder mappings."
+        boundaries_summary = "hexagonal"
         boundaries_suggestion = (
             "Confirm the architecture style matches your folder layout. "
             "If your repo uses clean (Application/Domain/Infrastructure) or "
@@ -174,10 +205,10 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
         )
     steps.append(CalibrationStep(
         id="step.boundaries",
-        title="Architecture boundaries",
-        description="Architecture style (hexagonal/clean/layered/dbt-layered/...) and folder mappings.",
-        file_path=f"{arch}/BOUNDARIES.md",
-        installed_summary="hexagonal (default for the python-fastapi baseline)",
+        title=boundaries_title,
+        description=boundaries_description,
+        file_path=boundaries_path,
+        installed_summary=boundaries_summary,
         detected_value=(
             ", ".join(profile.detected_architecture_signals) or None
         ),
@@ -186,7 +217,32 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
     ))
 
     # 4. API / query conventions
-    if type_value == "data":
+    if type_value == "ui-nextjs":
+        steps.append(CalibrationStep(
+            id="step.api_conventions",
+            title="Backend API boundary",
+            description="API-only business/data access and thin-BFF constraints.",
+            file_path=f"{arch}/API_BOUNDARY.md",
+            installed_summary="backend API owns business logic and persistence",
+            detected_value=profile.detected_api_style,
+            suggestion=(
+                "Confirm every capability uses a backend API and that Next.js "
+                "server code contains no SQL, ORM, database access, or domain rules."
+            ),
+            assumption_id=None,
+        ))
+    elif is_ui_type(type_value):
+        steps.append(CalibrationStep(
+            id="step.api_conventions",
+            title="Backend API boundary",
+            description="External API contract and UI ownership boundary.",
+            file_path="docs/ui/architecture/MVVM_CONTRACT.md",
+            installed_summary="UI consumes backend-owned API contracts",
+            detected_value=profile.detected_api_style,
+            suggestion="Confirm direct database access and UI-owned backend logic are absent.",
+            assumption_id=None,
+        ))
+    elif type_value == "data":
         steps.append(CalibrationStep(
             id="step.query_conventions",
             title="Query conventions",
@@ -218,7 +274,19 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
         ))
 
     # 5. TESTING.md
-    if type_value == "data":
+    if type_value == "ui-nextjs":
+        testing_path = f"{arch}/TESTING.md"
+        testing_suggestion = (
+            "Confirm Vitest scope, Playwright coverage for Server Components and "
+            "user flows, accessibility thresholds, and opt-in visual regression."
+        )
+    elif is_ui_type(type_value):
+        testing_path = "docs/ui/evaluation/eval_criteria.md"
+        testing_suggestion = (
+            "Confirm component, E2E, FIRST, and accessibility thresholds match team practice."
+        )
+    elif type_value == "data":
+        testing_path = f"{arch}/TESTING.md"
         testing_suggestion = (
             "Confirm dbt schema tests (unique / not_null / relationships), "
             "custom singular tests, and source freshness thresholds. If your "
@@ -226,6 +294,7 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
             "the BDD policy to 'none' in TESTING.md."
         )
     else:
+        testing_path = f"{arch}/TESTING.md"
         testing_suggestion = (
             "Confirm unit / mocking / BDD frameworks. If your team does not "
             "practise BDD, set the BDD framework to 'none' in TESTING.md "
@@ -236,7 +305,7 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
         id="step.testing",
         title="Testing framework + BDD policy",
         description="Unit framework, mocking, BDD framework (or 'none' to disable L4 BDD gate).",
-        file_path=f"{arch}/TESTING.md",
+        file_path=testing_path,
         installed_summary=(
             f"per stack overlay {stack.get('id', '(none)')}"
         ),
@@ -246,6 +315,21 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
         suggestion=testing_suggestion,
         assumption_id="testing.bdd",
     ))
+
+    if is_ui_type(type_value):
+        steps.append(CalibrationStep(
+            id="step.brand",
+            title="Brand and visual direction",
+            description="Project-wide semantic visual language and reference authority.",
+            file_path="docs/ui/design/BRAND.md",
+            installed_summary="editable brand contract; reference images advisory",
+            detected_value=None,
+            suggestion=(
+                "Replace relevant TBDs, approve semantic tokens and visual tone, "
+                "and confirm feature design briefs document any screen references."
+            ),
+            assumption_id=None,
+        ))
 
     # 6. Top-level agent guidance
     steps.append(CalibrationStep(

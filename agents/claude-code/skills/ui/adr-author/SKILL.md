@@ -23,3 +23,7 @@ The ADR must cover:
 6. **Alternatives Considered** — At least two alternatives with reasons for rejection
 
 The ADR is not Accepted until reviewed. Implementation must not begin on dependent features until status is Accepted.
+
+An ADR can document a backend API contract or thin-BFF tradeoff. It cannot
+permit SQL, database clients/drivers, ORMs, migrations, connection strings, or
+backend-owned business logic in a UI repository.

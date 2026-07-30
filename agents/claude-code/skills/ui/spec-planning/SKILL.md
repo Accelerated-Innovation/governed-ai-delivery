@@ -12,7 +12,10 @@ Read the following before proceeding:
 - `features/<feature_name>/acceptance.feature`
 - `features/<feature_name>/nfrs.md`
 - `features/<feature_name>/architecture_preflight.md`
+- `features/<feature_name>/design.md`
 - `docs/ui/architecture/MVVM_CONTRACT.md`
+- `docs/ui/architecture/nextjs/` for `ui-nextjs`
+- `docs/ui/design/BRAND.md`
 - `docs/ui/evaluation/eval_criteria.md`
 - `governance/ui/templates/plan.md`
 - `governance/ui/schemas/eval_criteria.schema.json`
@@ -33,12 +36,24 @@ Populate the plan's `### Out of scope` from `nfrs.md` `## Out of scope`:
   - insert `<!-- INFERRED: not declared in nfrs.md ## Out of scope; confirm with feature owner -->` directly under the plan's `### Out of scope` heading, and
   - state in the planning summary that Out-of-scope was inferred and should be confirmed.
 
-### 2. MVVM Breakdown
-For each layer:
+### 2. Architecture Breakdown
+For React/Vite and Angular, cover each MVVM layer:
 - Components to create (with props interface summary)
 - Hooks / query inject functions to create (query keys, data shape, transform)
 - Client state additions (Zustand store / Signal store)
 - API functions to create (endpoint, method, request/response types)
+
+For `ui-nextjs`, instead cover:
+- App Router routes, layouts, loading/error boundaries, and Server Components
+- Application use cases and view-model shaping
+- Typed backend API adapters
+- Feature components and justified Client Components
+- Shared primitives/infrastructure
+- Cache and freshness behavior
+
+No plan may include direct SQL, database dependencies, ORMs, migrations,
+connection strings, or business logic in a Next.js BFF. A missing endpoint is
+a backend contract blocker.
 
 ### 3. Increment Breakdown
 Ordered list of implementation increments. Each increment must be independently testable and deployable.
@@ -48,6 +63,13 @@ List any backend endpoints this feature depends on. Flag any that are not yet av
 
 ### 5. Accessibility Plan
 For each Gherkin scenario tagged `@accessibility`: describe the WCAG criteria and test approach.
+
+### 5.5 Visual Direction
+
+Map the approved brand and feature `design.md` to semantic tokens, component
+states, responsive behavior, and accessibility. List every screenshot/mockup
+reference with what may be learned from it. References remain advisory unless
+`design.md` promotes a named property to a requirement.
 
 ### 6. Evaluation Compliance Summary
 

@@ -6,13 +6,16 @@ This directory contains feature starters and fully worked reference examples.
 
 ## Starters
 
-Copy the appropriate starter when beginning a new feature. Every starter contains the five required artifacts with instructions and placeholder content.
+Copy the appropriate starter when beginning a new feature. Backend/data
+starters contain the five common artifacts. UI starters add `design.md` and
+reference-image guidance as a sixth governed input.
 
 | Starter | Use for | Copy from |
 |---|---|---|
 | `starter_backend/` | Python / Hexagonal Architecture API features | `features/starter_backend/` |
 | `starter_cli/` | Python CLI tools (Click/Typer, Hexagonal Architecture) | `features/starter_cli/` |
 | `starter_ui/` | React or Angular UI features (MVVM) | `features/starter_ui/` |
+| `starter_ui_nextjs/` | Next.js App Router + Tailwind CSS features | `features/starter_ui_nextjs/` |
 
 ---
 
@@ -27,7 +30,7 @@ Fully populated end-to-end references showing every artifact completed. Use thes
 
 ---
 
-## Required Artifacts (all features)
+## Required Artifacts
 
 Every feature folder must contain these five files before Architecture Preflight begins:
 
@@ -38,5 +41,15 @@ Every feature folder must contain these five files before Architecture Preflight
 | `eval_criteria.yaml` | Evaluation configuration validated against the agent's schema |
 | `architecture_preflight.md` | Pre-implementation alignment check |
 | `plan.md` | Incremental plan including mandatory Evaluation Compliance Summary |
+
+UI feature folders must also contain:
+
+| File | Purpose |
+|---|---|
+| `design.md` | Screens/states, brand application, responsive/accessibility behavior, and reference authority |
+
+UI starters include `design/references/README.md`. Screenshots, sketches, and
+mockups placed there are advisory unless `design.md` explicitly promotes a
+named property to an accepted requirement.
 
 See the main [README](../README.md) for the full feature workflow.

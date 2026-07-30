@@ -135,6 +135,60 @@ class TestUnexpandedSkillTokens:
         assert [f for f in findings if f.id == "D015"] == []
 
 
+class TestNextjsBoundary:
+    def test_database_dependency_is_a_non_waivable_error(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        _write_marker(
+            tmp_path,
+            options={"type": "ui-nextjs", "ci": "github"},
+            stack=None,
+        )
+        (tmp_path / "package.json").write_text(
+            '{"dependencies":{"next":"^16","@prisma/client":"^7"}}',
+            encoding="utf-8",
+        )
+
+        hits = [finding for finding in run_doctor(tmp_path) if finding.id == "D016"]
+        assert hits
+        assert hits[0].severity == "error"
+        assert hits[0].file == "package.json"
+        assert "cannot be waived" in hits[0].suggested_action
+
+    def test_typed_backend_fetch_is_clean(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        _write_marker(
+            tmp_path,
+            options={"type": "ui-nextjs", "ci": "github"},
+            stack=None,
+        )
+        source = tmp_path / "src" / "features" / "orders" / "api"
+        source.mkdir(parents=True)
+        (source / "get-orders.ts").write_text(
+            "export const getOrders = () => fetch('/backend/orders');\n",
+            encoding="utf-8",
+        )
+
+        assert [finding for finding in run_doctor(tmp_path) if finding.id == "D016"] == []
+
+    def test_framework_mismatch_is_warning(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        _write_marker(
+            tmp_path,
+            options={"type": "ui-nextjs", "ci": "github"},
+            stack=None,
+        )
+        (tmp_path / "package.json").write_text(
+            '{"dependencies":{"react":"^19"},"devDependencies":{"vite":"^7"}}',
+            encoding="utf-8",
+        )
+
+        hits = [finding for finding in run_doctor(tmp_path) if finding.id == "D017"]
+        assert hits and hits[0].severity == "warning"
+
+
 # ---------------------------------------------------------------------------
 # cmd_doctor — CLI dispatch + exit codes + monorepo discovery (A9)
 # ---------------------------------------------------------------------------

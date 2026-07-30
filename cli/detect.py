@@ -19,6 +19,7 @@ so monorepos don't cross-contaminate detection.
 """
 
 import fnmatch
+import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -234,6 +235,43 @@ def _detect_fastify(target: Path) -> bool:
     return '"fastify"' in text
 
 
+def _package_dependencies(target: Path) -> set[str]:
+    """Return package.json dependency names, tolerating absent/invalid JSON."""
+    pkg = target / "package.json"
+    if not pkg.is_file():
+        return set()
+    try:
+        payload = json.loads(_read_text(pkg))
+    except (json.JSONDecodeError, OSError):
+        return set()
+    names: set[str] = set()
+    for section in ("dependencies", "devDependencies", "peerDependencies"):
+        dependencies = payload.get(section)
+        if isinstance(dependencies, dict):
+            names.update(str(name) for name in dependencies)
+    return names
+
+
+def _detect_nextjs(target: Path) -> bool:
+    return "next" in _package_dependencies(target)
+
+
+def _detect_react_vite(target: Path) -> bool:
+    dependencies = _package_dependencies(target)
+    return "react" in dependencies and "vite" in dependencies
+
+
+def _detect_angular(target: Path) -> bool:
+    return (
+        "@angular/core" in _package_dependencies(target)
+        or (target / "angular.json").is_file()
+    )
+
+
+def _detect_tailwindcss(target: Path) -> bool:
+    return "tailwindcss" in _package_dependencies(target)
+
+
 def _detect_spring_boot(target: Path) -> bool:
     """Substring search across pom.xml and build.gradle*."""
     candidates = (
@@ -279,6 +317,14 @@ def _detect_frameworks(target: Path, prof: RepoProfile) -> None:
         detected.append("fastapi")
     if _detect_fastify(target):
         detected.append("fastify")
+    if _detect_nextjs(target):
+        detected.append("nextjs")
+    if _detect_react_vite(target):
+        detected.append("react-vite")
+    if _detect_angular(target):
+        detected.append("angular")
+    if _detect_tailwindcss(target):
+        detected.append("tailwindcss")
     if _detect_spring_boot(target):
         detected.append("spring-boot")
     if _detect_gin(target):

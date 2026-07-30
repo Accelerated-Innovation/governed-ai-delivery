@@ -29,7 +29,7 @@
     "supported_types": {
       "type": "array",
       "minItems": 1,
-      "items": {"enum": ["api", "cli", "data", "ui-react", "ui-angular"]},
+      "items": {"enum": ["api", "cli", "data"]},
       "description": "Project types (`--type` values) this stack overlay applies to. Consulted by stack selection so an inferred stack that doesn't fit the requested type falls back to the type default instead of overriding it."
     },
     "default_assumptions": {
