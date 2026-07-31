@@ -178,6 +178,24 @@ def test_importlinter_reference_names_the_canonical_layers():
     )
 
 
+def test_pyproject_carries_no_duplicate_importlinter_contract():
+    """govkit's own pyproject.toml must not carry a second copy of the
+    reference contract.
+
+    It was inert here — govkit's source is `cli/`, not `src/`, and no
+    workflow runs `lint-imports` against this repo — which is exactly why
+    it drifted unnoticed while claiming to be a template. One copy, under
+    test, in governance/backend/."""
+    import tomllib
+
+    path = REPO_ROOT / "pyproject.toml"
+    config = tomllib.loads(path.read_text(encoding="utf-8"))
+    assert "importlinter" not in config.get("tool", {}), (
+        "pyproject.toml carries a second import-linter contract; the single "
+        "copy lives in governance/backend/importlinter-reference.toml"
+    )
+
+
 def test_common_is_not_described_as_holding_data_models():
     """Domain entities belong in `models/`. `common/` is cross-cutting
     concerns and DTOs, and must stay dependency-free."""
