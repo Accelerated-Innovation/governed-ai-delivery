@@ -1,7 +1,9 @@
 # import-linter reference configuration for hexagonal architecture enforcement.
 #
-# Copy the sections below into your project's pyproject.toml.
-# Adjust root_package and containers to match your source layout.
+# Copy the sections below into your project's pyproject.toml, then set
+# `root_package` and `containers` to match your source layout. The
+# `[[tool.importlinter.contracts]]` double brackets are required — a
+# single-bracket table is valid TOML but import-linter rejects it.
 #
 # Install: pip install import-linter
 # Run:     lint-imports
@@ -13,27 +15,61 @@
 [tool.importlinter]
 root_package = "src"
 
-# Hexagonal Architecture layer contract
-# Dependencies must flow inward: api → ports → services → adapters → common
+# Hexagonal Architecture layer contract.
+#
+# Layers are ordered highest to lowest: a higher layer may import a lower
+# one, never the reverse. Reading down the list is reading inward, from the
+# adapters at the edge to the dependency-free core.
+#
+#   api | adapters  both are adapters in the pattern — inbound and outbound.
+#                   `|` makes them *independent* siblings: neither may import
+#                   the other. (`:` would allow it; that is not what we want.)
+#   services        domain behaviour. Imports ports and models, never adapters.
+#   ports           interfaces only. Sits below services so that services can
+#                   import the ports they depend on without a cycle.
+#   models          domain entities. Imports nothing but common.
+#   common          cross-cutting concerns and DTOs. Dependency-free.
+#
+# `containers` must name your service package(s), not bare "src":
+#   One service:      containers = ["src.myservice"]
+#   Several services: containers = ["src.orders", "src.billing"]
+# The layer list is identical either way — only the container list grows.
+#
 # Violations are blocking — they indicate a boundary breach.
-[tool.importlinter.contracts.hexagonal]
+[[tool.importlinter.contracts]]
 name = "Hexagonal Architecture"
 type = "layers"
 layers = [
-    "api",
-    "ports",
+    "api | adapters",
     "services",
-    "adapters",
-    "common"
+    "ports",
+    "models",
+    "common",
 ]
-containers = ["src"]
+containers = ["src.myservice"]
 
-# Optional: forbid direct cross-feature imports in a modular monolith
-# Uncomment and adjust if your project uses feature-based modules.
+# `api` sits above `services` in the layer list, so the layers contract alone
+# would permit api -> services. BOUNDARIES.md section 2 forbids it: the API
+# invokes behaviour through `ports/inbound/` only. Importing entities from
+# `models/` is allowed — inbound port signatures carry them.
+[[tool.importlinter.contracts]]
+name = "API talks only to inbound ports"
+type = "forbidden"
+source_modules = ["src.myservice.api"]
+forbidden_modules = ["src.myservice.services"]
+
+# Multi-service repositories only.
 #
-# [tool.importlinter.contracts.no_cross_feature]
-# name = "No cross-feature imports"
-# type = "forbidden"
-# source_modules = ["src.features"]
-# forbidden_modules = ["src.features"]
-# allow_indirect_imports = false
+# The layers contract applies *within* each container and says nothing about
+# service-to-service edges — src.orders.services importing src.billing.services
+# passes it. `independence` is what forbids that. Omit this contract and
+# cross-service coupling goes unenforced.
+#
+# [[tool.importlinter.contracts]]
+# name = "Services are independent"
+# type = "independence"
+# modules = ["src.orders", "src.billing"]
+
+# Note on the composition root: whatever wires adapters into services at
+# startup necessarily imports both, so it must live outside all six packages
+# (e.g. src/myservice/main.py) or it will trip the sibling rule above.

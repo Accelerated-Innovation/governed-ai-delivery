@@ -9,10 +9,10 @@ disagreed three ways (`domain/` vs top-level `services/` vs
 `domain/services/`), which sent teams to build a package the tooling
 never looked for.
 
-These tests pin one vocabulary across every doc source. The code and
-config sources that must also agree are asserted where they are fixed:
-`cli/skill_context.py::_STYLE_LAYERS` in tests/test_skill_context.py,
-and `governance/backend/importlinter-reference.toml` in
+These tests pin one vocabulary across every doc source, plus the layer
+names in the shipped import-linter contract. `cli/skill_context.py`'s
+`_STYLE_LAYERS` is asserted in tests/test_skill_context.py, and the
+contract's *behaviour* — as opposed to its vocabulary — in
 tests/test_importlinter_reference.py.
 
 Only the five *backend* stacks carry hexagonal vocabulary. `python-dbt`
@@ -154,6 +154,28 @@ def test_no_source_declares_a_use_cases_folder():
                 if re.search(r"`use_cases`|use_cases/", line):
                     offenders.append(f"{_rel(path)}:{i}: {line.strip()}")
     assert not offenders, "`use_cases` folder declared:\n" + "\n".join(offenders)
+
+
+def test_importlinter_reference_names_the_canonical_layers():
+    """The shipped contract's `layers` must name the same six packages the
+    docs do. Independent siblings share one entry (`api | adapters`), so
+    the list is flattened before comparison."""
+    import tomllib
+
+    path = REPO_ROOT / "governance" / "backend" / "importlinter-reference.toml"
+    config = tomllib.loads(path.read_text(encoding="utf-8"))
+    contracts = config["tool"]["importlinter"]["contracts"]
+    layered = [c for c in contracts if c.get("type") == "layers"]
+    assert len(layered) == 1, f"{_rel(path)}: expected exactly one layers contract"
+
+    names = [
+        part.strip()
+        for entry in layered[0]["layers"]
+        for part in entry.split("|")
+    ]
+    assert sorted(names) == sorted(CANONICAL_LAYERS), (
+        f"{_rel(path)} layers are {names}, expected {list(CANONICAL_LAYERS)}"
+    )
 
 
 def test_common_is_not_described_as_holding_data_models():
