@@ -1,10 +1,11 @@
 # Hexagonal Layer Vocabulary and Boundary Contract Plan
 
-Settle one canonical name for the backend domain layer across the whole
-payload, and replace `governance/backend/importlinter-reference.toml`
-with a contract that actually enforces `BOUNDARIES.md`. Closes #77 (the
-name) and #75 (the contract). The two are one decision: the contract's
-`layers` list cannot be written until the layer name is fixed.
+Settle the backend domain layer's vocabulary across the whole payload —
+its name, and where domain entities live — and replace
+`governance/backend/importlinter-reference.toml` with a contract that
+actually enforces `BOUNDARIES.md`. Closes #77 (the name) and #75 (the
+contract). These are one decision: the contract's `layers` list cannot be
+written until the packages it names are fixed.
 
 Reported downstream from an L5 `api` install (`llm-application` +
 `skill-oriented-agent-architecture`), but neither defect is L5-specific —
@@ -74,7 +75,40 @@ api → ports → services → adapters → common") is incoherent — it places
 Additionally, `api → services` (forbidden by `BOUNDARIES.md:28`) is not
 expressible in a layers contract at all and is currently unenforced.
 
-### 3. A second, divergent copy exists
+### 3. Domain entities have no agreed home, and `use_cases/` is a phantom
+
+`ARCH_CONTRACT.md:19` says the Domain Core "Contains: `services`,
+`models`, `use_cases`". Neither of the latter two survives contact with
+the rest of the payload:
+
+**`models`** is claimed by two layers at once:
+
+| Source | Claim |
+| --- | --- |
+| `ARCH_CONTRACT.md:19` | `models` belongs to the domain |
+| `LAYER_IMPLEMENTATION.md:17` | diagram: "Domain (Core Logic) — `services/, models/`" (siblings) |
+| `LAYER_IMPLEMENTATION.md:29` | `src/domain/models/` (nested) |
+| `SECURITY_AUTH_PATTERNS.md:115` | `models/user.py` defines `UserContext` — **top-level** |
+| `REPO_STRUCTURE_README.md:50` | `common/` = "shared utilities and **data models**" |
+| `BOUNDARIES.md:14` | `common/` = "cross-cutting concerns (logging, tracing, DTOs)" |
+
+`REPO_STRUCTURE_README.md`'s five-folder tree has no `models/` at all and
+files data models under `common/` — which `BOUNDARIES.md` scopes to DTOs.
+Domain entities and transport DTOs are different things, and `common/` is
+required to be dependency-free, so it is the wrong home for business
+state. The only concrete worked example in the payload
+(`SECURITY_AUTH_PATTERNS.md:115`) already uses a top-level `models/`.
+
+**`use_cases`** exists nowhere but that one line. No tree, no stack, no
+test, no rule declares a `use_cases/` folder. Everywhere else in the
+payload "use cases" is prose describing what *inbound ports* express —
+`agents/{claude-code,codex,copilot}/rules/backend/ports.md` all say
+"Inbound ports (`ports/inbound/`) define how the domain logic is called
+(use cases, command handlers)", and `LAYER_IMPLEMENTATION.md:85` repeats
+it under Ports. `ARCH_CONTRACT.md:19` invented a folder nothing else
+knows about.
+
+### 4. A second, divergent copy exists
 
 `pyproject.toml:109-127` carries the same broken contract in govkit's own
 repo, labelled "a reference template for target projects". It is inert
@@ -103,15 +137,32 @@ disagree with themselves.
 
 `ARCH_CONTRACT.md` gains an explicit domain path so the gap cannot reopen.
 
-### Deferred sub-decision (not in scope)
+**Domain entities live in a top-level `models/`.** The domain layer is
+therefore two packages — `services/` (behaviour) and `models/` (state) —
+matching `ARCH_CONTRACT.md:19`, `LAYER_IMPLEMENTATION.md:17`'s diagram,
+and the `models/user.py` worked example in `SECURITY_AUTH_PATTERNS.md:115`.
+The canonical tree becomes six packages:
 
-`ARCH_CONTRACT.md:19` says the domain contains `services`, `models`, and
-`use_cases`; `REPO_STRUCTURE_README.md:46-50` has no `models/` or
-`use_cases/` and files "data models" under `common/`, while
-`BOUNDARIES.md:14` scopes `common/` to "logging, tracing, DTOs". Where
-domain entities live is a real ambiguity, but it is separable from the
-layer *name* and would widen this change considerably. File as a
-follow-up issue; do not resolve here.
+```
+src/<package>/
+├── api/        inbound adapters (HTTP)
+├── ports/      inbound and outbound interfaces
+├── services/   domain behaviour and orchestration
+├── models/     domain entities and value objects
+├── adapters/   outbound infrastructure implementations
+└── common/     cross-cutting concerns (logging, tracing, DTOs)
+```
+
+`REPO_STRUCTURE_README.md:50` drops "data models" from `common/`'s
+description, leaving "shared utilities". `BOUNDARIES.md:14` keeps DTOs in
+`common/` — transport shapes that cross boundaries are distinct from
+domain entities, and moving them too would widen this change without
+resolving anything.
+
+**Drop `use_cases` from `ARCH_CONTRACT.md:19`.** Use cases are expressed
+as inbound ports and implemented by services, which is what all three
+agents' `rules/backend/ports.md` already say in lockstep. This is a
+deletion of phantom vocabulary, not a new folder.
 
 ## Target design
 
@@ -124,7 +175,7 @@ root_package = "src"
 [[tool.importlinter.contracts]]
 name = "Hexagonal Architecture"
 type = "layers"
-layers = ["api | adapters", "services", "ports", "common"]
+layers = ["api | adapters", "services", "ports", "models", "common"]
 containers = ["src"]
 
 [[tool.importlinter.contracts]]
@@ -143,16 +194,25 @@ this was confirmed by experiment, not read from the docs.
 `ports` sits **below** `services`, not above. `BOUNDARIES.md:22` currently
 grants `ports/ → domain/`, which combined with `services → ports` is the
 very cycle `BOUNDARIES.md:31` forbids. Ports hold interfaces and depend
-only on `common/`; the domain imports them. `BOUNDARIES.md` §2 must be
-corrected accordingly.
+only on `models/` and `common/`; the domain imports them. `BOUNDARIES.md`
+§2 must be corrected accordingly.
+
+`models` sits at the bottom above `common` so that `services`, `ports`,
+and `adapters` may all reference entities, while entities themselves stay
+ignorant of behaviour and interfaces — `models → services` and
+`models → ports` are both violations. `api → models` is permitted: inbound
+port signatures carry entities, and forbidding it would mandate a DTO
+mapping layer `BOUNDARIES.md` does not currently require.
 
 Verified behaviour of the config above:
 
 | Edge | Expected | Result |
 | --- | --- | --- |
-| conforming skeleton | pass | KEPT |
+| conforming skeleton (6 packages) | pass | KEPT |
 | `services → adapters` | fail | BROKEN |
 | `ports → services` | fail | BROKEN |
+| `models → services` | fail | BROKEN |
+| `models → ports` | fail | BROKEN |
 | `api → services` | fail | BROKEN (forbidden contract) |
 | `api → adapters` | fail | BROKEN (independent siblings) |
 
@@ -174,51 +234,74 @@ Scope `ruff` to changed files only (`fix = true` is on).
      `REPO_STRUCTURE_README.md`'s tree, each stack's `TECH_STACK.md` and
      `LAYER_IMPLEMENTATION.md`, `importlinter-reference.toml`'s `layers`,
      and `cli/skill_context.py::_STYLE_LAYERS["hexagonal"]`
-   - assert all sources agree on the five names
+   - assert all sources agree on the six names
    - assert no backend doc references a top-level `domain/` package
-2. Confirm it fails, naming `BOUNDARIES.md` and `LAYER_IMPLEMENTATION.md`.
+   - assert no source declares a `use_cases/` folder
+   - assert `common/` is not described as holding data models
+2. Confirm it fails, naming `BOUNDARIES.md`, `LAYER_IMPLEMENTATION.md`,
+   `ARCH_CONTRACT.md`, and `REPO_STRUCTURE_README.md`.
 
 Commit: `test(docs): assert one hexagonal layer vocabulary across payload`
 
-### 2. Correct the two outlier docs — #77
+### 2. Correct the outlier docs — #77
 
-1. `BOUNDARIES.md`: §1 lists `api/ ports/ services/ adapters/ common/`;
-   §2's table replaces `domain/` with `services/` and drops
-   `ports/ → domain/` (see cycle note above); §3-§4 prose follows.
-2. `LAYER_IMPLEMENTATION.md:29` (all 7 stacks): `src/services/`,
-   agreeing with its own diagram.
-3. `ARCH_CONTRACT.md` §2: state the domain path explicitly —
-   "Domain Core: `services/`" — closing the root gap.
-4. Increment 1's test passes.
+1. `BOUNDARIES.md`: §1 lists all six packages; §2's table replaces
+   `domain/` with `services/`, adds `models/`, and drops `ports/ → domain/`
+   (see cycle note above); §3-§4 prose follows.
+2. `LAYER_IMPLEMENTATION.md:29` (baseline + all 7 stacks): `src/services/`,
+   `src/models/`, agreeing with its own `:17` diagram.
+3. `ARCH_CONTRACT.md` §2: state the domain path explicitly — "Domain Core:
+   `services/` (behaviour), `models/` (entities)" — and drop `use_cases`.
+4. `REPO_STRUCTURE_README.md`: add `models/` to the tree and folder table;
+   `common/` becomes "shared utilities".
+5. `TECH_STACK.md` (all 7 stacks): add `models/` to the layer block.
+6. Increment 1's test passes.
 
-Commit: `docs(backend): standardize domain layer on services/ (#77)`
+Commit: `docs(backend): standardize domain on services/ + models/ (#77)`
 
-### 3. Fixture-backed contract test (test-first) — #75
+### 3. Point skill context at both domain packages
+
+1. Failing test in `tests/test_skill_context.py`: the `hexagonal` style's
+   `domain` hint is `["services/", "models/"]`.
+2. Update `cli/skill_context.py::_STYLE_LAYERS["hexagonal"]`; adjust the
+   existing expectations at `tests/test_skill_context.py:413` and
+   `tests/test_rule_templating.py:35,52`.
+
+Leaving this at `["services/"]` would recreate the same
+docs-disagree-with-code split this plan exists to close. Scope `ruff` to
+`cli/skill_context.py` only.
+
+Commit: `fix(cli): include models/ in hexagonal domain layer hint (#77)`
+
+### 4. Fixture-backed contract test (test-first) — #75
 
 1. New `tests/test_importlinter_reference.py`, marked `e2e` (it shells out
    to `lint-imports`), failing on `main`:
-   - build a conforming five-package skeleton in `tmp_path`, write the
+   - build a conforming six-package skeleton in `tmp_path`, write the
      shipped reference contract into a `pyproject.toml`, run
      `lint-imports`, assert **exit 0**
    - for each of `services → adapters`, `ports → services`,
-     `api → services`, `api → adapters`: add that import, assert
-     **non-zero exit** and the offending edge in stdout
-2. Confirm all five cases fail today (the conforming case crashes on the
+     `models → services`, `models → ports`, `api → services`,
+     `api → adapters`: add that import, assert **non-zero exit** and the
+     offending edge in stdout
+2. Confirm every case fails today (the conforming case crashes on the
    invalid table form; the violation cases pass when they must not).
+
+Add `import-linter` to the `[test]` extra in `pyproject.toml` so CI has it.
 
 Commit: `test(governance): run import-linter against the shipped reference`
 
-### 4. Rewrite the reference contract — #75
+### 5. Rewrite the reference contract — #75
 
 1. Replace `governance/backend/importlinter-reference.toml` with the
    Target design block. Rewrite the header comment: correct the
    `[[...contracts]]` copy instruction, drop the "flow inward" line, and
    add the composition-root note.
-2. Increment 3's test passes.
+2. Increment 4's test passes.
 
 Commit: `fix(governance): correct import-linter layer contract (#75)`
 
-### 5. Remove the duplicate copy
+### 6. Remove the duplicate copy
 
 1. Test asserting `pyproject.toml` carries no `[tool.importlinter]`
    section (govkit's source is `cli/`; the contract is inert here and only
@@ -231,14 +314,15 @@ Commit: `chore: drop inert import-linter duplicate from pyproject (#75)`
 ## Verification
 
 - `./run_tests` after each increment; `./full_test` before the PR (the
-  increment 3 test is `e2e`-marked and excluded from the fast loop).
+  increment 4 test is `e2e`-marked and excluded from the fast loop).
 - `pytest -k parity` and `tests/test_agent_skills.py` after any payload edit.
 - Regenerate smoke sandboxes — `.\scripts\smoke.ps1 -Agents claude-code
   -Levels 4 -Force` — and confirm the emitted
   `governance/backend/importlinter-reference.toml` matches. `scripts/projects/`
   is gitignored (`.gitignore:109`), so these are regenerated, never edited.
-- No `cli/` behaviour changes in increments 1-4, so `wheel-smoke` is
-  unaffected; increment 5 touches `pyproject.toml` but not `force-include`.
+- Increment 3 is the only `cli/` behaviour change and adds no bundled
+  asset, so `wheel-smoke` is unaffected; increments 4 and 6 touch
+  `pyproject.toml` but not `force-include`.
 
 ## Out of scope — file separately
 
@@ -249,8 +333,6 @@ Commit: `chore: drop inert import-linter duplicate from pyproject (#75)`
   `level_4`/`level_5`, types `api`/`cli`). An L3 install therefore gets a
   CI job with nothing to enforce. Either ship the reference at L3 or drop
   the job from the L3 gate.
-- Domain entity placement (`models/` / `use_cases/`) — see Deferred
-  sub-decision.
 - `cli/detect.py:54` `_HEXAGONAL_FOLDERS = {"ports", "adapters"}` never
   inspects the domain folder, so layer hints are never reconciled against
   disk — tracked in #76.
