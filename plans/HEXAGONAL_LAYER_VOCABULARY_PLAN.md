@@ -515,9 +515,22 @@ Commit: `chore: drop inert import-linter duplicate from pyproject (#75)`
   `src/{orders,billing}/` there is no way to say "two trees". Increment 4
   makes detection *fire* for that layout, but the emitted context still
   describes one service. Needs a schema decision.
-- **Edit protection inside the `AGENTS.md` govkit block.** The block is
-  labelled "overwritten on `govkit upgrade`" and appears to be replaced
-  without a content-hash check, unlike governed docs (`headers.py`). That
-  may be intended — the label is honest — but it is inconsistent with how
-  every other govkit-managed body is treated. Untested; verify before
-  filing.
+- **No `--force` warning for edits inside the `AGENTS.md` govkit block.**
+  Tested, and there is **no data-loss defect** — an earlier suspicion that
+  the block was replaced without protection was wrong:
+
+  | Edit location | plain `upgrade` | `upgrade --force` |
+  | --- | --- | --- |
+  | inside the `AGENTS.md` govkit block | survived | replaced, no warning |
+  | governed doc (`BOUNDARIES.md`) | survived | replaced, with warning |
+
+  (Plain `upgrade` no-ops when the marker version already matches, which is
+  what hid this — the row above needs the marker aged to an older version
+  to exercise a real upgrade.)
+
+  The only gap is the missing warning: governed docs print
+  `warning: overwriting user edits … (--force set)`, the block prints
+  nothing. Defensible, since the block tells the reader in-file to put
+  their own instructions outside it — unlike governed docs, which teams are
+  expected to customise. A one-line warning, not a design change; filed
+  separately as an enhancement.
