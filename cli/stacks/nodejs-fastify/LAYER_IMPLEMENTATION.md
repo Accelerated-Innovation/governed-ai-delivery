@@ -26,7 +26,7 @@ All communication goes through ports. Adapters never talk directly to each other
 
 ## 1. Domain Layer
 
-**Location:** `src/domain/services/`, `src/domain/models/`
+**Location:** `src/services/`, `src/models/`
 
 **Role:** Pure business logic and state management. The core of the system.
 
@@ -239,7 +239,7 @@ Use `awilix` or manual wiring to compose adapters and ports:
 // app.ts
 import Fastify from 'fastify'
 import { UserRepositoryAdapter } from './adapters/postgres/UserRepositoryAdapter.js'
-import { UserService } from './domain/services/UserService.js'
+import { UserService } from './services/UserService.js'
 import userRoutes from './api/users/userRoutes.js'
 
 export async function buildApp() {

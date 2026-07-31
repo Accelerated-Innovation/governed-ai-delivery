@@ -26,6 +26,7 @@ src/<project_pacakage_name>/
 ├── api/
 ├── ports/
 ├── services/
+├── models/
 ├── adapters/
 ├── common/
 ```
@@ -35,6 +36,7 @@ src/customer_support_ai/
 api/
 ports/
 services/
+models/
 adapters/
 common/
 ```
@@ -45,9 +47,10 @@ Where:
 |------|------|
 | `api/` | HTTP or inbound adapters (FastAPI, webhooks, etc.) |
 | `ports/` | inbound and outbound interfaces for hexagonal architecture |
-| `services/` | domain logic and orchestration |
+| `services/` | domain behaviour and orchestration |
+| `models/` | domain entities and value objects |
 | `adapters/` | infrastructure implementations (DB, APIs, LLM providers, etc.) |
-| `common/` | shared utilities and data models |
+| `common/` | shared utilities, cross-cutting concerns, and DTOs |
 
 This keeps application code isolated from governance artifacts such as:
 - `docs/`
@@ -75,6 +78,7 @@ cli/
 src/api/
 src/ports/
 src/services/
+src/models/
 src/adapters/
 src/common/
 ```
@@ -246,7 +250,7 @@ Ports are pure Python interfaces.
 
 # services/
 
-Domain logic.
+Domain behaviour.
 ```
 services/
 ```
@@ -260,8 +264,29 @@ Responsibilities:
 Services must:
 
 - remain framework-agnostic
-- depend only on ports
+- depend only on ports and models
 - remain stateless and testable
+
+---
+
+# models/
+
+Domain entities and value objects — the state the services operate on.
+```
+models/
+```
+
+Examples:
+
+- entities and aggregates
+- value objects
+- domain-specific exceptions
+
+Models must:
+
+- remain framework-agnostic
+- depend on nothing but `common/`
+- never import ports, services, or adapters
 
 ---
 

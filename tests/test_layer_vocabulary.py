@@ -108,24 +108,37 @@ def test_layer_implementation_domain_location_is_canonical(path):
     text = path.read_text(encoding="utf-8")
     location = re.search(r"\*\*Location:\*\*\s*(.+)", text)
     assert location, f"{_rel(path)}: no `**Location:**` line found"
-    line = location.group(1)
-    assert "domain/" not in line.replace("\\", "/"), (
-        f"{_rel(path)} domain location still nests under `domain/`: {line.strip()}"
+    # Stacks differ in case (`Services/` on .NET) and root (`internal/` on Go).
+    line = location.group(1).replace("\\", "/").lower()
+    assert "domain/" not in line, (
+        f"{_rel(path)} domain location still nests under `domain/`: "
+        f"{location.group(1).strip()}"
     )
     assert "services/" in line and "models/" in line, (
-        f"{_rel(path)} domain location should name services/ and models/: {line.strip()}"
+        f"{_rel(path)} domain location should name services/ and models/: "
+        f"{location.group(1).strip()}"
     )
+
+
+# `domain/services/` — a nested domain wrapper, always wrong.
+_NESTED_DOMAIN = re.compile(r"\bdomain/[A-Za-z_]", re.IGNORECASE)
+# A list item, table row, or tree line *declaring* `domain/` as a package.
+# Prose that merely mentions it (including saying it does not exist) is fine.
+_DECLARED_DOMAIN = re.compile(r"^\s*(?:[*\-+|]|[├└│]+[\s─]*)\s*`?domain/", re.IGNORECASE)
 
 
 def test_no_backend_doc_declares_a_top_level_domain_package():
     """`domain/` as a package path contradicts the canonical vocabulary.
 
-    Prose using the word "domain" is fine; a `domain/` path is not.
+    Prose using the word "domain" is fine, and so is prose stating that no
+    such package exists. What must not appear is a doc *declaring* the
+    folder — in a tree, a table, a bullet list — or nesting layers beneath
+    it (`domain/services/`).
     """
     offenders = []
     for path in sorted(BASELINE_ARCH.glob("*.md")):
         for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            if re.search(r"`[^`]*\bdomain/", line) or re.search(r"^\s*[├└│]?\s*domain/", line):
+            if _NESTED_DOMAIN.search(line) or _DECLARED_DOMAIN.search(line):
                 offenders.append(f"{_rel(path)}:{i}: {line.strip()}")
     assert not offenders, "top-level `domain/` package referenced:\n" + "\n".join(offenders)
 

@@ -26,7 +26,7 @@ All communication goes through ports. Adapters never talk directly to each other
 
 ## 1. Domain Layer
 
-**Location:** `src/domain/services/`, `src/domain/models/`
+**Location:** `src/services/`, `src/models/`
 
 **Role:** Pure business logic and state management. The core of the system.
 

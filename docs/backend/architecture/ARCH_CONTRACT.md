@@ -16,7 +16,10 @@ This codebase follows Hexagonal Architecture (also known as Ports and Adapters).
 
 ### Domain Core
 
-* Contains: `services`, `models`, `use_cases`
+* Location: `services/` (behaviour and orchestration) and `models/`
+  (entities and value objects). There is no `domain/` wrapper package.
+* Use cases are expressed as inbound ports (`ports/inbound/`) and
+  implemented by services — they are not a separate folder.
 * Must have no external dependencies other than standard Python and `typing`
 * All logic must be framework-agnostic and testable in isolation
 

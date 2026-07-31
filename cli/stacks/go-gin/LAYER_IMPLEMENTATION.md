@@ -14,7 +14,7 @@ The system uses **Hexagonal Architecture** with these layers:
 ├─────────────────────────┤
 │  Ports (Interfaces)     │  internal/ports/
 ├─────────────────────────┤
-│  Domain (Core Logic)    │  internal/domain/
+│  Domain (Core Logic)    │  internal/services/, internal/models/
 ├─────────────────────────┤
 │   Adapters (Outbound)   │  internal/adapters/
 └─────────────────────────┘
@@ -26,7 +26,7 @@ All communication goes through ports. Adapters never talk directly to each other
 
 ## 1. Domain Layer
 
-**Location:** `internal/domain/services/`, `internal/domain/models/`
+**Location:** `internal/services/`, `internal/models/`
 
 **Role:** Pure business logic and state management. The core of the system.
 
