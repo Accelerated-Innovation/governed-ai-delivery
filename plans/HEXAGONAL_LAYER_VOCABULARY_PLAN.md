@@ -1,11 +1,16 @@
 # Hexagonal Layer Vocabulary and Boundary Contract Plan
 
-Settle the backend domain layer's vocabulary across the whole payload —
-its name, and where domain entities live — and replace
-`governance/backend/importlinter-reference.toml` with a contract that
-actually enforces `BOUNDARIES.md`. Closes #77 (the name) and #75 (the
-contract). These are one decision: the contract's `layers` list cannot be
-written until the packages it names are fixed.
+Settle the backend layer vocabulary across the whole payload — the domain
+layer's name, where entities live, and which source layout the tooling
+assumes — and replace `governance/backend/importlinter-reference.toml`
+with a contract that actually enforces `BOUNDARIES.md`. Closes #77 (the
+vocabulary) and #75 (the contract). These are one decision: the contract
+names the packages, so its `layers` and `containers` lines cannot be
+written until the layout is fixed.
+
+Everything asserted here about import-linter behaviour and govkit's
+detection and install paths was verified by running it, not by reading —
+see the tables in Motivation and Target design.
 
 Reported downstream from an L5 `api` install (`llm-application` +
 `skill-oriented-agent-architecture`), but neither defect is L5-specific —
@@ -119,6 +124,53 @@ unnoticed. Two copies, no test, no consumer.
 Nothing in `agents/`, `docs/`, `governance/`, `ci/`, or `cli/` references
 `importlinter-reference.toml` by name.
 
+### 5. Tooling assumes a layout the docs do not prescribe
+
+`REPO_STRUCTURE_README.md:23-40` documents the tree as
+`src/<project_package_name>/api/…` — one package deep — and justifies the
+nesting at `:55-63`, the third reason being *"allows multiple services to
+reuse the governance kit."* Multi-service intent is already written down.
+Three parts of the toolchain never caught up:
+
+**Architecture detection only sees one level into `src/`.** Verified by
+running `build_profile` against three layouts:
+
+| Layout | `detected_architecture_signals` | resulting `skill_context` |
+| --- | --- | --- |
+| `src/{api,ports,services,…}` (flat) | `['hexagonal-shape']` | `style: hexagonal`, layers populated |
+| `src/mypkg/{api,ports,services,…}` (**documented**) | `[]` | `style: unknown`, layers empty |
+| `src/{orders,billing}/{…}` (multi-service) | `[]` | `style: unknown`, layers empty |
+
+`_top_level_folder_names` (`cli/detect.py:370-382`) scans only `target`,
+`target/src`, `target/Source`, `target/models`. For `src/mypkg/ports/` it
+sees `src`'s children as `{mypkg}`, so `_HEXAGONAL_FOLDERS` never reaches
+its two-match threshold. **A project following govkit's own documented
+structure is not recognised as hexagonal.**
+
+**This matters more than a wrong hint.** `layers` is not informational —
+`cli/rule_templating.py` expands `paths_template: layers.domain` into the
+concrete `paths:` globs that scope every backend rule at install time.
+A wrong or empty `layers` value does not merely mislabel a folder; it
+determines whether rules attach to the code at all. (The `**/services/**`
+fallback in the source rules survives an empty expansion, so claude-code
+and copilot degrade safely — but skill consumers get `style: unknown`
+and empty hints.)
+
+**The contract hardcodes `containers = ["src"]`**, which resolves to
+`src.services` — matching the flat layout, not the documented one. The
+fixture that verified the replacement contract used the flat form, so
+this gap survived verification and must be closed here.
+
+**Codex hardcodes root-relative rule destinations.** `agents/codex/manifest.json`
+maps `rules/backend/services.md → services/AGENTS.md`, `ports/AGENTS.md`,
+`api/AGENTS.md`, `adapters/AGENTS.md`, `security/AGENTS.md` — literal paths,
+and `install_common.py` has no `layers`-based destination templating.
+claude-code and copilot are layout-agnostic (`**/services/**`). A codex
+user on the documented layout gets an empty root-level `services/`
+holding only an AGENTS.md, which codex will never apply to
+`src/mypkg/services/` — it resolves AGENTS.md from the edited file upward.
+Nothing is destroyed; the guidance simply lands where it cannot fire.
+
 Virtues: **Unique** (one layer vocabulary, one contract definition),
 **Coherent** (the contract enforces the doc that describes it),
 **Honest** (a gate that passes means the boundary holds).
@@ -164,6 +216,44 @@ as inbound ports and implemented by services, which is what all three
 agents' `rules/backend/ports.md` already say in lockstep. This is a
 deletion of phantom vocabulary, not a new folder.
 
+**Keep `src/<package>/` as the canonical source layout**, as
+`REPO_STRUCTURE_README.md` already documents. One service is simply the
+N=1 case of the same shape, and `src/myservice/api/…` is ordinary Python
+src-layout — nothing about it reads as ceremony. The flat `src/api/`
+alternative is a dead end: adding a second service would mean rewriting
+every import path. Tooling moves to the docs, not the reverse.
+
+**One install per set of marker options; containers for everything else.**
+This settles when to nest:
+
+- Services that differ in `type`, `stack`, or `level` — e.g. `apps/api`
+  (`type=api`) beside `apps/web` (`type=ui-nextjs`) — need **separate
+  installs**. `marker.json` holds one `type`, and UI types reject
+  `--stack` outright, so a backend+frontend monorepo cannot be expressed
+  by one marker. Nested installs were verified working: agent config
+  lands correctly namespaced per subtree for all three agents
+  (`apps/web/.claude/skills/govkit-ui-*` beside the root's `govkit-*`),
+  and Claude Code discovers directory-scoped skills.
+- Services that share marker options and differ only by package — e.g.
+  `src/orders/` and `src/billing/`, both `type=api` — stay in **one
+  install** and are expressed as multiple import-linter `containers`.
+
+Nesting for multiple same-type services is the wrong tool: it duplicates
+governance docs and CI templates per service to express nothing but a
+package name.
+
+### Verified as already correct — do not change
+
+`AGENTS.md` is merged, not overwritten. A pre-existing root or
+path-scoped `AGENTS.md` keeps its content; govkit appends a delimited
+`<!-- BEGIN GOVKIT GOVERNANCE -->` … `<!-- END GOVKIT GOVERNANCE -->`
+block (manifest `"mode": "merge"`). Confirmed idempotent across
+`apply --force` and `upgrade` — one marker pair, user content intact.
+A filename prefix is impossible here because `AGENTS.md` is a fixed name
+the agent looks for; the delimited block is the codex-side equivalent of
+`.claude/rules/govkit/` and `.github/instructions/govkit/`. Recorded so a
+later change does not "fix" working behaviour.
+
 ## Target design
 
 ### Contract (verified against import-linter 2.11)
@@ -172,18 +262,35 @@ deletion of phantom vocabulary, not a new folder.
 [tool.importlinter]
 root_package = "src"
 
+# containers must name your service package(s), not bare "src".
+# One service:      containers = ["src.myservice"]
+# Several services: containers = ["src.orders", "src.billing"]
 [[tool.importlinter.contracts]]
 name = "Hexagonal Architecture"
 type = "layers"
 layers = ["api | adapters", "services", "ports", "models", "common"]
-containers = ["src"]
+containers = ["src.myservice"]
 
 [[tool.importlinter.contracts]]
 name = "API talks only to inbound ports"
 type = "forbidden"
-source_modules = ["src.api"]
-forbidden_modules = ["src.services"]
+source_modules = ["src.myservice.api"]
+forbidden_modules = ["src.myservice.services"]
+
+# Multi-service only — layers apply *within* each container and do not
+# stop one service importing another. Uncomment and list your services.
+# [[tool.importlinter.contracts]]
+# name = "Services are independent"
+# type = "independence"
+# modules = ["src.orders", "src.billing"]
 ```
+
+`containers` is the one line that varies per project. The layers list is
+identical whether there is one service or ten — only the container list
+grows. This replaces the current broken `no_cross_feature` stub, which
+was a `forbidden` contract with identical `source_modules` and
+`forbidden_modules`; `independence` is the correct contract type for
+mutual isolation.
 
 `api` and `adapters` are siblings — both are adapters in the pattern, and
 neither may import the other. In import-linter's layer syntax `|`
@@ -204,7 +311,7 @@ ignorant of behaviour and interfaces — `models → services` and
 port signatures carry entities, and forbidding it would mandate a DTO
 mapping layer `BOUNDARIES.md` does not currently require.
 
-Verified behaviour of the config above:
+Verified behaviour, single service (`containers = ["src.svc"]`):
 
 | Edge | Expected | Result |
 | --- | --- | --- |
@@ -215,6 +322,20 @@ Verified behaviour of the config above:
 | `models → ports` | fail | BROKEN |
 | `api → services` | fail | BROKEN (forbidden contract) |
 | `api → adapters` | fail | BROKEN (independent siblings) |
+
+Verified multi-service (`containers = ["src.orders", "src.billing"]`,
+both services fully populated):
+
+| Edge | Expected | Result |
+| --- | --- | --- |
+| conforming, two services | pass | all 3 contracts KEPT |
+| `orders.services → billing.services` | fail | independence BROKEN |
+| `orders.services → orders.adapters` | fail | layers BROKEN |
+
+Note the second row: the layers contract stayed KEPT on the cross-service
+import. Layers apply *within* each container and say nothing about
+service-to-service edges — the `independence` contract is what catches
+those, and omitting it leaves cross-service coupling unenforced.
 
 Note for adopters: the composition root that wires adapters into services
 must live outside all five packages (e.g. `src/main.py`), or it will trip
@@ -273,17 +394,62 @@ docs-disagree-with-code split this plan exists to close. Scope `ruff` to
 
 Commit: `fix(cli): include models/ in hexagonal domain layer hint (#77)`
 
-### 4. Fixture-backed contract test (test-first) — #75
+### 4. Detect the documented `src/<package>/` layout
+
+1. Failing tests in `tests/test_detect.py`, asserting
+   `build_profile(...).detected_architecture_signals == ["hexagonal-shape"]`
+   for:
+   - `src/mypkg/{api,ports,services,models,adapters,common}` (documented, N=1)
+   - `src/{orders,billing}/{…}` (multi-service)
+   and that the existing flat `src/{…}` case still passes.
+2. Extend `_top_level_folder_names` (`cli/detect.py:370-382`) to scan one
+   level below `src/` — collect the union of each child package's folder
+   names. Keep the existing roots so flat layouts are unaffected.
+3. Assert the downstream effect: `build_skill_context` on the documented
+   layout yields `style: hexagonal` with populated layers, not
+   `style: unknown` with empty ones.
+
+Bound the walk: only direct children of `src/`, skipping dot-dirs and the
+existing skip set, so this cannot become a full-tree scan on a large repo.
+Scope `ruff` to `cli/detect.py` only.
+
+Commit: `fix(cli): detect hexagonal shape under src/<package>/ (#77)`
+
+### 5. Template codex rule destinations on the source root
+
+1. Failing test: applying `codex` to a target whose code is at
+   `src/mypkg/services/` must not create a root-level `services/`
+   directory.
+2. Give the codex manifest's path-scoped rule entries a destination
+   templated on the resolved source root, the way
+   `cli/rule_templating.py` already templates claude-code and copilot
+   globs from `skill_context.layers`. Fall back to today's root-relative
+   destination when the layout is unknown, so no install regresses.
+3. Parity check: claude-code and copilot must stay glob-based
+   (`**/services/**`) — this increment brings codex *toward* them, it does
+   not change their shape.
+
+This is placement only. `AGENTS.md` merge behaviour is already correct
+(see Decision) and must not change — the test should assert user content
+outside the govkit block still survives.
+
+Commit: `fix(codex): place path-scoped rules at the real source root (#77)`
+
+### 6. Fixture-backed contract test (test-first) — #75
 
 1. New `tests/test_importlinter_reference.py`, marked `e2e` (it shells out
    to `lint-imports`), failing on `main`:
-   - build a conforming six-package skeleton in `tmp_path`, write the
-     shipped reference contract into a `pyproject.toml`, run
-     `lint-imports`, assert **exit 0**
+   - build a conforming `src/<pkg>/` six-package skeleton in `tmp_path`,
+     write the shipped reference contract into a `pyproject.toml` with
+     `containers` pointed at that package, run `lint-imports`, assert
+     **exit 0**
    - for each of `services → adapters`, `ports → services`,
      `models → services`, `models → ports`, `api → services`,
      `api → adapters`: add that import, assert **non-zero exit** and the
      offending edge in stdout
+   - multi-service case: two populated service packages, assert the
+     conforming pair passes and that a cross-service import breaks the
+     `independence` contract
 2. Confirm every case fails today (the conforming case crashes on the
    invalid table form; the violation cases pass when they must not).
 
@@ -291,17 +457,20 @@ Add `import-linter` to the `[test]` extra in `pyproject.toml` so CI has it.
 
 Commit: `test(governance): run import-linter against the shipped reference`
 
-### 5. Rewrite the reference contract — #75
+### 7. Rewrite the reference contract — #75
 
 1. Replace `governance/backend/importlinter-reference.toml` with the
    Target design block. Rewrite the header comment: correct the
-   `[[...contracts]]` copy instruction, drop the "flow inward" line, and
-   add the composition-root note.
-2. Increment 4's test passes.
+   `[[...contracts]]` copy instruction, drop the "flow inward" line, spell
+   out that `containers` must name the service package(s), and add the
+   composition-root note.
+2. Replace the broken `no_cross_feature` stub with the commented
+   `independence` block.
+3. Increment 6's test passes.
 
 Commit: `fix(governance): correct import-linter layer contract (#75)`
 
-### 6. Remove the duplicate copy
+### 8. Remove the duplicate copy
 
 1. Test asserting `pyproject.toml` carries no `[tool.importlinter]`
    section (govkit's source is `cli/`; the contract is inert here and only
@@ -314,15 +483,19 @@ Commit: `chore: drop inert import-linter duplicate from pyproject (#75)`
 ## Verification
 
 - `./run_tests` after each increment; `./full_test` before the PR (the
-  increment 4 test is `e2e`-marked and excluded from the fast loop).
+  increment 6 test is `e2e`-marked and excluded from the fast loop).
 - `pytest -k parity` and `tests/test_agent_skills.py` after any payload edit.
 - Regenerate smoke sandboxes — `.\scripts\smoke.ps1 -Agents claude-code
-  -Levels 4 -Force` — and confirm the emitted
-  `governance/backend/importlinter-reference.toml` matches. `scripts/projects/`
-  is gitignored (`.gitignore:109`), so these are regenerated, never edited.
-- Increment 3 is the only `cli/` behaviour change and adds no bundled
-  asset, so `wheel-smoke` is unaffected; increments 4 and 6 touch
-  `pyproject.toml` but not `force-include`.
+  -Levels 4 -Force`, plus one `codex` run for increment 5 — and confirm the
+  emitted `governance/backend/importlinter-reference.toml` matches and no
+  stray root-level `services/` appears. `scripts/projects/` is gitignored
+  (`.gitignore:109`), so these are regenerated, never edited.
+- Increments 3, 4 and 5 change `cli/` behaviour but add no bundled asset,
+  so `wheel-smoke` is unaffected; increments 6 and 8 touch `pyproject.toml`
+  but not `force-include`.
+- Increment 5 is the highest-risk change (install destinations). Verify a
+  legacy flat-layout target still installs exactly as it does today before
+  and after.
 
 ## Out of scope — file separately
 
@@ -333,6 +506,18 @@ Commit: `chore: drop inert import-linter duplicate from pyproject (#75)`
   `level_4`/`level_5`, types `api`/`cli`). An L3 install therefore gets a
   CI job with nothing to enforce. Either ship the reference at L3 or drop
   the job from the L3 gate.
-- `cli/detect.py:54` `_HEXAGONAL_FOLDERS = {"ports", "adapters"}` never
-  inspects the domain folder, so layer hints are never reconciled against
-  disk — tracked in #76.
+- **`doctor` skips nested installs** (#78). Directly relevant now that
+  backend+frontend monorepos are the sanctioned way to run two project
+  types: a governed root plus `apps/web` means the nested install is never
+  validated unless `--target` names it.
+- **`skill_context.yaml` has no multi-service shape.** `source_root` is a
+  single string and `layers` a single hint set. For
+  `src/{orders,billing}/` there is no way to say "two trees". Increment 4
+  makes detection *fire* for that layout, but the emitted context still
+  describes one service. Needs a schema decision.
+- **Edit protection inside the `AGENTS.md` govkit block.** The block is
+  labelled "overwritten on `govkit upgrade`" and appears to be replaced
+  without a content-hash check, unlike governed docs (`headers.py`). That
+  may be intended — the label is honest — but it is inconsistent with how
+  every other govkit-managed body is treated. Untested; verify before
+  filing.
