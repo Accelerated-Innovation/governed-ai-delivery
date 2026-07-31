@@ -418,6 +418,48 @@ def _source_folder_sets(target: Path) -> list[set[str]]:
     return sets
 
 
+def detect_source_root(target: Path) -> str:
+    """POSIX-relative directory holding the architecture layer folders.
+
+    `""` when the layers sit at the target root, when no layout is
+    recognisable, or when several sibling packages each look like a service
+    — callers then fall back to root-relative destinations rather than
+    guessing which service a rule belongs to.
+
+    Used to place codex's path-scoped `AGENTS.md` rules next to the code
+    they govern. claude-code and copilot need no equivalent: their rules
+    carry `**/<layer>/**` globs that match at any depth.
+    """
+    fingerprints = (_HEXAGONAL_FOLDERS, _LAYERED_FOLDERS, _CLEAN_FOLDERS)
+
+    def _matches(root: Path) -> bool:
+        names = _child_dir_names(root)
+        return any(len(fp & names) >= 2 for fp in fingerprints)
+
+    if _matches(target):
+        return ""
+
+    candidates: list[Path] = []
+    for root in (target / "src", target / "Source"):
+        if not root.is_dir():
+            continue
+        if _matches(root):
+            candidates.append(root)
+            continue
+        try:
+            packages = sorted(p for p in root.iterdir() if p.is_dir())
+        except OSError:
+            continue
+        candidates.extend(
+            p for p in packages
+            if not p.name.startswith(".") and p.name not in _SKIP_DIRS and _matches(p)
+        )
+
+    if len(candidates) != 1:
+        return ""
+    return candidates[0].relative_to(target).as_posix()
+
+
 def _detect_architecture(target: Path, prof: RepoProfile) -> None:
     """Match source folder names against known style fingerprints.
 
