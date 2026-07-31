@@ -39,6 +39,9 @@ dependencies = [
 test = [
     "pytest>=8.0",
     "jsonschema>=4.0",
+    # tests/test_importlinter_reference.py runs the real linter against the
+    # contract govkit ships, so it cannot drift from BOUNDARIES.md.
+    "import-linter>=2.0",
 ]
 
 [project.urls]
