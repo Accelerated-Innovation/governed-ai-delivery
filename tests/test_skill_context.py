@@ -293,6 +293,25 @@ class TestLoadSkillContext:
         assert ctx.architecture_style == "hexagonal"
         assert ctx.layers["domain"] == ["services/", "models/"]
 
+    def test_documented_src_package_layout_yields_populated_layers(self, tmp_path):
+        """A repo laid out the way REPO_STRUCTURE_README.md prescribes —
+        `src/<package>/api/...` — must produce a usable skill context.
+        Before detection looked below src/, this yielded style="unknown"
+        with every layer hint empty, which silently unscoped the backend
+        rules that template off those hints."""
+        from cli.skill_context import load_skill_context, write_skill_context
+
+        marker = _write_marker(tmp_path)
+        for layer in ("api", "ports", "services", "models", "adapters", "common"):
+            (tmp_path / "src" / "customer_support_ai" / layer).mkdir(parents=True)
+        write_skill_context(tmp_path, marker)
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.architecture_style == "hexagonal"
+        assert ctx.layers["domain"] == ["services/", "models/"]
+        assert ctx.layers["inbound"] and ctx.layers["outbound"]
+
     def test_apply_writes_skill_context_yaml(self, tmp_path, monkeypatch):
         """PR 6a: cmd_apply must call write_skill_context so the file exists
         from day one — skills shouldn't have to wait for calibrate to run."""
