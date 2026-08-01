@@ -54,10 +54,23 @@ stages:
         steps:
           - checkout: self
 
-          - script: pip install import-linter
+          # See ci/README.md — skips when no contract is configured, so a
+          # fresh install is green and non-Python stacks are not checked by a
+          # Python linter.
+          - script: |
+              if grep -qs 'tool.importlinter' pyproject.toml setup.cfg tox.ini \
+                 || [ -f .importlinter ]; then
+                pip install import-linter
+              else
+                echo "##vso[task.logissue type=warning]No import-linter contract found. Copy governance/backend/importlinter-reference.toml into pyproject.toml and set your package name to enable boundary enforcement."
+              fi
             displayName: Install import-linter
 
-          - script: lint-imports
+          - script: |
+              if grep -qs 'tool.importlinter' pyproject.toml setup.cfg tox.ini \
+                 || [ -f .importlinter ]; then
+                lint-imports
+              fi
             displayName: Run boundary checks
 
   - stage: SonarQube

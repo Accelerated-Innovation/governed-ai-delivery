@@ -37,7 +37,8 @@
         ],
         "shared": [],
         "governed": [
-          "docs/backend/architecture/"
+          "docs/backend/architecture/",
+          "governance/backend/importlinter-reference.toml"
         ],
         "level_4": {
           "mode": "merge",
@@ -56,7 +57,8 @@
           "governed": [
             "docs/backend/evaluation/",
             "docs/backend/guides/",
-            "governance/backend/",
+            "governance/backend/schemas/",
+            "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json"
           ]
         },
@@ -91,7 +93,9 @@
           ],
           "governed": [
             "docs/backend/",
-            "governance/backend/",
+            "governance/backend/importlinter-reference.toml",
+            "governance/backend/schemas/",
+            "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json"
           ]
         }
@@ -109,7 +113,8 @@
         ],
         "shared": [],
         "governed": [
-          "docs/backend/architecture/"
+          "docs/backend/architecture/",
+          "governance/backend/importlinter-reference.toml"
         ],
         "level_4": {
           "mode": "merge",
@@ -127,7 +132,8 @@
           "governed": [
             "docs/backend/evaluation/",
             "docs/backend/guides/",
-            "governance/backend/",
+            "governance/backend/schemas/",
+            "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json"
           ]
         },
@@ -161,7 +167,9 @@
           ],
           "governed": [
             "docs/backend/",
-            "governance/backend/",
+            "governance/backend/importlinter-reference.toml",
+            "governance/backend/schemas/",
+            "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json"
           ]
         }
