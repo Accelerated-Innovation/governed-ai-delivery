@@ -196,6 +196,62 @@ def test_pyproject_carries_no_duplicate_importlinter_contract():
     )
 
 
+# Every boundary-enforcement tool the payload names, across all five stacks.
+_BOUNDARY_TOOLS = re.compile(
+    r"import-linter|importlinter|lint-imports|dependency-cruiser"
+    r"|go-arch-lint|depguard|ArchUnitNET|ArchUnit|NetArchTest",
+    re.IGNORECASE,
+)
+
+
+def _overlaid_doc_names() -> set[str]:
+    """Filenames that at least one backend stack overlay replaces on install."""
+    import yaml
+
+    names: set[str] = set()
+    for stack in BACKEND_STACKS:
+        overlay_path = REPO_ROOT / "cli" / "stacks" / stack / "overlay.yaml"
+        overlay = yaml.safe_load(overlay_path.read_text(encoding="utf-8"))
+        for entry in overlay.get("docs") or []:
+            names.add(Path(entry["dest"]).name)
+    return names
+
+
+def test_stack_agnostic_backend_docs_name_no_boundary_tool():
+    """A baseline doc no overlay replaces ships byte-identical to all five
+    backend stacks, so naming one stack's tool makes it wrong for four.
+
+    The tool *is* stated per stack — `TECH_STACK.md`, `LAYER_IMPLEMENTATION.md`
+    and `TESTING.md` are overlaid and already name `import-linter`,
+    `dependency-cruiser`, `go-arch-lint`, ArchUnit or ArchUnitNET correctly.
+    The docs those overlays do not reach must defer to them rather than
+    contradict them: a `go-gin` install used to read "enforced with
+    `import-linter`" in BOUNDARIES.md beside "enforced via `go-arch-lint`"
+    in LAYER_IMPLEMENTATION.md.
+    """
+    overlaid = _overlaid_doc_names()
+    scanned = [p for p in sorted(BASELINE_ARCH.glob("*.md")) if p.name not in overlaid]
+
+    # Guard against a vacuous pass: if the overlay set ever grew to cover
+    # everything, this test would silently stop checking anything.
+    assert scanned, "no stack-agnostic backend docs left to scan"
+    scanned_names = {p.name for p in scanned}
+    assert {"BOUNDARIES.md", "ARCH_CONTRACT.md"} <= scanned_names, (
+        "BOUNDARIES.md and ARCH_CONTRACT.md are stack-agnostic and must be "
+        f"scanned; scanning {sorted(scanned_names)}"
+    )
+
+    offenders = []
+    for path in scanned:
+        for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if _BOUNDARY_TOOLS.search(line):
+                offenders.append(f"{_rel(path)}:{i}: {line.strip()}")
+    assert not offenders, (
+        "stack-agnostic backend doc names a stack-specific boundary tool "
+        "(defer to TECH_STACK.md instead):\n" + "\n".join(offenders)
+    )
+
+
 def test_common_is_not_described_as_holding_data_models():
     """Domain entities belong in `models/`. `common/` is cross-cutting
     concerns and DTOs, and must stay dependency-free."""
