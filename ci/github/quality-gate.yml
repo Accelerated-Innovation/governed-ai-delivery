@@ -9,14 +9,14 @@
 #                            governance/backend/schemas/eval_criteria.schema.json
 #                            NOTE: UI features use governance/ui/schemas/eval_criteria.schema.json
 #                            (validated separately in ci/github/ui-quality-gate.yml)
-#   boundary-check         — enforces hexagonal architecture boundaries via import-linter
-#                            (requires .importlinter config in your repo root)
-#   sonarqube              — SonarQube quality gate (requires SONAR_TOKEN and SONAR_HOST_URL secrets)
-#   security-scan          — Snyk vulnerability scan (requires SNYK_TOKEN secret)
 #   contract-compatibility — detects @contract-tagged features and checks backward compatibility
 #                            (configure your schema diff tool in the final step)
 #   governance-artifacts   — checks that required governance artifacts exist for each feature
-#   commit-format          — validates commit message format matches project conventions
+#
+# This gate is ADDITIVE over l3-quality-gate.yml, which an L4+ install also
+# receives. boundary-check, sonarqube, security-scan and commit-format live
+# there and are deliberately not repeated here — defining them in both files
+# made every L4+ repo run them twice on each push.
 #
 # REQUIRED SECRETS (optional — remove jobs you don't use):
 #   SONAR_TOKEN, SONAR_HOST_URL — only if using the sonarqube job
@@ -49,67 +49,6 @@ jobs:
             echo "Validating $file"
             check-jsonschema --schemafile governance/backend/schemas/eval_criteria.schema.json "$file"
           done
-
-  boundary-check:
-    name: Architecture boundary enforcement
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # See ci/README.md — skips when no contract is configured, so a fresh
-      # install is green and non-Python stacks are not checked by a Python
-      # linter.
-      - name: Detect import-linter contract
-        id: contract
-        run: |
-          if grep -qs 'tool.importlinter' pyproject.toml setup.cfg tox.ini \
-             || [ -f .importlinter ]; then
-            echo "found=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "found=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No import-linter contract found. Copy governance/backend/importlinter-reference.toml into pyproject.toml and set your package name to enable boundary enforcement."
-          fi
-
-      - name: Install import-linter
-        if: steps.contract.outputs.found == 'true'
-        run: pip install import-linter
-
-      - name: Run boundary checks
-        if: steps.contract.outputs.found == 'true'
-        run: lint-imports
-
-  sonarqube:
-    name: SonarQube quality gate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: SonarQube scan
-        uses: SonarSource/sonarqube-scan-action@v3
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
-      - name: SonarQube quality gate check
-        uses: SonarSource/sonarqube-quality-gate-action@v1
-        timeout-minutes: 5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-  security-scan:
-    name: Security vulnerability scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Snyk
-        uses: snyk/actions/python@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high
 
   contract-compatibility:
     name: Contract compatibility check
@@ -163,35 +102,3 @@ jobs:
             exit 1
           fi
           echo "All planned features have architecture preflight artifacts."
-
-  commit-format:
-    name: Commit message format
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Validate commit messages
-        run: |
-          # Check commits on this PR branch (not on main)
-          COMMITS=$(git log --format="%s" origin/main..HEAD 2>/dev/null || true)
-          if [ -z "$COMMITS" ]; then
-            echo "No new commits to check."
-            exit 0
-          fi
-          errors=0
-          while IFS= read -r msg; do
-            # Allow: feat|fix|docs|test|refactor|chore with optional scope
-            if ! echo "$msg" | grep -qE "^(feat|fix|docs|test|refactor|chore)(\(.*\))?: .+"; then
-              echo "FAIL: '$msg'"
-              errors=$((errors + 1))
-            fi
-          done <<< "$COMMITS"
-          if [ "$errors" -gt 0 ]; then
-            echo ""
-            echo "$errors commit(s) do not match format: type(scope): description"
-            echo "Allowed types: feat, fix, docs, test, refactor, chore"
-            exit 1
-          fi
-          echo "All commit messages match expected format."
