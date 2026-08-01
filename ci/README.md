@@ -34,6 +34,7 @@ Copy the relevant templates for your project type:
 | `l3-quality-gate.yml` (L3 only) | ✓ | ✓ | — | — |
 | `boundary-gate-python.yml` | `python-fastapi` | `python-fastapi` | — | — |
 | `boundary-gate-node.yml` | `nodejs-fastify` | `nodejs-fastify` | — | — |
+| `boundary-gate-go.yml` | `go-gin` | `go-gin` | — | — |
 | `ui-quality-gate.yml` | — | — | ✓ | — |
 | `ui-eval-gate.yml` (L4+) | — | — | ✓ | — |
 | `l3-ui-nextjs-quality-gate.yml` | — | — | Next.js L3 | — |
@@ -66,7 +67,8 @@ part of the shared quality gate. govkit installs a boundary gate chosen by
 |---|---|---|---|
 | `python-fastapi` | `boundary-gate-python.yml` | `import-linter` | `governance/backend/importlinter-reference.toml` |
 | `nodejs-fastify` | `boundary-gate-node.yml` | `dependency-cruiser` | `governance/backend/dependency-cruiser-reference.cjs` |
-| `go-gin`, `java-spring-boot`, `dotnet-aspnet` | *none yet* | tracked separately | — |
+| `go-gin` | `boundary-gate-go.yml` | `go-arch-lint` | `governance/backend/go-arch-lint-reference.yml` |
+| `java-spring-boot`, `dotnet-aspnet` | *none yet* | tracked separately | — |
 
 A stack with no gate receives **no boundary workflow at all**, rather than one
 that silently skips. Shipping a Python linter to a Go repo enforces nothing
@@ -86,18 +88,26 @@ Each logs a notice telling you how to enable it.
 - **Node** — copy `governance/backend/dependency-cruiser-reference.cjs` to
   `.dependency-cruiser.cjs`. No placeholders: the rules key on layer folder
   names, and they accept both `src/<layer>/` and `src/<package>/<layer>/`.
+- **Go** — copy `governance/backend/go-arch-lint-reference.yml` to
+  `.go-arch-lint.yml`. Components key on layer folders under `internal/`.
+  Keep your composition root at `cmd/<binary>/main.go`; if you use
+  `internal/app/` instead, declare an `app` component (the reference explains
+  how, and why it cannot ship one pre-declared).
 
-**Confirm your gate analysed something.** Both linters report success on an
-empty analysis, so a misconfigured contract looks exactly like a clean repo:
+**Confirm your gate analysed something.** All three linters report success on
+an empty analysis, so a misconfigured contract looks exactly like a clean repo:
 
 - `import-linter` prints `Analyzed N files, 0 dependencies` and reports every
   contract KEPT when the package name is wrong.
 - `dependency-cruiser` cruises `0 modules` and exits 0 when it cannot parse
   your sources — which is what happens on **TypeScript 7**, since
   dependency-cruiser 17 uses the TypeScript 5.x compiler API.
+- `go-arch-lint` prints `OK - No warnings found` and exits 0 on Go it cannot
+  parse, so a syntax error anywhere turns the boundary check green.
 
-`boundary-gate-node.yml` fails the build on a zero module count rather than
-trusting the exit code. If you adapt these gates, keep that check.
+Each gate closes its own hole: the Node gate fails on a zero module count, and
+the Go gate runs `go build ./...` before checking and fails when no file
+attached to a component. If you adapt these gates, keep those checks.
 
 ---
 
@@ -105,15 +115,17 @@ trusting the exit code. If you adapt these gates, keep that check.
 
 Levels are additive, and so are these files: an L4 install receives the L3
 gate **and** the L4 gate. `quality-gate.yml` therefore contributes only what
-`l3-quality-gate.yml` does not — boundary enforcement, SonarQube, Snyk and
-commit format come from the L3 gate at every level. Defining them in both
-files made L4+ repos run each twice on every push.
+`l3-quality-gate.yml` does not — SonarQube, Snyk and commit format come from
+the L3 gate at every level. Defining them in both files made L4+ repos run
+each twice on every push. Boundary enforcement comes from neither: it lives
+in its own stack-selected `boundary-gate-*.yml`, which also ships from L3.
 
 | Pipeline | Level 3 | Level 4 |
 |----------|---------|---------|
 | `l3-quality-gate.yml` | Governance artifacts (3), commit format, SonarQube, Snyk | — |
 | `boundary-gate-python.yml` | Architecture boundary enforcement (`python-fastapi`) | — |
 | `boundary-gate-node.yml` | Architecture boundary enforcement (`nodejs-fastify`) | — |
+| `boundary-gate-go.yml` | Architecture boundary enforcement (`go-gin`) | — |
 | `quality-gate.yml` | — | Schema validation, contract compatibility, governance artifacts (5) |
 | `eval-gate.yml` | — | FIRST/Virtue prediction thresholds, LLM eval |
 | `ui-quality-gate.yml` | — | Type check, ESLint, component tests, bundle size |

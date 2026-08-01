@@ -1,0 +1,105 @@
+# go-arch-lint reference configuration for hexagonal architecture enforcement
+# on the `go-gin` stack.
+#
+# Copy this file to `.go-arch-lint.yml` in your repository root. No
+# placeholders to replace: components are keyed on layer folder names under
+# `internal/`, not on your module path.
+#
+# Install: go install github.com/fe3dback/go-arch-lint@latest
+# Run:     go-arch-lint check
+#
+# This configuration enforces the layering rules defined in:
+#   docs/backend/architecture/ARCH_CONTRACT.md
+#   docs/backend/architecture/BOUNDARIES.md
+#
+# It is the Go equivalent of governance/backend/importlinter-reference.toml
+# and expresses the same contract: `api` and `adapters` are independent
+# siblings above `services`, above `ports`, above `models`, above `common`,
+# with `api -> services` forbidden.
+#
+# -----------------------------------------------------------------------------
+# RUN `go build ./...` FIRST. go-arch-lint reports "OK - No warnings found" and
+# exits 0 on source it cannot parse — a syntax error anywhere makes the
+# boundary check pass. Verified against go-arch-lint v1.16.0.
+# ci/<flavour>/boundary-gate-go.yml builds before it checks for this reason.
+#
+# Two things that are *not* silent, and are worth relying on:
+#
+#   - A package under `internal/` that no component claims is reported as
+#     "not attached to any component" and fails the check. go-arch-lint does
+#     not quietly skip code inside its workdir.
+#   - `go-arch-lint mapping --json` lists which files each component matched.
+#     Use it to confirm the config resolved your tree.
+# -----------------------------------------------------------------------------
+#
+# COMPOSITION ROOT. Whatever wires adapters into services imports both, so it
+# cannot sit inside any layer. Put it at `cmd/<binary>/main.go`, outside
+# `internal/` and therefore outside the scanned workdir — the first location
+# LAYER_IMPLEMENTATION.md gives.
+#
+# If you instead use `internal/app/`, you must add it here yourself:
+#
+#     components:
+#       app: { in: app/** }
+#     deps:
+#       app:
+#         mayDependOn: [api, adapters, services, ports, models, common]
+#
+# This file cannot ship that entry pre-declared: go-arch-lint errors out on a
+# component whose folder does not exist, which would break every project that
+# keeps its composition root under cmd/.
+#
+# NOTE ON IMPORT CYCLES. Go's own compiler rejects import cycles, so several
+# layering violations — `services -> adapters` in a repo where adapters
+# already imports services, for instance — fail at `go build` before this
+# linter sees them. The rules below still matter: they catch the acyclic
+# violations the compiler accepts, such as `api -> services` and
+# `api -> adapters`.
+
+version: 3
+
+# Only the hexagonal layers are governed. cmd/ holds the composition root and
+# is deliberately outside this scope.
+workdir: internal
+
+allow:
+  # Third-party imports are governed by TECH_STACK.md, not by this contract.
+  depOnAnyVendor: true
+
+components:
+  api:      { in: api/** }
+  ports:    { in: ports/** }
+  services: { in: services/** }
+  models:   { in: models/** }
+  adapters: { in: adapters/** }
+  common:   { in: common/** }
+
+deps:
+  # Inbound adapters. May reach the domain only through ports/inbound; entity
+  # types are allowed because inbound port signatures carry them. `adapters`
+  # is absent deliberately — api and adapters are independent siblings that
+  # meet at the composition root.
+  api:
+    mayDependOn: [ports, models, common]
+
+  # Outbound adapters implement ports and are wired into services.
+  adapters:
+    mayDependOn: [ports, services, models, common]
+
+  # Domain behaviour. Depends on port interfaces, never on implementations.
+  services:
+    mayDependOn: [ports, models, common]
+
+  # Interfaces only. Sits below services so services can import the ports it
+  # depends on without a cycle.
+  ports:
+    mayDependOn: [models, common]
+
+  # Domain entities, ignorant of behaviour and interfaces.
+  models:
+    mayDependOn: [common]
+
+  # `common` has no entry on purpose. It must be dependency-free, and
+  # go-arch-lint rejects an explicit `mayDependOn: []` with "should have ref
+  # in 'mayDependOn'/'canUse' or at least one flag". Omitting the component
+  # from `deps` is how "depends on nothing" is expressed.
