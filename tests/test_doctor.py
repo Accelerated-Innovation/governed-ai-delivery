@@ -299,6 +299,71 @@ class TestMonorepoDiscovery:
         assert "ports" in d001s[0].message
         assert d001s[0].file and "ports.md" in d001s[0].file
 
+    def test_d001_resolves_brace_expansion_globs(self, tmp_path):
+        """`**/*.{py,go,ts}` is one glob with three alternatives. Path.glob has
+        no brace expansion, so passing it through verbatim matches nothing and
+        reports D001 against a repo that plainly contains matching files.
+
+        Two shipped rules use this form — copilot's repo-scope-backend
+        (`{py,go,ts,js,java,rs,cs,rb,php}`) and its UI counterpart
+        (`{ts,tsx,js,jsx,html}`) — so every copilot install carried a
+        permanent, unfixable D001 error."""
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path, agent="claude-code")
+        rules_dir = tmp_path / ".claude" / "rules" / "govkit"
+        rules_dir.mkdir(parents=True)
+        (rules_dir / "repo-scope.md").write_text(
+            '---\npaths:\n  - "**/*.{py,go,ts,js,java,rs,cs,rb,php}"\n---\n# Scope\n',
+            encoding="utf-8",
+        )
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "main.py").write_text("x", encoding="utf-8")
+
+        findings = run_doctor(tmp_path)
+        d001s = [f for f in findings if f.id == "D001"]
+        assert d001s == [], f"brace glob should resolve against src/main.py; got: {d001s}"
+
+    def test_d001_still_fires_when_no_brace_alternative_matches(self, tmp_path):
+        """Expansion must not turn D001 into a rubber stamp — a brace glob
+        whose every alternative is absent still reports."""
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path, agent="claude-code")
+        rules_dir = tmp_path / ".claude" / "rules" / "govkit"
+        rules_dir.mkdir(parents=True)
+        (rules_dir / "repo-scope.md").write_text(
+            '---\npaths:\n  - "**/*.{py,go,rs}"\n---\n# Scope\n', encoding="utf-8",
+        )
+        (tmp_path / "docs").mkdir()
+        (tmp_path / "docs" / "README.md").write_text("x", encoding="utf-8")
+
+        findings = run_doctor(tmp_path)
+        d001s = [f for f in findings if f.id == "D001"]
+        assert len(d001s) == 1
+        assert "{py,go,rs}" in d001s[0].message, (
+            "the reported glob should be the rule's own pattern, not an expansion"
+        )
+
+    def test_d001_resolves_copilot_brace_glob_in_comma_string(self, tmp_path):
+        """copilot combines both features: an `applyTo` comma-string whose
+        members may themselves contain brace alternation."""
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path, agent="copilot")
+        rules_dir = tmp_path / ".github" / "instructions" / "govkit"
+        rules_dir.mkdir(parents=True)
+        (rules_dir / "ui.instructions.md").write_text(
+            '---\napplyTo: "**/*.{ts,tsx,js,jsx,html},**/components/**"\n---\n# UI\n',
+            encoding="utf-8",
+        )
+        (tmp_path / "src" / "components").mkdir(parents=True)
+        (tmp_path / "src" / "app.tsx").write_text("x", encoding="utf-8")
+
+        findings = run_doctor(tmp_path)
+        d001s = [f for f in findings if f.id == "D001"]
+        assert d001s == [], f"both members should resolve; got: {d001s}"
+
     def test_d001_checks_rules_in_govkit_subdirectory(self, tmp_path):
         """Rules live in `.claude/rules/govkit/` once govkit owns its own
         namespace; doctor must descend into subdirectories, not just glob the
