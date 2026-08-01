@@ -402,8 +402,18 @@
         "shared": [],
         "governed": [],
         "by_type": {
-          "api":        { "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-quality-gate.yml"] },
-          "cli":        { "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-quality-gate.yml"] },
+          "api":        {
+            "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-quality-gate.yml"],
+            "by_stack": {
+              "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml"] }
+            }
+          },
+          "cli":        {
+            "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-quality-gate.yml"],
+            "by_stack": {
+              "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml"] }
+            }
+          },
           "ui-react":   { "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-ui-quality-gate.yml"] },
           "ui-angular": { "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-ui-quality-gate.yml"] },
           "ui-nextjs":  { "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-ui-nextjs-quality-gate.yml"] },
@@ -441,24 +451,34 @@
           "shared": [],
           "governed": ["ci/github/repo-scope-check.yml"],
           "by_type": {
-            "api": { "governed": [
-              "ci/github/l3-quality-gate.yml",
-              "ci/github/quality-gate.yml",
-              "ci/github/eval-gate.yml",
-              "ci/github/deepeval-gate.yml",
-              "ci/github/guardrails-check.yml",
-              "ci/github/multi-agent-gate.yml",
-              "ci/github/promptfoo-gate.yml"
-            ] },
-            "cli": { "governed": [
-              "ci/github/l3-quality-gate.yml",
-              "ci/github/quality-gate.yml",
-              "ci/github/eval-gate.yml",
-              "ci/github/deepeval-gate.yml",
-              "ci/github/guardrails-check.yml",
-              "ci/github/multi-agent-gate.yml",
-              "ci/github/promptfoo-gate.yml"
-            ] },
+            "api": {
+              "governed": [
+                "ci/github/l3-quality-gate.yml",
+                "ci/github/quality-gate.yml",
+                "ci/github/eval-gate.yml",
+                "ci/github/deepeval-gate.yml",
+                "ci/github/guardrails-check.yml",
+                "ci/github/multi-agent-gate.yml",
+                "ci/github/promptfoo-gate.yml"
+              ],
+              "by_stack": {
+                "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml"] }
+              }
+            },
+            "cli": {
+              "governed": [
+                "ci/github/l3-quality-gate.yml",
+                "ci/github/quality-gate.yml",
+                "ci/github/eval-gate.yml",
+                "ci/github/deepeval-gate.yml",
+                "ci/github/guardrails-check.yml",
+                "ci/github/multi-agent-gate.yml",
+                "ci/github/promptfoo-gate.yml"
+              ],
+              "by_stack": {
+                "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml"] }
+              }
+            },
             "ui-react": { "governed": [
               "ci/github/l3-ui-quality-gate.yml",
               "ci/github/ui-quality-gate.yml",
@@ -493,8 +513,18 @@
         "shared": [],
         "governed": [],
         "by_type": {
-          "api":        { "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-quality-gate.yml"] },
-          "cli":        { "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-quality-gate.yml"] },
+          "api":        {
+            "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-quality-gate.yml"],
+            "by_stack": {
+              "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml"] }
+            }
+          },
+          "cli":        {
+            "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-quality-gate.yml"],
+            "by_stack": {
+              "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml"] }
+            }
+          },
           "ui-react":   { "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-ui-quality-gate.yml"] },
           "ui-angular": { "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-ui-quality-gate.yml"] },
           "ui-nextjs":  { "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-ui-nextjs-quality-gate.yml"] },
@@ -532,24 +562,34 @@
           "shared": [],
           "governed": ["ci/azure/repo-scope-check.yml"],
           "by_type": {
-            "api": { "governed": [
-              "ci/azure/l3-quality-gate.yml",
-              "ci/azure/quality-gate.yml",
-              "ci/azure/eval-gate.yml",
-              "ci/azure/deepeval-gate.yml",
-              "ci/azure/guardrails-check.yml",
-              "ci/azure/multi-agent-gate.yml",
-              "ci/azure/promptfoo-gate.yml"
-            ] },
-            "cli": { "governed": [
-              "ci/azure/l3-quality-gate.yml",
-              "ci/azure/quality-gate.yml",
-              "ci/azure/eval-gate.yml",
-              "ci/azure/deepeval-gate.yml",
-              "ci/azure/guardrails-check.yml",
-              "ci/azure/multi-agent-gate.yml",
-              "ci/azure/promptfoo-gate.yml"
-            ] },
+            "api": {
+              "governed": [
+                "ci/azure/l3-quality-gate.yml",
+                "ci/azure/quality-gate.yml",
+                "ci/azure/eval-gate.yml",
+                "ci/azure/deepeval-gate.yml",
+                "ci/azure/guardrails-check.yml",
+                "ci/azure/multi-agent-gate.yml",
+                "ci/azure/promptfoo-gate.yml"
+              ],
+              "by_stack": {
+                "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml"] }
+              }
+            },
+            "cli": {
+              "governed": [
+                "ci/azure/l3-quality-gate.yml",
+                "ci/azure/quality-gate.yml",
+                "ci/azure/eval-gate.yml",
+                "ci/azure/deepeval-gate.yml",
+                "ci/azure/guardrails-check.yml",
+                "ci/azure/multi-agent-gate.yml",
+                "ci/azure/promptfoo-gate.yml"
+              ],
+              "by_stack": {
+                "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml"] }
+              }
+            },
             "ui-react": { "governed": [
               "ci/azure/l3-ui-quality-gate.yml",
               "ci/azure/ui-quality-gate.yml",
