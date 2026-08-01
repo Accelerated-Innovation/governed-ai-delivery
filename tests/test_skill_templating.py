@@ -312,3 +312,82 @@ class TestApplyExpandsSkillDocsArea:
         text = spec.read_text(encoding="utf-8")
         assert "docs/backend/architecture" in text
         assert "{{docs_area}}" not in text
+
+
+class TestPiiKeywordReRendering:
+    """Tuning `pii.keyword_list` must reach the rule bodies seeded from it.
+
+    The list is documented as team-tunable and is preserved across rewrites,
+    but the rendering was one-way: the first install consumed
+    `{{pii_keywords}}`, leaving nothing for a later pass to re-render from.
+
+    `apply` and `upgrade` were unaffected — they re-copy each rule from the
+    bundle, which restores the token before re-expanding. `calibrate` does
+    not re-copy, so it silently kept the original defaults. Calibrating is
+    exactly when a team would tune the list.
+    """
+
+    def test_rendering_is_repeatable(self):
+        from cli.skill_templating import expand_pii_keywords
+
+        source = "PII list ({{pii_keywords}}) MUST be tagged\n"
+        first = expand_pii_keywords(source, ["email", "dob"])
+        assert "`email`, `dob`" in first
+
+        second = expand_pii_keywords(first, ["email", "iban", "national_id"])
+        assert "`email`, `iban`, `national_id`" in second
+        assert "`dob`" not in second, "the previous rendering was not replaced"
+        assert "MUST be tagged" in second
+
+    def test_re_rendering_is_idempotent(self):
+        from cli.skill_templating import expand_pii_keywords
+
+        once = expand_pii_keywords("list ({{pii_keywords}})\n", ["email"])
+        twice = expand_pii_keywords(once, ["email"])
+        assert once == twice
+
+    def test_installed_bodies_re_render_from_a_tuned_list(self, tmp_path):
+        from cli.skill_templating import template_installed_rule_bodies
+
+        rule = tmp_path / ".claude" / "rules" / "govkit" / "staging.md"
+        rule.parent.mkdir(parents=True)
+        rule.write_text("PII list ({{pii_keywords}}) MUST be tagged\n", encoding="utf-8")
+
+        template_installed_rule_bodies(tmp_path, "claude-code", ["email", "dob"])
+        count = template_installed_rule_bodies(tmp_path, "claude-code", ["email", "iban"])
+
+        assert count == 1, "second pass found nothing to re-render"
+        text = rule.read_text(encoding="utf-8")
+        assert "`email`, `iban`" in text
+        assert "`dob`" not in text
+
+    def test_calibrate_re_renders_after_the_list_is_tuned(self, tmp_path):
+        """End-to-end: the case from the issue."""
+        import argparse
+
+        import yaml
+
+        from cli.calibrate import cmd_calibrate
+        from cli.cmd_apply import cmd_apply
+
+        target = tmp_path / "project"
+        target.mkdir()
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target), level="4", type="data",
+            ci="github", stack=None, force=False, detect=False,
+        ))
+        rule = target / ".claude" / "rules" / "govkit" / "staging.md"
+        assert "`phone`" in rule.read_text(encoding="utf-8")
+
+        context = target / ".govkit" / "skill_context.yaml"
+        data = yaml.safe_load(context.read_text(encoding="utf-8"))
+        data["pii"]["keyword_list"] = ["email", "iban", "national_id"]
+        context.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+
+        cmd_calibrate(argparse.Namespace(
+            target=str(target), non_interactive=True, only=None,
+        ))
+
+        text = rule.read_text(encoding="utf-8")
+        assert "`email`, `iban`, `national_id`" in text
+        assert "`phone`" not in text, "rule body kept the pre-tuning defaults"

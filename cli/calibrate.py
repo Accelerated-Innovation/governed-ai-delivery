@@ -589,10 +589,14 @@ def _retemplate_rules(target: Path, marker: dict) -> None:
     agent actually reads — scoped to the style detection originally chose,
     so the correction appears to apply while changing nothing.
 
+    Also re-renders the PII keyword list into rule bodies: `pii.keyword_list`
+    is team-tunable, and calibration is exactly when a team tunes it.
+
     Silent on agents with no rules dir (codex scopes by placement instead).
     """
     from .rule_templating import template_installed_rules
     from .skill_context import load_skill_context
+    from .skill_templating import template_installed_rule_bodies
 
     context = load_skill_context(target)
     if context is None:
@@ -601,6 +605,9 @@ def _retemplate_rules(target: Path, marker: dict) -> None:
     count = template_installed_rules(target, agent, context.layers)
     if count:
         print(f"  re-scoped {count} rule file(s) to the calibrated architecture.")
+    bodies = template_installed_rule_bodies(target, agent, context.pii_keywords)
+    if bodies:
+        print(f"  re-rendered the PII keyword list into {bodies} rule file(s).")
 
 
 _PROMPT_HELP = (
