@@ -1,0 +1,68 @@
+# Azure DevOps pipeline — architecture boundary enforcement for the `go-gin`
+# stack. Runs `go-arch-lint` against the hexagonal layer contract described in
+# docs/backend/architecture/BOUNDARIES.md.
+#
+# STAGES:
+#   BoundaryCheck    — enforces hexagonal architecture boundaries via go-arch-lint
+#
+# STACK-SELECTED: govkit installs this file only for `--stack go-gin`.
+# Each backend stack gets a boundary gate in a tool that can read its source;
+# see ci/README.md for the mapping.
+#
+# OPT-IN: govkit ships governance/backend/go-arch-lint-reference.yml as a
+# template. The contract is live only once you copy it to `.go-arch-lint.yml`;
+# until then this stage skips so a fresh install is green.
+#
+# WHY IT BUILDS FIRST: go-arch-lint reports "OK - No warnings found" and exits
+# 0 on source it cannot parse, so a syntax error anywhere would turn the
+# boundary check green. Verified against go-arch-lint v1.16.0. `go build ./...`
+# runs first so unparseable code fails here rather than passing silently.
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: BoundaryCheck
+    displayName: Architecture boundary enforcement
+    dependsOn: []
+    jobs:
+      - job: BoundaryCheck
+        displayName: Run go-arch-lint
+        steps:
+          - checkout: self
+
+          - task: GoTool@0
+            displayName: Use Go
+            inputs:
+              version: '1.24'
+
+          - script: |
+              if [ ! -f .go-arch-lint.yml ] && [ ! -f .go-arch-lint.yaml ]; then
+                echo "##vso[task.logissue type=warning]No go-arch-lint contract found. Copy governance/backend/go-arch-lint-reference.yml to .go-arch-lint.yml to enable boundary enforcement."
+                exit 0
+              fi
+
+              set -euo pipefail
+              export PATH="$PATH:$(go env GOPATH)/bin"
+
+              # go-arch-lint passes on source it cannot parse, so a green
+              # boundary check is only meaningful if the project compiles.
+              go build ./...
+              go install github.com/fe3dback/go-arch-lint@latest
+
+              # Confirm the contract actually matched files before trusting a pass.
+              mapped=$(go-arch-lint mapping --json | grep -oE '"[Ff]ileNames":\[[^]]*' | grep -oc '\.go' || true)
+              if [ "${mapped:-0}" -eq 0 ]; then
+                echo "##vso[task.logissue type=error]go-arch-lint attached no files to any component. The contract did not match your tree, so the check would pass regardless of the code. Confirm your layers live under internal/ and that workdir in .go-arch-lint.yml matches."
+                exit 1
+              fi
+
+              go-arch-lint check
+            displayName: Enforce hexagonal architecture boundaries

@@ -1,11 +1,14 @@
 # Per-Stack Boundary Enforcement Plan
 
-**Status:** In progress — 2026-08-01. Increment 1 (stack-selected dispatch,
-proven with Python) landed via #102. Increment 6 (documentation) was pulled
-ahead of 2-5 and is landing now — its wording fix is correct regardless of
-which tools follow. Increments 2-5 are unblocked: open questions 1-3 are
-answered below, and 4 is scoped to a per-stack check rather than a blocker.
-Covers #93, which closes when increment 5 lands.
+**Status:** In progress — 2026-08-01. Increments 1-4 are done: stack-selected
+dispatch (#102), stack-agnostic doc wording (#103), Node (#105), and Go. Three
+of five stacks now have boundary enforcement in a tool that can read them.
+Remaining: increment 5 (JVM) and 6 (.NET), both template-and-structural-
+assertion shaped. Covers #93, which closes when increment 6 lands.
+
+Every linter adopted so far reports success on an empty analysis, each in its
+own way, and none of them says so. That pattern is now the first thing to test
+for when adding a stack — see Verification.
 
 Decisions taken 2026-08-01, after the open questions were revisited against
 the shipped payload:
@@ -235,25 +238,57 @@ to close, and the layer rules themselves are identical for every stack.
 
 Commit: `docs(backend): defer to TECH_STACK.md for the boundary tool (#93)`
 
-### 3. Node — dependency-cruiser
+### 3. Node — dependency-cruiser — done
 
-1. Failing fixture test, `e2e`-marked, modelled on
-   `tests/test_importlinter_reference.py`: a conforming `src/<pkg>/` skeleton
-   passes; each forbidden edge is rejected; **assert a non-zero module count**
-   so a config that analyses nothing cannot read as passing.
-2. `governance/backend/dependency-cruiser-reference.cjs`, the gate file, the
-   manifest wiring.
-3. `actions/setup-node` in the pytest job, **plus a CI-only assertion that
-   the binary resolves**. The existing `shutil.which` skipif is right for
-   local runs, but in CI a skip and a pass look identical — a broken setup
-   step must fail loudly rather than quietly skip the only test that proves
-   the config works.
+Landed via #105. `tests/test_dependency_cruiser_reference.py` runs the real
+linter: conforming flat and `src/<package>/` skeletons pass, eleven forbidden
+edges are each rejected, and cross-service independence is checked.
+
+Three things the tool decided for us, none of which were guessable:
+
+- Layer paths ship as **arrays of two regexes**. dependency-cruiser rejects
+  `^src/(?:[^/]+/)?api/` as ReDoS-unsafe and bails out entirely. The pair also
+  lets one config serve both layouts the payload describes.
+- The **independence rule ships enabled**, unlike import-linter's. Its pattern
+  requires a `src/<service>/<layer>/` segment, so it is inert on a flat
+  single-service repo.
+- The reference is **`.cjs`**, the filename `TECH_STACK.md:186` already names.
+
+`by_stack` had to carry the **reference contract as well as the gate**. A real
+`govkit apply` caught what the manifest tests could not: a Node install got
+`boundary-gate-node.yml`, whose notice names a `.cjs`, alongside
+`importlinter-reference.toml` and no `.cjs` at all. Fixing that also stopped
+shipping the Python contract to the stacks whose linters cannot read it.
 
 Commit: `feat(ci): boundary enforcement for nodejs-fastify (#93)`
 
-### 4. Go — go-arch-lint
+### 4. Go — go-arch-lint — done
 
-Same shape as increment 3, with `actions/setup-go`.
+Same shape, with `actions/setup-go`. `tests/test_go_arch_lint_reference.py`
+runs the real linter against generated skeletons.
+
+Two Go-specific facts changed the design:
+
+- **go-arch-lint exits 0 on source it cannot parse**, reporting
+  "OK - No warnings found". A syntax error anywhere turns the gate green, so
+  the gate runs `go build ./...` first and the fixtures assert they compile.
+- **Go itself forbids import cycles.** In a fully-wired conforming skeleton,
+  `adapters` imports `services`, so adding `services -> adapters` produces a
+  project that does not build — and per the above, go-arch-lint would then
+  pass it. Each forbidden edge is tested against a *minimal* skeleton holding
+  only that edge, so the linter is what rejects it rather than the compiler.
+
+Two config constraints worth recording, both discovered by running it:
+
+- `common: mayDependOn: []` is **rejected** ("should have ref in
+  'mayDependOn'/'canUse' or at least one flag"). Dependency-free is expressed
+  by omitting the component from `deps` entirely — which reads like an
+  oversight, so a test asserts the omission is deliberate.
+- A component whose folder does not exist is a **hard error**, so the
+  reference cannot pre-declare an `app` component for teams whose composition
+  root is `internal/app/`. It documents how to add one instead. Conversely, a
+  package under `internal/` that no component claims fails the check — the one
+  place these linters refuse to ignore code silently.
 
 Commit: `feat(ci): boundary enforcement for go-gin (#93)`
 
@@ -292,6 +327,24 @@ Commit: `feat(ci): boundary enforcement for dotnet-aspnet (#93)`
   by two gate files that ship together.
 - Regenerate smoke sandboxes for at least one backend stack per shape.
 - Confirm a stack with no gate installs cleanly rather than erroring.
+- **Find the silent-pass mode before shipping the gate.** Every boundary
+  linter adopted so far reports success on an empty analysis, and none
+  announces it. Each was found by running the tool, never by reading its
+  docs:
+
+  | Tool | Passes vacuously when | Gate closes it with |
+  | --- | --- | --- |
+  | import-linter | `root_package` names a directory, not a package — 0 dependencies, all contracts KEPT | adopters told to check the analysed count |
+  | dependency-cruiser | `--output-type json` (always exits 0); TypeScript 7 installed (0 modules) | default reporter + fail on zero modules |
+  | go-arch-lint | source does not parse — "OK - No warnings found" | `go build ./...` first + fail on zero mapped files |
+
+  Assume the next one has such a mode and go looking for it. A gate that
+  cannot fail is worse than no gate, because it reports that the boundary
+  holds.
+- **Verify the reference contract installs, not just the gate.** The Node
+  gate shipped without its `.cjs` and every manifest-level test was green;
+  only a real `govkit apply` showed the gate pointing at a file that was not
+  there.
 
 ## Open questions — resolved 2026-08-01
 

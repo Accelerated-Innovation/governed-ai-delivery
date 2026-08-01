@@ -1,0 +1,76 @@
+# boundary-gate-go.yml
+#
+# PURPOSE: Architecture boundary enforcement for the `go-gin` stack. Runs
+# `go-arch-lint` against the hexagonal layer contract described in
+# docs/backend/architecture/BOUNDARIES.md.
+# Copy this file to .github/workflows/boundary-gate.yml.
+#
+# JOBS:
+#   boundary-check    — enforces hexagonal architecture boundaries via go-arch-lint
+#
+# STACK-SELECTED: govkit installs this file only for `--stack go-gin`.
+# Each backend stack gets a boundary gate in a tool that can read its source;
+# see ci/README.md for the mapping.
+#
+# OPT-IN: govkit ships governance/backend/go-arch-lint-reference.yml as a
+# template. The contract is live only once you copy it to `.go-arch-lint.yml`;
+# until then this job skips so a fresh install is green.
+#
+# WHY IT BUILDS FIRST: go-arch-lint reports "OK - No warnings found" and exits
+# 0 on source it cannot parse, so a syntax error anywhere would turn the
+# boundary check green. Verified against go-arch-lint v1.16.0. `go build ./...`
+# runs first so unparseable code fails here rather than passing silently.
+#
+# REQUIRED SECRETS: none.
+
+name: Boundary Gate (Go)
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  boundary-check:
+    name: Architecture boundary enforcement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect go-arch-lint contract
+        id: contract
+        run: |
+          if [ -f .go-arch-lint.yml ] || [ -f .go-arch-lint.yaml ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No go-arch-lint contract found. Copy governance/backend/go-arch-lint-reference.yml to .go-arch-lint.yml to enable boundary enforcement."
+          fi
+
+      - uses: actions/setup-go@v5
+        if: steps.contract.outputs.found == 'true'
+        with:
+          go-version: 'stable'
+
+      - name: Build
+        # go-arch-lint passes on source it cannot parse, so a green boundary
+        # check is only meaningful if the project compiles.
+        if: steps.contract.outputs.found == 'true'
+        run: go build ./...
+
+      - name: Install go-arch-lint
+        if: steps.contract.outputs.found == 'true'
+        run: go install github.com/fe3dback/go-arch-lint@latest
+
+      - name: Run boundary checks
+        if: steps.contract.outputs.found == 'true'
+        run: |
+          set -euo pipefail
+          # Confirm the contract actually matched files before trusting a pass.
+          mapped=$(go-arch-lint mapping --json | grep -oE '"[Ff]ileNames":\[[^]]*' | grep -oc '\.go' || true)
+          if [ "${mapped:-0}" -eq 0 ]; then
+            echo "::error::go-arch-lint attached no files to any component. The contract did not match your tree, so the check would pass regardless of the code. Confirm your layers live under internal/ and that workdir in .go-arch-lint.yml matches."
+            exit 1
+          fi
+          go-arch-lint check

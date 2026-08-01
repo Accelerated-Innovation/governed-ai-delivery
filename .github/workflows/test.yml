@@ -31,18 +31,30 @@ jobs:
         with:
           node-version: '22'
 
+      # tests/test_go_arch_lint_reference.py does the same for the shipped
+      # go-arch-lint contract.
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: 'stable'
+
+      - name: Install go-arch-lint
+        run: go install github.com/fe3dback/go-arch-lint@latest
+
       - name: Install
         run: pip install -e ".[test]"
 
-      - name: Assert the Node toolchain is present
-        # The reference tests skipif npm is missing, which is right locally but
-        # wrong here: a broken setup-node step would leave the only tests that
-        # prove the shipped dependency-cruiser config works silently skipped,
-        # and CI would still be green.
+      - name: Assert the Node and Go toolchains are present
+        # The reference tests skipif their toolchain is missing, which is right
+        # locally but wrong here: a broken setup step would leave the only
+        # tests that prove the shipped configs work silently skipped, and CI
+        # would still be green.
         run: |
           set -euxo pipefail
           command -v node
           command -v npm
+          command -v go
+          test -x "$(go env GOPATH)/bin/go-arch-lint"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Run pytest
         run: pytest
