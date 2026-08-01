@@ -7,7 +7,9 @@ exits non-zero on errors. Designed to run in CI.
 
 import argparse
 import json
+import os
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -304,16 +306,89 @@ class TestMonorepoDiscovery:
         assert web in targets
         assert tmp_path not in targets
 
-    def test_root_marker_takes_precedence_over_nested(self, tmp_path):
-        """If the root has its own .govkit, scope to root only — don't dive
-        into subdirs looking for more installs."""
+    def test_a_governed_root_does_not_hide_nested_installs(self, tmp_path):
+        """A governed root plus governed subprojects is a supported shape, so
+        every install must be discovered.
+
+        This previously returned `[root]` and stopped. The rule was justified
+        as stopping `apps/` subdirs of a single install being double-counted —
+        but a subdirectory holding its own marker is by definition a separate
+        install, with its own agent, level, type and stack. `run_doctor` is
+        per-target and reads each marker independently, so there was nothing
+        to double-count; the rule only skipped real installs.
+
+        It matters more now that `marker.json` holds one `type` and UI types
+        reject `--stack`: a backend+frontend monorepo *has* to be a governed
+        root plus a governed `apps/web`."""
+        from cli.doctor import discover_install_targets
+
+        _write_marker(tmp_path)
+        _write_marker(tmp_path / "apps" / "api")
+        _write_marker(tmp_path / "apps" / "web")
+
+        targets = discover_install_targets(tmp_path)
+        assert targets == [
+            tmp_path,
+            tmp_path / "apps" / "api",
+            tmp_path / "apps" / "web",
+        ]
+
+    def test_each_install_is_returned_once(self, tmp_path):
         from cli.doctor import discover_install_targets
 
         _write_marker(tmp_path)
         _write_marker(tmp_path / "apps" / "api")
 
         targets = discover_install_targets(tmp_path)
-        assert targets == [tmp_path]
+        assert len(targets) == len(set(targets))
+
+    def test_installs_nested_more_than_one_level_are_found(self, tmp_path):
+        from cli.doctor import discover_install_targets
+
+        _write_marker(tmp_path)
+        deep = tmp_path / "packages" / "backend" / "svc"
+        _write_marker(deep)
+
+        assert deep in discover_install_targets(tmp_path)
+
+    def test_noise_directories_are_not_searched(self, tmp_path):
+        """A vendored copy of a governed project must not be reported, and
+        the walk must not descend into it to find out."""
+        from cli.doctor import discover_install_targets
+
+        _write_marker(tmp_path)
+        _write_marker(tmp_path / "node_modules" / "vendored")
+        _write_marker(tmp_path / ".venv" / "lib" / "copied")
+
+        assert discover_install_targets(tmp_path) == [tmp_path]
+
+    def test_walk_prunes_noise_directories_instead_of_filtering_after(self, tmp_path):
+        """Now that a governed root no longer short-circuits the walk, every
+        `doctor` run scans the tree. It must prune noise dirs during traversal
+        rather than walking them and discarding the results, or the cost lands
+        on exactly the large repos that can least afford it."""
+        from cli.doctor import discover_install_targets
+
+        _write_marker(tmp_path)
+        buried = tmp_path / "node_modules" / "pkg"
+        buried.mkdir(parents=True)
+        for i in range(50):
+            (buried / f"nested{i}").mkdir()
+
+        visited: list[str] = []
+        real_walk = os.walk
+
+        def counting_walk(top, *a, **kw):
+            for dirpath, dirnames, filenames in real_walk(top, *a, **kw):
+                visited.append(dirpath)
+                yield dirpath, dirnames, filenames
+
+        with mock.patch.object(os, "walk", counting_walk):
+            discover_install_targets(tmp_path)
+
+        assert not any("node_modules" in v for v in visited), (
+            "walked into node_modules instead of pruning it"
+        )
 
     def test_d001_passes_when_rule_globs_match_files(self, tmp_path):
         from cli.doctor import run_doctor

@@ -17,6 +17,7 @@ directories under cwd so monorepos get checked per-app.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -851,34 +852,44 @@ def _check_ui_framework_matches_type(
 # ---------------------------------------------------------------------------
 
 
+_DISCOVERY_SKIP_DIRS = frozenset({
+    ".git", "node_modules", ".venv", "venv", "__pycache__",
+    "dist", "build", "target", "bin", "obj",
+})
+
+
 def discover_install_targets(cwd: Path) -> list[Path]:
-    """Find every .govkit/ directory under `cwd` (A9).
+    """Every govkit install at or under `cwd`, nearest first (A9).
 
-    If `cwd` itself is a govkit install (has .govkit/), returns [cwd] and
-    does NOT recurse — apps/ subdirs of a single install don't get
-    double-counted.
+    A governed root does **not** hide governed subprojects. This used to
+    return `[cwd]` and stop as soon as the root had a marker, justified as
+    stopping `apps/` subdirs of a single install being double-counted — but
+    a subdirectory holding its own marker is by definition a separate
+    install, with its own agent, level, type and stack. `run_doctor` is
+    per-target and reads each marker independently, so there was nothing to
+    double-count; the rule only skipped real installs silently.
 
-    Otherwise walks under cwd looking for .govkit/ markers. Skips
-    `.git`, `node_modules`, `.venv`, etc. so the walk is bounded.
+    That shape is one govkit actively encourages: `marker.json` holds a
+    single `type` and UI types reject `--stack`, so a backend+frontend
+    monorepo must be a governed root plus a governed `apps/web`.
+
+    Pass `--target` to scope to one install.
+
+    Uses os.walk with in-place `dirnames[:]` pruning so vendored trees are
+    never entered. Every run now scans, where before a governed root
+    short-circuited it, so the cost has to stay off the large repos that
+    can least afford it.
     """
-    cwd_marker = cwd / MARKER_DIRNAME
-    if cwd_marker.is_dir() or cwd_marker.is_file():
-        return [cwd]
-
-    skip_dirs = {".git", "node_modules", ".venv", "venv", "__pycache__",
-                 "dist", "build", "target", "bin", "obj"}
     targets: list[Path] = []
-    for marker in cwd.rglob(MARKER_DIRNAME):
-        # Skip if any parent in the chain is a skip-dir
-        try:
-            rel_parts = marker.relative_to(cwd).parts
-        except ValueError:
-            continue
-        if any(p in skip_dirs for p in rel_parts):
-            continue
-        if not (marker.is_dir() or marker.is_file()):
-            continue
-        targets.append(marker.parent)
+    try:
+        for dirpath, dirnames, filenames in os.walk(cwd):
+            dirnames[:] = [d for d in dirnames if d not in _DISCOVERY_SKIP_DIRS]
+            # `.govkit` is normally a directory; tolerate a file for the
+            # marker-as-file shape read_govkit_marker also accepts.
+            if MARKER_DIRNAME in dirnames or MARKER_DIRNAME in filenames:
+                targets.append(Path(dirpath))
+    except OSError:
+        return sorted(set(targets))
     return sorted(set(targets))
 
 

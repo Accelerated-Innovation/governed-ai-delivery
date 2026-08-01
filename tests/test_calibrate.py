@@ -243,6 +243,30 @@ class TestMonorepoDispatch:
         assert "apps/api" in out.replace("\\", "/")
         assert "apps/web" in out.replace("\\", "/")
 
+    def test_a_governed_root_does_not_hide_nested_installs(self, tmp_path, monkeypatch, capsys):
+        """calibrate shares `discover_install_targets` with doctor, so it
+        inherits the fix for a governed root masking governed subprojects.
+
+        Asserted explicitly rather than left as a side effect of the shared
+        helper: calibrating only the root of a backend+frontend monorepo
+        would silently leave the frontend uncalibrated."""
+        from cli.calibrate import cmd_calibrate
+
+        _write_marker(tmp_path)
+        _write_marker(tmp_path / "apps" / "web")
+        monkeypatch.chdir(tmp_path)
+
+        cmd_calibrate(argparse.Namespace(
+            target=None,
+            non_interactive=True,
+            only=None,
+        ))
+
+        out = capsys.readouterr().out.replace("\\", "/")
+        assert "apps/web" in out, "nested install was not calibrated"
+        assert (tmp_path / "GOVKIT_CALIBRATION_CHECKLIST.md").is_file()
+        assert (tmp_path / "apps" / "web" / "GOVKIT_CALIBRATION_CHECKLIST.md").is_file()
+
     def test_errors_when_no_marker_anywhere(self, tmp_path, monkeypatch):
         from cli.calibrate import cmd_calibrate
 
