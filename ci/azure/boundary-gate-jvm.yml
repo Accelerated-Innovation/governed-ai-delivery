@@ -1,0 +1,97 @@
+# Azure DevOps pipeline — architecture boundary enforcement for the
+# `java-spring-boot` stack. Runs ArchUnit rules that live in your own test
+# suite, against the hexagonal layer contract described in
+# docs/backend/architecture/BOUNDARIES.md.
+#
+# STAGES:
+#   BoundaryCheck    — runs the project's tests and confirms the ArchUnit
+#                      architecture test among them actually executed
+#
+# STACK-SELECTED: govkit installs this file only for `--stack java-spring-boot`.
+# See ci/README.md for the per-stack mapping.
+#
+# DIFFERENT SHAPE FROM THE OTHER GATES. Python, Node and Go get a config file
+# and a linter binary. On the JVM the rules ARE test code: govkit ships
+# governance/backend/ArchitectureTest.java.template, you copy it into your test
+# tree, and it runs with `mvn test` / `gradle test`. This stage therefore
+# installs no linter — it runs your build and then checks the reports.
+#
+# OPT-IN: skips until an ArchitectureTest is present in the test tree.
+#
+# WHY IT READS THE TEST REPORTS: a test class the build never executes is this
+# stack's silent-pass mode — wrong source set, a name outside the include
+# pattern, a module missing from the reactor. The build goes green having
+# checked no boundary at all, exactly as a linter that analysed zero files
+# would. Passing is not enough; the stage confirms the test ran.
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: BoundaryCheck
+    displayName: Architecture boundary enforcement
+    dependsOn: []
+    jobs:
+      - job: BoundaryCheck
+        displayName: Run ArchUnit architecture tests
+        steps:
+          - checkout: self
+
+          - script: |
+              if ! find . -path ./target -prune -o -name 'ArchitectureTest.java' -print | grep -q .; then
+                echo "##vso[task.logissue type=warning]No ArchitectureTest.java found. Copy governance/backend/ArchitectureTest.java.template into src/test/java/<base>/architecture/ArchitectureTest.java and set your base package to enable boundary enforcement."
+                echo "##vso[task.setvariable variable=archTestFound]false"
+              else
+                echo "##vso[task.setvariable variable=archTestFound]true"
+              fi
+            displayName: Detect ArchUnit architecture test
+
+          - task: JavaToolInstaller@0
+            condition: eq(variables['archTestFound'], 'true')
+            displayName: Use Java 21
+            inputs:
+              versionSpec: '21'
+              jdkArchitectureOption: 'x64'
+              jdkSourceOption: 'PreInstalled'
+
+          - script: |
+              set -euo pipefail
+              if [ -f pom.xml ]; then
+                ./mvnw --batch-mode test || mvn --batch-mode test
+              elif [ -f build.gradle ] || [ -f build.gradle.kts ]; then
+                ./gradlew test
+              else
+                echo "##vso[task.logissue type=error]Neither pom.xml nor build.gradle found — cannot run the architecture test."
+                exit 1
+              fi
+            condition: eq(variables['archTestFound'], 'true')
+            displayName: Run tests
+
+          - script: |
+              set -euo pipefail
+              # Maven writes target/surefire-reports/, Gradle build/test-results/test/.
+              reports=$(find . \( -path '*/surefire-reports/*' -o -path '*/test-results/*' \) \
+                        -name '*ArchitectureTest*.xml' -print)
+              if [ -z "$reports" ]; then
+                echo "##vso[task.logissue type=error]The build passed but produced no test report for ArchitectureTest. The architecture rules did not run, so no boundary was checked. Confirm the class is under the test source set and matches your build's test include pattern."
+                exit 1
+              fi
+              total=0
+              for report in $reports; do
+                count=$(grep -oE 'tests="[0-9]+"' "$report" | head -1 | grep -oE '[0-9]+' || echo 0)
+                total=$((total + count))
+              done
+              if [ "$total" -eq 0 ]; then
+                echo "##vso[task.logissue type=error]ArchitectureTest ran 0 tests. The rules are not being picked up — check that they are @ArchTest fields and that archunit-junit5 is on the test classpath."
+                exit 1
+              fi
+              echo "ArchitectureTest executed $total architecture rules."
+            condition: eq(variables['archTestFound'], 'true')
+            displayName: Confirm the architecture test actually ran

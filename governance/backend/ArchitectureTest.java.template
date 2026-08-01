@@ -1,0 +1,146 @@
+/*
+ * ArchUnit reference test for hexagonal architecture enforcement on the
+ * `java-spring-boot` stack.
+ *
+ * Copy this file into your own test tree, drop the `.template` suffix, and
+ * replace `com.example.myservice` with your base package:
+ *
+ *     src/test/java/<your>/<base>/architecture/ArchitectureTest.java
+ *
+ * Unlike the Python, Node and Go stacks, there is no config file here. On the
+ * JVM the architecture rules ARE test code: they live in your suite, compile
+ * with it, and run with `mvn test` / `gradle test`. govkit ships the rules; it
+ * does not run them for you.
+ *
+ * Dependency:
+ *   Maven   <dependency><groupId>com.tngtech.archunit</groupId>
+ *           <artifactId>archunit-junit5</artifactId>
+ *           <version>1.3.0</version><scope>test</scope></dependency>
+ *   Gradle  testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
+ *
+ * This test enforces the layering rules defined in:
+ *   docs/backend/architecture/ARCH_CONTRACT.md
+ *   docs/backend/architecture/BOUNDARIES.md
+ *
+ * It expresses the same contract as
+ * governance/backend/importlinter-reference.toml (Python),
+ * dependency-cruiser-reference.cjs (Node) and go-arch-lint-reference.yml (Go):
+ * `api` and `adapters` are independent siblings above `services`, above
+ * `ports`, above `models`, above `common`, with `api -> services` forbidden.
+ *
+ * -----------------------------------------------------------------------------
+ * HOW THIS FILE IS VERIFIED, AND HOW IT IS NOT.
+ *
+ * govkit's own CI runs the real linter against generated skeletons for the
+ * Python, Node and Go contracts, so those cannot claim enforcement they do not
+ * deliver. It does NOT do that here: running ArchUnit needs a JVM and Maven on
+ * every CI run, for a template that changes rarely.
+ *
+ * What govkit checks is **structural** — that this file names all six layers,
+ * forbids every edge BOUNDARIES.md forbids, and keeps one consistent
+ * placeholder package. What it cannot catch is an ArchUnit API misuse that
+ * compiles and passes without checking anything.
+ *
+ * So verify it yourself, once, when you adopt it: introduce a deliberate
+ * violation — have a class in `api` import one from `services` — and confirm
+ * the build fails. If it passes, your base package or source set is wrong,
+ * not your architecture.
+ * -----------------------------------------------------------------------------
+ *
+ * COMPOSITION ROOT. Whatever wires adapters into services imports both, so it
+ * cannot sit in any layer. Spring configuration belongs in `config/`, which
+ * LAYER_IMPLEMENTATION.md already places outside the six layers and which
+ * these rules deliberately do not constrain.
+ */
+package com.example.myservice.architecture;
+
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchRule;
+
+@AnalyzeClasses(packages = "com.example.myservice")
+class ArchitectureTest {
+
+    /*
+     * A wrong base package above imports zero classes, and a rule with nothing
+     * to check is a rule that cannot fail. That is the JVM equivalent of
+     * import-linter reporting "Analyzed N files, 0 dependencies" while every
+     * contract shows as KEPT.
+     *
+     * ArchUnit's own empty-should handling covers most of this, but it is
+     * configurable and defaults have changed across versions, so this asserts
+     * it directly rather than relying on the framework's current default.
+     */
+    @ArchTest
+    static void the_base_package_resolves_to_classes(JavaClasses classes) {
+        if (classes.isEmpty()) {
+            throw new AssertionError(
+                "ArchUnit imported no classes. The @AnalyzeClasses package does not "
+                + "match this project, so every rule below would pass without "
+                + "checking anything. Set it to your base package.");
+        }
+    }
+
+    /*
+     * BOUNDARIES.md section 2: the API invokes behaviour through
+     * ports/inbound only. Depending on `models` is allowed — inbound port
+     * signatures carry entities.
+     */
+    @ArchTest
+    static final ArchRule api_must_not_depend_on_services =
+        noClasses().that().resideInAPackage("..api..")
+            .should().dependOnClassesThat().resideInAnyPackage("..services..");
+
+    /*
+     * `api` and `adapters` are both adapters in the pattern — inbound and
+     * outbound. Neither may import the other; they meet at the composition
+     * root in `config/`.
+     */
+    @ArchTest
+    static final ArchRule api_must_not_depend_on_adapters =
+        noClasses().that().resideInAPackage("..api..")
+            .should().dependOnClassesThat().resideInAnyPackage("..adapters..");
+
+    @ArchTest
+    static final ArchRule adapters_must_not_depend_on_api =
+        noClasses().that().resideInAPackage("..adapters..")
+            .should().dependOnClassesThat().resideInAnyPackage("..api..");
+
+    /*
+     * The single most important forbidden edge — ARCH_CONTRACT.md section 3.
+     * The domain depends on port interfaces; adapters implement them.
+     */
+    @ArchTest
+    static final ArchRule services_must_not_depend_on_adapters_or_api =
+        noClasses().that().resideInAPackage("..services..")
+            .should().dependOnClassesThat().resideInAnyPackage("..adapters..", "..api..");
+
+    /*
+     * `ports` sits below `services`: it holds interfaces and may reference
+     * entities, while services imports the ports it depends on. Granting the
+     * reverse would create the cycle BOUNDARIES.md forbids.
+     */
+    @ArchTest
+    static final ArchRule ports_must_not_depend_on_upper_layers =
+        noClasses().that().resideInAPackage("..ports..")
+            .should().dependOnClassesThat()
+            .resideInAnyPackage("..services..", "..adapters..", "..api..");
+
+    /* Domain entities stay ignorant of behaviour and interfaces. */
+    @ArchTest
+    static final ArchRule models_must_not_depend_on_upper_layers =
+        noClasses().that().resideInAPackage("..models..")
+            .should().dependOnClassesThat()
+            .resideInAnyPackage("..ports..", "..services..", "..adapters..", "..api..");
+
+    /* `common` is cross-cutting and must stay dependency-free. */
+    @ArchTest
+    static final ArchRule common_must_not_depend_on_any_layer =
+        noClasses().that().resideInAPackage("..common..")
+            .should().dependOnClassesThat()
+            .resideInAnyPackage("..models..", "..ports..", "..services..",
+                                "..adapters..", "..api..");
+}

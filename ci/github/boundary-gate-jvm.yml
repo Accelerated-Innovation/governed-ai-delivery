@@ -1,0 +1,98 @@
+# boundary-gate-jvm.yml
+#
+# PURPOSE: Architecture boundary enforcement for the `java-spring-boot` stack.
+# Runs ArchUnit rules that live in your own test suite, against the hexagonal
+# layer contract described in docs/backend/architecture/BOUNDARIES.md.
+# Copy this file to .github/workflows/boundary-gate.yml.
+#
+# JOBS:
+#   boundary-check    — runs the project's tests and confirms the ArchUnit
+#                       architecture test among them actually executed
+#
+# STACK-SELECTED: govkit installs this file only for `--stack java-spring-boot`.
+# See ci/README.md for the per-stack mapping.
+#
+# DIFFERENT SHAPE FROM THE OTHER GATES. Python, Node and Go get a config file
+# and a linter binary. On the JVM the rules ARE test code: govkit ships
+# governance/backend/ArchitectureTest.java.template, you copy it into your test
+# tree, and it runs with `mvn test` / `gradle test`. This job therefore installs
+# no linter — it runs your build and then checks the reports.
+#
+# OPT-IN: skips until an ArchitectureTest is present in the test tree.
+#
+# WHY IT READS THE TEST REPORTS: a test class the build never executes is this
+# stack's silent-pass mode — wrong source set, a name outside the include
+# pattern, a module missing from the reactor. The build goes green having
+# checked no boundary at all, exactly as a linter that analysed zero files
+# would. Passing is not enough; the gate confirms the test ran.
+#
+# REQUIRED SECRETS: none.
+
+name: Boundary Gate (JVM)
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  boundary-check:
+    name: Architecture boundary enforcement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect ArchUnit architecture test
+        id: contract
+        run: |
+          if find . -path ./target -prune -o -name 'ArchitectureTest.java' -print \
+             | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No ArchitectureTest.java found. Copy governance/backend/ArchitectureTest.java.template into src/test/java/<base>/architecture/ArchitectureTest.java and set your base package to enable boundary enforcement."
+          fi
+
+      - uses: actions/setup-java@v4
+        if: steps.contract.outputs.found == 'true'
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Run tests
+        if: steps.contract.outputs.found == 'true'
+        run: |
+          set -euo pipefail
+          if [ -f pom.xml ]; then
+            ./mvnw --batch-mode test || mvn --batch-mode test
+          elif [ -f build.gradle ] || [ -f build.gradle.kts ]; then
+            ./gradlew test
+          else
+            echo "::error::Neither pom.xml nor build.gradle found — cannot run the architecture test."
+            exit 1
+          fi
+
+      - name: Confirm the architecture test actually ran
+        if: steps.contract.outputs.found == 'true'
+        run: |
+          set -euo pipefail
+          # Maven writes target/surefire-reports/, Gradle build/test-results/test/.
+          reports=$(find . \( -path '*/surefire-reports/*' -o -path '*/test-results/*' \) \
+                    -name '*ArchitectureTest*.xml' -print)
+          if [ -z "$reports" ]; then
+            echo "::error::The build passed but produced no test report for ArchitectureTest. The architecture rules did not run, so no boundary was checked. Confirm the class is under the test source set and matches your build's test include pattern."
+            exit 1
+          fi
+          # A report with zero tests means the class was discovered but empty.
+          total=0
+          for report in $reports; do
+            count=$(grep -oE 'tests="[0-9]+"' "$report" | head -1 | grep -oE '[0-9]+' || echo 0)
+            total=$((total + count))
+          done
+          if [ "$total" -eq 0 ]; then
+            echo "::error::ArchitectureTest ran 0 tests. The rules are not being picked up — check that they are @ArchTest fields and that archunit-junit5 is on the test classpath."
+            exit 1
+          fi
+          echo "ArchitectureTest executed $total architecture rules."

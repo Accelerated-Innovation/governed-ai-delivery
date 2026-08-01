@@ -1,10 +1,10 @@
 # Per-Stack Boundary Enforcement Plan
 
-**Status:** In progress — 2026-08-01. Increments 1-4 are done: stack-selected
-dispatch (#102), stack-agnostic doc wording (#103), Node (#105), and Go. Three
-of five stacks now have boundary enforcement in a tool that can read them.
-Remaining: increment 5 (JVM) and 6 (.NET), both template-and-structural-
-assertion shaped. Covers #93, which closes when increment 6 lands.
+**Status:** In progress — 2026-08-01. Increments 1-5 are done: stack-selected
+dispatch (#102), stack-agnostic doc wording (#103), Node (#105), Go (#106),
+and the JVM. Four of five stacks now have boundary enforcement in a tool that
+can read them. Remaining: increment 6 (.NET), the same template-and-structural
+-assertion shape as the JVM. Covers #93, which closes when it lands.
 
 Every linter adopted so far reports success on an empty analysis, each in its
 own way, and none of them says so. That pattern is now the first thing to test
@@ -292,19 +292,32 @@ Two config constraints worth recording, both discovered by running it:
 
 Commit: `feat(ci): boundary enforcement for go-gin (#93)`
 
-### 5. JVM — ArchUnit template
+### 5. JVM — ArchUnit template — done
 
-1. Failing structural test: the template names all six layers, expresses
-   `api → services` as forbidden, and its layer order matches
-   `BOUNDARIES.md`.
-2. `governance/backend/ArchitectureTest.java.template`, gate file, wiring.
-3. The gate runs the project's existing test command — it does not install
-   a separate linter.
+1. `tests/test_archunit_template.py`: the template names all six layers,
+   forbids every edge `BOUNDARIES.md` forbids (all 17, parametrized), keeps
+   one consistent placeholder base package, carries its own
+   imported-nothing guard, and discloses in the file that govkit checks it
+   structurally rather than by running it.
+2. `governance/backend/ArchitectureTest.java.template`, both gate files, the
+   manifest wiring.
+3. The gate runs the project's existing test command — it installs no linter.
 
-Structural assertions only — a Python test suite cannot run a JVM fixture
-without a JVM in CI, which is not worth adding for a template that changes
-rarely. `ci/README.md` must say so plainly rather than implying parity with
-the fixture-verified stacks.
+**Structural assertions only, and the docs say so.** A Python test suite
+cannot run a JVM fixture without a JVM in CI, which is not worth adding for a
+template that changes rarely. What that costs is real and stated in
+`ci/README.md` and in the template's own header: an ArchUnit API misuse that
+compiles and passes vacuously would not be caught. Adopters are told to verify
+once, by introducing a deliberate `api → services` import.
+
+The gate's own check is not weakened by this, and it is the part that matters
+most. This stack's silent-pass mode is **a test class the build never
+executes** — wrong source set, a name outside the include pattern, a module
+missing from the reactor — which leaves a green build that checked nothing.
+The gate reads `surefire-reports/` (Maven) or `test-results/` (Gradle),
+fails when no `ArchitectureTest` report exists, and fails again when one
+exists reporting zero tests. That assertion needs no JVM to write and is
+pinned by `tests/test_boundary_gate_dispatch.py`.
 
 Commit: `feat(ci): boundary enforcement for java-spring-boot (#93)`
 
@@ -337,6 +350,7 @@ Commit: `feat(ci): boundary enforcement for dotnet-aspnet (#93)`
   | import-linter | `root_package` names a directory, not a package — 0 dependencies, all contracts KEPT | adopters told to check the analysed count |
   | dependency-cruiser | `--output-type json` (always exits 0); TypeScript 7 installed (0 modules) | default reporter + fail on zero modules |
   | go-arch-lint | source does not parse — "OK - No warnings found" | `go build ./...` first + fail on zero mapped files |
+  | ArchUnit | the test class is never executed by the build | read the test reports; fail unless it ran with a non-zero rule count |
 
   Assume the next one has such a mode and go looking for it. A gate that
   cannot fail is worse than no gate, because it reports that the boundary

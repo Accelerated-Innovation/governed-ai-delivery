@@ -35,6 +35,7 @@ Copy the relevant templates for your project type:
 | `boundary-gate-python.yml` | `python-fastapi` | `python-fastapi` | — | — |
 | `boundary-gate-node.yml` | `nodejs-fastify` | `nodejs-fastify` | — | — |
 | `boundary-gate-go.yml` | `go-gin` | `go-gin` | — | — |
+| `boundary-gate-jvm.yml` | `java-spring-boot` | `java-spring-boot` | — | — |
 | `ui-quality-gate.yml` | — | — | ✓ | — |
 | `ui-eval-gate.yml` (L4+) | — | — | ✓ | — |
 | `l3-ui-nextjs-quality-gate.yml` | — | — | Next.js L3 | — |
@@ -68,7 +69,14 @@ part of the shared quality gate. govkit installs a boundary gate chosen by
 | `python-fastapi` | `boundary-gate-python.yml` | `import-linter` | `governance/backend/importlinter-reference.toml` |
 | `nodejs-fastify` | `boundary-gate-node.yml` | `dependency-cruiser` | `governance/backend/dependency-cruiser-reference.cjs` |
 | `go-gin` | `boundary-gate-go.yml` | `go-arch-lint` | `governance/backend/go-arch-lint-reference.yml` |
-| `java-spring-boot`, `dotnet-aspnet` | *none yet* | tracked separately | — |
+| `java-spring-boot` | `boundary-gate-jvm.yml` | ArchUnit | `governance/backend/ArchitectureTest.java.template` |
+| `dotnet-aspnet` | *none yet* | tracked separately | — |
+
+**The JVM gate has a different shape.** Python, Node and Go get a config file
+and a linter binary. On the JVM the rules *are* test code: govkit ships a
+template you copy into your own test tree, and it runs with `mvn test` /
+`gradle test`. The gate installs no linter — it runs your build, then reads
+the test reports to confirm the architecture test actually executed.
 
 A stack with no gate receives **no boundary workflow at all**, rather than one
 that silently skips. Shipping a Python linter to a Go repo enforces nothing
@@ -93,9 +101,14 @@ Each logs a notice telling you how to enable it.
   Keep your composition root at `cmd/<binary>/main.go`; if you use
   `internal/app/` instead, declare an `app` component (the reference explains
   how, and why it cannot ship one pre-declared).
+- **JVM** — copy `governance/backend/ArchitectureTest.java.template` to
+  `src/test/java/<base>/architecture/ArchitectureTest.java`, drop the
+  `.template` suffix, set your base package, and add `archunit-junit5` as a
+  test dependency.
 
-**Confirm your gate analysed something.** All three linters report success on
-an empty analysis, so a misconfigured contract looks exactly like a clean repo:
+**Confirm your gate analysed something.** Every one of these tools reports
+success on an empty analysis, so a misconfigured contract looks exactly like a
+clean repo:
 
 - `import-linter` prints `Analyzed N files, 0 dependencies` and reports every
   contract KEPT when the package name is wrong.
@@ -104,10 +117,25 @@ an empty analysis, so a misconfigured contract looks exactly like a clean repo:
   dependency-cruiser 17 uses the TypeScript 5.x compiler API.
 - `go-arch-lint` prints `OK - No warnings found` and exits 0 on Go it cannot
   parse, so a syntax error anywhere turns the boundary check green.
+- **ArchUnit** rules that the build never executes — wrong source set, a class
+  name outside the test include pattern, a module missing from the reactor —
+  leave a green build that checked no boundary at all.
 
-Each gate closes its own hole: the Node gate fails on a zero module count, and
-the Go gate runs `go build ./...` before checking and fails when no file
-attached to a component. If you adapt these gates, keep those checks.
+Each gate closes its own hole: the Node gate fails on a zero module count, the
+Go gate runs `go build ./...` first and fails when no file attached to a
+component, and the JVM gate reads the test reports and fails unless
+`ArchitectureTest` actually ran with a non-zero rule count. If you adapt these
+gates, keep those checks.
+
+**One caveat specific to the JVM.** govkit's own CI runs the real linter
+against generated skeletons for the Python, Node and Go contracts. It does not
+do that for the ArchUnit template — that needs a JVM and Maven on every run,
+for a file that changes rarely — so the template is checked *structurally*:
+that it names all six layers, forbids every edge `BOUNDARIES.md` forbids, and
+keeps one consistent placeholder package. An ArchUnit API misuse that compiles
+and passes vacuously would not be caught. When you adopt it, verify it once
+yourself: introduce a deliberate `api → services` import and confirm the build
+fails.
 
 ---
 
@@ -126,6 +154,7 @@ in its own stack-selected `boundary-gate-*.yml`, which also ships from L3.
 | `boundary-gate-python.yml` | Architecture boundary enforcement (`python-fastapi`) | — |
 | `boundary-gate-node.yml` | Architecture boundary enforcement (`nodejs-fastify`) | — |
 | `boundary-gate-go.yml` | Architecture boundary enforcement (`go-gin`) | — |
+| `boundary-gate-jvm.yml` | Architecture boundary enforcement (`java-spring-boot`) | — |
 | `quality-gate.yml` | — | Schema validation, contract compatibility, governance artifacts (5) |
 | `eval-gate.yml` | — | FIRST/Virtue prediction thresholds, LLM eval |
 | `ui-quality-gate.yml` | — | Type check, ESLint, component tests, bundle size |
