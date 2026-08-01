@@ -38,10 +38,10 @@ STACK_GATES = {
     "python-fastapi": "boundary-gate-python.yml",
     "nodejs-fastify": "boundary-gate-node.yml",
     "go-gin": "boundary-gate-go.yml",
+    "java-spring-boot": "boundary-gate-jvm.yml",
 }
 STACKS_WITHOUT_A_GATE = (
     "dotnet-aspnet",
-    "java-spring-boot",
 )
 
 # The reference contract each gate tells the team to copy in. It has to ship
@@ -51,6 +51,7 @@ STACK_REFERENCES = {
     "python-fastapi": "governance/backend/importlinter-reference.toml",
     "nodejs-fastify": "governance/backend/dependency-cruiser-reference.cjs",
     "go-gin": "governance/backend/go-arch-lint-reference.yml",
+    "java-spring-boot": "governance/backend/ArchitectureTest.java.template",
 }
 _ALL_REFERENCES = set(STACK_REFERENCES.values())
 
@@ -319,6 +320,30 @@ class TestNodeBoundaryGateContent:
             "printed and the gate would still pass"
         )
         assert "depcruise" in body or "dependency-cruiser" in body
+
+    @pytest.mark.parametrize("ci", CI_FLAVOURS)
+    def test_jvm_gate_proves_the_architecture_test_actually_ran(self, ci):
+        """The JVM gate runs the project's own test command, so its silent-pass
+        mode is a test class the build never executes — wrong source set, name
+        outside the include pattern, module not in the reactor. The build goes
+        green having checked no boundary at all.
+
+        This is the JVM equivalent of the Node gate's module count, and it is
+        the one part of increment 5 that does not depend on ArchUnit
+        semantics, so it is worth pinning even though govkit cannot run the
+        template itself.
+        """
+        body = self._executable(f"ci/{ci}/boundary-gate-jvm.yml")
+
+        assert "ArchitectureTest" in body, (
+            "the gate must look for the architecture test by name in the test "
+            "report, or it cannot tell 'passed' from 'never ran'"
+        )
+        assert "exit 1" in body
+        assert "surefire" in body or "test-results" in body, (
+            "the gate must read the build's test reports (surefire for Maven, "
+            "build/test-results for Gradle) to confirm execution"
+        )
 
     @pytest.mark.parametrize("ci", CI_FLAVOURS)
     def test_gate_fails_on_a_zero_module_count(self, ci):
