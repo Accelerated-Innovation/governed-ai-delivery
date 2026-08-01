@@ -1,19 +1,33 @@
 # import-linter reference configuration for hexagonal architecture enforcement.
 #
-# Copy the sections below into your project's pyproject.toml, then set
-# `root_package` and `containers` to match your source layout. The
+# Copy the sections below into your project's pyproject.toml, then replace
+# every `myservice` with your own package name. The
 # `[[tool.importlinter.contracts]]` double brackets are required — a
 # single-bracket table is valid TOML but import-linter rejects it.
 #
+# `root_package` names the *distributable package*, not the src/ directory.
+# In the layout docs/backend/architecture/REPO_STRUCTURE_README.md
+# prescribes — src/myservice/api/... — `src` is a path entry, not a package,
+# so there is no module called `src`. Setting root_package = "src" makes
+# grimp resolve zero imports: every contract reports KEPT and the gate
+# enforces nothing, silently.
+#
+# After copying, confirm the output says it analysed a non-zero number of
+# dependencies. "Analyzed N files, 0 dependencies" means the package name
+# is wrong, however many contracts report KEPT.
+#
 # Install: pip install import-linter
 # Run:     lint-imports
+#
+# src/ must be importable for that to work. An editable install
+# (`pip install -e .`) puts it there; in CI without one, `PYTHONPATH=src`.
 #
 # This configuration enforces the layering rules defined in:
 #   docs/backend/architecture/ARCH_CONTRACT.md
 #   docs/backend/architecture/BOUNDARIES.md
 
 [tool.importlinter]
-root_package = "src"
+root_package = "myservice"
 
 # Hexagonal Architecture layer contract.
 #
@@ -31,8 +45,9 @@ root_package = "src"
 #   common          cross-cutting concerns and DTOs. Dependency-free.
 #
 # `containers` must name your service package(s), not bare "src":
-#   One service:      containers = ["src.myservice"]
-#   Several services: containers = ["src.orders", "src.billing"]
+#   One service:      containers = ["myservice"]
+#   Several services: containers = ["orders", "billing"]
+#                     (with root_packages = ["orders", "billing"] above)
 # The layer list is identical either way — only the container list grows.
 #
 # Violations are blocking — they indicate a boundary breach.
@@ -46,7 +61,7 @@ layers = [
     "models",
     "common",
 ]
-containers = ["src.myservice"]
+containers = ["myservice"]
 
 # `api` sits above `services` in the layer list, so the layers contract alone
 # would permit api -> services. BOUNDARIES.md section 2 forbids it: the API
@@ -55,20 +70,20 @@ containers = ["src.myservice"]
 [[tool.importlinter.contracts]]
 name = "API talks only to inbound ports"
 type = "forbidden"
-source_modules = ["src.myservice.api"]
-forbidden_modules = ["src.myservice.services"]
+source_modules = ["myservice.api"]
+forbidden_modules = ["myservice.services"]
 
 # Multi-service repositories only.
 #
 # The layers contract applies *within* each container and says nothing about
-# service-to-service edges — src.orders.services importing src.billing.services
+# service-to-service edges — orders.services importing billing.services
 # passes it. `independence` is what forbids that. Omit this contract and
 # cross-service coupling goes unenforced.
 #
 # [[tool.importlinter.contracts]]
 # name = "Services are independent"
 # type = "independence"
-# modules = ["src.orders", "src.billing"]
+# modules = ["orders", "billing"]
 
 # Note on the composition root: whatever wires adapters into services at
 # startup necessarily imports both, so it must live outside all six packages

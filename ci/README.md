@@ -54,18 +54,36 @@ Copy the relevant templates for your project type:
 
 ---
 
+### Boundary enforcement is opt-in
+
+`boundary-check` runs `import-linter` against the contract in your
+`pyproject.toml` (or `.importlinter` / `setup.cfg` / `tox.ini`). govkit ships
+`governance/backend/importlinter-reference.toml` as a **template** — copy it in
+and replace `myservice` with your package name to switch enforcement on.
+
+Until you do, the job **skips** rather than failing, so a fresh install is
+green. It logs a notice telling you how to enable it.
+
+Two consequences worth knowing:
+
+- Boundary enforcement ships from **L3** upward. L3 has no `features/` model,
+  but it does carry the architecture contracts, and this is what enforces them.
+- import-linter is Python-only, so the job stays skipped on the `go-gin`,
+  `dotnet-aspnet`, `java-spring-boot` and `nodejs-fastify` stacks. Equivalent
+  per-stack tooling is tracked separately — a skipped job is honest, a Python
+  linter pointed at Go is not.
+
+---
+
 ## Level 3 vs Level 4 CI
 
 | Pipeline | Level 3 | Level 4 |
 |----------|---------|---------|
-| `l3-quality-gate.yml` | Governance artifacts (3), commit format, SonarQube, Snyk | — |
+| `l3-quality-gate.yml` | Governance artifacts (3), commit format, boundary enforcement, SonarQube, Snyk | — |
 | `quality-gate.yml` | — | Schema validation, boundary enforcement, SonarQube, Snyk, contract compatibility, governance artifacts (5), commit format |
 | `eval-gate.yml` | — | FIRST/Virtue prediction thresholds, LLM eval |
 | `ui-quality-gate.yml` | — | Type check, ESLint, component tests, bundle size |
 | `ui-eval-gate.yml` | — | FIRST/Virtue prediction, Playwright E2E, axe scans |
-| `l3-ui-nextjs-quality-gate.yml` | Next.js typecheck, lint, tests, build, and API/database boundary | — |
-| `ui-nextjs-quality-gate.yml` | — | Next.js typecheck, lint, tests, build, feature validation, and API/database boundary |
-| `ui-nextjs-eval-gate.yml` | — | Next.js Playwright + axe, with opt-in stable screenshot comparisons |
 | `l3-ui-nextjs-quality-gate.yml` | Next.js typecheck, lint, tests, build, and API/database boundary | — |
 | `ui-nextjs-quality-gate.yml` | — | Next.js typecheck, lint, tests, build, feature validation, and API/database boundary |
 | `ui-nextjs-eval-gate.yml` | — | Next.js Playwright + axe, with opt-in stable screenshot comparisons |
