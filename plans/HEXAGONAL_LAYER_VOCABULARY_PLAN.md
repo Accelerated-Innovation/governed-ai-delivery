@@ -1,5 +1,10 @@
 # Hexagonal Layer Vocabulary and Boundary Contract Plan
 
+**Status:** Implemented — 2026-08-01, all 8 increments, via #82. Closed #75 and #77.
+Follow-ups deliberately left open: #83 (orphaned root-level codex rules after
+upgrade), #84 (D001 cannot resolve brace-expansion globs), #85 (L3 gate ships
+without a contract), #86 (skill_context has no multi-service shape).
+
 Settle the backend layer vocabulary across the whole payload — the domain
 layer's name, where entities live, and which source layout the tooling
 assumes — and replace `governance/backend/importlinter-reference.toml`
