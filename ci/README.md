@@ -33,6 +33,7 @@ Copy the relevant templates for your project type:
 | `eval-gate.yml` (L4+) | ✓ | ✓ | — | — |
 | `l3-quality-gate.yml` (L3 only) | ✓ | ✓ | — | — |
 | `boundary-gate-python.yml` | `python-fastapi` | `python-fastapi` | — | — |
+| `boundary-gate-node.yml` | `nodejs-fastify` | `nodejs-fastify` | — | — |
 | `ui-quality-gate.yml` | — | — | ✓ | — |
 | `ui-eval-gate.yml` (L4+) | — | — | ✓ | — |
 | `l3-ui-nextjs-quality-gate.yml` | — | — | Next.js L3 | — |
@@ -61,10 +62,11 @@ Boundary enforcement needs a tool that can read your language, so it is **not**
 part of the shared quality gate. govkit installs a boundary gate chosen by
 `--stack`:
 
-| Stack | Gate file | Tool |
-|---|---|---|
-| `python-fastapi` | `boundary-gate-python.yml` | `import-linter` |
-| `nodejs-fastify`, `go-gin`, `java-spring-boot`, `dotnet-aspnet` | *none yet* | tracked separately |
+| Stack | Gate file | Tool | Reference contract |
+|---|---|---|---|
+| `python-fastapi` | `boundary-gate-python.yml` | `import-linter` | `governance/backend/importlinter-reference.toml` |
+| `nodejs-fastify` | `boundary-gate-node.yml` | `dependency-cruiser` | `governance/backend/dependency-cruiser-reference.cjs` |
+| `go-gin`, `java-spring-boot`, `dotnet-aspnet` | *none yet* | tracked separately | — |
 
 A stack with no gate receives **no boundary workflow at all**, rather than one
 that silently skips. Shipping a Python linter to a Go repo enforces nothing
@@ -74,12 +76,28 @@ enforcement that does not exist.
 Boundary enforcement ships from **L3** upward. L3 has no `features/` model, but
 it does carry the architecture contracts, and this is what enforces them.
 
-**The Python gate is opt-in.** `boundary-check` runs `import-linter` against the
-contract in your `pyproject.toml` (or `.importlinter` / `setup.cfg` / `tox.ini`).
-govkit ships `governance/backend/importlinter-reference.toml` as a **template** —
-copy it in and replace `myservice` with your package name to switch enforcement
-on. Until you do, the job **skips** rather than failing, so a fresh install is
-green. It logs a notice telling you how to enable it.
+**Every boundary gate is opt-in.** govkit ships the reference contract as a
+**template**; the gate skips until you copy it in, so a fresh install is green.
+Each logs a notice telling you how to enable it.
+
+- **Python** — copy `governance/backend/importlinter-reference.toml` into your
+  `pyproject.toml` (or `.importlinter` / `setup.cfg` / `tox.ini`) and replace
+  `myservice` with your package name.
+- **Node** — copy `governance/backend/dependency-cruiser-reference.cjs` to
+  `.dependency-cruiser.cjs`. No placeholders: the rules key on layer folder
+  names, and they accept both `src/<layer>/` and `src/<package>/<layer>/`.
+
+**Confirm your gate analysed something.** Both linters report success on an
+empty analysis, so a misconfigured contract looks exactly like a clean repo:
+
+- `import-linter` prints `Analyzed N files, 0 dependencies` and reports every
+  contract KEPT when the package name is wrong.
+- `dependency-cruiser` cruises `0 modules` and exits 0 when it cannot parse
+  your sources — which is what happens on **TypeScript 7**, since
+  dependency-cruiser 17 uses the TypeScript 5.x compiler API.
+
+`boundary-gate-node.yml` fails the build on a zero module count rather than
+trusting the exit code. If you adapt these gates, keep that check.
 
 ---
 
@@ -94,7 +112,8 @@ files made L4+ repos run each twice on every push.
 | Pipeline | Level 3 | Level 4 |
 |----------|---------|---------|
 | `l3-quality-gate.yml` | Governance artifacts (3), commit format, SonarQube, Snyk | — |
-| `boundary-gate-python.yml` | Architecture boundary enforcement (`python-fastapi` only) | — |
+| `boundary-gate-python.yml` | Architecture boundary enforcement (`python-fastapi`) | — |
+| `boundary-gate-node.yml` | Architecture boundary enforcement (`nodejs-fastify`) | — |
 | `quality-gate.yml` | — | Schema validation, contract compatibility, governance artifacts (5) |
 | `eval-gate.yml` | — | FIRST/Virtue prediction thresholds, LLM eval |
 | `ui-quality-gate.yml` | — | Type check, ESLint, component tests, bundle size |

@@ -31,12 +31,27 @@ BACKEND_TYPES = ("api", "cli")
 LEVELS = ("3", "4", "5")
 
 PYTHON_STACK = "python-fastapi"
+
+# Stacks whose boundary tool govkit ships enforcement for, and the gate file
+# each receives. Grows by one per increment of the per-stack plan.
+STACK_GATES = {
+    "python-fastapi": "boundary-gate-python.yml",
+    "nodejs-fastify": "boundary-gate-node.yml",
+}
 STACKS_WITHOUT_A_GATE = (
     "dotnet-aspnet",
     "java-spring-boot",
-    "nodejs-fastify",
     "go-gin",
 )
+
+# The reference contract each gate tells the team to copy in. It has to ship
+# with the gate: a gate whose notice names a file the install never received
+# is a dead end.
+STACK_REFERENCES = {
+    "python-fastapi": "governance/backend/importlinter-reference.toml",
+    "nodejs-fastify": "governance/backend/dependency-cruiser-reference.cjs",
+}
+_ALL_REFERENCES = set(STACK_REFERENCES.values())
 
 _AZ_STAGE = re.compile(r"^\s*- stage:\s*([A-Za-z0-9_]+)\s*$", re.MULTILINE)
 
@@ -72,20 +87,21 @@ def _azure_stages(rel_path: str) -> set[str]:
 
 
 class TestPythonBoundaryGateDispatch:
-    """A python-fastapi backend install receives the Python boundary gate."""
+    """A backend install receives exactly its own stack's boundary gate."""
 
     @pytest.mark.parametrize("agent", AGENTS)
     @pytest.mark.parametrize("ci", CI_FLAVOURS)
     @pytest.mark.parametrize("project_type", BACKEND_TYPES)
     @pytest.mark.parametrize("level", LEVELS)
-    def test_python_fastapi_receives_the_python_boundary_gate(
-        self, agent, ci, project_type, level,
+    @pytest.mark.parametrize("stack, gate", sorted(STACK_GATES.items()))
+    def test_stack_receives_its_own_boundary_gate(
+        self, agent, ci, project_type, level, stack, gate,
     ):
-        governed = _governed(agent, ci, project_type, level, PYTHON_STACK)
+        governed = _governed(agent, ci, project_type, level, stack)
 
-        assert f"ci/{ci}/boundary-gate-python.yml" in governed, (
-            f"{agent} {project_type} L{level} ({ci}, {PYTHON_STACK}) must receive "
-            f"the Python boundary gate; got {_boundary_gates(governed, ci)}"
+        assert _boundary_gates(governed, ci) == [f"ci/{ci}/{gate}"], (
+            f"{agent} {project_type} L{level} ({ci}, {stack}) must receive "
+            f"exactly {gate}; got {_boundary_gates(governed, ci)}"
         )
 
     @pytest.mark.parametrize("agent", AGENTS)
@@ -137,18 +153,69 @@ class TestPythonBoundaryGateDispatch:
         )
 
 
+class TestBoundaryReferenceDispatch:
+    """The reference contract follows the same stack selection as the gate.
+
+    Caught by a real `govkit apply`, not by the dispatch assertions above: a
+    `nodejs-fastify` install received `boundary-gate-node.yml`, whose notice
+    says to copy `governance/backend/dependency-cruiser-reference.cjs`, while
+    the install actually shipped `importlinter-reference.toml` — a Python
+    contract the Node gate cannot use, and no `.cjs` anywhere.
+    """
+
+    @pytest.mark.parametrize("agent", AGENTS)
+    @pytest.mark.parametrize("ci", CI_FLAVOURS)
+    @pytest.mark.parametrize("project_type", BACKEND_TYPES)
+    @pytest.mark.parametrize("level", LEVELS)
+    @pytest.mark.parametrize("stack, reference", sorted(STACK_REFERENCES.items()))
+    def test_stack_receives_only_its_own_reference(
+        self, agent, ci, project_type, level, stack, reference,
+    ):
+        governed = set(_governed(agent, ci, project_type, level, stack))
+
+        assert governed & _ALL_REFERENCES == {reference}, (
+            f"{agent} {project_type} L{level} ({ci}, {stack}) must receive "
+            f"{reference} and no other boundary reference; got "
+            f"{sorted(governed & _ALL_REFERENCES)}"
+        )
+
+    @pytest.mark.parametrize("agent", AGENTS)
+    @pytest.mark.parametrize("ci", CI_FLAVOURS)
+    @pytest.mark.parametrize("project_type", BACKEND_TYPES)
+    @pytest.mark.parametrize("level", LEVELS)
+    @pytest.mark.parametrize("stack", STACKS_WITHOUT_A_GATE)
+    def test_stack_without_a_gate_receives_no_reference(
+        self, agent, ci, project_type, level, stack,
+    ):
+        """A Go team receiving a Python import-linter contract is the same
+        defect as receiving a Python linter job."""
+        governed = set(_governed(agent, ci, project_type, level, stack))
+
+        assert governed & _ALL_REFERENCES == set(), (
+            f"{agent} {project_type} L{level} ({ci}, {stack}) must receive no "
+            f"boundary reference; got {sorted(governed & _ALL_REFERENCES)}"
+        )
+
+    @pytest.mark.parametrize("reference", sorted(_ALL_REFERENCES))
+    def test_reference_file_exists(self, reference):
+        assert (paths.REPO_ROOT / reference).is_file()
+
+
 class TestBoundaryGateExtraction:
     """The job moved out of the shared L3 gate — it is not defined in both."""
 
+    @pytest.mark.parametrize("gate", sorted(STACK_GATES.values()))
     @pytest.mark.parametrize("ci", CI_FLAVOURS)
-    def test_the_python_boundary_gate_file_exists(self, ci):
-        assert (paths.REPO_ROOT / f"ci/{ci}/boundary-gate-python.yml").is_file()
+    def test_the_boundary_gate_file_exists(self, ci, gate):
+        assert (paths.REPO_ROOT / f"ci/{ci}/{gate}").is_file()
 
-    def test_github_boundary_gate_defines_only_the_boundary_job(self):
-        assert _github_jobs("ci/github/boundary-gate-python.yml") == {"boundary-check"}
+    @pytest.mark.parametrize("gate", sorted(STACK_GATES.values()))
+    def test_github_boundary_gate_defines_only_the_boundary_job(self, gate):
+        assert _github_jobs(f"ci/github/{gate}") == {"boundary-check"}
 
-    def test_azure_boundary_gate_defines_only_the_boundary_stage(self):
-        assert _azure_stages("ci/azure/boundary-gate-python.yml") == {"BoundaryCheck"}
+    @pytest.mark.parametrize("gate", sorted(STACK_GATES.values()))
+    def test_azure_boundary_gate_defines_only_the_boundary_stage(self, gate):
+        assert _azure_stages(f"ci/azure/{gate}") == {"BoundaryCheck"}
 
     def test_github_l3_gate_no_longer_defines_the_boundary_job(self):
         jobs = _github_jobs("ci/github/l3-quality-gate.yml")
@@ -208,8 +275,60 @@ class TestBoundaryGateContent:
         for fragment in required:
             assert fragment in text, f"{rel_path} lost {fragment!r} in the move"
 
+    @pytest.mark.parametrize("stack, gate", sorted(STACK_GATES.items()))
     @pytest.mark.parametrize("ci", CI_FLAVOURS)
-    def test_gate_names_the_python_stack_it_is_selected_for(self, ci):
+    def test_gate_names_the_stack_it_is_selected_for(self, ci, stack, gate):
         """The file is stack-selected, so a reader opening it must be able to
         tell which stack it belongs to without consulting the manifest."""
-        assert "python-fastapi" in _gate_text(f"ci/{ci}/boundary-gate-python.yml")
+        assert stack in _gate_text(f"ci/{ci}/{gate}")
+
+
+class TestNodeBoundaryGateContent:
+    """dependency-cruiser has two silent-pass modes. The gate must close both.
+
+    Verified against dependency-cruiser 17.4.3 while building the reference:
+
+    - `--output-type json` reports every violation and still **exits 0**. A
+      gate built on it goes green on a repo that breaches every boundary.
+    - With TypeScript 7 installed, it cruises **0 modules** and exits 0 —
+      a green gate analysing nothing. TypeScript 5.x cruises normally.
+
+    Both fail open, so the gate has to assert a non-zero module count rather
+    than trusting the exit code alone.
+    """
+
+    @staticmethod
+    def _executable(rel_path: str) -> str:
+        """The gate with comment lines dropped.
+
+        Both failure modes are *described* in these files' header comments, so
+        a plain substring search over the whole text cannot tell an
+        explanation from an invocation."""
+        return "\n".join(
+            line for line in _gate_text(rel_path).splitlines()
+            if not line.lstrip().startswith("#")
+        )
+
+    @pytest.mark.parametrize("ci", CI_FLAVOURS)
+    def test_gate_does_not_use_the_json_reporter(self, ci):
+        body = self._executable(f"ci/{ci}/boundary-gate-node.yml")
+
+        assert "--output-type" not in body, (
+            "the json reporter always exits 0 — every violation would be "
+            "printed and the gate would still pass"
+        )
+        assert "depcruise" in body or "dependency-cruiser" in body
+
+    @pytest.mark.parametrize("ci", CI_FLAVOURS)
+    def test_gate_fails_on_a_zero_module_count(self, ci):
+        body = self._executable(f"ci/{ci}/boundary-gate-node.yml")
+
+        assert "modules" in body, (
+            "the gate must parse the 'N modules, M dependencies cruised' "
+            "summary — a run that analyses nothing exits 0"
+        )
+        assert '"$modules" -eq 0' in body, (
+            "the gate must fail when the module count is zero, not merely "
+            "report it"
+        )
+        assert "exit 1" in body

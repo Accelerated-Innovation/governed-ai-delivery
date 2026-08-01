@@ -22,8 +22,27 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
+      # tests/test_dependency_cruiser_reference.py runs the real
+      # dependency-cruiser against generated skeletons, the way
+      # test_importlinter_reference.py runs the real import-linter. Without a
+      # Node toolchain those tests skip, and a skip is indistinguishable from
+      # a pass in the summary — see the guard step below.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
       - name: Install
         run: pip install -e ".[test]"
+
+      - name: Assert the Node toolchain is present
+        # The reference tests skipif npm is missing, which is right locally but
+        # wrong here: a broken setup-node step would leave the only tests that
+        # prove the shipped dependency-cruiser config works silently skipped,
+        # and CI would still be green.
+        run: |
+          set -euxo pipefail
+          command -v node
+          command -v npm
 
       - name: Run pytest
         run: pytest

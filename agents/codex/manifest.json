@@ -70,8 +70,7 @@
         ],
         "shared": [],
         "governed": [
-          "docs/backend/architecture/",
-          "governance/backend/importlinter-reference.toml"
+          "docs/backend/architecture/"
         ],
         "level_4": {
           "mode": "merge",
@@ -126,7 +125,6 @@
           ],
           "governed": [
             "docs/backend/",
-            "governance/backend/importlinter-reference.toml",
             "governance/backend/schemas/",
             "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json"
@@ -146,8 +144,7 @@
         ],
         "shared": [],
         "governed": [
-          "docs/backend/architecture/",
-          "governance/backend/importlinter-reference.toml"
+          "docs/backend/architecture/"
         ],
         "level_4": {
           "mode": "merge",
@@ -200,7 +197,6 @@
           ],
           "governed": [
             "docs/backend/",
-            "governance/backend/importlinter-reference.toml",
             "governance/backend/schemas/",
             "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json"
@@ -423,13 +419,15 @@
           "api":        {
             "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-quality-gate.yml"],
             "by_stack": {
-              "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml"] }
+              "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
+              "nodejs-fastify": { "governed": ["ci/github/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] }
             }
           },
           "cli":        {
             "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-quality-gate.yml"],
             "by_stack": {
-              "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml"] }
+              "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
+              "nodejs-fastify": { "governed": ["ci/github/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] }
             }
           },
           "ui-react":   { "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-ui-quality-gate.yml"] },
@@ -480,7 +478,8 @@
                 "ci/github/promptfoo-gate.yml"
               ],
               "by_stack": {
-                "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml"] }
+                "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
+                "nodejs-fastify": { "governed": ["ci/github/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] }
               }
             },
             "cli": {
@@ -494,7 +493,8 @@
                 "ci/github/promptfoo-gate.yml"
               ],
               "by_stack": {
-                "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml"] }
+                "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
+                "nodejs-fastify": { "governed": ["ci/github/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] }
               }
             },
             "ui-react": { "governed": [
@@ -534,13 +534,15 @@
           "api":        {
             "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-quality-gate.yml"],
             "by_stack": {
-              "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml"] }
+              "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
+              "nodejs-fastify": { "governed": ["ci/azure/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] }
             }
           },
           "cli":        {
             "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-quality-gate.yml"],
             "by_stack": {
-              "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml"] }
+              "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
+              "nodejs-fastify": { "governed": ["ci/azure/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] }
             }
           },
           "ui-react":   { "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-ui-quality-gate.yml"] },
@@ -591,7 +593,8 @@
                 "ci/azure/promptfoo-gate.yml"
               ],
               "by_stack": {
-                "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml"] }
+                "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
+                "nodejs-fastify": { "governed": ["ci/azure/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] }
               }
             },
             "cli": {
@@ -605,7 +608,8 @@
                 "ci/azure/promptfoo-gate.yml"
               ],
               "by_stack": {
-                "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml"] }
+                "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
+                "nodejs-fastify": { "governed": ["ci/azure/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] }
               }
             },
             "ui-react": { "governed": [
