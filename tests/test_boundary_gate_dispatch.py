@@ -37,11 +37,11 @@ PYTHON_STACK = "python-fastapi"
 STACK_GATES = {
     "python-fastapi": "boundary-gate-python.yml",
     "nodejs-fastify": "boundary-gate-node.yml",
+    "go-gin": "boundary-gate-go.yml",
 }
 STACKS_WITHOUT_A_GATE = (
     "dotnet-aspnet",
     "java-spring-boot",
-    "go-gin",
 )
 
 # The reference contract each gate tells the team to copy in. It has to ship
@@ -50,6 +50,7 @@ STACKS_WITHOUT_A_GATE = (
 STACK_REFERENCES = {
     "python-fastapi": "governance/backend/importlinter-reference.toml",
     "nodejs-fastify": "governance/backend/dependency-cruiser-reference.cjs",
+    "go-gin": "governance/backend/go-arch-lint-reference.yml",
 }
 _ALL_REFERENCES = set(STACK_REFERENCES.values())
 
