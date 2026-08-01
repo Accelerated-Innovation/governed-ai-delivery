@@ -4,12 +4,13 @@
 # JOBS:
 #   schema-validation      — validates backend features/*/eval_criteria.yaml against
 #                            governance/backend/schemas/eval_criteria.schema.json
-#   boundary-check         — enforces hexagonal architecture boundaries via import-linter
-#   sonarqube              — SonarQube quality gate (requires SONAR_TOKEN and SONAR_HOST_URL variables)
-#   security-scan          — Snyk vulnerability scan (requires SNYK_TOKEN variable)
 #   contract-compatibility — detects @contract-tagged features and checks backward compatibility
 #   governance-artifacts   — checks that required governance artifacts exist for each feature
-#   commit-format          — validates commit message format matches project conventions
+#
+# This gate is ADDITIVE over l3-quality-gate.yml, which an L4+ install also
+# receives. BoundaryCheck, SonarQube, SecurityScan and CommitFormat live
+# there and are deliberately not repeated here — defining them in both files
+# made every L4+ repo run them twice on each push.
 #
 # REQUIRED VARIABLES (optional — remove stages you don't use):
 #   SONAR_TOKEN, SONAR_HOST_URL — only if using the SonarQube stage
@@ -49,61 +50,14 @@ stages:
     displayName: Architecture boundary enforcement
     dependsOn: []
     jobs:
-      - job: BoundaryCheck
-        displayName: Architecture boundary enforcement
-        steps:
-          - checkout: self
-
-          # See ci/README.md — skips when no contract is configured, so a
-          # fresh install is green and non-Python stacks are not checked by a
-          # Python linter.
-          - script: |
-              if grep -qs 'tool.importlinter' pyproject.toml setup.cfg tox.ini \
-                 || [ -f .importlinter ]; then
-                pip install import-linter
-              else
-                echo "##vso[task.logissue type=warning]No import-linter contract found. Copy governance/backend/importlinter-reference.toml into pyproject.toml and set your package name to enable boundary enforcement."
-              fi
-            displayName: Install import-linter
-
-          - script: |
-              if grep -qs 'tool.importlinter' pyproject.toml setup.cfg tox.ini \
-                 || [ -f .importlinter ]; then
-                lint-imports
-              fi
-            displayName: Run boundary checks
-
   - stage: SonarQube
     displayName: SonarQube quality gate
     dependsOn: []
     jobs:
-      - job: SonarQube
-        displayName: SonarQube quality gate
-        steps:
-          - checkout: self
-            fetchDepth: 0
-
-          - task: SonarQubeAnalyze@5
-            displayName: SonarQube scan
-            env:
-              SONAR_TOKEN: $(SONAR_TOKEN)
-              SONAR_HOST_URL: $(SONAR_HOST_URL)
-
   - stage: SecurityScan
     displayName: Security vulnerability scan
     dependsOn: []
     jobs:
-      - job: SecurityScan
-        displayName: Security vulnerability scan
-        steps:
-          - checkout: self
-
-          - script: |
-              npm install -g snyk
-              snyk auth $(SNYK_TOKEN)
-              snyk test --severity-threshold=high
-            displayName: Run Snyk security scan
-
   - stage: ContractCompatibility
     displayName: Contract compatibility check
     dependsOn: []
@@ -164,30 +118,3 @@ stages:
     displayName: Commit message format
     dependsOn: []
     jobs:
-      - job: CommitFormat
-        displayName: Validate commit messages
-        steps:
-          - checkout: self
-            fetchDepth: 0
-
-          - script: |
-              COMMITS=$(git log --format="%s" origin/main..HEAD 2>/dev/null || true)
-              if [ -z "$COMMITS" ]; then
-                echo "No new commits to check."
-                exit 0
-              fi
-              errors=0
-              while IFS= read -r msg; do
-                if ! echo "$msg" | grep -qE "^(feat|fix|docs|test|refactor|chore)(\(.*\))?: .+"; then
-                  echo "FAIL: '$msg'"
-                  errors=$((errors + 1))
-                fi
-              done <<< "$COMMITS"
-              if [ "$errors" -gt 0 ]; then
-                echo ""
-                echo "$errors commit(s) do not match format: type(scope): description"
-                echo "Allowed types: feat, fix, docs, test, refactor, chore"
-                exit 1
-              fi
-              echo "All commit messages match expected format."
-            displayName: Validate commit message format

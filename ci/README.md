@@ -77,10 +77,16 @@ Two consequences worth knowing:
 
 ## Level 3 vs Level 4 CI
 
+Levels are additive, and so are these files: an L4 install receives the L3
+gate **and** the L4 gate. `quality-gate.yml` therefore contributes only what
+`l3-quality-gate.yml` does not — boundary enforcement, SonarQube, Snyk and
+commit format come from the L3 gate at every level. Defining them in both
+files made L4+ repos run each twice on every push.
+
 | Pipeline | Level 3 | Level 4 |
 |----------|---------|---------|
 | `l3-quality-gate.yml` | Governance artifacts (3), commit format, boundary enforcement, SonarQube, Snyk | — |
-| `quality-gate.yml` | — | Schema validation, boundary enforcement, SonarQube, Snyk, contract compatibility, governance artifacts (5), commit format |
+| `quality-gate.yml` | — | Schema validation, contract compatibility, governance artifacts (5) |
 | `eval-gate.yml` | — | FIRST/Virtue prediction thresholds, LLM eval |
 | `ui-quality-gate.yml` | — | Type check, ESLint, component tests, bundle size |
 | `ui-eval-gate.yml` | — | FIRST/Virtue prediction, Playwright E2E, axe scans |
