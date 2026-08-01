@@ -1,9 +1,24 @@
 # Per-Stack Boundary Enforcement Plan
 
 **Status:** In progress — 2026-08-01. Increment 1 (stack-selected dispatch,
-proven with Python) is implemented. Increments 2-5 are held pending answers to
-the Open questions below; increment 6 follows them. Covers #93, which closes
-when the remaining increments land.
+proven with Python) landed via #102. Increment 6 (documentation) was pulled
+ahead of 2-5 and is landing now — its wording fix is correct regardless of
+which tools follow. Increments 2-5 are unblocked: open questions 1-3 are
+answered below, and 4 is scoped to a per-stack check rather than a blocker.
+Covers #93, which closes when increment 5 lands.
+
+Decisions taken 2026-08-01, after the open questions were revisited against
+the shipped payload:
+
+- **Tool choices were never open.** Each stack overlay already names its tool.
+  See the corrected table in Motivation §3.
+- **All five stacks stay in #93.** The overlays already promise ArchUnit and
+  ArchUnitNET to java-spring-boot and dotnet-aspnet users, so dropping those
+  two would leave a documented promise unmet with no issue tracking it.
+- **Node and Go get real fixture tests**, with Node and Go toolchains added to
+  CI. Java and .NET get structural assertions only, stated plainly rather than
+  implied.
+- **Baseline docs stay stack-agnostic** rather than joining the overlay set.
 
 Give each backend stack boundary enforcement in a tool that understands its
 language. Four of govkit's five backend stacks currently have none: the
@@ -20,8 +35,25 @@ every backend stack and state that the layering is "enforced with
 `nodejs-fastify` that sentence is false — import-linter cannot read their
 source at all.
 
-The CI gates are stack-agnostic: no `cli/stacks/*/overlay.yaml` varies them,
-so every backend install receives the same Python job.
+Worse, it contradicts docs in the *same install*. Only six architecture docs
+are overlaid per stack, and three of them already name the right tool. A
+`go-gin` L4 install read this, verified against a real `govkit apply`:
+
+| Doc | Source | Says |
+| --- | --- | --- |
+| `TECH_STACK.md` | overlay | `go-arch-lint` |
+| `LAYER_IMPLEMENTATION.md` | overlay | "Enforced via **`go-arch-lint`**" |
+| `TESTING.md` | overlay | "verified by `go-arch-lint`" |
+| `BOUNDARIES.md` | **baseline** | "All are enforced with `import-linter`" |
+| `ARCH_CONTRACT.md` | **baseline** | "Enforced via `import-linter` and PR review" |
+
+`BOUNDARIES.md` and `ARCH_CONTRACT.md` are not in any overlay's `docs` list,
+so they ship byte-identical to all five stacks. That is the right call — the
+layer rules genuinely are stack-agnostic — but it means they must defer to
+`TECH_STACK.md` on the tool rather than naming one.
+
+The CI gates are stack-agnostic too: no `cli/stacks/*/overlay.yaml` varies
+them, so every backend install receives the same Python job.
 
 Since #95 the job skips when no import-linter contract is configured, so
 those four stacks now get a *silent* skip rather than a spurious failure.
@@ -58,23 +90,30 @@ stating because the overlay is the more intuitive place to look.
 This is the part that makes the work bigger than "four more config files",
 and it should be settled before any increment starts.
 
-| Stack | Tool | Shape |
-| --- | --- | --- |
-| python-fastapi | import-linter | config (`pyproject.toml`) + CLI |
-| nodejs-fastify | dependency-cruiser | config (`.dependency-cruiser.js`) + CLI |
-| go-gin | go-arch-lint | config (`.go-arch-lint.yml`) + CLI |
-| java-spring-boot | ArchUnit | **test code** — rules are JUnit test classes |
-| dotnet-aspnet | NetArchTest / ArchUnitNET | **test code** — rules are xUnit/NUnit tests |
+**The tools are already chosen.** Every stack overlay names its boundary
+tool today. This plan implements what the payload already promises rather
+than picking anew:
+
+| Stack | Tool | Already named at | Shape |
+| --- | --- | --- | --- |
+| python-fastapi | import-linter | `TECH_STACK.md:173`, `LAYER_IMPLEMENTATION.md:383` | config (`pyproject.toml`) + CLI |
+| nodejs-fastify | dependency-cruiser | `TECH_STACK.md:176`, `LAYER_IMPLEMENTATION.md:301` | config (`.dependency-cruiser.cjs`) + CLI |
+| go-gin | go-arch-lint | `TECH_STACK.md:172`, `LAYER_IMPLEMENTATION.md:318` | config (`.go-arch-lint.yml`) + CLI |
+| java-spring-boot | ArchUnit | `TECH_STACK.md:174`, `LAYER_IMPLEMENTATION.md:299` | **test code** — rules are JUnit test classes |
+| dotnet-aspnet | ArchUnitNET | `TECH_STACK.md:176`, `LAYER_IMPLEMENTATION.md:337` | **test code** — rules are xUnit/NUnit tests |
+
+(Paths are relative to `cli/stacks/<id>/`.)
 
 For the first three, govkit ships a reference *config* the team copies, and
-CI runs a linter — the `importlinter-reference.toml` pattern.
+CI runs a linter — the `importlinter-reference.toml` pattern. The Node
+reference file is `.cjs`, not `.js`: `nodejs-fastify`'s `TECH_STACK.md:186`
+already tells teams the file is `.dependency-cruiser.cjs`, and the shipped
+reference should match the name the docs promise.
 
 For Java and .NET there is no config file. The rules are written as tests in
 the project's own suite, so govkit ships a **template test class** and CI
 simply runs the existing test command. Different artifact, different
 install location, different verification story.
-
-Tool choices are proposals, not decisions — see Open questions.
 
 Virtues: **Honest** (a gate that passes means the boundary holds),
 **Coherent** (the enforcement matches the contract the docs state).
@@ -172,24 +211,53 @@ recorded under Out of scope; an automated test for it stays with #83.
 
 Commit: `refactor(ci): select the boundary gate per stack (#93)`
 
-### 2. Node — dependency-cruiser
+### 2. Stack-agnostic docs stop naming a stack's tool — done
+
+Pulled ahead of the tooling increments: the wording fix is correct whichever
+tools follow, and it closes the window where four stacks have no gate *and*
+baseline docs still promise `import-linter`.
+
+1. Failing test in `tests/test_layer_vocabulary.py`: no backend architecture
+   doc that a stack overlay does *not* replace may name a boundary tool. The
+   scanned set is derived from the overlays' own `docs` lists rather than
+   hardcoded, so it stays correct if the overlay set changes, and the test
+   asserts `BOUNDARIES.md` and `ARCH_CONTRACT.md` are actually in that set
+   so it cannot pass vacuously.
+2. `BOUNDARIES.md:48` and `ARCH_CONTRACT.md:43,106` defer to `TECH_STACK.md`
+   for the tool. Three lines, two files — the docs that name tools are
+   already overlaid and already correct.
+
+Deliberately *not* promoted to the overlay set. Duplicating both docs across
+five stacks to vary one sentence would recreate exactly the drift #77 existed
+to close, and the layer rules themselves are identical for every stack.
+
+`ci/README.md` was already corrected in increment 1, which moved the gate.
+
+Commit: `docs(backend): defer to TECH_STACK.md for the boundary tool (#93)`
+
+### 3. Node — dependency-cruiser
 
 1. Failing fixture test, `e2e`-marked, modelled on
    `tests/test_importlinter_reference.py`: a conforming `src/<pkg>/` skeleton
    passes; each forbidden edge is rejected; **assert a non-zero module count**
    so a config that analyses nothing cannot read as passing.
-2. `governance/backend/dependency-cruiser-reference.js`, the gate file, the
+2. `governance/backend/dependency-cruiser-reference.cjs`, the gate file, the
    manifest wiring.
+3. `actions/setup-node` in the pytest job, **plus a CI-only assertion that
+   the binary resolves**. The existing `shutil.which` skipif is right for
+   local runs, but in CI a skip and a pass look identical — a broken setup
+   step must fail loudly rather than quietly skip the only test that proves
+   the config works.
 
 Commit: `feat(ci): boundary enforcement for nodejs-fastify (#93)`
 
-### 3. Go — go-arch-lint
+### 4. Go — go-arch-lint
 
-Same shape as increment 2.
+Same shape as increment 3, with `actions/setup-go`.
 
 Commit: `feat(ci): boundary enforcement for go-gin (#93)`
 
-### 4. JVM — ArchUnit template
+### 5. JVM — ArchUnit template
 
 1. Failing structural test: the template names all six layers, expresses
    `api → services` as forbidden, and its layer order matches
@@ -198,25 +266,23 @@ Commit: `feat(ci): boundary enforcement for go-gin (#93)`
 3. The gate runs the project's existing test command — it does not install
    a separate linter.
 
+Structural assertions only — a Python test suite cannot run a JVM fixture
+without a JVM in CI, which is not worth adding for a template that changes
+rarely. `ci/README.md` must say so plainly rather than implying parity with
+the fixture-verified stacks.
+
 Commit: `feat(ci): boundary enforcement for java-spring-boot (#93)`
 
-### 5. .NET — NetArchTest template
+### 6. .NET — ArchUnitNET template
 
-Same shape as increment 4.
+Same shape as increment 5. ArchUnitNET, not NetArchTest — `dotnet-aspnet`'s
+overlay already names it.
+
+Also extend `tests/test_layer_vocabulary.py` so every new contract and
+template is checked against the canonical six layer names, as the
+import-linter reference already is.
 
 Commit: `feat(ci): boundary enforcement for dotnet-aspnet (#93)`
-
-### 6. Documentation
-
-1. `ci/README.md`: the gate is per-stack; what each stack gets; that Java
-   and .NET enforcement lives in the project's test suite.
-2. `BOUNDARIES.md` / `ARCH_CONTRACT.md`: stop naming import-linter as *the*
-   enforcement mechanism — name the per-stack tool, or state it neutrally.
-3. Extend `tests/test_layer_vocabulary.py` so every new contract is checked
-   against the canonical six layer names, as the import-linter reference
-   already is.
-
-Commit: `docs(ci): document per-stack boundary enforcement (#93)`
 
 ## Verification
 
@@ -227,24 +293,32 @@ Commit: `docs(ci): document per-stack boundary enforcement (#93)`
 - Regenerate smoke sandboxes for at least one backend stack per shape.
 - Confirm a stack with no gate installs cleanly rather than erroring.
 
-## Open questions
+## Open questions — resolved 2026-08-01
 
-These want answers before increment 2, not before increment 1.
-
-1. **Tool choices.** ArchUnit and NetArchTest are the conventional picks but
-   are proposals here, not verified against the repo's constraints. .NET has
-   both NetArchTest and ArchUnitNET; Go has go-arch-lint and depguard.
-2. **CI toolchains.** Are Node and Go acceptable additions to the test
-   matrix for fixture tests? If not, all four new stacks fall back to
-   structural assertions and the verification story is uniformly weaker.
-3. **Test-code templates.** Where does an `ArchitectureTest.java.template`
-   install to? It is neither a governed contract nor an agent file — it is a
-   file the team copies into their own test tree. That may need a new
-   file category, or it may simply live in `governance/backend/` as a
-   template the docs point at.
-4. **Multi-service repos.** The import-linter reference expresses
-   cross-service independence. Do the other four tools express it, and if
-   not, is that acceptable?
+1. ~~**Tool choices.**~~ **Not open, and never was.** Every stack overlay
+   already names its tool in `TECH_STACK.md` and `LAYER_IMPLEMENTATION.md` —
+   see the table in Motivation §3. .NET is **ArchUnitNET**, Go is
+   **go-arch-lint**; this plan originally floated both as undecided while the
+   shipped payload had already told users which to use. Changing either now
+   would mean editing the overlays to match an implementation choice, rather
+   than implementing what the docs promise. Recorded because reading the plan
+   alone would have led to picking again.
+2. ~~**CI toolchains.**~~ **Yes for Node and Go.** `actions/setup-node` and
+   `actions/setup-go` join the pytest job so increments 3 and 4 get real
+   fixture tests at the `tests/test_importlinter_reference.py` standard, with
+   a CI-only assertion that the toolchain resolves. Java and .NET keep
+   structural assertions — a JVM and a .NET SDK on every run is not worth it
+   for two templates that change rarely.
+3. ~~**Test-code templates.**~~ **`governance/backend/`, as copy-me
+   templates.** No new file category. `importlinter-reference.toml` already
+   works exactly this way: govkit ships it, the docs say where to copy it.
+   Writing into a team's test tree would mean guessing their test root, and
+   govkit does not write files the user authors.
+4. **Multi-service repos** — still open, but scoped per stack rather than
+   blocking. The import-linter reference expresses cross-service independence;
+   whether `dependency-cruiser`, `go-arch-lint`, ArchUnit and ArchUnitNET can
+   is a question for each increment to answer and record. Where a tool cannot,
+   say so in its reference file rather than leaving it implied.
 
 ## Out of scope
 
@@ -254,6 +328,14 @@ These want answers before increment 2, not before increment 1.
 - **The ui-nextjs gate duplication** found while fixing #94: both its L4
   gate files define a `quality` job, and its L5 variant already drops the L3
   file, so the manifest contradicts itself. Same parked review.
+- **`ARCH_CONTRACT.md` leaks Python beyond the boundary tool.** Found while
+  making the boundary wording stack-neutral, and deliberately left alone —
+  it is a separate defect from #93. The same stack-agnostic file also says
+  the domain may depend on "standard Python and `typing`" (`:23`), that "all
+  ports are pure Python interfaces (ABC or `Protocol`)" (`:30`), and lists
+  approved libraries as Pydantic, FastAPI, SQLAlchemy, `httpx` and `boto3`
+  (`:49-54`). A `go-gin` install reads all of that. Needs its own issue.
+
 - **Retiring superseded gate files on upgrade.** Increment 1 moves
   `boundary-check` out of `l3-quality-gate.yml`; an existing install keeps
   the old file until upgrade refreshes it. Verified by hand against a

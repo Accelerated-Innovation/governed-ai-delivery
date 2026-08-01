@@ -40,7 +40,8 @@ This codebase follows Hexagonal Architecture (also known as Ports and Adapters).
 * Domain must not import from adapters
 * Adapters may import from domain and ports
 * Cross-module calls must go through interfaces (ports)
-* Enforced via `import-linter` and PR review
+* Enforced via the boundary-enforcement tool named in `TECH_STACK.md` for your
+  stack, and PR review
 
 ## 4. Dependencies
 
@@ -103,4 +104,4 @@ Location: `docs/backend/architecture/ADR/`
 * PRs must comply with this contract
 * Violations require a documented ADR
 * AI agents must cite this contract when generating plans or code
-* import-linter and test gates are enforced in CI
+* Boundary enforcement and test gates are enforced in CI

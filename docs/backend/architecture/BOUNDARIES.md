@@ -45,7 +45,10 @@ must never reach into `services/` — all behaviour is invoked through
 * `adapters` reaching across layers horizontally → ❌
 * Circular dependencies between ports and services → ❌
 
-All are enforced with `import-linter`.
+All are enforced by the boundary-enforcement tool your stack uses — named in
+`TECH_STACK.md` and configured as described in `LAYER_IMPLEMENTATION.md` — and
+by PR review. The rules above are the same for every stack; only the tool that
+checks them differs.
 
 ## 3. Communication Rules
 
