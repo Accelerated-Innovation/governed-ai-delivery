@@ -22,6 +22,7 @@ refreshed on apply/upgrade), so rewriting them in place clobbers nothing.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from .agent_layout import AGENT_LAYOUTS
@@ -48,6 +49,35 @@ def render_pii_keywords(keywords: list[str]) -> str:
     return ", ".join(f"`{k}`" for k in keywords)
 
 
+# The rendered list is fenced so a later pass can find and replace it.
+# `pii.keyword_list` is team-tunable, and substituting the token in place
+# left nothing to re-render from: `apply`/`upgrade` recovered because they
+# re-copy each rule from the bundle, but `calibrate` does not, so a tuned
+# list never reached the rule bodies. Same marker idiom as the managed
+# AGENTS.md block and the `govkit:editable` header.
+_PII_OPEN = "<!-- govkit:pii_keywords -->"
+_PII_CLOSE = "<!-- /govkit:pii_keywords -->"
+_PII_SPAN = re.compile(
+    re.escape(_PII_OPEN) + r".*?" + re.escape(_PII_CLOSE), re.DOTALL,
+)
+
+
+def expand_pii_keywords(text: str, keywords: list[str]) -> str:
+    """Render `keywords` into `text`, replacing either the source token or a
+    previously rendered span.
+
+    Idempotent: rendering the same list twice is a no-op. An empty list
+    leaves the text untouched, matching the docs_area rule that unknown
+    context stays visible rather than being guessed away.
+    """
+    if not keywords:
+        return text
+    fenced = f"{_PII_OPEN}{render_pii_keywords(keywords)}{_PII_CLOSE}"
+    if _PII_SPAN.search(text):
+        return _PII_SPAN.sub(lambda _m: fenced, text)
+    return text.replace(_PII_KEYWORDS_TOKEN, fenced)
+
+
 def template_installed_rule_bodies(target: Path, agent: str, pii_keywords: list[str]) -> int:
     """Expand `{{pii_keywords}}` in installed rule bodies.
 
@@ -64,8 +94,6 @@ def template_installed_rule_bodies(target: Path, agent: str, pii_keywords: list[
     layout = AGENT_LAYOUTS.get(agent)
     if layout is None:
         return 0
-    rendered = render_pii_keywords(pii_keywords)
-
     candidates: list[Path] = []
     if layout.rules_dir and (target / layout.rules_dir).is_dir():
         candidates.extend(sorted((target / layout.rules_dir).rglob("*.md")))
@@ -80,9 +108,14 @@ def template_installed_rule_bodies(target: Path, agent: str, pii_keywords: list[
         text = read_text_or_none(path)
         if text is None:
             continue
-        if _PII_KEYWORDS_TOKEN not in text:
+        # Either an unrendered token (fresh copy from the bundle) or a span
+        # rendered by an earlier run whose list has since been tuned.
+        if _PII_KEYWORDS_TOKEN not in text and not _PII_SPAN.search(text):
             continue
-        path.write_text(text.replace(_PII_KEYWORDS_TOKEN, rendered), encoding="utf-8")
+        new_text = expand_pii_keywords(text, pii_keywords)
+        if new_text == text:
+            continue
+        path.write_text(new_text, encoding="utf-8")
         modified += 1
     return modified
 
