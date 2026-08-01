@@ -196,16 +196,33 @@ def _preserve_team_edits(existing: dict, architecture: dict) -> dict:
     Files from before this record existed have nothing to compare against,
     so they rewrite as they always did — the edit is lost once, then
     protected from the next run onward.
+
+    `layers` describes `style`, so the two are kept coherent: a team that
+    corrects only the style gets hints reseeded from the style they chose.
+    Without that, the file would claim one architecture while scoping rules
+    to another's folders — and since `rule_templating` expands these hints
+    into the concrete globs on every backend rule, the rules would target
+    packages the repo does not have.
     """
     recorded = existing.get(_PROVENANCE_KEY)
     live = existing.get("architecture")
     if not isinstance(recorded, dict) or not isinstance(live, dict):
         return architecture
+
+    preserved: set[str] = set()
     for key in _TEAM_TUNABLE_ARCHITECTURE:
         if key not in live or key not in recorded:
             continue
         if live[key] != recorded[key]:
             architecture[key] = live[key]
+            preserved.add(key)
+
+    # Only fills in for hints the team left alone — layers they chose
+    # deliberately are already preserved above and must win.
+    if "style" in preserved and "layers" not in preserved:
+        architecture["layers"] = deepcopy(
+            _STYLE_LAYERS.get(architecture.get("style"), _STYLE_LAYERS["unknown"]),
+        )
     return architecture
 
 

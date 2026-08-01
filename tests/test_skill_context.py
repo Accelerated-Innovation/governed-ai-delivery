@@ -595,7 +595,7 @@ class TestArchitectureEditPreservation:
 
     def test_rewrite_preserves_edited_style(self, tmp_path):
         """Detection can guess wrong on a mixed repo; a corrected style must
-        stick, and must keep the layer hints the team chose with it."""
+        stick."""
         from cli.skill_context import write_skill_context
 
         marker = _write_marker(tmp_path)
@@ -606,6 +606,63 @@ class TestArchitectureEditPreservation:
         write_skill_context(tmp_path, marker)
 
         assert self._read(tmp_path)["architecture"]["style"] == "clean"
+
+    def test_editing_only_style_reseeds_the_layer_hints(self, tmp_path):
+        """`layers` describes `style` — the two cannot disagree.
+
+        Correcting the style alone is the natural edit: a team on a mixed
+        repo fixes the one field they can see is wrong. If `layers` then
+        kept the *detected* style's hints, the file would claim Clean
+        Architecture while scoping rules to hexagonal folders, and
+        rule_templating would expand globs for packages the repo does not
+        have."""
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        self._hexagonal(tmp_path)
+        write_skill_context(tmp_path, marker)
+
+        self._edit(tmp_path, lambda d: d["architecture"].update(style="clean"))
+        write_skill_context(tmp_path, marker)
+
+        arch = self._read(tmp_path)["architecture"]
+        assert arch["style"] == "clean"
+        assert arch["layers"]["domain"] == ["Application/", "Domain/"]
+        assert arch["layers"]["outbound"] == ["Infrastructure/"]
+
+    def test_editing_style_and_layers_keeps_the_teams_layers(self, tmp_path):
+        """Reseeding must not overwrite hints the team chose deliberately —
+        it only fills in for hints they left alone."""
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        self._hexagonal(tmp_path)
+        write_skill_context(tmp_path, marker)
+
+        custom = {"inbound": ["Web/"], "outbound": ["Data/"], "domain": ["Core/"]}
+        self._edit(tmp_path, lambda d: d["architecture"].update(style="clean", layers=custom))
+        write_skill_context(tmp_path, marker)
+
+        arch = self._read(tmp_path)["architecture"]
+        assert arch["style"] == "clean"
+        assert arch["layers"] == custom
+
+    def test_unrecognised_edited_style_falls_back_to_empty_hints(self, tmp_path):
+        """A style govkit does not know cannot seed hints; empty lists tell
+        skills to ask rather than guess, and rule_templating leaves each
+        rule's fallback glob intact."""
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        self._hexagonal(tmp_path)
+        write_skill_context(tmp_path, marker)
+
+        self._edit(tmp_path, lambda d: d["architecture"].update(style="onion"))
+        write_skill_context(tmp_path, marker)
+
+        arch = self._read(tmp_path)["architecture"]
+        assert arch["style"] == "onion"
+        assert arch["layers"] == {"inbound": [], "outbound": [], "domain": []}
 
     def test_untouched_values_still_refresh_when_derivation_changes(self, tmp_path):
         """The reason this is not "non-empty wins": a team that never edited
