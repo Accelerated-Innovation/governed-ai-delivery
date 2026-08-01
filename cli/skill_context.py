@@ -14,6 +14,7 @@ The file lives at .govkit/skill_context.yaml alongside marker.json.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -156,6 +157,75 @@ def _extension_facts(target: Path) -> list[dict]:
     return out
 
 
+# Architecture fields govkit only *seeds*. A team may correct any of them
+# when detection guesses wrong, and that correction has to survive the
+# rewrite every apply / upgrade / stack apply / calibrate performs.
+#
+# `detected_signals` is deliberately absent: it is an observation of the
+# repo, never a preference, so it always refreshes.
+_TEAM_TUNABLE_ARCHITECTURE = ("style", "source_root", "layers")
+
+# Where govkit records what it derived, so a later run can tell a team's
+# edit from a value it wrote itself. Leading underscore marks it as
+# bookkeeping — `load_skill_context` does not expose it.
+_PROVENANCE_KEY = "_govkit_generated"
+
+
+def _read_existing_context(target: Path) -> dict:
+    """Parse the installed skill_context.yaml, or `{}` when absent/unreadable."""
+    path = target / ".govkit" / "skill_context.yaml"
+    if not path.is_file():
+        return {}
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, yaml.YAMLError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _preserve_team_edits(existing: dict, architecture: dict) -> dict:
+    """Overlay a team's architecture edits onto freshly derived values.
+
+    Provenance, not "non-empty wins": govkit records what it derived under
+    `_govkit_generated`, so a field differing from that record was edited by
+    hand and is kept, while a field still matching it refreshes normally.
+    That distinction is what lets an untouched install pick up new hints
+    when the repo is restructured or a stack is swapped, instead of freezing
+    whatever was written first.
+
+    Files from before this record existed have nothing to compare against,
+    so they rewrite as they always did — the edit is lost once, then
+    protected from the next run onward.
+
+    `layers` describes `style`, so the two are kept coherent: a team that
+    corrects only the style gets hints reseeded from the style they chose.
+    Without that, the file would claim one architecture while scoping rules
+    to another's folders — and since `rule_templating` expands these hints
+    into the concrete globs on every backend rule, the rules would target
+    packages the repo does not have.
+    """
+    recorded = existing.get(_PROVENANCE_KEY)
+    live = existing.get("architecture")
+    if not isinstance(recorded, dict) or not isinstance(live, dict):
+        return architecture
+
+    preserved: set[str] = set()
+    for key in _TEAM_TUNABLE_ARCHITECTURE:
+        if key not in live or key not in recorded:
+            continue
+        if live[key] != recorded[key]:
+            architecture[key] = live[key]
+            preserved.add(key)
+
+    # Only fills in for hints the team left alone — layers they chose
+    # deliberately are already preserved above and must win.
+    if "style" in preserved and "layers" not in preserved:
+        architecture["layers"] = deepcopy(
+            _STYLE_LAYERS.get(architecture.get("style"), _STYLE_LAYERS["unknown"]),
+        )
+    return architecture
+
+
 def _pii_facts(target: Path) -> dict:
     """Seed the tunable PII keyword list, preserving a team's edited list.
 
@@ -204,8 +274,9 @@ def _stack_facts(marker: dict) -> dict:
 def build_skill_context(target: Path, marker: dict, profile: RepoProfile | None = None) -> dict:
     """Build the skill-context dict that gets serialized to YAML.
 
-    Pure function — does no I/O beyond build_profile (which reads the
-    target tree) and discover_extensions (which reads target/extensions/).
+    Reads the target tree (build_profile, discover_extensions) and the
+    installed skill_context.yaml, so a team's hand-edits to the architecture
+    block and the PII keyword list survive the rewrite.
 
     Callers that already built a `RepoProfile` for this target (cmd_apply
     builds one during stack-overlay selection) can pass it in to skip a
@@ -219,13 +290,26 @@ def build_skill_context(target: Path, marker: dict, profile: RepoProfile | None 
     level = marker.get("level")
 
     style = _infer_architecture_style(profile)
+    derived = {
+        "style": style,
+        "source_root": "src/",
+        # deepcopy, not a reference: handing out the module-level dict lets a
+        # caller mutating the result corrupt _STYLE_LAYERS for every later
+        # install in the process.
+        "layers": deepcopy(_STYLE_LAYERS.get(style, _STYLE_LAYERS["unknown"])),
+    }
+    existing = _read_existing_context(target)
+    # Independent copies. Sharing one object between the live block and the
+    # provenance record makes yaml.safe_dump emit an anchor and an alias, so
+    # on reload they are the same object again — a team's hand-edit would
+    # rewrite the very record it is compared against, silently disabling
+    # preservation.
+    architecture = _preserve_team_edits(existing, deepcopy(derived))
+    # Observation of the repo, not a preference — never preserved.
+    architecture["detected_signals"] = list(profile.detected_architecture_signals)
+
     return {
-        "architecture": {
-            "style": style,
-            "source_root": "src/",  # caller may edit post-write
-            "detected_signals": list(profile.detected_architecture_signals),
-            "layers": _STYLE_LAYERS.get(style, _STYLE_LAYERS["unknown"]),
-        },
+        "architecture": architecture,
         "stack": _stack_facts(marker),
         "ci": _CI_NAME.get(options.get("ci"), options.get("ci")),
         # The docs tree this install's type reads (docs/<area>/architecture/).
@@ -235,6 +319,10 @@ def build_skill_context(target: Path, marker: dict, profile: RepoProfile | None 
         "llm": level == "5",
         "pii": _pii_facts(target),
         "extensions": _extension_facts(target),
+        # What govkit derived this run, regardless of what the live fields
+        # hold. Comparing the two is how the next write tells a team's edit
+        # from a value govkit wrote itself.
+        _PROVENANCE_KEY: derived,
     }
 
 
