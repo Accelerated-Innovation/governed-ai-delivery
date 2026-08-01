@@ -1,6 +1,9 @@
 # Per-Stack Boundary Enforcement Plan
 
-**Status:** Draft — 2026-08-01. Covers #93. No implementation started.
+**Status:** In progress — 2026-08-01. Increment 1 (stack-selected dispatch,
+proven with Python) is implemented. Increments 2-5 are held pending answers to
+the Open questions below; increment 6 follows them. Covers #93, which closes
+when the remaining increments land.
 
 Give each backend stack boundary enforcement in a tool that understands its
 language. Four of govkit's five backend stacks currently have none: the
@@ -138,19 +141,34 @@ Each is independently demonstrable and starts with failing tests. Payload
 edits land for **all three agents in lockstep**; run `pytest -k parity`
 before each commit.
 
-### 1. Stack-selected dispatch, proven with Python
+### 1. Stack-selected dispatch, proven with Python — done
 
 1. Failing test: a `python-fastapi` install receives a boundary gate; a
    `go-gin` install receives none. Assert per agent × CI flavour × type.
-2. Extract `boundary-check` from `l3-quality-gate.yml` and `quality-gate.yml`
-   into `ci/<flavour>/boundary-gate-python.yml`.
+   → `tests/test_boundary_gate_dispatch.py`, which also asserts the job is
+   defined in exactly one of the two files, and that UI and `data` installs
+   never receive it.
+2. Extract `boundary-check` from `l3-quality-gate.yml` into
+   `ci/<flavour>/boundary-gate-python.yml`. (`quality-gate.yml` no longer
+   defines it — #94 removed the L4 duplicate before this plan was written.)
 3. Add `by_stack` blocks under `by_type.api` and `by_type.cli` in all three
-   manifests, both flavours.
+   manifests, both flavours — at the base block and again under `level_5`,
+   which is `replace` mode and so does not inherit the base. L4 is `merge`
+   mode and inherits, as it already does for `l3-quality-gate.yml`.
 4. Extend `tests/test_ci_gate_composition.py` so the no-duplicate-jobs
-   invariant covers the new files.
+   invariant covers the new files — it is now parametrized over `stack`.
 
 No new tooling — this proves the dispatch alone, and is revertible on its
 own if the approach is wrong.
+
+Verified with real `govkit apply` runs across agent × flavour × level ×
+stack: `python-fastapi` receives the gate at L3/L4/L5 in both flavours,
+`go-gin` and `java-spring-boot` receive no boundary workflow and install
+cleanly, and `data`/`ui-nextjs` are untouched. An existing install
+upgraded from a pre-change payload was also checked — `upgrade` refreshed
+`l3-quality-gate.yml` (dropping `boundary-check`) and added the new file,
+so no repo ends up defining the job twice. That closes the assumption
+recorded under Out of scope; an automated test for it stays with #83.
 
 Commit: `refactor(ci): select the boundary gate per stack (#93)`
 
@@ -238,6 +256,8 @@ These want answers before increment 2, not before increment 1.
   file, so the manifest contradicts itself. Same parked review.
 - **Retiring superseded gate files on upgrade.** Increment 1 moves
   `boundary-check` out of `l3-quality-gate.yml`; an existing install keeps
-  the old file until upgrade refreshes it. Governed files *are* overwritten
-  on upgrade, so this should resolve itself, but it wants an explicit test
-  rather than an assumption — related to #83.
+  the old file until upgrade refreshes it. Verified by hand against a
+  simulated pre-change install: `upgrade` rewrote `l3-quality-gate.yml` and
+  added `boundary-gate-python.yml`, so the job is never defined twice. The
+  behaviour is correct; what is still missing is an automated test pinning
+  it — related to #83.

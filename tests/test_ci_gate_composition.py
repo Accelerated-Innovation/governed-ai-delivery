@@ -10,6 +10,10 @@ SonarQube runs against the same commit.
 Scoped to the `api` and `cli` types. `ui-nextjs` has the same shape at L4
 and is tracked separately as part of the wider UI review; adding it here
 would mean a failing test for work that is deliberately parked.
+
+Parametrized over `stack` since #93: the boundary gate is a separate,
+stack-selected file, so which workflows ship together now depends on the
+stack as well as the type and level.
 """
 
 import re
@@ -22,16 +26,23 @@ from cli.manifest import load_manifest, resolve_variant_files
 AGENTS = ("claude-code", "codex", "copilot")
 TYPES = ("api", "cli")
 LEVELS = ("3", "4", "5")
+STACKS = (
+    "python-fastapi",
+    "dotnet-aspnet",
+    "java-spring-boot",
+    "nodejs-fastify",
+    "go-gin",
+)
 
 _GH_JOB = re.compile(r"^  ([a-z][a-z0-9-]*):\s*$", re.MULTILINE)
 _AZ_JOB = re.compile(r"^\s*- job:\s*([A-Za-z0-9_]+)\s*$", re.MULTILINE)
 
 
-def _gate_files(agent: str, ci: str, project_type: str, level: str):
+def _gate_files(agent: str, ci: str, project_type: str, level: str, stack: str):
     """Workflow files this install actually receives, as repo-relative paths."""
     manifest = load_manifest(agent)
     _files, shared, governed = resolve_variant_files(
-        manifest, {"level": level, "type": project_type, "ci": ci},
+        manifest, {"level": level, "type": project_type, "ci": ci, "stack": stack},
     )
     return [
         str(entry) for entry in list(governed) + list(shared)
@@ -61,19 +72,22 @@ def repo_root():
 @pytest.mark.parametrize("ci", ["github", "azure"])
 @pytest.mark.parametrize("project_type", TYPES)
 @pytest.mark.parametrize("level", LEVELS)
+@pytest.mark.parametrize("stack", STACKS)
 def test_no_job_is_defined_by_two_gates_that_ship_together(
-    repo_root, agent, ci, project_type, level,
+    repo_root, agent, ci, project_type, level, stack,
 ):
+    gates = _gate_files(agent, ci, project_type, level, stack)
+    assert gates, f"{agent} {project_type} L{level} ({ci}, {stack}) receives no gate files"
     seen: dict[str, str] = {}
     duplicates: list[str] = []
-    for rel in _gate_files(agent, ci, project_type, level):
+    for rel in gates:
         for job in sorted(_job_names(repo_root, rel, ci)):
             if job in seen:
                 duplicates.append(f"{job!r} in both {seen[job]} and {rel}")
             else:
                 seen[job] = rel
     assert not duplicates, (
-        f"{agent} {project_type} L{level} ({ci}) runs duplicate jobs:\n  "
+        f"{agent} {project_type} L{level} ({ci}, {stack}) runs duplicate jobs:\n  "
         + "\n  ".join(duplicates)
     )
 

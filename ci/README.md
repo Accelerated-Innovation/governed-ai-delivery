@@ -32,6 +32,7 @@ Copy the relevant templates for your project type:
 | `quality-gate.yml` | ✓ | ✓ | optional | — |
 | `eval-gate.yml` (L4+) | ✓ | ✓ | — | — |
 | `l3-quality-gate.yml` (L3 only) | ✓ | ✓ | — | — |
+| `boundary-gate-python.yml` | `python-fastapi` | `python-fastapi` | — | — |
 | `ui-quality-gate.yml` | — | — | ✓ | — |
 | `ui-eval-gate.yml` (L4+) | — | — | ✓ | — |
 | `l3-ui-nextjs-quality-gate.yml` | — | — | Next.js L3 | — |
@@ -54,24 +55,31 @@ Copy the relevant templates for your project type:
 
 ---
 
-### Boundary enforcement is opt-in
+### Boundary enforcement is selected by stack
 
-`boundary-check` runs `import-linter` against the contract in your
-`pyproject.toml` (or `.importlinter` / `setup.cfg` / `tox.ini`). govkit ships
-`governance/backend/importlinter-reference.toml` as a **template** — copy it in
-and replace `myservice` with your package name to switch enforcement on.
+Boundary enforcement needs a tool that can read your language, so it is **not**
+part of the shared quality gate. govkit installs a boundary gate chosen by
+`--stack`:
 
-Until you do, the job **skips** rather than failing, so a fresh install is
+| Stack | Gate file | Tool |
+|---|---|---|
+| `python-fastapi` | `boundary-gate-python.yml` | `import-linter` |
+| `nodejs-fastify`, `go-gin`, `java-spring-boot`, `dotnet-aspnet` | *none yet* | tracked separately |
+
+A stack with no gate receives **no boundary workflow at all**, rather than one
+that silently skips. Shipping a Python linter to a Go repo enforces nothing
+whether it fails or skips, and the architecture docs would still be promising
+enforcement that does not exist.
+
+Boundary enforcement ships from **L3** upward. L3 has no `features/` model, but
+it does carry the architecture contracts, and this is what enforces them.
+
+**The Python gate is opt-in.** `boundary-check` runs `import-linter` against the
+contract in your `pyproject.toml` (or `.importlinter` / `setup.cfg` / `tox.ini`).
+govkit ships `governance/backend/importlinter-reference.toml` as a **template** —
+copy it in and replace `myservice` with your package name to switch enforcement
+on. Until you do, the job **skips** rather than failing, so a fresh install is
 green. It logs a notice telling you how to enable it.
-
-Two consequences worth knowing:
-
-- Boundary enforcement ships from **L3** upward. L3 has no `features/` model,
-  but it does carry the architecture contracts, and this is what enforces them.
-- import-linter is Python-only, so the job stays skipped on the `go-gin`,
-  `dotnet-aspnet`, `java-spring-boot` and `nodejs-fastify` stacks. Equivalent
-  per-stack tooling is tracked separately — a skipped job is honest, a Python
-  linter pointed at Go is not.
 
 ---
 
@@ -85,7 +93,8 @@ files made L4+ repos run each twice on every push.
 
 | Pipeline | Level 3 | Level 4 |
 |----------|---------|---------|
-| `l3-quality-gate.yml` | Governance artifacts (3), commit format, boundary enforcement, SonarQube, Snyk | — |
+| `l3-quality-gate.yml` | Governance artifacts (3), commit format, SonarQube, Snyk | — |
+| `boundary-gate-python.yml` | Architecture boundary enforcement (`python-fastapi` only) | — |
 | `quality-gate.yml` | — | Schema validation, contract compatibility, governance artifacts (5) |
 | `eval-gate.yml` | — | FIRST/Virtue prediction thresholds, LLM eval |
 | `ui-quality-gate.yml` | — | Type check, ESLint, component tests, bundle size |
@@ -118,9 +127,9 @@ A critical distinction in this governance framework: some checks enforce **actua
 | Check | Pipeline | What it does |
 |---|---|---|
 | Schema validation | quality-gate | Validates `eval_criteria.yaml` against JSON Schema |
-| Architecture boundaries | quality-gate | Runs `import-linter` to enforce hexagonal layering |
-| Security vulnerabilities | quality-gate | Snyk dependency scan |
-| Code quality metrics | quality-gate | SonarQube duplication and complexity |
+| Architecture boundaries | boundary-gate-python | Runs `import-linter` to enforce hexagonal layering (`python-fastapi` only) |
+| Security vulnerabilities | l3-quality-gate | Snyk dependency scan |
+| Code quality metrics | l3-quality-gate | SonarQube duplication and complexity |
 
 ### Prediction-only (plan.md scores, not actuals)
 
@@ -257,8 +266,10 @@ policy, and cost controls.
 ### Backend
 
 ```
-quality-gate.yml    → schema validation, boundaries, SonarQube, Snyk, contracts
-eval-gate.yml       → FIRST/Virtue prediction check, LLM eval suite
+l3-quality-gate.yml       → commit format, SonarQube, Snyk
+boundary-gate-python.yml  → import-linter boundaries (python-fastapi only)
+quality-gate.yml          → schema validation, contract compatibility, artifacts
+eval-gate.yml             → FIRST/Virtue prediction check, LLM eval suite
 ```
 
 ### UI

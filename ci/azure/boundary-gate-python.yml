@@ -1,0 +1,46 @@
+# Azure DevOps pipeline — architecture boundary enforcement for the
+# `python-fastapi` stack. Runs `import-linter` against the hexagonal layer
+# contract described in docs/backend/architecture/BOUNDARIES.md.
+#
+# STAGES:
+#   BoundaryCheck    — enforces hexagonal architecture boundaries via import-linter
+#
+# STACK-SELECTED: govkit installs this file only for `--stack python-fastapi`.
+# import-linter reads Python imports and cannot analyse Go, Java, C# or
+# TypeScript, so the other backend stacks receive no boundary gate rather than
+# one that silently skips. Their equivalents are tracked separately.
+#
+# OPT-IN: govkit ships governance/backend/importlinter-reference.toml as a
+# template. The contract is live only once you copy it into pyproject.toml and
+# set your package name; until then this stage skips so a fresh install is
+# green.
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: BoundaryCheck
+    displayName: Architecture boundary enforcement
+    dependsOn: []
+    jobs:
+      - job: BoundaryCheck
+        displayName: Run import-linter
+        steps:
+          - checkout: self
+
+          - script: |
+              if grep -qs 'tool.importlinter' pyproject.toml setup.cfg tox.ini \
+                 || [ -f .importlinter ]; then
+                pip install import-linter
+                lint-imports
+              else
+                echo "##vso[task.logissue type=warning]No import-linter contract found. Copy governance/backend/importlinter-reference.toml into pyproject.toml and set your package name to enable boundary enforcement."
+              fi
+            displayName: Enforce hexagonal architecture boundaries

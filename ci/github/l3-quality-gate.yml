@@ -6,10 +6,12 @@
 #
 # JOBS:
 #   commit-format     — validates commit message format
-#   boundary-check    — enforces hexagonal architecture boundaries via import-linter
-#                       (requires .importlinter config in your repo root)
 #   sonarqube         — SonarQube quality gate (optional, requires SONAR_TOKEN)
 #   security-scan     — Snyk vulnerability scan (optional, requires SNYK_TOKEN)
+#
+# Architecture boundary enforcement is NOT here: it is stack-specific, and
+# this gate ships for every backend stack. govkit installs a boundary gate
+# selected by stack — ci/github/boundary-gate-python.yml for `python-fastapi`.
 #
 # NOTE: This is the Level 3 (Foundations) gate. It does NOT include
 # per-feature governance checks because L3 has no `features/` directory model.
@@ -68,36 +70,6 @@ jobs:
             exit 1
           fi
           echo "All commit messages match expected format."
-
-  boundary-check:
-    name: Architecture boundary enforcement
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # govkit ships governance/backend/importlinter-reference.toml as a
-      # template; the contract is only live once you copy it in and set the
-      # package name. Until then this job skips rather than failing, so a
-      # fresh install is green. It also skips on non-Python stacks, which
-      # import-linter cannot check at all — see the per-stack tracking issue.
-      - name: Detect import-linter contract
-        id: contract
-        run: |
-          if grep -qs 'tool.importlinter' pyproject.toml setup.cfg tox.ini \
-             || [ -f .importlinter ]; then
-            echo "found=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "found=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No import-linter contract found. Copy governance/backend/importlinter-reference.toml into pyproject.toml and set your package name to enable boundary enforcement."
-          fi
-
-      - name: Install import-linter
-        if: steps.contract.outputs.found == 'true'
-        run: pip install import-linter
-
-      - name: Run boundary checks
-        if: steps.contract.outputs.found == 'true'
-        run: lint-imports
 
   sonarqube:
     name: SonarQube quality gate

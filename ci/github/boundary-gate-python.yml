@@ -1,0 +1,54 @@
+# boundary-gate-python.yml
+#
+# PURPOSE: Architecture boundary enforcement for the `python-fastapi` stack.
+# Runs `import-linter` against the hexagonal layer contract described in
+# docs/backend/architecture/BOUNDARIES.md.
+# Copy this file to .github/workflows/boundary-gate.yml.
+#
+# JOBS:
+#   boundary-check    — enforces hexagonal architecture boundaries via import-linter
+#
+# STACK-SELECTED: govkit installs this file only for `--stack python-fastapi`.
+# import-linter reads Python imports and cannot analyse Go, Java, C# or
+# TypeScript, so the other backend stacks receive no boundary gate rather than
+# one that silently skips. Their equivalents are tracked separately.
+#
+# OPT-IN: govkit ships governance/backend/importlinter-reference.toml as a
+# template. The contract is live only once you copy it into pyproject.toml and
+# set your package name; until then this job skips so a fresh install is green.
+#
+# REQUIRED SECRETS: none.
+
+name: Boundary Gate (Python)
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  boundary-check:
+    name: Architecture boundary enforcement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect import-linter contract
+        id: contract
+        run: |
+          if grep -qs 'tool.importlinter' pyproject.toml setup.cfg tox.ini \
+             || [ -f .importlinter ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No import-linter contract found. Copy governance/backend/importlinter-reference.toml into pyproject.toml and set your package name to enable boundary enforcement."
+          fi
+
+      - name: Install import-linter
+        if: steps.contract.outputs.found == 'true'
+        run: pip install import-linter
+
+      - name: Run boundary checks
+        if: steps.contract.outputs.found == 'true'
+        run: lint-imports
