@@ -334,7 +334,9 @@ Commit: `feat(ci): boundary enforcement for dotnet-aspnet (#93)`
   the domain may depend on "standard Python and `typing`" (`:23`), that "all
   ports are pure Python interfaces (ABC or `Protocol`)" (`:30`), and lists
   approved libraries as Pydantic, FastAPI, SQLAlchemy, `httpx` and `boto3`
-  (`:49-54`). A `go-gin` install reads all of that. Needs its own issue.
+  (`:49-54`), and secrets via Pydantic's `BaseSettings` (`:81`). A `go-gin`
+  install reads all of that, and §10 tells agents to cite this contract when
+  generating code. Filed as **#104**.
 
 - **Retiring superseded gate files on upgrade.** Increment 1 moves
   `boundary-check` out of `l3-quality-gate.yml`; an existing install keeps
