@@ -77,7 +77,11 @@ def expand_rule_template(text: str, layers: dict[str, list[str]]) -> str:
         if not isinstance(ref, str):
             continue
         globs = _expand_template_ref(ref, layers)
-        fm.pop(template_key, None)
+        # The reference stays in the installed file so expansion can be
+        # repeated. Consuming it made the first expansion final: a team
+        # correcting `architecture.style` during calibrate got a corrected
+        # skill_context.yaml and rules still scoped to the originally
+        # detected style, with nothing to re-expand from.
         changed = True
         if not globs:
             continue  # fallback (existing `paths:` / `applyTo:`) survives

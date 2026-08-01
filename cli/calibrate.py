@@ -577,6 +577,30 @@ def _run_non_interactive(target: Path, steps: list[CalibrationStep]) -> None:
     if refreshed is not None:
         write_setup_review(target, refreshed)
         write_skill_context(target, refreshed)
+        _retemplate_rules(target, refreshed)
+
+
+def _retemplate_rules(target: Path, marker: dict) -> None:
+    """Re-derive installed rule globs from the refreshed skill context.
+
+    Calibration is where a team corrects what govkit guessed, and the
+    architecture style is among the likeliest corrections. Refreshing
+    skill_context.yaml without this leaves the rules — which are what the
+    agent actually reads — scoped to the style detection originally chose,
+    so the correction appears to apply while changing nothing.
+
+    Silent on agents with no rules dir (codex scopes by placement instead).
+    """
+    from .rule_templating import template_installed_rules
+    from .skill_context import load_skill_context
+
+    context = load_skill_context(target)
+    if context is None:
+        return
+    agent = marker.get("agent", "claude-code")
+    count = template_installed_rules(target, agent, context.layers)
+    if count:
+        print(f"  re-scoped {count} rule file(s) to the calibrated architecture.")
 
 
 _PROMPT_HELP = (
@@ -724,9 +748,11 @@ def _run_interactive(target: Path, marker: dict, steps: list[CalibrationStep]) -
         applied_at=updated.get("applied_at"),
     )
 
-    # Regenerate skill_context.yaml so skills (PR 6b/c) see fresh facts.
+    # Regenerate skill_context.yaml so skills (PR 6b/c) see fresh facts,
+    # then re-scope the installed rules to match it.
     from .skill_context import write_skill_context
     write_skill_context(target, updated)
+    _retemplate_rules(target, updated)
 
     # Refresh GOVKIT_SETUP_REVIEW.md so the calibration completion + decision
     # tally are visible alongside the assumptions block.
