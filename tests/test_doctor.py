@@ -135,6 +135,57 @@ class TestUnexpandedSkillTokens:
         assert [f for f in findings if f.id == "D015"] == []
 
 
+class TestD008LlmDependencies:
+    def test_does_not_fire_for_a_claude_agent_sdk_service(self, tmp_path):
+        """The reported false negative: a service driving the Claude Code CLI
+        has no `anthropic` dependency, so the old marker list saw nothing."""
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path, level="5")
+        (tmp_path / "pyproject.toml").write_text(
+            '[project]\nname="x"\ndependencies = ["claude-agent-sdk>=0.1"]\n',
+            encoding="utf-8",
+        )
+        assert [f for f in run_doctor(tmp_path) if f.id == "D008"] == []
+
+    def test_does_not_fire_for_a_dotnet_llm_service(self, tmp_path):
+        """govkit ships a dotnet-aspnet stack, but .csproj was never scanned."""
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path, level="5")
+        (tmp_path / "app.csproj").write_text(
+            '<PackageReference Include="Azure.AI.OpenAI" Version="2.0.0" />',
+            encoding="utf-8",
+        )
+        assert [f for f in run_doctor(tmp_path) if f.id == "D008"] == []
+
+    def test_still_fires_for_an_l5_install_with_no_llm_dependency(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path, level="5")
+        (tmp_path / "pyproject.toml").write_text(
+            '[project]\nname="x"\ndependencies = ["fastapi"]\n', encoding="utf-8",
+        )
+        hits = [f for f in run_doctor(tmp_path) if f.id == "D008"]
+        assert len(hits) == 1
+        assert hits[0].severity == "info"
+
+    def test_message_names_every_manifest_the_scan_actually_reads(self, tmp_path):
+        """The message used to restate the file list in prose, which is how it
+        came to advertise four manifests while the scan covered three of
+        govkit's own stacks not at all. Deriving it removes the drift."""
+        from cli.detect import _DEP_FILE_PATTERNS
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path, level="5")
+        (tmp_path / "pyproject.toml").write_text(
+            '[project]\nname="x"\ndependencies = ["fastapi"]\n', encoding="utf-8",
+        )
+        message = [f for f in run_doctor(tmp_path) if f.id == "D008"][0].message
+        for pattern in _DEP_FILE_PATTERNS:
+            assert pattern in message, f"{pattern} scanned but not named in D008"
+
+
 class TestNextjsBoundary:
     def test_database_dependency_is_a_non_waivable_error(self, tmp_path):
         from cli.doctor import run_doctor

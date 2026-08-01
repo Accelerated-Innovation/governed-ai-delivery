@@ -387,6 +387,65 @@ class TestLLMSignals:
         prof = build_profile(tmp_path)
         assert prof.detected_llm_signals == []
 
+    def test_claude_agent_sdk_detected(self, tmp_path):
+        """The SDK that drives the Claude Code CLI. It never pulls in
+        `anthropic`, so the substring match on that name misses it entirely —
+        the false negative this check was reported for."""
+        from cli.detect import build_profile
+
+        (tmp_path / "pyproject.toml").write_text(
+            '[project]\nname="x"\ndependencies = ["claude-agent-sdk>=0.1"]\n',
+            encoding="utf-8",
+        )
+        prof = build_profile(tmp_path)
+        assert prof.detected_llm_signals
+
+    @pytest.mark.parametrize(
+        ("filename", "content"),
+        [
+            ("app.csproj", '<PackageReference Include="Azure.AI.OpenAI" Version="2.0.0" />'),
+            ("app.csproj", '<PackageReference Include="Microsoft.SemanticKernel" Version="1.0" />'),
+            ("go.mod", "require github.com/sashabaranov/go-openai v1.32.0"),
+            ("go.mod", "require github.com/tmc/langchaingo v0.1.12"),
+            ("build.gradle", "implementation 'dev.langchain4j:langchain4j:0.35.0'"),
+            ("build.gradle.kts", 'implementation("org.springframework.ai:spring-ai-core:1.0.0")'),
+        ],
+    )
+    def test_llm_detected_in_stack_dependency_files(self, tmp_path, filename, content):
+        """govkit ships dotnet-aspnet, go-gin and java-spring-boot stacks, but
+        the scan only read pyproject / requirements / package.json / pom.xml —
+        so D008 false-negatived on three of its own supported stacks
+        regardless of which SDK was in use."""
+        from cli.detect import build_profile
+
+        (tmp_path / filename).write_text(content, encoding="utf-8")
+        prof = build_profile(tmp_path)
+        assert prof.detected_llm_signals, f"{filename} with {content!r} not detected"
+
+    def test_package_json_found_below_the_target_root(self, tmp_path):
+        """Only the root package.json was checked, unlike every other
+        dependency file, so a JS monorepo hid its dependencies from the scan."""
+        from cli.detect import build_profile
+
+        app = tmp_path / "apps" / "web"
+        app.mkdir(parents=True)
+        (app / "package.json").write_text(
+            '{"dependencies":{"@anthropic-ai/sdk":"^0.30.0"}}', encoding="utf-8",
+        )
+        prof = build_profile(tmp_path)
+        assert prof.detected_llm_signals
+
+    def test_plain_dotnet_and_go_repos_stay_clean(self, tmp_path):
+        """Widening the file scan must not widen false positives."""
+        from cli.detect import build_profile
+
+        (tmp_path / "app.csproj").write_text(
+            '<PackageReference Include="Microsoft.AspNetCore.App" />', encoding="utf-8",
+        )
+        (tmp_path / "go.mod").write_text("require github.com/gin-gonic/gin v1.10.0", encoding="utf-8")
+        prof = build_profile(tmp_path)
+        assert prof.detected_llm_signals == []
+
 
 class TestTargetScoping:
     """A10: build_profile takes an explicit target. Detectors must never walk

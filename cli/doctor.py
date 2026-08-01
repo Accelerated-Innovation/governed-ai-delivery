@@ -498,6 +498,18 @@ def _check_llm_leakage_in_non_l5(target: Path, marker: dict) -> list[ValidationF
     return findings
 
 
+def _dep_files_checked() -> str:
+    """Human-readable list of the manifests the LLM scan reads.
+
+    Derived from detect._DEP_FILE_PATTERNS rather than restated, so the
+    message cannot claim to check files the scan does not — the drift that
+    let this finding name four manifests while the repo shipped stacks
+    using three others.
+    """
+    from .detect import _DEP_FILE_PATTERNS
+    return " / ".join(_DEP_FILE_PATTERNS)
+
+
 @_register_check("D008")
 def _check_l5_without_llm_deps(target: Path, marker: dict) -> list[ValidationFinding]:
     """D008 — install is L5 (GenAI Operations) but no LLM SDK appears in
@@ -505,7 +517,7 @@ def _check_l5_without_llm_deps(target: Path, marker: dict) -> list[ValidationFin
     """
     if marker.get("level") != "5":
         return []
-    from .detect import build_profile
+    from .detect import _LLM_MARKERS, build_profile
     profile = build_profile(target)
     if profile.detected_llm_signals:
         return []
@@ -516,8 +528,8 @@ def _check_l5_without_llm_deps(target: Path, marker: dict) -> list[ValidationFin
         file=None,
         message=(
             "level is 5 (GenAI Operations) but no LLM SDK detected in repo "
-            "(checked pyproject.toml / requirements / package.json / pom.xml "
-            "for langchain, litellm, openai, anthropic, semantic-kernel, langgraph)"
+            f"(checked {_dep_files_checked()} for "
+            f"{len(_LLM_MARKERS)} known SDK markers)"
         ),
         suggested_action=(
             "if this is not actually an LLM service, downgrade with "
