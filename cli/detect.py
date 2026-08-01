@@ -48,7 +48,44 @@ _LANG_FILE_SIGNALS: list[tuple[str, str]] = [
 ]
 
 # LLM SDK / framework markers — substring searches in dep manifests.
-_LLM_MARKERS = ("langchain", "litellm", "openai", "anthropic", "semantic-kernel", "langgraph")
+# Substrings that mark an LLM dependency, matched case-insensitively against
+# the text of a dependency file. Chosen to cover each ecosystem's spelling of
+# the same SDK — `anthropic` catches both `@anthropic-ai/sdk` and
+# `Anthropic.SDK`, `openai` catches `Azure.AI.OpenAI` and `go-openai` — so
+# the list stays shorter than the set of packages it recognises.
+#
+# `claude-agent-sdk` needs its own entry: it drives the Claude Code CLI and
+# never pulls in `anthropic`, which is how a Claude-based service could look
+# like it had no LLM dependency at all.
+_LLM_MARKERS = (
+    # Anthropic
+    "anthropic", "claude-agent-sdk", "claude-code-sdk",
+    # OpenAI (also matches azure.ai.openai, go-openai, openai-agents)
+    "openai",
+    # Google
+    "genai", "generativeai", "vertexai", "vertex-ai",
+    # AWS / local runtimes
+    "bedrock", "ollama",
+    # Orchestration frameworks
+    "langchain", "langgraph", "llama", "haystack", "dspy",
+    "semantic-kernel", "semantickernel", "spring-ai",
+    # Multi-agent frameworks
+    "crewai", "autogen", "pydantic-ai",
+    # Gateways and other providers
+    "litellm", "mistralai", "cohere", "instructor",
+)
+
+# Dependency manifests scanned for those markers, as fnmatch patterns.
+# Covers every stack govkit ships an overlay for — omitting .csproj, go.mod
+# and build.gradle meant D008 false-negatived on dotnet-aspnet, go-gin and
+# java-spring-boot no matter which SDK the project used.
+_DEP_FILE_PATTERNS = (
+    "pyproject.toml", "requirements*.txt",   # python
+    "package.json",                          # node
+    "pom.xml", "build.gradle", "build.gradle.kts",  # java (maven + gradle)
+    "*.csproj",                              # .net
+    "go.mod",                                # go
+)
 
 # Architecture style markers — folder names (any depth under target).
 _HEXAGONAL_FOLDERS = {"ports", "adapters"}
@@ -113,16 +150,24 @@ _SKIP_DIRS = frozenset({
 })
 
 
-def _find_recursive(target: Path, pattern: str, max_depth: int = 4) -> list[Path]:
+def _find_recursive(
+    target: Path, pattern: str | tuple[str, ...], max_depth: int = 4,
+) -> list[Path]:
     """Recursive search bounded by depth, pruning noise dirs during traversal.
 
     Uses os.walk with in-place `dirnames[:]` mutation so node_modules / .venv /
     etc. are never entered — important for large repos where rglob's
     walk-then-filter approach dominated build_profile() runtime.
 
+    `pattern` may be a tuple, in which case a file matching any of them is
+    returned from a single walk. Callers needing several manifests should
+    pass them together rather than calling once per pattern — the walk, not
+    the matching, is what costs.
+
     Depth is counted as path segments from target: a file at target/a/b/c.txt
     is depth 3. With max_depth=4, files up to four segments deep are returned.
     """
+    patterns = (pattern,) if isinstance(pattern, str) else tuple(pattern)
     matches: list[Path] = []
     if not target.is_dir():
         return matches
@@ -138,7 +183,7 @@ def _find_recursive(target: Path, pattern: str, max_depth: int = 4) -> list[Path
                 dirnames[:] = []
                 continue
             for fname in filenames:
-                if fnmatch.fnmatch(fname, pattern):
+                if any(fnmatch.fnmatch(fname, p) for p in patterns):
                     matches.append(current / fname)
             if depth + 1 >= max_depth:
                 # Next level's files would exceed max_depth; stop descent.
@@ -218,7 +263,7 @@ def _detect_aspnet_core(target: Path) -> bool:
 
 def _detect_fastapi(target: Path) -> bool:
     """Substring search across pyproject.toml + requirements*.txt."""
-    py_files = _find_recursive(target, "pyproject.toml") + _find_recursive(target, "requirements*.txt")
+    py_files = _find_recursive(target, ("pyproject.toml", "requirements*.txt"))
     for path in py_files:
         text = _read_text(path)
         if "fastapi" in text.lower():
@@ -274,11 +319,7 @@ def _detect_tailwindcss(target: Path) -> bool:
 
 def _detect_spring_boot(target: Path) -> bool:
     """Substring search across pom.xml and build.gradle*."""
-    candidates = (
-        _find_recursive(target, "pom.xml")
-        + _find_recursive(target, "build.gradle")
-        + _find_recursive(target, "build.gradle.kts")
-    )
+    candidates = _find_recursive(target, ("pom.xml", "build.gradle", "build.gradle.kts"))
     for path in candidates:
         text = _read_text(path)
         if "spring-boot" in text or "springframework.boot" in text:
@@ -489,12 +530,15 @@ def _detect_architecture(target: Path, prof: RepoProfile) -> None:
 # ---------------------------------------------------------------------------
 
 def _detect_llm_signals(target: Path, prof: RepoProfile) -> None:
-    candidates = (
-        _find_recursive(target, "pyproject.toml")
-        + _find_recursive(target, "requirements*.txt")
-        + ([target / "package.json"] if (target / "package.json").is_file() else [])
-        + _find_recursive(target, "pom.xml")
-    )
+    """Record which LLM SDK markers appear in the repo's dependency files.
+
+    package.json is searched recursively like every other manifest — a JS
+    monorepo keeps its dependencies in `apps/<app>/package.json`, and only
+    reading the root one hid them. `_find_recursive` prunes node_modules and
+    bounds depth, so this stays cheap.
+    """
+    candidates = _find_recursive(target, _DEP_FILE_PATTERNS)
+
     found: list[str] = []
     for path in candidates:
         text = _read_text(path).lower()
