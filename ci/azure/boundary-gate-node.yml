@@ -1,0 +1,76 @@
+# Azure DevOps pipeline — architecture boundary enforcement for the
+# `nodejs-fastify` stack. Runs `dependency-cruiser` against the hexagonal layer
+# contract described in docs/backend/architecture/BOUNDARIES.md.
+#
+# STAGES:
+#   BoundaryCheck    — enforces hexagonal architecture boundaries via dependency-cruiser
+#
+# STACK-SELECTED: govkit installs this file only for `--stack nodejs-fastify`.
+# Each backend stack gets a boundary gate in a tool that can read its source;
+# see ci/README.md for the mapping.
+#
+# OPT-IN: govkit ships governance/backend/dependency-cruiser-reference.cjs as a
+# template. The contract is live only once you copy it to
+# `.dependency-cruiser.cjs`; until then this stage skips so a fresh install is
+# green.
+#
+# WHY THE MODULE-COUNT CHECK: dependency-cruiser fails open in two ways, both
+# reproduced against 17.4.3. `--output-type json` reports every violation and
+# still exits 0 — so this stage uses the default reporter. And with TypeScript 7
+# installed, dependency-cruiser 17 cruises 0 modules and exits 0, because it
+# uses the TypeScript 5.x compiler API. A green run that analysed nothing is
+# indistinguishable from a clean one unless the module count is checked, so
+# this stage checks it and fails loudly.
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: BoundaryCheck
+    displayName: Architecture boundary enforcement
+    dependsOn: []
+    jobs:
+      - job: BoundaryCheck
+        displayName: Run dependency-cruiser
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            displayName: Use Node.js 22
+            inputs:
+              versionSpec: '22.x'
+
+          - script: |
+              if [ ! -f .dependency-cruiser.cjs ] && [ ! -f .dependency-cruiser.js ] \
+                 && [ ! -f .dependency-cruiser.json ]; then
+                echo "##vso[task.logissue type=warning]No dependency-cruiser config found. Copy governance/backend/dependency-cruiser-reference.cjs to .dependency-cruiser.cjs to enable boundary enforcement."
+                exit 0
+              fi
+
+              set -euo pipefail
+              # The project's own TypeScript is what dependency-cruiser parses with.
+              if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+              # Default (err) reporter — `--output-type json` always exits 0.
+              if ! output=$(npx --yes dependency-cruiser@^17 src --config .dependency-cruiser.cjs 2>&1); then
+                echo "$output"
+                echo "##vso[task.logissue type=error]Architecture boundary violations found."
+                exit 1
+              fi
+              echo "$output"
+
+              summary=$(printf '%s' "$output" | grep -oE '[0-9]+ modules?, [0-9]+ dependenc' | head -1)
+              modules=$(printf '%s' "$summary" | grep -oE '^[0-9]+' || echo 0)
+              if [ -z "$summary" ] || [ "$modules" -eq 0 ]; then
+                echo "##vso[task.logissue type=error]dependency-cruiser cruised ${modules:-no} modules. The boundary check analysed nothing, so it would pass no matter what the code does. Check that your sources are under src/, and that the project's TypeScript is 5.x — dependency-cruiser 17 cannot parse with TypeScript 7."
+                exit 1
+              fi
+              echo "Boundary check analysed $modules modules."
+            displayName: Enforce hexagonal architecture boundaries
