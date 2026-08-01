@@ -52,7 +52,8 @@ class TestExpandRuleTemplate:
             "domain":   ["services/", "Application/"],
         }
         out = expand_rule_template(text, layers)
-        assert "paths_template:" not in out
+        # The reference is retained so a later calibrate can re-derive.
+        assert "paths_template: layers.inbound" in out
         paths = _parsed_paths(out)
         assert "**/api/**" in paths
         assert "**/Controllers/**" in paths
@@ -74,9 +75,10 @@ class TestExpandRuleTemplate:
         )
         layers = {"inbound": ["api/"]}
         out = expand_rule_template(text, layers)
-        # Fallback survives (template directive removed so it's not re-processed).
+        # Fallback survives; the reference is retained so a later run can
+        # resolve it once the layer key exists.
         assert "**/fallback/**" in _parsed_paths(out)
-        assert "paths_template:" not in out
+        assert "paths_template: layers.unknown-key" in out
 
     def test_template_with_empty_layer_keeps_existing_paths(self):
         """`paths_template: layers.inbound` when layers.inbound is [] should
@@ -95,8 +97,9 @@ class TestExpandRuleTemplate:
         out = expand_rule_template(text, layers)
         # Fallback paths survive when the template resolves to nothing.
         assert "**/api/**" in _parsed_paths(out)
-        # Template directive removed so apply doesn't re-process it.
-        assert "paths_template:" not in out
+        # Reference retained: an "unknown" style may become known after
+        # calibration, and the rule must be re-derivable then.
+        assert "paths_template: layers.inbound" in out
 
     def test_replaces_existing_paths_when_template_resolves(self):
         """When the template resolves to non-empty values, the new paths
@@ -142,7 +145,7 @@ class TestExpandRuleTemplate:
         )
         layers = {"inbound": ["api/", "Controllers/"]}
         out = expand_rule_template(text, layers)
-        assert "applyTo_template:" not in out
+        assert "applyTo_template:" in out
         # applyTo is a single string with comma-separated globs.
         fm = yaml.safe_load(out.split("---", 2)[1])
         assert "applyTo" in fm
@@ -165,7 +168,7 @@ class TestExpandRuleTemplate:
         # Fallback survives intact.
         assert fm["applyTo"] == "**/api/**"
         # Template directive removed.
-        assert "applyTo_template:" not in out
+        assert "applyTo_template:" in out
 
     def test_strips_trailing_slash_from_layer_hint(self):
         """Layer hints come in like 'api/' or 'Controllers/'. The expansion
@@ -190,9 +193,13 @@ class TestTemplateInstalledRules:
     files with `paths_template:` end up with a concrete `paths:` block
     matching the team's architecture."""
 
-    def test_after_apply_no_rule_file_has_paths_template(self, tmp_path):
-        """Every installed rule must have its `paths_template:` resolved
-        away; otherwise Claude Code would see invalid frontmatter."""
+    def test_after_apply_every_rule_has_concrete_paths(self, tmp_path):
+        """Every installed rule must carry resolved `paths:` globs — that is
+        what Claude Code scopes on.
+
+        `paths_template:` stays alongside them so a later calibrate can
+        re-derive; it is an extra frontmatter key the agent ignores. What
+        matters is that `paths:` is concrete, not that the reference is gone."""
         import argparse
 
         from cli.cmd_apply import cmd_apply
@@ -205,9 +212,19 @@ class TestTemplateInstalledRules:
             stack="python-fastapi", force=False, detect=False,
         ))
 
+        checked = 0
         for rule in (target / ".claude" / "rules").rglob("*.md"):
             text = rule.read_text(encoding="utf-8")
-            assert "paths_template:" not in text, f"{rule.name} still has paths_template"
+            # The governance instructions file carries no frontmatter.
+            if "paths_template:" not in text:
+                continue
+            checked += 1
+            paths = _parsed_paths(text)
+            assert paths, f"{rule.name} declares a template but has no concrete paths"
+            assert all(p.startswith("**/") for p in paths), (
+                f"{rule.name} has an unexpanded glob: {paths}"
+            )
+        assert checked, "no templated rules found — the assertion proved nothing"
 
     def test_clean_architecture_repo_gets_clean_layer_paths(self, tmp_path):
         """A target with Application/Domain/Infrastructure signals must end
@@ -317,3 +334,101 @@ class TestTemplateInstalledRules:
         paths = fm.get("paths") or []
         # Still using clean-architecture layers from detected signals.
         assert "**/Infrastructure/**" in paths
+
+
+class TestRetemplatingAfterCalibration:
+    """Correcting a wrong detection must reach the rules the agent reads.
+
+    `calibrate` exists so a team can fix what govkit guessed. Correcting
+    `architecture.style` is one of the likeliest corrections — and it was
+    precisely the one that never took effect: expansion consumed
+    `paths_template:` from the installed rule, so re-running the expander
+    over it was a no-op, and `calibrate` never called it anyway. The team
+    saw skill_context.yaml change and reasonably assumed the governance
+    followed it.
+    """
+
+    @staticmethod
+    def _apply(target):
+        import argparse
+
+        from cli.cmd_apply import cmd_apply
+
+        target.mkdir(exist_ok=True)
+        (target / "src" / "ports").mkdir(parents=True)
+        (target / "src" / "adapters").mkdir(parents=True)
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target), level="4", type="api",
+            ci="github", stack=None, force=False, detect=False,
+        ))
+
+    @staticmethod
+    def _domain_paths(target):
+        return _parsed_paths(
+            (target / ".claude" / "rules" / "govkit" / "services.md").read_text(encoding="utf-8"),
+        )
+
+    @staticmethod
+    def _set_style(target, style):
+        import yaml
+        path = target / ".govkit" / "skill_context.yaml"
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        data["architecture"]["style"] = style
+        path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+
+    def test_expansion_is_repeatable(self, tmp_path):
+        """The installed rule keeps its template reference, so a later run
+        can re-derive the globs. Consuming it made the first expansion final."""
+        from cli.rule_templating import expand_rule_template
+
+        text = (
+            "---\n"
+            "paths_template: layers.domain\n"
+            "---\n"
+            "\n# Domain rule body\n"
+        )
+        first = expand_rule_template(text, {"domain": ["services/", "models/"]})
+        assert _parsed_paths(first) == ["**/services/**", "**/models/**"]
+
+        second = expand_rule_template(first, {"domain": ["Application/"]})
+        assert _parsed_paths(second) == ["**/Application/**"], (
+            "re-expansion did nothing — the template reference did not survive"
+        )
+        assert "Domain rule body" in second
+
+    def test_calibrate_rescopes_rules_after_a_style_correction(self, tmp_path):
+        """The end-to-end case from the issue."""
+        import argparse
+
+        from cli.calibrate import cmd_calibrate
+
+        target = tmp_path / "project"
+        self._apply(target)
+        assert self._domain_paths(target) == ["**/services/**", "**/models/**"]
+
+        self._set_style(target, "clean")
+        cmd_calibrate(argparse.Namespace(
+            target=str(target), non_interactive=True, only=None,
+        ))
+
+        assert self._domain_paths(target) == ["**/Application/**", "**/Domain/**"], (
+            "skill_context was corrected but the installed rule still scopes "
+            "to the originally detected style"
+        )
+
+    def test_apply_still_expands_and_stays_idempotent(self, tmp_path):
+        """Retaining the reference must not change what a fresh install
+        produces, nor make a second apply drift."""
+        import argparse
+
+        from cli.cmd_apply import cmd_apply
+
+        target = tmp_path / "project"
+        self._apply(target)
+        first = self._domain_paths(target)
+
+        cmd_apply(argparse.Namespace(
+            agent="claude-code", target=str(target), level="4", type="api",
+            ci="github", stack=None, force=True, detect=False,
+        ))
+        assert self._domain_paths(target) == first
