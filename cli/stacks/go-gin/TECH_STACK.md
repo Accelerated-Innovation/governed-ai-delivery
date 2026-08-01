@@ -34,6 +34,7 @@ Core layers:
 api/       → inbound adapters (HTTP interfaces)
 ports/     → inbound and outbound interfaces
 services/  → domain logic and orchestration
+models/    → domain entities and value objects
 adapters/  → infrastructure implementations
 common/    → shared utilities and types
 ```

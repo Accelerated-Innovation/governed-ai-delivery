@@ -77,6 +77,10 @@
         "managed_block": {
           "type": "boolean",
           "description": "When true, govkit installs this file's content as a managed block fenced by BEGIN/END GOVKIT markers instead of overwriting the whole file, preserving a team's own content in the same file. Used for agents (codex) whose only instruction mechanism is a shared AGENTS.md."
+        },
+        "path_scoped": {
+          "type": "boolean",
+          "description": "When true, `dest` is relative to the repo's detected source root rather than the target root. Used for codex rules that install an AGENTS.md inside an architecture layer folder (services/, ports/, ...), so they land beside the code they govern when it lives at src/<package>/. Falls back to the declared root-relative dest when no single source root is detected."
         }
       }
     },

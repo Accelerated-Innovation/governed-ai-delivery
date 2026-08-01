@@ -648,11 +648,16 @@ class TestCodexAgentsMdManagedBlock:
         assert content.index("ACME") < content.index("BEGIN GOVKIT GOVERNANCE")
 
     def test_team_nested_agents_md_is_preserved(self, tmp_path):
-        """Codex's per-layer AGENTS.md live in real source dirs (api/, etc.) and
-        can't move to a namespace, so they get the same managed block — a team's
-        own api/AGENTS.md keeps its content."""
+        """Codex's per-layer AGENTS.md live in real source dirs and can't move
+        to a namespace, so they get the same managed block — a team's own
+        api/AGENTS.md keeps its content.
+
+        This fixture's code is under `src/`, so the rule lands at
+        `src/api/AGENTS.md`. Codex resolves AGENTS.md from the edited file
+        upward, so a root-level `api/AGENTS.md` would never apply to
+        `src/api/main.py`."""
         target = _copy_fixture("python-fastapi-github", tmp_path)
-        nested = target / "api" / "AGENTS.md"
+        nested = target / "src" / "api" / "AGENTS.md"
         nested.parent.mkdir(parents=True, exist_ok=True)
         nested.write_text("# TEAM api notes\nOur conventions.\n", encoding="utf-8")
 

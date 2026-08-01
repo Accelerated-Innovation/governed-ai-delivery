@@ -364,6 +364,21 @@ def _detect_ci(target: Path, prof: RepoProfile) -> None:
 # Architecture signals
 # ---------------------------------------------------------------------------
 
+def _child_dir_names(root: Path) -> set[str]:
+    """Immediate-child directory names of `root`, ignoring dot-dirs and the
+    usual noise directories. Empty set when root is missing or unreadable."""
+    names: set[str] = set()
+    if not root.is_dir():
+        return names
+    try:
+        for entry in root.iterdir():
+            if entry.is_dir() and not entry.name.startswith(".") and entry.name not in _SKIP_DIRS:
+                names.add(entry.name)
+    except OSError:
+        pass
+    return names
+
+
 def _top_level_folder_names(target: Path) -> set[str]:
     """Collect the immediate-child folder names under each known source root
     (target, src/, Source/, models/). dbt's layers live under models/; the
@@ -371,28 +386,100 @@ def _top_level_folder_names(target: Path) -> set[str]:
     """
     names: set[str] = set()
     for root in (target, target / "src", target / "Source", target / "models"):
-        if not root.is_dir():
-            continue
-        try:
-            for entry in root.iterdir():
-                if entry.is_dir() and not entry.name.startswith("."):
-                    names.add(entry.name)
-        except OSError:
-            continue
+        names |= _child_dir_names(root)
     return names
 
 
+def _source_folder_sets(target: Path) -> list[set[str]]:
+    """Candidate folder-name sets to match architecture fingerprints against.
+
+    The first set is the historical union of the known source roots, which
+    covers the flat `src/{api,ports,...}` shape. Each remaining set is one
+    direct child package of `src/` or `Source/` — the layout
+    REPO_STRUCTURE_README.md actually documents (`src/<package>/api/...`),
+    and the multi-service `src/{orders,billing}/` form.
+
+    Kept per-package rather than unioned so two unrelated packages each
+    holding one matching folder cannot combine into a false signal. The walk
+    stops at direct children, so cost stays fixed regardless of repo size.
+    """
+    sets = [_top_level_folder_names(target)]
+    for root in (target / "src", target / "Source"):
+        if not root.is_dir():
+            continue
+        try:
+            packages = sorted(p for p in root.iterdir() if p.is_dir())
+        except OSError:
+            continue
+        for pkg in packages:
+            if pkg.name.startswith(".") or pkg.name in _SKIP_DIRS:
+                continue
+            sets.append(_child_dir_names(pkg))
+    return sets
+
+
+def detect_source_root(target: Path) -> str:
+    """POSIX-relative directory holding the architecture layer folders.
+
+    `""` when the layers sit at the target root, when no layout is
+    recognisable, or when several sibling packages each look like a service
+    — callers then fall back to root-relative destinations rather than
+    guessing which service a rule belongs to.
+
+    Used to place codex's path-scoped `AGENTS.md` rules next to the code
+    they govern. claude-code and copilot need no equivalent: their rules
+    carry `**/<layer>/**` globs that match at any depth.
+    """
+    fingerprints = (_HEXAGONAL_FOLDERS, _LAYERED_FOLDERS, _CLEAN_FOLDERS)
+
+    def _matches(root: Path) -> bool:
+        names = _child_dir_names(root)
+        return any(len(fp & names) >= 2 for fp in fingerprints)
+
+    if _matches(target):
+        return ""
+
+    candidates: list[Path] = []
+    for root in (target / "src", target / "Source"):
+        if not root.is_dir():
+            continue
+        if _matches(root):
+            candidates.append(root)
+            continue
+        try:
+            packages = sorted(p for p in root.iterdir() if p.is_dir())
+        except OSError:
+            continue
+        candidates.extend(
+            p for p in packages
+            if not p.name.startswith(".") and p.name not in _SKIP_DIRS and _matches(p)
+        )
+
+    if len(candidates) != 1:
+        return ""
+    return candidates[0].relative_to(target).as_posix()
+
+
 def _detect_architecture(target: Path, prof: RepoProfile) -> None:
-    """Match top-level folder names against known style fingerprints."""
-    folders = _top_level_folder_names(target)
+    """Match source folder names against known style fingerprints.
+
+    A fingerprint fires when any single candidate source root matches it —
+    the flat layout via the union set, the documented `src/<package>/`
+    layout via that package's own set.
+    """
+    folder_sets = _source_folder_sets(target)
+
+    def _fires(fingerprint: set[str]) -> bool:
+        return any(len(fingerprint & folders) >= 2 for folders in folder_sets)
+
     signals: list[str] = []
-    if _HEXAGONAL_FOLDERS.issubset(folders) or len(_HEXAGONAL_FOLDERS & folders) >= 2:
+    if _fires(_HEXAGONAL_FOLDERS):
         signals.append("hexagonal-shape")
-    if len(_LAYERED_FOLDERS & folders) >= 2:
+    if _fires(_LAYERED_FOLDERS):
         signals.append("layered-shape")
-    if len(_CLEAN_FOLDERS & folders) >= 2:
+    if _fires(_CLEAN_FOLDERS):
         signals.append("clean-shape")
-    if len(_DBT_FOLDERS & folders) >= 2:
+    if _fires(_DBT_FOLDERS):
         signals.append("dbt-shape")
     prof.detected_architecture_signals = signals
 

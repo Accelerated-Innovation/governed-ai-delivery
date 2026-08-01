@@ -298,6 +298,58 @@ class TestArchitectureSignals:
         prof = build_profile(tmp_path)
         assert prof.detected_architecture_signals == []
 
+    def test_hexagonal_detected_under_src_package(self, tmp_path):
+        """REPO_STRUCTURE_README.md documents `src/<package>/api/...`, one
+        level below src/. Detection must recognise its own prescribed
+        layout — otherwise a conforming repo gets style="unknown" and
+        empty layer hints."""
+        from cli.detect import build_profile
+
+        for layer in ("api", "ports", "services", "models", "adapters", "common"):
+            (tmp_path / "src" / "mypkg" / layer).mkdir(parents=True)
+        prof = build_profile(tmp_path)
+        assert "hexagonal-shape" in prof.detected_architecture_signals
+
+    def test_hexagonal_detected_for_multi_service_layout(self, tmp_path):
+        """`src/{orders,billing}/` — several services sharing one install,
+        expressed as multiple import-linter containers."""
+        from cli.detect import build_profile
+
+        for svc in ("orders", "billing"):
+            for layer in ("api", "ports", "services", "models", "adapters", "common"):
+                (tmp_path / "src" / svc / layer).mkdir(parents=True)
+        prof = build_profile(tmp_path)
+        assert "hexagonal-shape" in prof.detected_architecture_signals
+
+    def test_no_signal_for_unrelated_package_children(self, tmp_path):
+        """Scanning one level deeper must not invent signals from folders
+        that happen to sit under a package."""
+        from cli.detect import build_profile
+
+        for name in ("utils", "helpers", "scripts"):
+            (tmp_path / "src" / "mypkg" / name).mkdir(parents=True)
+        prof = build_profile(tmp_path)
+        assert prof.detected_architecture_signals == []
+
+    def test_scan_does_not_reach_two_levels_below_src(self, tmp_path):
+        """The walk is bounded to direct children of src/ so this stays a
+        cheap fixed-cost check rather than a full-tree scan."""
+        from cli.detect import build_profile
+
+        (tmp_path / "src" / "a" / "b" / "ports").mkdir(parents=True)
+        (tmp_path / "src" / "a" / "b" / "adapters").mkdir(parents=True)
+        prof = build_profile(tmp_path)
+        assert prof.detected_architecture_signals == []
+
+    def test_skip_dirs_are_not_treated_as_packages(self, tmp_path):
+        """A vendored tree under src/ must not supply architecture signals."""
+        from cli.detect import build_profile
+
+        (tmp_path / "src" / "node_modules" / "ports").mkdir(parents=True)
+        (tmp_path / "src" / "node_modules" / "adapters").mkdir(parents=True)
+        prof = build_profile(tmp_path)
+        assert prof.detected_architecture_signals == []
+
 
 class TestLLMSignals:
     def test_litellm_detected_in_pyproject(self, tmp_path):

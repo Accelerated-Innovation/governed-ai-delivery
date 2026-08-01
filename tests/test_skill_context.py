@@ -274,6 +274,44 @@ class TestLoadSkillContext:
         assert "outbound" in ctx.layers
         assert "domain" in ctx.layers
 
+    def test_hexagonal_domain_hint_names_services_and_models(self, tmp_path):
+        """The domain layer is `services/` (behaviour) plus `models/`
+        (entities) — the vocabulary BOUNDARIES.md and ARCH_CONTRACT.md
+        settle on. This value is not merely informational: rule_templating
+        expands it into the concrete `paths:` globs that scope every
+        backend rule, so a hint naming a package the team does not have
+        leaves those rules attached to nothing."""
+        from cli.skill_context import load_skill_context, write_skill_context
+
+        marker = _write_marker(tmp_path)
+        (tmp_path / "src" / "ports").mkdir(parents=True)
+        (tmp_path / "src" / "adapters").mkdir(parents=True)
+        write_skill_context(tmp_path, marker)
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.architecture_style == "hexagonal"
+        assert ctx.layers["domain"] == ["services/", "models/"]
+
+    def test_documented_src_package_layout_yields_populated_layers(self, tmp_path):
+        """A repo laid out the way REPO_STRUCTURE_README.md prescribes —
+        `src/<package>/api/...` — must produce a usable skill context.
+        Before detection looked below src/, this yielded style="unknown"
+        with every layer hint empty, which silently unscoped the backend
+        rules that template off those hints."""
+        from cli.skill_context import load_skill_context, write_skill_context
+
+        marker = _write_marker(tmp_path)
+        for layer in ("api", "ports", "services", "models", "adapters", "common"):
+            (tmp_path / "src" / "customer_support_ai" / layer).mkdir(parents=True)
+        write_skill_context(tmp_path, marker)
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.architecture_style == "hexagonal"
+        assert ctx.layers["domain"] == ["services/", "models/"]
+        assert ctx.layers["inbound"] and ctx.layers["outbound"]
+
     def test_apply_writes_skill_context_yaml(self, tmp_path, monkeypatch):
         """PR 6a: cmd_apply must call write_skill_context so the file exists
         from day one — skills shouldn't have to wait for calibrate to run."""

@@ -18,6 +18,7 @@ from .install_common import (
     copy_governed_or_shared,
     install_agent_file,
     post_install_finalize,
+    resolve_path_scoped_dests,
 )
 from .manifest import load_manifest, resolve_options, resolve_variant_files
 from .marker import read_govkit_marker, write_govkit_marker
@@ -126,6 +127,7 @@ def _apply_variant_install(
     # replace the type defaults for the overlapping entries before install.
     stack_overlay = load_overlay((stack_meta or {}).get("id", "")) if stack_meta else None
     files = apply_rule_overrides(files, stack_overlay, args.agent)
+    files = resolve_path_scoped_dests(files, target)
 
     print("Agent files:")
     for entry in files:

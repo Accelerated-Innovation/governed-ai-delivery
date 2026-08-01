@@ -110,6 +110,33 @@ def install_agent_file(
         copy_entry(src, dest)
 
 
+def resolve_path_scoped_dests(files: list[dict], target: Path) -> list[dict]:
+    """Re-root `path_scoped` entries onto the repo's actual source root.
+
+    Codex places an `AGENTS.md` inside each architecture layer folder,
+    because it resolves AGENTS.md from the edited file upward. The manifest
+    can only declare a root-relative destination (`services/AGENTS.md`), so
+    a repo laid out as `src/<package>/services/` would get an empty
+    root-level folder holding guidance codex never applies.
+
+    When no source root can be determined — a greenfield repo, or several
+    sibling service packages with no single root — destinations are left
+    exactly as the manifest declares them, so no existing install changes.
+
+    claude-code and copilot need no equivalent: `rule_templating` gives
+    their rules `**/<layer>/**` globs, which match at any depth.
+    """
+    from .detect import detect_source_root
+
+    source_root = detect_source_root(target)
+    if not source_root:
+        return files
+    return [
+        {**e, "dest": f"{source_root}/{e['dest']}"} if e.get("path_scoped") else e
+        for e in files
+    ]
+
+
 def reconcile_legacy_instruction_files(
     target: Path, agent_dir: Path, files: list, applied_at: str | None = None,
 ) -> list:

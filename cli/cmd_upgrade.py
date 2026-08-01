@@ -23,6 +23,7 @@ from .install_common import (
     install_agent_file,
     post_install_finalize,
     reconcile_legacy_instruction_files,
+    resolve_path_scoped_dests,
     retire_pre_namespace_agent_files,
 )
 from .manifest import load_manifest, resolve_variant_files
@@ -124,6 +125,8 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     # Retire the pre-namespace rules/skills a pre-0.14 install left at the old
     # paths, so the agent does not auto-load govkit's governance twice.
     retire_pre_namespace_agent_files(target, agent_dir, files, stored_version)
+
+    files = resolve_path_scoped_dests(files, target)
 
     print("Agent files (refreshed):")
     for entry in files:

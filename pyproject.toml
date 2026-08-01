@@ -39,6 +39,9 @@ dependencies = [
 test = [
     "pytest>=8.0",
     "jsonschema>=4.0",
+    # tests/test_importlinter_reference.py runs the real linter against the
+    # contract govkit ships, so it cannot drift from BOUNDARIES.md.
+    "import-linter>=2.0",
 ]
 
 [project.urls]
@@ -106,22 +109,7 @@ markers = [
     "e2e: full-install end-to-end tests (apply/doctor/calibrate cycles over real bundle trees); excluded from the fast loop via -m 'not e2e'",
 ]
 
-# Note: import-linter config below is a reference template for target projects.
-# Target projects should copy this section and adjust root_package/containers
-# to match their own source layout.
-[tool.importlinter]
-root_package = "src"
-
-[tool.importlinter.contracts.hexagonal]
-name = "Hexagonal Architecture"
-type = "layers"
-
-layers = [
-    "api",
-    "ports",
-    "services",
-    "adapters",
-    "common"
-]
-
-containers = ["src"]
+# The import-linter reference template for adopting projects lives — as a
+# single, tested copy — in governance/backend/importlinter-reference.toml.
+# It is deliberately not duplicated here: govkit's own source is `cli/`, not
+# `src/`, so a contract in this file would never run and would only drift.

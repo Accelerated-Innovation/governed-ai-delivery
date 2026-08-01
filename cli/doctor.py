@@ -110,15 +110,46 @@ def _extract_globs(frontmatter: dict, key: str) -> list[str]:
 
     `paths:` (claude-code) is a list of strings; `applyTo:` (copilot) is a
     single string (or, less commonly, a list).
+
+    Copilot expresses several globs as one comma-separated string, so each
+    value is split on commas. Without that, a multi-glob `applyTo` such as
+    `**/services/**,**/models/**` is matched as one literal pattern, never
+    resolves, and reports D001 against a repo that is perfectly fine.
     """
     value = frontmatter.get(key)
     if value is None:
         return []
     if isinstance(value, str):
-        return [value]
-    if isinstance(value, list):
-        return [v for v in value if isinstance(v, str)]
-    return []
+        raw = [value]
+    elif isinstance(value, list):
+        raw = [v for v in value if isinstance(v, str)]
+    else:
+        return []
+    return [part for item in raw for part in _split_glob_list(item)]
+
+
+def _split_glob_list(value: str) -> list[str]:
+    """Split a comma-separated glob string, ignoring commas inside `{...}`.
+
+    Brace alternation is itself comma-separated — `**/*.{py,go,ts}` is one
+    glob, not three — so a naive split would shred it into fragments that
+    match nothing.
+    """
+    parts: list[str] = []
+    depth = 0
+    current: list[str] = []
+    for ch in value:
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth = max(0, depth - 1)
+        if ch == "," and depth == 0:
+            parts.append("".join(current))
+            current = []
+            continue
+        current.append(ch)
+    parts.append("".join(current))
+    return [p.strip() for p in parts if p.strip()]
 
 
 def _glob_resolves_in(target: Path, glob_pattern: str) -> bool:

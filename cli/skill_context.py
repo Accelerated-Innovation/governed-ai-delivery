@@ -49,7 +49,10 @@ _STYLE_LAYERS = {
     "hexagonal": {
         "inbound":  ["api/", "ports/inbound/"],
         "outbound": ["adapters/", "ports/outbound/"],
-        "domain":   ["services/"],
+        # The domain is behaviour (services/) plus state (models/) — see
+        # docs/backend/architecture/ARCH_CONTRACT.md section 2. There is
+        # no `domain/` wrapper package.
+        "domain":   ["services/", "models/"],
     },
     "clean": {
         "inbound":  ["Presentation/", "Api/"],

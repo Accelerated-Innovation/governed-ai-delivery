@@ -8,27 +8,42 @@ This document defines module boundaries, allowed dependencies, and ownership rul
 
 This system uses Hexagonal Architecture (Ports and Adapters). Primary layers:
 
-* `domain/` – core business logic
+* `api/` – inbound adapters (HTTP interfaces, webhooks)
 * `ports/` – inbound and outbound interface definitions
-* `adapters/` – implementations of ports (e.g. FastAPI, DB, Redis)
+* `services/` – domain behaviour and orchestration
+* `models/` – domain entities and value objects
+* `adapters/` – implementations of outbound ports (e.g. DB, Redis, LLM providers)
 * `common/` – cross-cutting concerns (logging, tracing, DTOs)
+
+The domain is `services/` (behaviour) plus `models/` (state). There is no
+`domain/` package — see [ARCH_CONTRACT.md](ARCH_CONTRACT.md) section 2.
 
 ## 2. Allowed Dependencies
 
-| Module      | Allowed to import from         |
-| ----------- | ------------------------------ |
-| `api/`      | `ports/inbound/`, `common/`    |
-| `adapters/` | `ports/`, `domain/`, `common/` |
-| `ports/`    | `domain/`, `common/`           |
-| `domain/`   | `common/` only                 |
-| `common/`   | none (must be dependency-free) |
+| Module       | Allowed to import from                  |
+| ------------ | --------------------------------------- |
+| `api/`       | `ports/inbound/`, `models/`, `common/`  |
+| `adapters/`  | `ports/`, `services/`, `models/`, `common/` |
+| `services/`  | `ports/`, `models/`, `common/`          |
+| `ports/`     | `models/`, `common/`                    |
+| `models/`    | `common/` only                          |
+| `common/`    | none (must be dependency-free)          |
+
+`ports/` sits **below** `services/`: ports hold interfaces and may reference
+entities, while services import the port interfaces they depend on. Granting
+`ports/ → services/` as well would create the cycle forbidden below.
+
+`api/` may name entities because inbound port signatures carry them, but it
+must never reach into `services/` — all behaviour is invoked through
+`ports/inbound/`.
 
 ### Forbidden:
 
-* `api` importing `domain` directly → ❌
-* `domain` importing any adapter → ❌
+* `api` importing `services` directly → ❌
+* `services` or `models` importing any adapter → ❌
+* `models` importing `ports` or `services` → ❌
 * `adapters` reaching across layers horizontally → ❌
-* Circular dependencies between ports and adapters → ❌
+* Circular dependencies between ports and services → ❌
 
 All are enforced with `import-linter`.
 
@@ -42,7 +57,8 @@ All are enforced with `import-linter`.
 ## 4. Module Isolation
 
 * Each adapter implements only its own port
-* `domain` logic must never reference specific adapters
+* `services/` must never reference specific adapters
+* `models/` must stay free of behaviour that belongs in `services/`
 * `ports/` must remain interface-only — no logic or side effects
 
 ## 5. Ownership
