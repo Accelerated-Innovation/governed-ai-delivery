@@ -495,6 +495,207 @@ class TestLoadSkillContextDocsArea:
             assert ctx.docs_area == ""
 
 
+class TestArchitectureEditPreservation:
+    """A team's hand-edits to the architecture block must survive the rewrite
+    that apply / upgrade / stack apply / calibrate each perform.
+
+    Two comments in cli/skill_context.py have long promised this — "Teams
+    using medallion (bronze/silver/gold) edit `architecture.layers` ...
+    directly during calibrate" and `source_root` "caller may edit
+    post-write" — while every write clobbered both.
+
+    Preservation is provenance-based rather than "non-empty wins": govkit
+    records what it derived, so a value differing from that record is a
+    team edit and is kept, while an untouched value still refreshes when
+    the derivation legitimately changes (a stack swap, a restructured repo).
+    """
+
+    @staticmethod
+    def _read(target):
+        import yaml
+        return yaml.safe_load(
+            (target / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8"),
+        )
+
+    @staticmethod
+    def _edit(target, mutate):
+        import yaml
+        path = target / ".govkit" / "skill_context.yaml"
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        mutate(data)
+        path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+
+    def _hexagonal(self, tmp_path):
+        (tmp_path / "src" / "ports").mkdir(parents=True)
+        (tmp_path / "src" / "adapters").mkdir(parents=True)
+
+    def test_rewrite_preserves_edited_layers(self, tmp_path):
+        """The medallion case the docstring promises: a data team renames the
+        layer hints to bronze/silver/gold and re-runs calibrate."""
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        self._hexagonal(tmp_path)
+        write_skill_context(tmp_path, marker)
+
+        medallion = {"inbound": ["bronze/"], "outbound": ["gold/"], "domain": ["silver/"]}
+        self._edit(tmp_path, lambda d: d["architecture"].update(layers=medallion))
+
+        write_skill_context(tmp_path, marker)
+
+        assert self._read(tmp_path)["architecture"]["layers"] == medallion
+
+    def test_rewrite_preserves_a_single_edited_layer_hint(self, tmp_path):
+        """Editing one hint in place is what a team actually does, and it must
+        not silently edit the provenance record too.
+
+        The live block and the record must be independent objects. Sharing
+        one makes `yaml.safe_dump` emit an anchor and an alias, so on reload
+        they are the same object again — a hand-edit rewrites the record it
+        is supposed to be compared against, and preservation quietly stops
+        working while whole-dict replacement still appears to pass."""
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        self._hexagonal(tmp_path)
+        write_skill_context(tmp_path, marker)
+
+        self._edit(tmp_path, lambda d: d["architecture"]["layers"].__setitem__("domain", ["core/"]))
+        raw = (tmp_path / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8")
+        assert "*id" not in raw, f"YAML alias in skill_context.yaml:\n{raw}"
+
+        write_skill_context(tmp_path, marker)
+
+        assert self._read(tmp_path)["architecture"]["layers"]["domain"] == ["core/"]
+
+    def test_style_layers_constant_is_not_mutated(self, tmp_path):
+        """The derived block must be a copy — handing out the module-level
+        _STYLE_LAYERS dict lets any caller corrupt every later install in
+        the same process."""
+        from cli.skill_context import _STYLE_LAYERS, build_skill_context
+
+        marker = _write_marker(tmp_path)
+        self._hexagonal(tmp_path)
+        data = build_skill_context(tmp_path, marker)
+        data["architecture"]["layers"]["domain"] = ["mutated/"]
+
+        assert _STYLE_LAYERS["hexagonal"]["domain"] == ["services/", "models/"]
+
+    def test_rewrite_preserves_edited_source_root(self, tmp_path):
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        self._hexagonal(tmp_path)
+        write_skill_context(tmp_path, marker)
+
+        self._edit(tmp_path, lambda d: d["architecture"].update(source_root="services/"))
+        write_skill_context(tmp_path, marker)
+
+        assert self._read(tmp_path)["architecture"]["source_root"] == "services/"
+
+    def test_rewrite_preserves_edited_style(self, tmp_path):
+        """Detection can guess wrong on a mixed repo; a corrected style must
+        stick, and must keep the layer hints the team chose with it."""
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        self._hexagonal(tmp_path)
+        write_skill_context(tmp_path, marker)
+
+        self._edit(tmp_path, lambda d: d["architecture"].update(style="clean"))
+        write_skill_context(tmp_path, marker)
+
+        assert self._read(tmp_path)["architecture"]["style"] == "clean"
+
+    def test_untouched_values_still_refresh_when_derivation_changes(self, tmp_path):
+        """The reason this is not "non-empty wins": a team that never edited
+        the file must still get updated hints when the repo's shape changes.
+        Freezing the first-written value would be its own bug."""
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        self._hexagonal(tmp_path)
+        write_skill_context(tmp_path, marker)
+        assert self._read(tmp_path)["architecture"]["style"] == "hexagonal"
+
+        # Repo restructured into Clean Architecture; nothing was hand-edited.
+        for layer in ("Application", "Domain", "Infrastructure", "Presentation"):
+            (tmp_path / "src" / layer).mkdir(parents=True, exist_ok=True)
+        for layer in ("ports", "adapters"):
+            (tmp_path / "src" / layer).rmdir()
+
+        write_skill_context(tmp_path, marker)
+
+        arch = self._read(tmp_path)["architecture"]
+        assert arch["style"] == "clean"
+        assert arch["layers"]["domain"] == ["Application/", "Domain/"]
+
+    def test_detected_signals_always_refresh(self, tmp_path):
+        """detected_signals is pure observation of the repo, never a team
+        preference, so it must not be caught by preservation."""
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        self._hexagonal(tmp_path)
+        write_skill_context(tmp_path, marker)
+        self._edit(tmp_path, lambda d: d["architecture"].update(
+            style="clean", detected_signals=["nonsense"],
+        ))
+
+        write_skill_context(tmp_path, marker)
+
+        assert self._read(tmp_path)["architecture"]["detected_signals"] == ["hexagonal-shape"]
+
+    def test_fresh_install_is_unaffected(self, tmp_path):
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        self._hexagonal(tmp_path)
+        write_skill_context(tmp_path, marker)
+
+        arch = self._read(tmp_path)["architecture"]
+        assert arch["style"] == "hexagonal"
+        assert arch["layers"]["domain"] == ["services/", "models/"]
+
+    def test_load_skill_context_ignores_the_provenance_record(self, tmp_path):
+        """The bookkeeping govkit writes must not leak into the typed view
+        skills consume."""
+        from cli.skill_context import load_skill_context, write_skill_context
+
+        marker = _write_marker(tmp_path)
+        self._hexagonal(tmp_path)
+        write_skill_context(tmp_path, marker)
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.architecture_style == "hexagonal"
+        assert ctx.layers["domain"] == ["services/", "models/"]
+
+    def test_missing_provenance_record_does_not_crash(self, tmp_path):
+        """Files written by an older govkit carry no record. Those rewrite as
+        before rather than failing — the edit is lost once, then protected."""
+        import yaml
+
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        self._hexagonal(tmp_path)
+        path = tmp_path / ".govkit" / "skill_context.yaml"
+        path.write_text(
+            yaml.safe_dump({
+                "architecture": {"style": "layered", "source_root": "app/", "layers": {}},
+                "stack": {}, "pii": {"keyword_list": ["email"]},
+            }, sort_keys=False),
+            encoding="utf-8",
+        )
+
+        write_skill_context(tmp_path, marker)
+
+        data = self._read(tmp_path)
+        assert data["architecture"]["style"] == "hexagonal"
+        assert data["pii"]["keyword_list"] == ["email"]
+
+
 class TestPiiKeywordList:
     def test_write_seeds_default_keyword_list(self, tmp_path):
         import yaml
