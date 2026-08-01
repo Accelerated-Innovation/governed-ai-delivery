@@ -135,6 +135,21 @@ def _split_glob_list(value: str) -> list[str]:
     glob, not three — so a naive split would shred it into fragments that
     match nothing.
     """
+    return [p.strip() for p in _split_top_level_commas(value) if p.strip()]
+
+
+# Bound the fan-out from nested alternations so a pathological pattern
+# cannot turn one glob into thousands of filesystem walks.
+_MAX_BRACE_EXPANSIONS = 64
+
+
+def _split_top_level_commas(value: str) -> list[str]:
+    """Split on commas that sit outside any `{...}` group.
+
+    Used for both the comma-separated `applyTo` string and the body of a
+    brace group. In the second case it keeps a nested alternation whole:
+    the body of `{a,{b,c}}` is `a` and `{b,c}`, not `a`, `{b` and `c}`.
+    """
     parts: list[str] = []
     depth = 0
     current: list[str] = []
@@ -149,22 +164,62 @@ def _split_glob_list(value: str) -> list[str]:
             continue
         current.append(ch)
     parts.append("".join(current))
-    return [p.strip() for p in parts if p.strip()]
+    return parts
+
+
+def _expand_braces(pattern: str) -> list[str]:
+    """Expand `{a,b}` alternation into concrete patterns.
+
+    `pathlib` has no brace support, so `**/*.{py,go}` passed through
+    verbatim matches nothing — the rule looks broken against a repo full of
+    Python. Expanding to `**/*.py` and `**/*.go` and trying each restores
+    the meaning the rule author intended.
+
+    Handles nesting by expanding the leftmost group and recursing. Returns
+    `[pattern]` unchanged when there is no alternation, when braces are
+    unbalanced, or when expansion would exceed `_MAX_BRACE_EXPANSIONS`.
+    """
+    start = pattern.find("{")
+    if start == -1:
+        return [pattern]
+    depth = 0
+    for i in range(start, len(pattern)):
+        if pattern[i] == "{":
+            depth += 1
+        elif pattern[i] == "}":
+            depth -= 1
+            if depth == 0:
+                head, body, tail = pattern[:start], pattern[start + 1:i], pattern[i + 1:]
+                alternatives = _split_top_level_commas(body)
+                if len(alternatives) < 2:
+                    # `{x}` is not alternation — leave it for the caller's glob.
+                    break
+                out: list[str] = []
+                for alt in alternatives:
+                    for expanded in _expand_braces(head + alt + tail):
+                        out.append(expanded)
+                        if len(out) > _MAX_BRACE_EXPANSIONS:
+                            return [pattern]
+                return out
+    return [pattern]
 
 
 def _glob_resolves_in(target: Path, glob_pattern: str) -> bool:
     """Does `glob_pattern` match at least one path under `target`?
 
-    Patterns from rule files look like `**/adapters/**`. Path.glob handles
-    these natively. We accept matches on either files or directories.
+    Patterns from rule files look like `**/adapters/**`, which Path.glob
+    handles natively, or `**/*.{py,go}`, which it does not — brace
+    alternation is expanded first. We accept matches on either files or
+    directories.
     """
     # Normalize: rule globs use `**/x/**` to mean "x as a directory anywhere".
     # Path.glob requires that pattern syntax (also).
-    try:
-        for _ in target.glob(glob_pattern):
-            return True
-    except (ValueError, OSError):
-        return False
+    for candidate in _expand_braces(glob_pattern):
+        try:
+            for _ in target.glob(candidate):
+                return True
+        except (ValueError, OSError):
+            continue
     return False
 
 
