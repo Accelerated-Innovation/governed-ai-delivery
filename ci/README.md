@@ -141,18 +141,22 @@ component, and the JVM and .NET gates read the test reports and fail unless
 `ArchitectureTest` actually ran with a non-zero rule count. If you adapt these
 gates, keep those checks.
 
-**One caveat, specific to the JVM.** govkit's own CI executes the Python,
-Node, Go and .NET contracts against generated fixtures. It does *not* execute
-the ArchUnit (Java) template — that needs a JVM and Maven on every run — so
-that one is checked *structurally*: all six layers named, every forbidden edge
-expressed, one consistent placeholder package. An ArchUnit API misuse that
-compiles and passes vacuously would not be caught there.
+**All five contracts are executed, not merely inspected.** govkit's CI runs
+each one against generated fixtures on every run — a conforming skeleton must
+pass, and every edge `BOUNDARIES.md` forbids must be rejected by the real
+tool.
 
-That is not hypothetical. The .NET template's first draft used
-`ResideInNamespace`, which matches exactly, and a violation in
-`Api.Controllers` passed silently — a defect found only by running it.
-Whichever template you adopt, verify it once: introduce a deliberate
-`api → services` dependency and confirm the build fails.
+That is worth the CI minutes because inspection is not enough. The .NET
+template's first draft used `ResideInNamespace`, which matches namespaces
+exactly, so a violation in `Api.Controllers` passed silently at 8/8 green; a
+later draft interpolated the base namespace into a regex unescaped, so
+`Contoso.Billing` also matched `ContosoXBilling.*`. Both had already passed
+their structural checks. Neither was reachable without running the template.
+
+Still verify yours once when you adopt it, because CI cannot check *your*
+wiring: introduce a deliberate `api → services` dependency and confirm the
+build fails. If it passes, your package, namespace or test source set is
+wrong — not your architecture.
 
 ---
 

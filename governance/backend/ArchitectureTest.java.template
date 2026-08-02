@@ -29,22 +29,20 @@
  * `ports`, above `models`, above `common`, with `api -> services` forbidden.
  *
  * -----------------------------------------------------------------------------
- * HOW THIS FILE IS VERIFIED, AND HOW IT IS NOT.
+ * HOW THIS FILE IS VERIFIED.
  *
- * govkit's own CI runs the real linter against generated skeletons for the
- * Python, Node and Go contracts, so those cannot claim enforcement they do not
- * deliver. It does NOT do that here: running ArchUnit needs a JVM and Maven on
- * every CI run, for a template that changes rarely.
+ * govkit's CI runs this template inside a real Maven project on every run: a
+ * conforming skeleton must pass, every edge BOUNDARIES.md forbids must be
+ * rejected, a violation nested in `api.controllers` must be caught, and a
+ * package merely *containing* a layer name (`legacyapi`) must not be treated
+ * as that layer. All five boundary contracts govkit ships are executed this
+ * way, not merely inspected.
  *
- * What govkit checks is **structural** — that this file names all six layers,
- * forbids every edge BOUNDARIES.md forbids, and keeps one consistent
- * placeholder package. What it cannot catch is an ArchUnit API misuse that
- * compiles and passes without checking anything.
- *
- * So verify it yourself, once, when you adopt it: introduce a deliberate
- * violation — have a class in `api` import one from `services` — and confirm
- * the build fails. If it passes, your base package or source set is wrong,
- * not your architecture.
+ * Still verify it once yourself when you adopt it, because what CI cannot
+ * check is *your* project's wiring: introduce a deliberate violation — have a
+ * class in `api` import one from `services` — and confirm the build fails. If
+ * it passes, your base package or test source set is wrong, not your
+ * architecture.
  * -----------------------------------------------------------------------------
  *
  * COMPOSITION ROOT. Whatever wires adapters into services imports both, so it
