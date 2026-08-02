@@ -82,7 +82,7 @@ CI will fail on:
 
 * Forbidden imports
 * Port-to-implementation coupling
-* Leaky abstractions (e.g. domain uses SQLAlchemy)
+* Leaky abstractions (e.g. the domain depending on your ORM or HTTP client)
 
 Resolution requires either:
 
