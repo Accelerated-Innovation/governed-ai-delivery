@@ -5,13 +5,12 @@ dispatch (#102), stack-agnostic doc wording (#103), Node (#105), Go (#106),
 JVM (#107), .NET. Closes #93.
 
 All five backend stacks now have boundary enforcement in a tool that can read
-their source, and four of the five contracts are executed against generated
-fixtures in CI. The JVM template is the exception — structural assertions
-only; see Follow-ups.
+their source, and **all five contracts are executed** against generated
+fixtures in CI — the JVM one since #109, which reversed increment 5's
+structural-only trade.
 
-Follow-ups deliberately left open: **#104** (`ARCH_CONTRACT.md` ships
-Python-specific guidance to every backend stack), and the JVM verification gap
-below.
+Follow-up still open: **#104** (`ARCH_CONTRACT.md` ships Python-specific
+guidance to every backend stack).
 
 Every linter adopted so far reports success on an empty analysis, each in its
 own way, and none of them says so. That pattern is now the first thing to test
@@ -27,7 +26,9 @@ the shipped payload:
   two would leave a documented promise unmet with no issue tracking it.
 - **Node and Go get real fixture tests**, with Node and Go toolchains added to
   CI. Java and .NET get structural assertions only, stated plainly rather than
-  implied.
+  implied. *(Superseded: .NET gained fixtures in increment 6 once the SDK
+  proved cheap, and Java in #109 after those fixtures found two defects
+  structural checks had missed. All five contracts are executed.)*
 - **Baseline docs stay stack-agnostic** rather than joining the overlay set.
 
 Give each backend stack boundary enforcement in a tool that understands its
@@ -184,6 +185,22 @@ every run for two templates that change rarely. Recommend structural
 assertions plus a documented manual check, and revisit if the templates
 start drifting.
 
+> **This section is superseded, and the reasoning in it was wrong.** Both
+> toolchains were added — .NET in increment 6, the JVM in #109 — and all five
+> contracts are now executed against fixtures.
+>
+> The argument above prices the cost correctly (~50s for .NET, ~2min for the
+> JVM) and the benefit far too low. It assumes the risk in a rarely-changing
+> template is drift. The actual risk is that the template is **wrong on the
+> day it ships**, in a way its structural checks are constitutionally unable
+> to see: the .NET template shipped a draft that missed every violation
+> nested one namespace deep, and a second that matched namespaces outside the
+> service entirely. "Changes rarely" is an argument for cheap verification
+> being *sufficient*, not for it being *unnecessary*.
+>
+> Kept rather than deleted because the trade looked reasonable when it was
+> made, and the correction only came from doing the cheaper half first.
+
 ## Increments
 
 Each is independently demonstrable and starts with failing tests. Payload
@@ -303,19 +320,17 @@ Commit: `feat(ci): boundary enforcement for go-gin (#93)`
 
 1. `tests/test_archunit_template.py`: the template names all six layers,
    forbids every edge `BOUNDARIES.md` forbids (all 17, parametrized), keeps
-   one consistent placeholder base package, carries its own
-   imported-nothing guard, and discloses in the file that govkit checks it
-   structurally rather than by running it.
+   one consistent placeholder base package, and carries its own
+   imported-nothing guard.
 2. `governance/backend/ArchitectureTest.java.template`, both gate files, the
    manifest wiring.
 3. The gate runs the project's existing test command — it installs no linter.
 
-**Structural assertions only, and the docs say so.** A Python test suite
-cannot run a JVM fixture without a JVM in CI, which is not worth adding for a
-template that changes rarely. What that costs is real and stated in
-`ci/README.md` and in the template's own header: an ArchUnit API misuse that
-compiles and passes vacuously would not be caught. Adopters are told to verify
-once, by introducing a deliberate `api → services` import.
+**Shipped with structural assertions only; #109 added execution.** The
+reasoning at the time — a JVM in CI is not worth it for a template that
+changes rarely — is picked apart under Verification, and its flaw is that it
+prices the risk as *drift* when the real risk is *wrong on arrival*. Increment
+6 demonstrated exactly that on the .NET side, twice.
 
 The gate's own check is not weakened by this, and it is the part that matters
 most. This stack's silent-pass mode is **a test class the build never
@@ -432,7 +447,10 @@ Commit: `feat(ci): boundary enforcement for dotnet-aspnet (#93)`
    fixture tests at the `tests/test_importlinter_reference.py` standard, with
    a CI-only assertion that the toolchain resolves. Java and .NET keep
    structural assertions — a JVM and a .NET SDK on every run is not worth it
-   for two templates that change rarely.
+   for two templates that change rarely. *(Answered again, differently, by
+   increments 6 and #109: both toolchains are now in CI and all five contracts
+   are executed. The "changes rarely" premise was sound; the conclusion drawn
+   from it was not.)*
 3. ~~**Test-code templates.**~~ **`governance/backend/`, as copy-me
    templates.** No new file category. `importlinter-reference.toml` already
    works exactly this way: govkit ships it, the docs say where to copy it.
@@ -446,20 +464,24 @@ Commit: `feat(ci): boundary enforcement for dotnet-aspnet (#93)`
 
 ## Follow-ups
 
-- **The JVM template is the only contract govkit does not execute.** Increment
-  5 chose structural assertions because running ArchUnit needs a JVM and Maven
-  in CI. Increment 6 then found a defect in the .NET template that *only*
-  execution could reveal — `ResideInNamespace` matching exactly, so a
-  violation in `Api.Controllers` passed — which raises the prior that
-  something similar is wrong in the Java one.
+- ~~**The JVM template is the only contract govkit does not execute.**~~
+  **Closed by #109.** Increment 5 chose structural assertions because running
+  ArchUnit needs a JVM and Maven in CI. Increment 6 then found two defects in
+  the .NET template that only execution could reveal, both of which had
+  already passed their structural checks, which made the trade look wrong in
+  hindsight.
 
-  The specific risk does not carry over: ArchUnit's `..api..` package
-  identifier is recursive by construction, unlike ArchUnitNET's string form.
-  But that is reasoning, not a test run, and the same was true of the .NET
-  template before it was run.
+  `tests/test_archunit_template.py` now runs the template inside a real Maven
+  project: conforming skeleton, all eleven forbidden edges, and the three
+  package-matching cases the .NET template got wrong.
 
-  `actions/setup-java` plus a Maven fixture would close it, at roughly the
-  cost the .NET fixtures add (~50s). Worth filing.
+  **The Java template turned out to be correct.** `..api..` does reach
+  `api.controllers`, it does not match `legacyapi`, and `@AnalyzeClasses` does
+  not pull in `com.example.myserviceextra`. The reasoning that predicted this
+  was sound — but the equally sound reasoning about ArchUnitNET was wrong
+  twice, and a verified property survives the next edit where an argument does
+  not. Cost: ~2 minutes on the `pytest` job, e2e-marked and excluded from
+  `./run_tests`.
 
 ## Out of scope
 

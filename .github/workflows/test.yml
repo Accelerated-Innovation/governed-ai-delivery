@@ -48,10 +48,19 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      # tests/test_archunit_template.py runs the shipped ArchUnit template
+      # inside a real Maven project (#109). Maven is preinstalled on
+      # ubuntu-latest; this provides the JDK and caches ~/.m2.
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
       - name: Install
         run: pip install -e ".[test]"
 
-      - name: Assert the Node, Go and .NET toolchains are present
+      - name: Assert every reference toolchain is present
         # The reference tests skipif their toolchain is missing, which is right
         # locally but wrong here: a broken setup step would leave the only
         # tests that prove the shipped configs work silently skipped, and CI
@@ -62,6 +71,8 @@ jobs:
           command -v npm
           command -v go
           command -v dotnet
+          command -v java
+          command -v mvn
           test -x "$(go env GOPATH)/bin/go-arch-lint"
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
