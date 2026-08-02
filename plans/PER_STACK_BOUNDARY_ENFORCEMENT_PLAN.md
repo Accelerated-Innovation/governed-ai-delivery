@@ -1,10 +1,17 @@
 # Per-Stack Boundary Enforcement Plan
 
-**Status:** In progress — 2026-08-01. Increments 1-5 are done: stack-selected
+**Status:** Implemented — 2026-08-02, all 6 increments. Stack-selected
 dispatch (#102), stack-agnostic doc wording (#103), Node (#105), Go (#106),
-and the JVM. Four of five stacks now have boundary enforcement in a tool that
-can read them. Remaining: increment 6 (.NET), the same template-and-structural
--assertion shape as the JVM. Covers #93, which closes when it lands.
+JVM (#107), .NET. Closes #93.
+
+All five backend stacks now have boundary enforcement in a tool that can read
+their source, and four of the five contracts are executed against generated
+fixtures in CI. The JVM template is the exception — structural assertions
+only; see Follow-ups.
+
+Follow-ups deliberately left open: **#104** (`ARCH_CONTRACT.md` ships
+Python-specific guidance to every backend stack), and the JVM verification gap
+below.
 
 Every linter adopted so far reports success on an empty analysis, each in its
 own way, and none of them says so. That pattern is now the first thing to test
@@ -321,14 +328,40 @@ pinned by `tests/test_boundary_gate_dispatch.py`.
 
 Commit: `feat(ci): boundary enforcement for java-spring-boot (#93)`
 
-### 6. .NET — ArchUnitNET template
+### 6. .NET — ArchUnitNET template — done
 
-Same shape as increment 5. ArchUnitNET, not NetArchTest — `dotnet-aspnet`'s
-overlay already names it.
+Same shape as increment 5 in what it ships, but **executed**, not merely
+asserted. A .NET SDK turned out to be cheap enough to add to CI where a JVM
+was not, so this template gets the Python/Node/Go treatment:
+`tests/test_archunitnet_template.py` runs `dotnet test` against generated
+fixtures — conforming tree, eleven forbidden edges, and both halves of the
+nested-namespace case.
 
-Also extend `tests/test_layer_vocabulary.py` so every new contract and
-template is checked against the canonical six layer names, as the
-import-linter reference already is.
+**Running it earned its keep immediately.** The first draft used
+`ResideInNamespace("MyService.Api")`, which matches that namespace
+*exactly*. A controller in `MyService.Api.Controllers` — where ASP.NET puts
+them — is not in the Api layer as far as the rule is concerned, so
+`Api.Controllers -> Services` left the suite green at 8/8. The template
+would have under-enforced in essentially every real project, and no
+structural assertion would have found it. It now uses
+`ResideInNamespaceMatching` with an explicit `^Base[.]Layer($|[.])` pattern,
+verified to catch the nested violation while still passing a conforming
+nested type.
+
+The JVM template does not have this problem — ArchUnit's `..api..` package
+identifier is recursive by construction — but that is reasoning, not a test
+run. See Follow-ups.
+
+Two smaller things the toolchain settled: the NuGet package is
+`TngTech.ArchUnitNET.xUnit` (a bare `ArchUnitNET.xUnit` does not exist and
+fails at restore), and `ResideInNamespace` has no two-argument overload in
+0.13.3.
+
+This increment also replaced two tests that had quietly stopped testing.
+`STACKS_WITHOUT_A_GATE` emptied when the last stack landed, and pytest skips
+an empty parametrize — 72 assertions silently stopped running while the
+suite stayed green. They are now completeness invariants over every backend
+stack the manifest offers, which cannot go empty.
 
 Commit: `feat(ci): boundary enforcement for dotnet-aspnet (#93)`
 
@@ -351,6 +384,11 @@ Commit: `feat(ci): boundary enforcement for dotnet-aspnet (#93)`
   | dependency-cruiser | `--output-type json` (always exits 0); TypeScript 7 installed (0 modules) | default reporter + fail on zero modules |
   | go-arch-lint | source does not parse — "OK - No warnings found" | `go build ./...` first + fail on zero mapped files |
   | ArchUnit | the test class is never executed by the build | read the test reports; fail unless it ran with a non-zero rule count |
+  | ArchUnitNET | same, **plus** `ResideInNamespace` matching exactly, so violations one namespace down pass | read the test results; template uses `ResideInNamespaceMatching` |
+
+  The ArchUnitNET row is the strongest argument for executing these
+  contracts rather than asserting their shape. It was found by running the
+  template, and nothing structural would have surfaced it.
 
   Assume the next one has such a mode and go looking for it. A gate that
   cannot fail is worse than no gate, because it reports that the boundary
@@ -386,6 +424,23 @@ Commit: `feat(ci): boundary enforcement for dotnet-aspnet (#93)`
    whether `dependency-cruiser`, `go-arch-lint`, ArchUnit and ArchUnitNET can
    is a question for each increment to answer and record. Where a tool cannot,
    say so in its reference file rather than leaving it implied.
+
+## Follow-ups
+
+- **The JVM template is the only contract govkit does not execute.** Increment
+  5 chose structural assertions because running ArchUnit needs a JVM and Maven
+  in CI. Increment 6 then found a defect in the .NET template that *only*
+  execution could reveal — `ResideInNamespace` matching exactly, so a
+  violation in `Api.Controllers` passed — which raises the prior that
+  something similar is wrong in the Java one.
+
+  The specific risk does not carry over: ArchUnit's `..api..` package
+  identifier is recursive by construction, unlike ArchUnitNET's string form.
+  But that is reasoning, not a test run, and the same was true of the .NET
+  template before it was run.
+
+  `actions/setup-java` plus a Maven fixture would close it, at roughly the
+  cost the .NET fixtures add (~50s). Worth filing.
 
 ## Out of scope
 

@@ -1,0 +1,86 @@
+# Azure DevOps pipeline — architecture boundary enforcement for the
+# `dotnet-aspnet` stack. Runs ArchUnitNET rules that live in your own test
+# suite, against the hexagonal layer contract described in
+# docs/backend/architecture/BOUNDARIES.md.
+#
+# STAGES:
+#   BoundaryCheck    — runs the project's tests and confirms the ArchUnitNET
+#                      architecture test among them actually executed
+#
+# STACK-SELECTED: govkit installs this file only for `--stack dotnet-aspnet`.
+# See ci/README.md for the per-stack mapping.
+#
+# SHAPE: like the JVM gate and unlike Python/Node/Go, there is no config file
+# and no linter binary. The rules are test code — govkit ships
+# governance/backend/ArchitectureTest.cs.template, you copy it into your test
+# project, and it runs with `dotnet test`.
+#
+# OPT-IN: skips until an ArchitectureTest.cs is present.
+#
+# WHY IT READS THE TEST RESULTS: a test class the build never executes is this
+# stack's silent-pass mode — excluded project, a filter that matches nothing, a
+# test project missing from the solution. `dotnet test` reports success in all
+# three cases, having checked no boundary at all. Passing is not enough; the
+# stage confirms the architecture test ran.
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: BoundaryCheck
+    displayName: Architecture boundary enforcement
+    dependsOn: []
+    jobs:
+      - job: BoundaryCheck
+        displayName: Run ArchUnitNET architecture tests
+        steps:
+          - checkout: self
+
+          - script: |
+              if ! find . -name 'ArchitectureTest.cs' -not -path './bin/*' -not -path './obj/*' | grep -q .; then
+                echo "##vso[task.logissue type=warning]No ArchitectureTest.cs found. Copy governance/backend/ArchitectureTest.cs.template into your test project as ArchitectureTest.cs and set your base namespace to enable boundary enforcement."
+                echo "##vso[task.setvariable variable=archTestFound]false"
+              else
+                echo "##vso[task.setvariable variable=archTestFound]true"
+              fi
+            displayName: Detect ArchUnitNET architecture test
+
+          - task: UseDotNet@2
+            condition: eq(variables['archTestFound'], 'true')
+            displayName: Use .NET 8
+            inputs:
+              packageType: 'sdk'
+              version: '8.0.x'
+
+          - script: |
+              set -euo pipefail
+              dotnet test --nologo --logger "trx;LogFileName=boundary.trx"
+            condition: eq(variables['archTestFound'], 'true')
+            displayName: Run tests
+
+          - script: |
+              set -euo pipefail
+              results=$(find . -name 'boundary.trx' -print)
+              if [ -z "$results" ]; then
+                echo "##vso[task.logissue type=error]No test results were produced. The architecture rules did not run, so no boundary was checked."
+                exit 1
+              fi
+              executed=0
+              for file in $results; do
+                count=$(grep -oE 'testName="[^"]*ArchitectureTest[^"]*"' "$file" | wc -l)
+                executed=$((executed + count))
+              done
+              if [ "$executed" -eq 0 ]; then
+                echo "##vso[task.logissue type=error]The build passed but no ArchitectureTest case appears in the test results. The architecture rules did not run, so no boundary was checked. Confirm the test project is in the solution and that no filter excludes it."
+                exit 1
+              fi
+              echo "ArchitectureTest executed $executed architecture rules."
+            condition: eq(variables['archTestFound'], 'true')
+            displayName: Confirm the architecture test actually ran

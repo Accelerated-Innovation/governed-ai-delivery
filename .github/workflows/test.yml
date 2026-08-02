@@ -40,10 +40,18 @@ jobs:
       - name: Install go-arch-lint
         run: go install github.com/fe3dback/go-arch-lint@latest
 
+      # tests/test_archunitnet_template.py runs the shipped ArchUnitNET
+      # template against real fixtures. Running it caught a defect no
+      # structural check could: the first draft matched namespaces exactly, so
+      # a violation in Api.Controllers passed silently.
+      - uses: actions/setup-dotnet@87b7050bc53ea08284295505d98d2aa94301e852 # v4.3.1
+        with:
+          dotnet-version: '8.0.x'
+
       - name: Install
         run: pip install -e ".[test]"
 
-      - name: Assert the Node and Go toolchains are present
+      - name: Assert the Node, Go and .NET toolchains are present
         # The reference tests skipif their toolchain is missing, which is right
         # locally but wrong here: a broken setup step would leave the only
         # tests that prove the shipped configs work silently skipped, and CI
@@ -53,6 +61,7 @@ jobs:
           command -v node
           command -v npm
           command -v go
+          command -v dotnet
           test -x "$(go env GOPATH)/bin/go-arch-lint"
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 

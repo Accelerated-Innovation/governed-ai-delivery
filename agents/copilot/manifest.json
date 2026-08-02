@@ -404,7 +404,8 @@
               "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
               "nodejs-fastify": { "governed": ["ci/github/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] },
               "go-gin": { "governed": ["ci/github/boundary-gate-go.yml", "governance/backend/go-arch-lint-reference.yml"] },
-              "java-spring-boot": { "governed": ["ci/github/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] }
+              "java-spring-boot": { "governed": ["ci/github/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] },
+              "dotnet-aspnet": { "governed": ["ci/github/boundary-gate-dotnet.yml", "governance/backend/ArchitectureTest.cs.template"] }
             }
           },
           "cli":        {
@@ -413,7 +414,8 @@
               "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
               "nodejs-fastify": { "governed": ["ci/github/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] },
               "go-gin": { "governed": ["ci/github/boundary-gate-go.yml", "governance/backend/go-arch-lint-reference.yml"] },
-              "java-spring-boot": { "governed": ["ci/github/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] }
+              "java-spring-boot": { "governed": ["ci/github/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] },
+              "dotnet-aspnet": { "governed": ["ci/github/boundary-gate-dotnet.yml", "governance/backend/ArchitectureTest.cs.template"] }
             }
           },
           "ui-react":   { "governed": ["ci/github/repo-scope-check.yml", "ci/github/l3-ui-quality-gate.yml"] },
@@ -467,7 +469,8 @@
                 "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
                 "nodejs-fastify": { "governed": ["ci/github/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] },
                 "go-gin": { "governed": ["ci/github/boundary-gate-go.yml", "governance/backend/go-arch-lint-reference.yml"] },
-                "java-spring-boot": { "governed": ["ci/github/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] }
+                "java-spring-boot": { "governed": ["ci/github/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] },
+                "dotnet-aspnet": { "governed": ["ci/github/boundary-gate-dotnet.yml", "governance/backend/ArchitectureTest.cs.template"] }
               }
             },
             "cli": {
@@ -484,7 +487,8 @@
                 "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
                 "nodejs-fastify": { "governed": ["ci/github/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] },
                 "go-gin": { "governed": ["ci/github/boundary-gate-go.yml", "governance/backend/go-arch-lint-reference.yml"] },
-                "java-spring-boot": { "governed": ["ci/github/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] }
+                "java-spring-boot": { "governed": ["ci/github/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] },
+                "dotnet-aspnet": { "governed": ["ci/github/boundary-gate-dotnet.yml", "governance/backend/ArchitectureTest.cs.template"] }
               }
             },
             "ui-react": { "governed": [
@@ -527,7 +531,8 @@
               "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
               "nodejs-fastify": { "governed": ["ci/azure/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] },
               "go-gin": { "governed": ["ci/azure/boundary-gate-go.yml", "governance/backend/go-arch-lint-reference.yml"] },
-              "java-spring-boot": { "governed": ["ci/azure/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] }
+              "java-spring-boot": { "governed": ["ci/azure/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] },
+              "dotnet-aspnet": { "governed": ["ci/azure/boundary-gate-dotnet.yml", "governance/backend/ArchitectureTest.cs.template"] }
             }
           },
           "cli":        {
@@ -536,7 +541,8 @@
               "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
               "nodejs-fastify": { "governed": ["ci/azure/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] },
               "go-gin": { "governed": ["ci/azure/boundary-gate-go.yml", "governance/backend/go-arch-lint-reference.yml"] },
-              "java-spring-boot": { "governed": ["ci/azure/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] }
+              "java-spring-boot": { "governed": ["ci/azure/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] },
+              "dotnet-aspnet": { "governed": ["ci/azure/boundary-gate-dotnet.yml", "governance/backend/ArchitectureTest.cs.template"] }
             }
           },
           "ui-react":   { "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/l3-ui-quality-gate.yml"] },
@@ -590,7 +596,8 @@
                 "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
                 "nodejs-fastify": { "governed": ["ci/azure/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] },
                 "go-gin": { "governed": ["ci/azure/boundary-gate-go.yml", "governance/backend/go-arch-lint-reference.yml"] },
-                "java-spring-boot": { "governed": ["ci/azure/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] }
+                "java-spring-boot": { "governed": ["ci/azure/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] },
+                "dotnet-aspnet": { "governed": ["ci/azure/boundary-gate-dotnet.yml", "governance/backend/ArchitectureTest.cs.template"] }
               }
             },
             "cli": {
@@ -607,7 +614,8 @@
                 "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
                 "nodejs-fastify": { "governed": ["ci/azure/boundary-gate-node.yml", "governance/backend/dependency-cruiser-reference.cjs"] },
                 "go-gin": { "governed": ["ci/azure/boundary-gate-go.yml", "governance/backend/go-arch-lint-reference.yml"] },
-                "java-spring-boot": { "governed": ["ci/azure/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] }
+                "java-spring-boot": { "governed": ["ci/azure/boundary-gate-jvm.yml", "governance/backend/ArchitectureTest.java.template"] },
+                "dotnet-aspnet": { "governed": ["ci/azure/boundary-gate-dotnet.yml", "governance/backend/ArchitectureTest.cs.template"] }
               }
             },
             "ui-react": { "governed": [
