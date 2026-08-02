@@ -50,12 +50,17 @@ jobs:
 
       # tests/test_archunit_template.py runs the shipped ArchUnit template
       # inside a real Maven project (#109). Maven is preinstalled on
-      # ubuntu-latest; this provides the JDK and caches ~/.m2.
+      # ubuntu-latest; this provides the JDK.
+      #
+      # No `cache: maven` — it keys on a pom.xml in the repository, and this
+      # repo has none: the fixture generates its project in a tmp dir, which
+      # is the point. Enabling it fails the job outright with "No file matched
+      # to [**/pom.xml]". The only downloads are archunit-junit5 and the
+      # surefire plugin, once per run.
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
           distribution: temurin
           java-version: '21'
-          cache: maven
 
       - name: Install
         run: pip install -e ".[test]"
