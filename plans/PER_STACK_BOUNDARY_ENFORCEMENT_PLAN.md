@@ -352,6 +352,25 @@ The JVM template does not have this problem — ArchUnit's `..api..` package
 identifier is recursive by construction — but that is reasoning, not a test
 run. See Follow-ups.
 
+Moving to regex predicates then introduced a second defect, caught in review:
+the adopter's base namespace is interpolated into those regexes, and a real
+one contains dots. With a base of `Contoso.Billing`, the unescaped
+`^Contoso.Billing[.]Api($|[.])` also matches `ContosoXBilling.Api` — the `.`
+matches the `X` — so unrelated types are judged against the layer rules. The
+template now escapes once with `Regex.Escape`.
+
+The fixtures could not have caught it: they used the `MyService` placeholder,
+which contains no regex metacharacters, so escaped and unescaped behave
+identically. **A fixture that only exercises the placeholder value is a
+fixture that never tests substitution.** There is now a second project fixture
+built on a dotted base namespace, plus a look-alike namespace that only an
+unescaped pattern matches.
+
+This is specific to .NET. It is the only contract that interpolates a
+user-supplied value into a regex — Node and Go have no placeholder, Python's
+is a TOML module name, and the JVM's layer identifiers (`..api..`) carry no
+user value.
+
 Two smaller things the toolchain settled: the NuGet package is
 `TngTech.ArchUnitNET.xUnit` (a bare `ArchUnitNET.xUnit` does not exist and
 fails at restore), and `ResideInNamespace` has no two-argument overload in

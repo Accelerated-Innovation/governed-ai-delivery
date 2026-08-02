@@ -43,6 +43,11 @@
  *
  * (The JVM template does not need this. ArchUnit's `..api..` package
  * identifier is recursive by construction; ArchUnitNET's string form is not.)
+ *
+ * The flip side of using regexes: your base namespace is interpolated into
+ * them, and a real one contains dots. `Regex.Escape` below keeps them literal.
+ * Without it, a base of `Contoso.Billing` also matches `ContosoXBilling.*`,
+ * and types outside your service get judged against your layer rules.
  * -----------------------------------------------------------------------------
  *
  * VERIFY IT ONCE WHEN YOU ADOPT IT. Point `LoadAssemblies` at the assembly
@@ -57,6 +62,7 @@
  * unconstrained.
  */
 using System.Linq;
+using System.Text.RegularExpressions;
 using ArchUnitNET.Domain;
 using ArchUnitNET.Fluent;
 using ArchUnitNET.Loader;
@@ -70,27 +76,38 @@ public class ArchitectureTest
 {
     private const string BaseNamespace = "MyService";
 
+    // The layer predicates below are regular expressions, and your base
+    // namespace is interpolated into them. Real namespaces contain dots, and
+    // an unescaped `.` matches ANY character: with a base of `Contoso.Billing`,
+    // the pattern `^Contoso.Billing[.]Api($|[.])` also matches
+    // `ContosoXBilling.Api`, so unrelated types get judged as if they were in
+    // your Api layer. Escaping once here keeps every predicate literal.
+    //
+    // Must stay declared above the layer fields — static initialisers run in
+    // declaration order, and they read it.
+    private static readonly string BaseNs = Regex.Escape(BaseNamespace);
+
     private static readonly Architecture Architecture = new ArchLoader()
         .LoadAssemblies(typeof(MyService.Models.Entity).Assembly)
         .Build();
 
     private static readonly IObjectProvider<IType> ApiLayer = Types()
-        .That().ResideInNamespaceMatching($"^{BaseNamespace}[.]Api($|[.])").As("Api layer");
+        .That().ResideInNamespaceMatching($"^{BaseNs}[.]Api($|[.])").As("Api layer");
 
     private static readonly IObjectProvider<IType> PortsLayer = Types()
-        .That().ResideInNamespaceMatching($"^{BaseNamespace}[.]Ports($|[.])").As("Ports layer");
+        .That().ResideInNamespaceMatching($"^{BaseNs}[.]Ports($|[.])").As("Ports layer");
 
     private static readonly IObjectProvider<IType> ServicesLayer = Types()
-        .That().ResideInNamespaceMatching($"^{BaseNamespace}[.]Services($|[.])").As("Services layer");
+        .That().ResideInNamespaceMatching($"^{BaseNs}[.]Services($|[.])").As("Services layer");
 
     private static readonly IObjectProvider<IType> ModelsLayer = Types()
-        .That().ResideInNamespaceMatching($"^{BaseNamespace}[.]Models($|[.])").As("Models layer");
+        .That().ResideInNamespaceMatching($"^{BaseNs}[.]Models($|[.])").As("Models layer");
 
     private static readonly IObjectProvider<IType> AdaptersLayer = Types()
-        .That().ResideInNamespaceMatching($"^{BaseNamespace}[.]Adapters($|[.])").As("Adapters layer");
+        .That().ResideInNamespaceMatching($"^{BaseNs}[.]Adapters($|[.])").As("Adapters layer");
 
     private static readonly IObjectProvider<IType> CommonLayer = Types()
-        .That().ResideInNamespaceMatching($"^{BaseNamespace}[.]Common($|[.])").As("Common layer");
+        .That().ResideInNamespaceMatching($"^{BaseNs}[.]Common($|[.])").As("Common layer");
 
     [Fact]
     public void TheBaseNamespaceResolvesToTypes()
