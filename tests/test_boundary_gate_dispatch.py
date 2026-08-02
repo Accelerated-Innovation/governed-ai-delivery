@@ -31,6 +31,9 @@ BACKEND_TYPES = ("api", "cli")
 LEVELS = ("3", "4", "5")
 
 PYTHON_STACK = "python-fastapi"
+# Offered under options.stack but not backend stacks — they use medallion/dbt
+# layering, and `data` installs receive no hexagonal boundary gate.
+DATA_STACKS = {"python-dbt", "databricks-lakehouse"}
 
 # Stacks whose boundary tool govkit ships enforcement for, and the gate file
 # each receives. Grows by one per increment of the per-stack plan.
@@ -39,10 +42,12 @@ STACK_GATES = {
     "nodejs-fastify": "boundary-gate-node.yml",
     "go-gin": "boundary-gate-go.yml",
     "java-spring-boot": "boundary-gate-jvm.yml",
+    "dotnet-aspnet": "boundary-gate-dotnet.yml",
 }
-STACKS_WITHOUT_A_GATE = (
-    "dotnet-aspnet",
-)
+# Empty since increment 6 (#93): every backend stack now has enforcement in a
+# tool that can read it. Kept so the invariant survives a new stack being
+# added without one.
+STACKS_WITHOUT_A_GATE = ()
 
 # The reference contract each gate tells the team to copy in. It has to ship
 # with the gate: a gate whose notice names a file the install never received
@@ -52,6 +57,7 @@ STACK_REFERENCES = {
     "nodejs-fastify": "governance/backend/dependency-cruiser-reference.cjs",
     "go-gin": "governance/backend/go-arch-lint-reference.yml",
     "java-spring-boot": "governance/backend/ArchitectureTest.java.template",
+    "dotnet-aspnet": "governance/backend/ArchitectureTest.cs.template",
 }
 _ALL_REFERENCES = set(STACK_REFERENCES.values())
 
@@ -108,20 +114,36 @@ class TestPythonBoundaryGateDispatch:
 
     @pytest.mark.parametrize("agent", AGENTS)
     @pytest.mark.parametrize("ci", CI_FLAVOURS)
-    @pytest.mark.parametrize("project_type", BACKEND_TYPES)
-    @pytest.mark.parametrize("level", LEVELS)
-    @pytest.mark.parametrize("stack", STACKS_WITHOUT_A_GATE)
-    def test_a_stack_with_no_boundary_tooling_receives_no_gate(
-        self, agent, ci, project_type, level, stack,
-    ):
-        """Shipping nothing is the honest state — a Python linter pointed at
-        Go enforces nothing whether it fails or skips."""
-        governed = _governed(agent, ci, project_type, level, stack)
+    def test_every_backend_stack_is_accounted_for(self, agent, ci):
+        """Completeness, replacing the old "these stacks get nothing" test.
 
-        assert _boundary_gates(governed, ci) == [], (
-            f"{agent} {project_type} L{level} ({ci}, {stack}) must receive no "
-            f"boundary gate until {stack} has enforcement of its own"
+        That test parametrized over the stacks still awaiting a tool. Once the
+        last one landed the parameter set went empty, and pytest skips an empty
+        parametrize — 72 assertions silently stopped running while the suite
+        stayed green. An invariant that evaporates when it succeeds is the same
+        vacuous pass these gates exist to prevent.
+
+        This asserts the property that actually matters and cannot go empty:
+        every backend stack the manifest offers either has enforcement wired,
+        or is listed as deliberately without it. Adding a stack fails here
+        until one or the other is true.
+        """
+        manifest = load_manifest(agent)
+        offered = set(manifest["options"]["stack"]["choices"]) - DATA_STACKS
+
+        unaccounted = offered - set(STACK_GATES) - set(STACKS_WITHOUT_A_GATE)
+        assert not unaccounted, (
+            f"{agent}: backend stack(s) {sorted(unaccounted)} have neither a "
+            "boundary gate nor an entry in STACKS_WITHOUT_A_GATE. Wire one, or "
+            "record the gap deliberately."
         )
+
+        for stack in sorted(STACKS_WITHOUT_A_GATE):
+            governed = _governed(agent, ci, "api", "4", stack)
+            assert _boundary_gates(governed, ci) == [], (
+                f"{agent} api L4 ({ci}, {stack}) is recorded as having no "
+                f"boundary tooling but received {_boundary_gates(governed, ci)}"
+            )
 
     @pytest.mark.parametrize("agent", AGENTS)
     @pytest.mark.parametrize("ci", CI_FLAVOURS)
@@ -183,20 +205,24 @@ class TestBoundaryReferenceDispatch:
 
     @pytest.mark.parametrize("agent", AGENTS)
     @pytest.mark.parametrize("ci", CI_FLAVOURS)
-    @pytest.mark.parametrize("project_type", BACKEND_TYPES)
-    @pytest.mark.parametrize("level", LEVELS)
-    @pytest.mark.parametrize("stack", STACKS_WITHOUT_A_GATE)
-    def test_stack_without_a_gate_receives_no_reference(
-        self, agent, ci, project_type, level, stack,
-    ):
+    def test_no_stack_receives_another_stacks_reference(self, agent, ci):
         """A Go team receiving a Python import-linter contract is the same
-        defect as receiving a Python linter job."""
-        governed = set(_governed(agent, ci, project_type, level, stack))
+        defect as receiving a Python linter job.
 
-        assert governed & _ALL_REFERENCES == set(), (
-            f"{agent} {project_type} L{level} ({ci}, {stack}) must receive no "
-            f"boundary reference; got {sorted(governed & _ALL_REFERENCES)}"
-        )
+        Stated over every backend stack rather than only the ones still
+        awaiting a tool, so it keeps testing something now that all five are
+        wired.
+        """
+        manifest = load_manifest(agent)
+        offered = sorted(set(manifest["options"]["stack"]["choices"]) - DATA_STACKS)
+
+        for stack in offered:
+            governed = set(_governed(agent, ci, "api", "4", stack))
+            expected = {STACK_REFERENCES[stack]} if stack in STACK_REFERENCES else set()
+            assert governed & _ALL_REFERENCES == expected, (
+                f"{agent} api L4 ({ci}, {stack}) received "
+                f"{sorted(governed & _ALL_REFERENCES)}, expected {sorted(expected)}"
+            )
 
     @pytest.mark.parametrize("reference", sorted(_ALL_REFERENCES))
     def test_reference_file_exists(self, reference):
