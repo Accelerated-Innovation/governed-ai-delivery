@@ -2,6 +2,13 @@
 
 Applies to all inbound adapter files under `/cli/**` or `/commands/**`. CLI commands are responsible for user interaction concerns only. All domain logic must be delegated to inbound ports.
 
+> **Code examples in this document are illustrative.** They are written in
+> one language to keep them concrete; the rules around them are
+> stack-agnostic and apply to every backend stack. For your stack's
+> libraries and idioms see [TECH_STACK.md](TECH_STACK.md) and
+> [LAYER_IMPLEMENTATION.md](LAYER_IMPLEMENTATION.md), which govkit installs
+> per stack.
+
 ---
 
 ## 0. Interaction with Domain
@@ -115,7 +122,7 @@ except Exception as e:
   2. **Environment variables** (`GOVKIT_OPTION=value`)
   3. **Config files** (TOML or YAML, e.g., `govkit.toml`, `.govkit.yaml`)
 
-* Use `pydantic.BaseSettings` for configuration models with env var support
+* Use a typed settings model with environment-variable support (see `TECH_STACK.md`)
 * Store secrets only in environment variables — never in config files
 * Provide a `govkit config show` or equivalent command to display resolved configuration (redacting secrets)
 * Document all configuration options and their sources

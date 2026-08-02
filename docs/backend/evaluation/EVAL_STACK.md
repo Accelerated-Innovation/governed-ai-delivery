@@ -170,7 +170,7 @@ LANGFUSE_HOST=...               # Self-hosted or cloud URL
 TRACELOOP_BASE_URL=...          # OTel collector endpoint
 ```
 
-Secrets must use `BaseSettings` — never hardcoded.
+Secrets must come from your stack's typed settings mechanism — never hardcoded.
 
 ---
 

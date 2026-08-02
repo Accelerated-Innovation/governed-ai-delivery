@@ -9,8 +9,8 @@ their source, and **all five contracts are executed** against generated
 fixtures in CI — the JVM one since #109, which reversed increment 5's
 structural-only trade.
 
-Follow-up still open: **#104** (`ARCH_CONTRACT.md` ships Python-specific
-guidance to every backend stack).
+Follow-ups from this plan are all closed: **#109** (execute the ArchUnit
+template) and **#104** (stack-agnostic docs shipping Python-specific rules).
 
 Every linter adopted so far reports success on an empty analysis, each in its
 own way, and none of them says so. That pattern is now the first thing to test
@@ -499,7 +499,13 @@ Commit: `feat(ci): boundary enforcement for dotnet-aspnet (#93)`
   approved libraries as Pydantic, FastAPI, SQLAlchemy, `httpx` and `boto3`
   (`:49-54`), and secrets via Pydantic's `BaseSettings` (`:81`). A `go-gin`
   install reads all of that, and §10 tells agents to cite this contract when
-  generating code. Filed as **#104**.
+  generating code. Filed as **#104**, and **fixed there** — the audit found
+  the leak was six docs and 30 normative statements, not one doc. Rules now
+  defer to `TECH_STACK.md`; the Python code examples in
+  `CROSS_CUTTING_CONCERNS.md`, `ERROR_MAPPING.md` and `CLI_CONVENTIONS.md`
+  stay, banner-labelled as illustrations, on the principle that a rule must be
+  stack-neutral while an example may be concrete as long as it says so.
+  `tests/test_stack_neutral_docs.py` pins it.
 
 - **Retiring superseded gate files on upgrade.** Increment 1 moves
   `boundary-check` out of `l3-quality-gate.yml`; an existing install keeps

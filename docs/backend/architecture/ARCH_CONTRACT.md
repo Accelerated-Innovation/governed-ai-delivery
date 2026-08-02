@@ -20,14 +20,16 @@ This codebase follows Hexagonal Architecture (also known as Ports and Adapters).
   (entities and value objects). There is no `domain/` wrapper package.
 * Use cases are expressed as inbound ports (`ports/inbound/`) and
   implemented by services — they are not a separate folder.
-* Must have no external dependencies other than standard Python and `typing`
+* Must have no external dependencies beyond your language's standard library
+  and its type system
 * All logic must be framework-agnostic and testable in isolation
 
 ### Ports
 
 * Inbound ports: defined in `ports/inbound/` (e.g., `UserServicePort`)
 * Outbound ports: defined in `ports/outbound/` (e.g., `UserRepositoryPort`)
-* All ports are pure Python interfaces (ABC or `Protocol`)
+* All ports are pure interfaces, declared with whatever your language uses for
+  them — see `LAYER_IMPLEMENTATION.md` for your stack's form
 
 ### Adapters
 
@@ -45,14 +47,14 @@ This codebase follows Hexagonal Architecture (also known as Ports and Adapters).
 
 ## 4. Dependencies
 
-* Approved libraries:
+* Approved libraries are listed per stack in `TECH_STACK.md`, which is the
+  authority on what this project may depend on. The constraint this contract
+  places on them is structural, not a list of names:
 
-  * Domain: standard Python, Pydantic (for type safety)
-  * Adapters:
-
-    * HTTP: FastAPI
-    * DB: SQLAlchemy, Redis client
-    * External APIs: `httpx`, `boto3`
+  * Domain: standard library and type-modelling only. No framework, no I/O
+    client, no ORM.
+  * Adapters: the HTTP framework, database and external-API clients your
+    stack names — confined to `adapters/` and `api/`
 * No circular imports
 * Third-party libraries in the domain layer require an ADR
 
@@ -79,7 +81,8 @@ Location: `docs/backend/architecture/ADR/`
 
 * Auth and identity are implemented in adapters
 * All JWT validation and permission checks must occur before domain logic is invoked
-* Secrets and config must use environment variables via `BaseSettings`
+* Secrets and config must come from environment variables, loaded through
+  your stack's typed settings mechanism (see `TECH_STACK.md`)
 * No logging of credentials, tokens, or PII
 
 ## 8. Observability

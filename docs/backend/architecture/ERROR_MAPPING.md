@@ -4,6 +4,13 @@ This document defines how domain exceptions map to HTTP responses at the API ada
 
 See also: [API_CONVENTIONS.md](API_CONVENTIONS.md), [ARCH_CONTRACT.md](ARCH_CONTRACT.md)
 
+> **Code examples in this document are illustrative.** They are written in
+> one language to keep them concrete; the rules around them are
+> stack-agnostic and apply to every backend stack. For your stack's
+> libraries and idioms see [TECH_STACK.md](TECH_STACK.md) and
+> [LAYER_IMPLEMENTATION.md](LAYER_IMPLEMENTATION.md), which govkit installs
+> per stack.
+
 ---
 
 ## 1. Principle
@@ -101,7 +108,7 @@ async def domain_exception_handler(request: Request, exc: DomainError) -> JSONRe
 - The API layer maps domain exceptions to HTTP responses — domain code does not choose status codes
 - Every domain exception must have a corresponding entry in the mapping table above
 - New exception types require updating this document and the exception handler
-- `ValidationError` is for domain-level validation (business rules), not for request schema validation (which FastAPI handles via Pydantic)
+- `ValidationError` is for domain-level validation (business rules), not for request schema validation, which your HTTP framework handles at the boundary
 - Never expose stack traces or internal paths in error responses
 - Log the full exception (including stack trace) server-side via the observability port
 

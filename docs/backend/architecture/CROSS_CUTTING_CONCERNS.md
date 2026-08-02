@@ -4,6 +4,13 @@ This document defines patterns for concerns that span multiple layers of the hex
 
 See also: [ARCH_CONTRACT.md](ARCH_CONTRACT.md), [BOUNDARIES.md](BOUNDARIES.md)
 
+> **Code examples in this document are illustrative.** They are written in
+> one language to keep them concrete; the rules around them are
+> stack-agnostic and apply to every backend stack. For your stack's
+> libraries and idioms see [TECH_STACK.md](TECH_STACK.md) and
+> [LAYER_IMPLEMENTATION.md](LAYER_IMPLEMENTATION.md), which govkit installs
+> per stack.
+
 ---
 
 ## 1. Data Transfer Objects (DTOs)
@@ -20,7 +27,7 @@ See also: [ARCH_CONTRACT.md](ARCH_CONTRACT.md), [BOUNDARIES.md](BOUNDARIES.md)
 ### Rules
 
 - Request and response models are **API-layer concerns** — domain code must not import them
-- Domain models are **plain Python dataclasses or Pydantic models** with no framework dependencies
+- Domain models are **plain data types of your language** with no framework dependencies
 - Adapters convert between persistence models and domain models — this conversion lives in the adapter
 - Never pass a request model directly to a domain service — map to domain types at the API boundary
 - Never return a domain model directly as an HTTP response — map to a response model at the API boundary
@@ -41,22 +48,22 @@ HTTP Response ← Response Model (API) ← Domain Model (Service)
 
 | Validation Type | Layer | Mechanism |
 |---|---|---|
-| Request schema validation | API | Pydantic models (automatic via FastAPI) |
+| Request schema validation | API | Your framework's request-model validation |
 | Business rule validation | Domain (services) | Domain logic raises `ValidationError` |
 | Persistence constraints | Adapter | Database constraints, caught and re-raised as domain exceptions |
 
 ### Rules
 
-- Schema validation (field types, required fields, format) is handled by Pydantic at the API boundary — domain code does not re-validate these
+- Schema validation (field types, required fields, format) is handled at the API boundary — domain code does not re-validate these
 - Business rule validation (e.g., "schema version must be > previous version") lives in domain services
 - Domain services raise `ValidationError` for business rule violations (see [ERROR_MAPPING.md](ERROR_MAPPING.md))
 - Adapters catch constraint violations (unique key, foreign key) and re-raise as domain exceptions (`ConflictError`, `ValidationError`)
 
 ### Anti-patterns
 
-- Validating field types in domain services (Pydantic already did this)
+- Validating field types in domain services (the API boundary already did this)
 - Catching database constraint errors in domain services (adapter responsibility)
-- Adding business rules to Pydantic validators (leaks domain logic into API layer)
+- Adding business rules to request-schema validators (leaks domain logic into the API layer)
 
 ---
 
@@ -179,6 +186,6 @@ If audit logging is required (determined by compliance requirements):
 
 - Configuration is loaded at application startup in the composition root — not in domain services
 - Domain services receive configuration values via constructor injection
-- Use Pydantic `BaseSettings` for environment-based configuration
+- Use a typed settings model for environment-based configuration (see `TECH_STACK.md`)
 - Secrets must not appear in logs, error messages, or API responses
 - Feature flags (if used) are injected as a port — domain code calls the port, not a feature flag library

@@ -45,7 +45,7 @@ Where:
 
 | Folder | Purpose |
 |------|------|
-| `api/` | HTTP or inbound adapters (FastAPI, webhooks, etc.) |
+| `api/` | HTTP or inbound adapters (your web framework, webhooks, etc.) |
 | `ports/` | inbound and outbound interfaces for hexagonal architecture |
 | `services/` | domain behaviour and orchestration |
 | `models/` | domain entities and value objects |
@@ -62,7 +62,7 @@ This keeps application code isolated from governance artifacts such as:
 Benefits of the `src/<project_package_name>` layout:
 
 - prevents accidental imports from the project root
-- supports Python packaging best practices
+- supports your language's packaging conventions
 - allows multiple services to reuse the governance kit
 - keeps governance artifacts separate from runtime code
 
@@ -219,7 +219,7 @@ api/
 
 Responsibilities:
 
-- FastAPI route handlers
+- HTTP route handlers
 - authentication enforcement
 - request/response mapping
 - calling inbound ports
@@ -244,7 +244,7 @@ Inbound ports define **how the system is invoked**.
 
 Outbound ports define **external capabilities required by the domain**.
 
-Ports are pure Python interfaces.
+Ports are pure interfaces.
 
 ---
 
