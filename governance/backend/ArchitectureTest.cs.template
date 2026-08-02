@@ -1,0 +1,189 @@
+/*
+ * ArchUnitNET reference test for hexagonal architecture enforcement on the
+ * `dotnet-aspnet` stack.
+ *
+ * Copy this file into your own test project, drop the `.template` suffix, and
+ * replace `MyService` with your base namespace:
+ *
+ *     tests/<YourProject>.ArchitectureTests/ArchitectureTest.cs
+ *
+ * Like the JVM stack and unlike Python, Node and Go, there is no config file
+ * here: the architecture rules ARE test code. They live in your suite, compile
+ * with it, and run with `dotnet test`. govkit ships the rules; your build runs
+ * them.
+ *
+ * Dependency (xUnit; TngTech.ArchUnitNET.NUnit and .MSTestV2 also exist):
+ *   <PackageReference Include="TngTech.ArchUnitNET.xUnit" Version="0.13.3" />
+ *
+ * Note the `TngTech.` prefix — a package called `ArchUnitNET.xUnit` does not
+ * exist on NuGet.
+ *
+ * This test enforces the layering rules defined in:
+ *   docs/backend/architecture/ARCH_CONTRACT.md
+ *   docs/backend/architecture/BOUNDARIES.md
+ *
+ * It expresses the same contract as importlinter-reference.toml (Python),
+ * dependency-cruiser-reference.cjs (Node), go-arch-lint-reference.yml (Go) and
+ * ArchitectureTest.java.template (JVM): `Api` and `Adapters` are independent
+ * siblings above `Services`, above `Ports`, above `Models`, above `Common`,
+ * with `Api -> Services` forbidden.
+ *
+ * -----------------------------------------------------------------------------
+ * WHY THE LAYERS USE ResideInNamespaceMatching AND NOT ResideInNamespace.
+ *
+ * `ResideInNamespace("MyService.Api")` matches that namespace **exactly**. A
+ * controller in `MyService.Api.Controllers` — where ASP.NET projects normally
+ * put them — is not in the Api layer as far as the rule is concerned, so a
+ * violation there passes silently.
+ *
+ * This was reproduced: a `MyService.Api.Controllers.UserController` depending
+ * on `MyService.Services.Core` left the suite green at 8/8. The regex form
+ * below covers the namespace and everything beneath it, and was verified to
+ * catch that same violation while still passing a conforming nested type.
+ *
+ * (The JVM template does not need this. ArchUnit's `..api..` package
+ * identifier is recursive by construction; ArchUnitNET's string form is not.)
+ *
+ * The flip side of using regexes: your base namespace is interpolated into
+ * them, and a real one contains dots. `Regex.Escape` below keeps them literal.
+ * Without it, a base of `Contoso.Billing` also matches `ContosoXBilling.*`,
+ * and types outside your service get judged against your layer rules.
+ * -----------------------------------------------------------------------------
+ *
+ * VERIFY IT ONCE WHEN YOU ADOPT IT. Point `LoadAssemblies` at the assembly
+ * holding your layers — the `typeof(...)` below must name a type that actually
+ * lives in it. Then introduce a deliberate `Api -> Services` dependency and
+ * confirm `dotnet test` fails. If it passes, your assembly or base namespace
+ * is wrong, not your architecture.
+ *
+ * COMPOSITION ROOT. Whatever wires adapters into services references both, so
+ * it cannot sit in any layer. `src/Program.cs` and `src/Config/` are where
+ * LAYER_IMPLEMENTATION.md puts it, and these rules deliberately leave both
+ * unconstrained.
+ */
+using System.Linq;
+using System.Text.RegularExpressions;
+using ArchUnitNET.Domain;
+using ArchUnitNET.Fluent;
+using ArchUnitNET.Loader;
+using ArchUnitNET.xUnit;
+using Xunit;
+using static ArchUnitNET.Fluent.ArchRuleDefinition;
+
+namespace MyService.ArchitectureTests;
+
+public class ArchitectureTest
+{
+    private const string BaseNamespace = "MyService";
+
+    // The layer predicates below are regular expressions, and your base
+    // namespace is interpolated into them. Real namespaces contain dots, and
+    // an unescaped `.` matches ANY character: with a base of `Contoso.Billing`,
+    // the pattern `^Contoso.Billing[.]Api($|[.])` also matches
+    // `ContosoXBilling.Api`, so unrelated types get judged as if they were in
+    // your Api layer. Escaping once here keeps every predicate literal.
+    //
+    // Must stay declared above the layer fields — static initialisers run in
+    // declaration order, and they read it.
+    private static readonly string BaseNs = Regex.Escape(BaseNamespace);
+
+    private static readonly Architecture Architecture = new ArchLoader()
+        .LoadAssemblies(typeof(MyService.Models.Entity).Assembly)
+        .Build();
+
+    private static readonly IObjectProvider<IType> ApiLayer = Types()
+        .That().ResideInNamespaceMatching($"^{BaseNs}[.]Api($|[.])").As("Api layer");
+
+    private static readonly IObjectProvider<IType> PortsLayer = Types()
+        .That().ResideInNamespaceMatching($"^{BaseNs}[.]Ports($|[.])").As("Ports layer");
+
+    private static readonly IObjectProvider<IType> ServicesLayer = Types()
+        .That().ResideInNamespaceMatching($"^{BaseNs}[.]Services($|[.])").As("Services layer");
+
+    private static readonly IObjectProvider<IType> ModelsLayer = Types()
+        .That().ResideInNamespaceMatching($"^{BaseNs}[.]Models($|[.])").As("Models layer");
+
+    private static readonly IObjectProvider<IType> AdaptersLayer = Types()
+        .That().ResideInNamespaceMatching($"^{BaseNs}[.]Adapters($|[.])").As("Adapters layer");
+
+    private static readonly IObjectProvider<IType> CommonLayer = Types()
+        .That().ResideInNamespaceMatching($"^{BaseNs}[.]Common($|[.])").As("Common layer");
+
+    [Fact]
+    public void TheBaseNamespaceResolvesToTypes()
+    {
+        var matched = Architecture.Types
+            .Count(type => type.FullName.StartsWith(BaseNamespace + "."));
+        Assert.True(matched > 0,
+            "ArchUnitNET loaded no types under " + BaseNamespace + ". The assembly or "
+            + "base namespace is wrong, so every rule below would pass without "
+            + "checking anything.");
+    }
+
+    [Fact]
+    public void ApiMustNotDependOnServices()
+    {
+        Types().That().Are(ApiLayer)
+            .Should().NotDependOnAny(ServicesLayer)
+            .Check(Architecture);
+    }
+
+    [Fact]
+    public void ApiMustNotDependOnAdapters()
+    {
+        Types().That().Are(ApiLayer)
+            .Should().NotDependOnAny(AdaptersLayer)
+            .Check(Architecture);
+    }
+
+    [Fact]
+    public void AdaptersMustNotDependOnApi()
+    {
+        Types().That().Are(AdaptersLayer)
+            .Should().NotDependOnAny(ApiLayer)
+            .Check(Architecture);
+    }
+
+    [Fact]
+    public void ServicesMustNotDependOnAdaptersOrApi()
+    {
+        Types().That().Are(ServicesLayer)
+            .Should().NotDependOnAny(AdaptersLayer).AndShould().NotDependOnAny(ApiLayer)
+            .Check(Architecture);
+    }
+
+    [Fact]
+    public void PortsMustNotDependOnUpperLayers()
+    {
+        Types().That().Are(PortsLayer)
+            .Should().NotDependOnAny(ServicesLayer)
+            .AndShould().NotDependOnAny(AdaptersLayer)
+            .AndShould().NotDependOnAny(ApiLayer)
+            .Check(Architecture);
+    }
+
+    [Fact]
+    public void ModelsMustNotDependOnUpperLayers()
+    {
+        Types().That().Are(ModelsLayer)
+            .Should().NotDependOnAny(PortsLayer)
+            .AndShould().NotDependOnAny(ServicesLayer)
+            .AndShould().NotDependOnAny(AdaptersLayer)
+            .AndShould().NotDependOnAny(ApiLayer)
+            .Check(Architecture);
+    }
+
+    [Fact]
+    public void CommonMustNotDependOnAnyLayer()
+    {
+        Types().That().Are(CommonLayer)
+            .Should().NotDependOnAny(ModelsLayer)
+            .AndShould().NotDependOnAny(PortsLayer)
+            .AndShould().NotDependOnAny(ServicesLayer)
+            .AndShould().NotDependOnAny(AdaptersLayer)
+            .AndShould().NotDependOnAny(ApiLayer)
+            .Check(Architecture);
+    }
+}
+
+
