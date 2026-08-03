@@ -29,6 +29,7 @@ from typing import Literal
 # ---------------------------------------------------------------------------
 from .agent_layout import AGENT_LAYOUTS
 from .fs import read_text_or_none
+from .headers import GOVKIT_BLOCK_BEGIN, GOVKIT_BLOCK_END
 from .marker import MARKER_DIRNAME, MARKER_FILENAME, read_govkit_marker
 
 Severity = Literal["error", "warning", "info"]
@@ -836,6 +837,113 @@ def _check_ui_framework_matches_type(
             f"--type {declared}` only if it matches this application"
         ),
     )]
+
+
+@_register_check("D018")
+def _check_stale_path_scoped_rules(
+    target: Path, marker: dict,
+) -> list[ValidationFinding]:
+    """D018 — a path-scoped rule sits where govkit no longer writes one.
+
+    In a multi-service repo govkit installs codex's layer rules inside each
+    service (`src/orders/api/AGENTS.md`). An earlier govkit put a single
+    copy at the repo root, where codex — which resolves AGENTS.md upward
+    from the file being edited — never reaches it from service code. Those
+    root copies govern nothing, and the folders holding them make the repo
+    read as flat single-service, which erases `architecture.services`.
+
+    Reported, never removed. Two reasons, in order of importance: the file
+    may be one the team authored, with govkit's block appended below their
+    content; and even when it is govkit's own, a stale copy here is inert
+    rather than contradictory. `reconcile_legacy_instruction_files` deletes
+    because leaving its file makes the agent load governance *twice* — a
+    different hazard with a different remedy.
+
+    Silent for claude-code and copilot: their rules are globs matching at
+    any depth, so they declare no path-scoped entries at all.
+    """
+    services = _detected_services(target)
+    if not services:
+        return []
+
+    agent = marker.get("agent")
+    if not agent:
+        return []
+    try:
+        from .manifest import load_manifest, resolve_variant_files
+
+        manifest = load_manifest(agent)
+        options = {**(marker.get("options") or {}), "level": marker.get("level", "3")}
+        files, _shared, _governed = resolve_variant_files(manifest, options)
+    except (OSError, ValueError, KeyError, SystemExit):
+        # Doctor never fails the run over an unreadable manifest; other
+        # checks (D010) already speak to a broken install.
+        return []
+
+    live_roots = ", ".join(root for _name, root in services)
+    findings: list[ValidationFinding] = []
+    for entry in files:
+        if not entry.get("path_scoped"):
+            continue
+        dest = entry.get("dest")
+        if not dest:
+            continue
+        stale = target / dest
+        body = read_text_or_none(stale)
+        # No govkit block means govkit never wrote here — it is simply the
+        # team's file, and none of govkit's business.
+        if body is None or GOVKIT_BLOCK_BEGIN not in body:
+            continue
+        team_authored = body.strip() != _govkit_block_only(body).strip()
+        if team_authored:
+            action = (
+                f"leave the file as it is — govkit did not author it. The govkit "
+                f"block inside it is no longer refreshed; the live layer rules are "
+                f"now under each service ({live_roots}). Delete just the block "
+                f"between the BEGIN/END GOVKIT GOVERNANCE markers if you no longer "
+                f"want it."
+            )
+        else:
+            action = (
+                f"safe to delete {dest} — it holds only govkit's block, and the "
+                f"live layer rules are now under each service ({live_roots})"
+            )
+        findings.append(ValidationFinding(
+            id="D018",
+            severity="warning",
+            category="stale-path-scoped-rule",
+            file=dest,
+            message=(
+                f"{dest} governs no code in this multi-service repo — {agent} "
+                f"resolves AGENTS.md upward from the file being edited and never "
+                f"reaches the repo root from service code"
+            ),
+            suggested_action=action,
+        ))
+    return findings
+
+
+def _govkit_block_only(body: str) -> str:
+    """The govkit-delimited block of `body`, or `""` when there is none.
+
+    Used to tell govkit's own orphan from a file the team wrote and govkit
+    appended to: if the block is the whole file, nobody else contributed.
+    """
+    begin = body.find(GOVKIT_BLOCK_BEGIN)
+    end = body.find(GOVKIT_BLOCK_END)
+    if begin == -1 or end == -1 or end < begin:
+        return ""
+    return body[begin:end + len(GOVKIT_BLOCK_END)]
+
+
+def _detected_services(target: Path) -> list[tuple[str, str]]:
+    """`detect_services` with doctor's never-raise contract."""
+    try:
+        from .detect import detect_services
+
+        return detect_services(target)
+    except OSError:
+        return []
 
 
 # D002 (rule body mentions an absent folder name) is intentionally deferred.

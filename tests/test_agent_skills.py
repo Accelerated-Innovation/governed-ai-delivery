@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILL_PATHS = [
     REPO_ROOT / "agents" / agent / "skills" / layer / "architecture-preflight" / "SKILL.md"
@@ -208,3 +207,101 @@ def test_ui_nextjs_skill_content_parity(skill: str):
     assert all(text == texts[0] for text in texts[1:]), (
         f"{skill} drifted across agents"
     )
+
+
+# ---------------------------------------------------------------------------
+# Multi-service planning — #86 increment 3
+# ---------------------------------------------------------------------------
+
+PLANNING_SKILL_PATHS = [
+    REPO_ROOT / "agents" / agent / "skills" / "backend" / skill / "SKILL.md"
+    for agent in ("claude-code", "codex", "copilot")
+    for skill in ("spec-planning", "implementation-plan")
+]
+
+SERVICES_HEADING = "## Multi-service repos"
+
+
+def _planning_id(p: Path) -> str:
+    return f"{p.parent.parent.parent.parent.name}/{p.parent.name}"
+
+
+def test_the_planning_skill_set_is_what_we_think_it_is():
+    """Six files: two planning skills across three agents. If a path moved,
+    the parametrized tests below would silently cover fewer files."""
+    assert len(PLANNING_SKILL_PATHS) == 6
+    missing = [p for p in PLANNING_SKILL_PATHS if not p.is_file()]
+    assert not missing, f"planning skills not found: {missing}"
+
+
+@pytest.mark.parametrize("skill_path", PLANNING_SKILL_PATHS, ids=_planning_id)
+def test_planning_skills_have_a_multi_service_section(skill_path: Path):
+    text = skill_path.read_text(encoding="utf-8")
+    assert SERVICES_HEADING in text, (
+        f"{skill_path.relative_to(REPO_ROOT)} missing '{SERVICES_HEADING}'"
+    )
+
+
+@pytest.mark.parametrize("skill_path", PLANNING_SKILL_PATHS, ids=_planning_id)
+def test_multi_service_section_tells_the_agent_to_ask(skill_path: Path):
+    """#86's third question: several services, and the request names none.
+    The answer is to ask, not to guess and not to plan across all of them."""
+    section = _extract_section(skill_path.read_text(encoding="utf-8"), SERVICES_HEADING)
+    required = [
+        "architecture.services",   # the field to read
+        "architecture.source_root",  # the single-service fallback
+        "root",                    # each service carries one
+        "ask",                     # the required behaviour when ambiguous
+    ]
+    missing = [p for p in required if p not in section]
+    assert not missing, (
+        f"{skill_path.relative_to(REPO_ROOT)} multi-service section missing: {missing}"
+    )
+
+
+@pytest.mark.parametrize("skill_path", PLANNING_SKILL_PATHS, ids=_planning_id)
+def test_multi_service_section_forbids_guessing(skill_path: Path):
+    section = _extract_section(
+        skill_path.read_text(encoding="utf-8"), SERVICES_HEADING,
+    ).lower()
+    assert "do not guess" in section
+    assert "do not plan across" in section
+
+
+@pytest.mark.parametrize("skill_path", PLANNING_SKILL_PATHS, ids=_planning_id)
+def test_multi_service_section_scopes_output_paths_to_the_service(skill_path: Path):
+    """Naming the service is not enough — the plan's file paths have to land
+    inside it, or the agent writes `services/x.py` into a repo where that
+    folder only exists as `src/orders/services/`."""
+    section = _extract_section(skill_path.read_text(encoding="utf-8"), SERVICES_HEADING)
+    assert "src/orders/services/" in section, (
+        f"{skill_path.relative_to(REPO_ROOT)} does not show a path scoped to a service root"
+    )
+
+
+def test_multi_service_section_parity_across_agents():
+    """Byte-identical across all six files, per [[feedback_agent_parity]]."""
+    sections = {
+        _planning_id(p): _extract_section(p.read_text(encoding="utf-8"), SERVICES_HEADING)
+        for p in PLANNING_SKILL_PATHS
+    }
+    assert all(sections.values()), (
+        f"empty section in: {[k for k, v in sections.items() if not v]}"
+    )
+    distinct = set(sections.values())
+    assert len(distinct) == 1, (
+        "multi-service section differs across agents:\n"
+        + "\n".join(f"--- {k} ---\n{v}" for k, v in sections.items())
+    )
+
+
+def test_ui_planning_skills_do_not_gain_the_section():
+    """UI installs have no service packages — #86 puts them out of scope, and
+    a section telling a UI agent to pick a service would be noise."""
+    ui_paths = [
+        REPO_ROOT / "agents" / agent / "skills" / "ui" / skill / "SKILL.md"
+        for agent in ("claude-code", "codex", "copilot")
+        for skill in ("spec-planning", "implementation-plan")
+    ]
+    present = [p for p in ui_paths if p.is_file() and SERVICES_HEADING in p.read_text(encoding="utf-8")]
+    assert not present, f"UI skills carry the multi-service section: {present}"

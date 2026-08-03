@@ -1043,3 +1043,442 @@ class TestLoadSkillContextSourceRoot:
         ctx = load_skill_context(tmp_path)
         assert ctx is not None
         assert ctx.source_root == ""
+
+
+# ---------------------------------------------------------------------------
+# architecture.services — #86
+# ---------------------------------------------------------------------------
+
+def _multi_service(target: Path, *names: str) -> None:
+    for svc in names:
+        _make_layout(target, _layers_under(f"src/{svc}"))
+
+
+# Layouts that describe exactly one place the code lives, and so must not
+# grow a `services` list. Written out so the "absent" assertion covers every
+# shape rather than whichever one was convenient.
+_SINGLE_SERVICE_LAYOUTS = [
+    ("flat-at-root", _layers_under("")),
+    ("flat-under-src", _layers_under("src")),
+    ("documented-package", _layers_under("src/mypkg")),
+    ("unrecognisable", ["docs"]),
+]
+
+
+class TestEmittedServices:
+    """`architecture.services` says "this repo holds several services".
+
+    Absent for the single-service case, which keeps every file written
+    before #86 valid and the common case a two-line read.
+    """
+
+    def test_multi_service_layout_names_every_service(self, tmp_path):
+        _multi_service(tmp_path, "orders", "billing")
+
+        assert _emit_architecture(tmp_path)["services"] == [
+            {"name": "billing", "root": "src/billing"},
+            {"name": "orders", "root": "src/orders"},
+        ]
+
+    def test_multi_service_layout_reports_no_single_source_root(self, tmp_path):
+        """The two fields are read together: `""` plus a list means "several
+        services", `""` alone means "govkit could not tell"."""
+        _multi_service(tmp_path, "orders", "billing")
+
+        arch = _emit_architecture(tmp_path)
+        assert arch["source_root"] == ""
+        assert len(arch["services"]) == 2
+
+    @pytest.mark.parametrize(
+        "dirs",
+        [dirs for _, dirs in _SINGLE_SERVICE_LAYOUTS],
+        ids=[layout_id for layout_id, _ in _SINGLE_SERVICE_LAYOUTS],
+    )
+    def test_single_service_layouts_omit_the_key_entirely(self, tmp_path, dirs):
+        _make_layout(tmp_path, dirs)
+
+        assert "services" not in _emit_architecture(tmp_path)
+
+    def test_unrecognisable_repo_is_distinguishable_from_multi_service(self, tmp_path):
+        """Both carry `source_root: ""`. The presence of `services` is the
+        only thing separating "there are three services" from "govkit could
+        not read this repo", so it must not be emitted as an empty list."""
+        _make_layout(tmp_path, ["docs"])
+        unreadable = _emit_architecture(tmp_path)
+
+        assert unreadable["source_root"] == ""
+        assert "services" not in unreadable
+
+    def test_the_single_service_table_is_populated(self):
+        assert len(_SINGLE_SERVICE_LAYOUTS) == 4
+
+
+class TestRepoIsObservedBeforeGovkitWritesToIt:
+    """The emitted file must describe the team's repo, not the repo govkit
+    just finished modifying.
+
+    Codex places a path-scoped `AGENTS.md` inside each layer folder. When
+    there is no single source root — which is exactly the multi-service
+    case — those destinations stay root-relative, so `apply` creates
+    root-level `api/`, `ports/`, `services/` and `adapters/`. Re-deriving
+    afterwards reads that as a flat single-service repo and the service
+    list vanishes.
+
+    `style` and `detected_signals` never had this problem: they come from a
+    `RepoProfile` built during stack selection, before a byte is written.
+    These pin the layout facts to that same observation.
+    """
+
+    @staticmethod
+    def _apply(target, agent):
+        import argparse
+
+        from cli.cmd_apply import cmd_apply
+
+        cmd_apply(argparse.Namespace(
+            agent=agent, target=str(target), level="4", type="api",
+            ci="github", stack=None, force=False, detect=False,
+        ))
+
+    @staticmethod
+    def _architecture(target):
+        import yaml
+        return yaml.safe_load(
+            (target / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8"),
+        )["architecture"]
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    def test_apply_records_the_services_that_were_there_before_it_ran(self, tmp_path, agent):
+        target = tmp_path / "project"
+        target.mkdir()
+        _multi_service(target, "orders", "billing")
+
+        self._apply(target, agent)
+
+        arch = self._architecture(target)
+        assert [s["name"] for s in arch.get("services", [])] == ["billing", "orders"], (
+            f"{agent}: services lost — the file describes the post-install tree"
+        )
+        assert arch["source_root"] == ""
+
+    def test_the_layout_facts_come_from_the_profile_not_a_second_reading(self, tmp_path):
+        """The property itself, pinned where it cannot go vacuous.
+
+        The three rows above assert a correct end state. They no longer
+        *exercise* this: once codex's rules fan out per service, `apply`
+        stops creating root-level layer folders, so re-deriving afterwards
+        would reach the right answer anyway and the rows would pass either
+        way. (The guard that used to sit here watched for exactly that
+        change, and the fan-out is it.)
+
+        So state it directly: hand `build_skill_context` a profile that
+        disagrees with the tree, and the profile must win. Any future write
+        that reshapes the target — a path-scoped rule for a new type, a
+        scaffold — is then covered without a test having to predict it.
+        """
+        from cli.detect import build_profile
+        from cli.skill_context import build_skill_context
+
+        marker = _write_marker(tmp_path)
+        _multi_service(tmp_path, "orders", "billing")
+        profile = build_profile(tmp_path)
+        assert len(profile.detected_services) == 2
+
+        # The tree now says something else entirely.
+        _make_layout(tmp_path, _layers_under(""))
+        assert build_profile(tmp_path).detected_services == []
+
+        arch = build_skill_context(tmp_path, marker, profile=profile)["architecture"]
+        assert [s["name"] for s in arch["services"]] == ["billing", "orders"]
+
+    @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+    def test_apply_records_the_source_root_that_was_there_before_it_ran(self, tmp_path, agent):
+        target = tmp_path / "project"
+        target.mkdir()
+        _make_layout(target, _layers_under("src/mypkg"))
+
+        self._apply(target, agent)
+
+        assert self._architecture(target)["source_root"] == "src/mypkg"
+
+
+class TestServicesProvenance:
+    """`services` is tunable on the same terms as the rest of the block —
+    with one wrinkle the other fields do not have: govkit writes it only
+    sometimes, so a team may add a key govkit never derived."""
+
+    @staticmethod
+    def _read(target):
+        import yaml
+        return yaml.safe_load(
+            (target / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8"),
+        )
+
+    @staticmethod
+    def _edit(target, mutate):
+        import yaml
+        path = target / ".govkit" / "skill_context.yaml"
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        mutate(data)
+        path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+
+    def test_derived_services_are_recorded_for_the_next_run(self, tmp_path):
+        _multi_service(tmp_path, "orders", "billing")
+        _emit_architecture(tmp_path)
+
+        record = self._read(tmp_path)["_govkit_generated"]
+        assert record["services"] == [
+            {"name": "billing", "root": "src/billing"},
+            {"name": "orders", "root": "src/orders"},
+        ]
+
+    def test_no_services_means_no_record_entry(self, tmp_path):
+        _make_layout(tmp_path, _layers_under("src/mypkg"))
+        _emit_architecture(tmp_path)
+
+        assert "services" not in self._read(tmp_path)["_govkit_generated"]
+
+    def test_a_hand_added_service_list_survives(self, tmp_path):
+        """The plan's promise: "a team that lists services govkit did not
+        detect keeps that list". govkit derived nothing here, so there is no
+        record entry to compare against — a live value govkit never wrote is
+        by definition the team's."""
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        _make_layout(tmp_path, _layers_under("src/mypkg"))
+        write_skill_context(tmp_path, marker)
+
+        theirs = [{"name": "orders", "root": "services/orders"}]
+        self._edit(tmp_path, lambda d: d["architecture"].update(services=theirs))
+        write_skill_context(tmp_path, marker)
+
+        assert self._read(tmp_path)["architecture"]["services"] == theirs
+
+    def test_a_hand_added_service_list_survives_repeated_writes(self, tmp_path):
+        """Once is not enough: the next write records what it derived again,
+        so the comparison has to keep coming out the same way."""
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        _make_layout(tmp_path, _layers_under("src/mypkg"))
+        write_skill_context(tmp_path, marker)
+
+        theirs = [{"name": "orders", "root": "services/orders"}]
+        self._edit(tmp_path, lambda d: d["architecture"].update(services=theirs))
+        for _ in range(3):
+            write_skill_context(tmp_path, marker)
+
+        assert self._read(tmp_path)["architecture"]["services"] == theirs
+
+    def test_an_edited_service_entry_survives(self, tmp_path):
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        _multi_service(tmp_path, "orders", "billing")
+        write_skill_context(tmp_path, marker)
+
+        renamed = [
+            {"name": "invoicing", "root": "src/billing"},
+            {"name": "orders", "root": "src/orders"},
+        ]
+        self._edit(tmp_path, lambda d: d["architecture"].update(services=renamed))
+        write_skill_context(tmp_path, marker)
+
+        assert self._read(tmp_path)["architecture"]["services"] == renamed
+
+    def test_untouched_services_refresh_when_a_service_is_added(self, tmp_path):
+        """The reason this is provenance and not "non-empty wins": a repo
+        that grows a third service must show it."""
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        _multi_service(tmp_path, "orders", "billing")
+        write_skill_context(tmp_path, marker)
+        assert len(self._read(tmp_path)["architecture"]["services"]) == 2
+
+        _multi_service(tmp_path, "shipping")
+        write_skill_context(tmp_path, marker)
+
+        assert [s["name"] for s in self._read(tmp_path)["architecture"]["services"]] == [
+            "billing", "orders", "shipping",
+        ]
+
+    def test_an_install_predating_the_field_picks_it_up(self, tmp_path):
+        """An increment-1 file on a multi-service repo has no `services`
+        anywhere — not in the live block, not in the record. The new field
+        must appear, the same way increment 1's corrected root did.
+
+        Hand-built: a file produced by today's writer would already carry
+        the field and prove nothing.
+        """
+        import yaml
+
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        _multi_service(tmp_path, "orders", "billing")
+        hexagonal = {
+            "inbound": ["api/", "ports/inbound/"],
+            "outbound": ["adapters/", "ports/outbound/"],
+            "domain": ["services/", "models/"],
+        }
+        (tmp_path / ".govkit").mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".govkit" / "skill_context.yaml").write_text(
+            yaml.safe_dump({
+                "architecture": {
+                    "style": "hexagonal", "source_root": "",
+                    "layers": dict(hexagonal), "detected_signals": ["hexagonal-shape"],
+                },
+                "stack": {},
+                "_govkit_generated": {
+                    "style": "hexagonal", "source_root": "", "layers": dict(hexagonal),
+                },
+            }, sort_keys=False),
+            encoding="utf-8",
+        )
+
+        write_skill_context(tmp_path, marker)
+
+        assert [s["name"] for s in self._read(tmp_path)["architecture"]["services"]] == [
+            "billing", "orders",
+        ]
+
+    def test_a_live_value_with_no_record_entry_is_treated_as_a_team_edit(self, tmp_path):
+        """The general rule `services` needs, stated for a field that has
+        always been derived. A record that does not mention a key did not
+        write it, so whatever is live came from somewhere else and stays."""
+        import yaml
+
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        _make_layout(tmp_path, _layers_under("src/mypkg"))
+        write_skill_context(tmp_path, marker)
+
+        path = tmp_path / ".govkit" / "skill_context.yaml"
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        data["architecture"]["source_root"] = "app/"
+        del data["_govkit_generated"]["source_root"]
+        path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+
+        write_skill_context(tmp_path, marker)
+
+        assert self._read(tmp_path)["architecture"]["source_root"] == "app/"
+
+
+class TestLoadSkillContextServices:
+    def _write(self, target: Path, body: str) -> None:
+        (target / ".govkit").mkdir(parents=True, exist_ok=True)
+        (target / ".govkit" / "skill_context.yaml").write_text(body, encoding="utf-8")
+
+    def test_services_round_trip_as_typed_refs(self, tmp_path):
+        from cli.skill_context import ServiceRef, load_skill_context
+
+        _multi_service(tmp_path, "orders", "billing")
+        _emit_architecture(tmp_path)
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.services == [
+            ServiceRef(name="billing", root="src/billing"),
+            ServiceRef(name="orders", root="src/orders"),
+        ]
+
+    def test_single_service_repo_loads_an_empty_list(self, tmp_path):
+        """`if ctx.services:` must read as "is this a multi-service repo",
+        so the single-service case is falsy rather than None."""
+        from cli.skill_context import load_skill_context
+
+        _make_layout(tmp_path, _layers_under("src/mypkg"))
+        _emit_architecture(tmp_path)
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.services == []
+
+    @pytest.mark.parametrize("body", [
+        "architecture:\n  services: orders\nstack: {}\n",
+        "architecture:\n  services: 3\nstack: {}\n",
+        "architecture:\n  services:\n    orders: src/orders\nstack: {}\n",
+    ], ids=["scalar-string", "scalar-int", "mapping"])
+    def test_a_hand_mangled_services_value_does_not_crash_the_loader(self, tmp_path, body):
+        """`list("orders")` would splat into characters; a mapping is the
+        other natural mistake. Both degrade to no services rather than
+        raising into _post_install_finalize."""
+        from cli.skill_context import load_skill_context
+
+        self._write(tmp_path, body)
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.services == []
+
+    def test_non_dict_entries_are_skipped_not_fatal(self, tmp_path):
+        from cli.skill_context import ServiceRef, load_skill_context
+
+        self._write(tmp_path, (
+            "architecture:\n"
+            "  services:\n"
+            "  - orders\n"
+            "  - {name: billing, root: src/billing}\n"
+            "  - [a, b]\n"
+            "stack: {}\n"
+        ))
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.services == [ServiceRef(name="billing", root="src/billing")]
+
+    def test_entries_missing_a_field_are_skipped(self, tmp_path):
+        """A ref without a root cannot be acted on; half an entry is worse
+        than none."""
+        from cli.skill_context import ServiceRef, load_skill_context
+
+        self._write(tmp_path, (
+            "architecture:\n"
+            "  services:\n"
+            "  - {name: orders}\n"
+            "  - {root: src/billing}\n"
+            "  - {name: shipping, root: src/shipping}\n"
+            "  - {name: '', root: src/empty}\n"
+            "stack: {}\n"
+        ))
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.services == [ServiceRef(name="shipping", root="src/shipping")]
+
+    def test_wrong_typed_fields_are_skipped(self, tmp_path):
+        from cli.skill_context import load_skill_context
+
+        self._write(tmp_path, (
+            "architecture:\n"
+            "  services:\n"
+            "  - {name: 3, root: src/orders}\n"
+            "  - {name: billing, root: [src/billing]}\n"
+            "stack: {}\n"
+        ))
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.services == []
+
+    def test_services_are_read_from_the_live_block_not_the_record(self, tmp_path):
+        """`_govkit_generated` carries its own `services` list. The two are
+        made to differ here, so a loader reading the wrong one is visible."""
+        from cli.skill_context import ServiceRef, load_skill_context
+
+        self._write(tmp_path, (
+            "architecture:\n"
+            "  services:\n"
+            "  - {name: orders, root: src/orders}\n"
+            "stack: {}\n"
+            "_govkit_generated:\n"
+            "  services:\n"
+            "  - {name: billing, root: src/billing}\n"
+        ))
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.services == [ServiceRef(name="orders", root="src/orders")]

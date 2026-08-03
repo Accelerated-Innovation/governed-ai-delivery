@@ -22,7 +22,7 @@ Projects created using this kit should place their application code in a package
 
 Recommended structure for adopting projects:
 ```
-src/<project_pacakage_name>/
+src/<project_package_name>/
 ├── api/
 ├── ports/
 ├── services/
@@ -65,6 +65,61 @@ Benefits of the `src/<project_package_name>` layout:
 - supports your language's packaging conventions
 - allows multiple services to reuse the governance kit
 - keeps governance artifacts separate from runtime code
+
+## Several services in one repo
+
+One repo may hold more than one service package, each with its own layers:
+
+```
+src/orders/{api,ports,services,models,adapters,common}/
+src/billing/{api,ports,services,models,adapters,common}/
+```
+
+Every service under one install shares that install's project type, stack
+and maturity level — that is what makes a single set of governance artifacts
+correct for all of them. Services that need to differ in any of those need
+**separate installs**, each with its own `.govkit/`.
+
+### What govkit records about the shape
+
+`.govkit/skill_context.yaml` describes the layout it found:
+
+| Layout | `architecture.source_root` | `architecture.services` |
+|---|---|---|
+| `src/<package>/{api,…}` | `src/<package>` | absent |
+| `src/{api,…}` | `src` | absent |
+| `src/{orders,billing}/{…}` | `""` | one entry per service |
+| layers at the repo root | `""` | absent |
+| nothing recognisable | `""` | absent |
+
+`source_root: ""` means *no single root*. It is not a directory and not a
+failure — read it together with `services`. Present means govkit found
+several services; absent means it could not tell which shape this is. Each
+`services` entry carries a `name` (the package name) and a `root` (a path
+relative to the repo).
+
+Both fields are yours to correct. Edit them in `skill_context.yaml` and the
+change survives every later `apply`, `upgrade`, `stack apply` and
+`calibrate` — govkit only reseeds values it wrote itself.
+
+### What follows from a multi-service layout
+
+- **Planning skills ask which service.** With more than one entry and a
+  request that names none, `govkit-spec-planning` and
+  `govkit-implementation-plan` list the service names and ask before
+  planning, then prefix every path in their output with that service's
+  `root`.
+- **Agent rules land inside each service.** Agents that scope guidance by
+  file location get a copy per service (`src/orders/api/`,
+  `src/billing/api/`), because such an agent resolves its guidance from the
+  file being edited upward. Agents that scope by glob need nothing extra —
+  patterns like `**/api/**` already match inside every service.
+- **Boundary contracts name each service.** The reference contract under
+  `governance/backend/` takes one entry per service package rather than a
+  bare `src`, and ships a rule for forbidding cross-service imports so a
+  change in one service cannot quietly reach into another. See
+  `TECH_STACK.md` for the tool this stack uses and the reference file to
+  copy.
 
 ---
 
