@@ -325,3 +325,28 @@ Commit: `docs(backend): document the multi-service skill context (#86)`
   closed with #93.
 - **UI and data types.** `ui-*` installs have no service packages, and the
   data types use dbt/medallion layering where "service" has no meaning.
+
+  A review of increment 1 flagged that a dbt repo now emits
+  `source_root: ""`, because `detect_source_root`'s fingerprints omit
+  `_DBT_FOLDERS` and its candidate roots omit `models/`. Checked, and left
+  alone deliberately:
+
+  - **Not a regression.** Those repos previously got `src/`, a directory most
+    dbt projects do not have. `""` — "govkit cannot tell" — is strictly more
+    honest than the value it replaces.
+  - **Not a codex-placement bug either.** `path_scoped` entries exist only
+    under `variants.type.api` and `variants.type.cli` in all three manifests,
+    so `resolve_path_scoped_dests` is a no-op for data installs and the
+    omission never reached the function's original consumer.
+  - **`""` may in fact be the right answer for dbt.** The `dbt-layered` hints
+    already carry the prefix (`models/staging/`, `models/marts/`). A
+    `source_root: models` beside them would make a consumer that joins the
+    two produce `models/models/staging/`. Whether dbt has a source root
+    *distinct from* its layer hints is a representation question for whoever
+    writes the first data consumer, not a gap to patch ahead of one.
+
+  The fix the review proposed — special-casing dbt inside
+  `build_skill_context` — is the wrong shape regardless: it would create a
+  second notion of where the source lives that disagrees with
+  `detect_source_root`, which is the exact defect increment 1 removes. If
+  `models/` ever becomes a recognised root, it belongs in that one function.
