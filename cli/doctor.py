@@ -845,12 +845,22 @@ def _check_stale_path_scoped_rules(
 ) -> list[ValidationFinding]:
     """D018 — a path-scoped rule sits where govkit no longer writes one.
 
-    In a multi-service repo govkit installs codex's layer rules inside each
-    service (`src/orders/api/AGENTS.md`). An earlier govkit put a single
-    copy at the repo root, where codex — which resolves AGENTS.md upward
-    from the file being edited — never reaches it from service code. Those
-    root copies govern nothing, and the folders holding them make the repo
-    read as flat single-service, which erases `architecture.services`.
+    govkit re-roots codex's layer rules onto the code they govern: onto the
+    detected source root (`src/api/AGENTS.md`), or once per service in a
+    multi-service repo (`src/orders/api/AGENTS.md`). An install made before
+    either change has them at the repo root, and the old copies stay —
+    govkit does not delete files in the user's tree.
+
+    They govern nothing there. Codex resolves AGENTS.md upward from the file
+    being edited, so `src/api/main.py` reaches `src/api/`, `src/` and the
+    repo root, never the root-level `api/` folder. The harm is a stale copy
+    that drifts from the live one, not conflicting instructions.
+
+    The question is **"does govkit still write here?"**, answered by asking
+    `resolve_path_scoped_dests` — the same function that decides placement —
+    rather than by testing for any one layout. Scoping this to the
+    multi-service case is what left #83 open after the check first shipped:
+    the single-source-root relocation is the same defect and went unreported.
 
     Reported, never removed. Two reasons, in order of importance: the file
     may be one the team authored, with govkit's block appended below their
@@ -862,31 +872,38 @@ def _check_stale_path_scoped_rules(
     Silent for claude-code and copilot: their rules are globs matching at
     any depth, so they declare no path-scoped entries at all.
     """
-    services = _detected_services(target)
-    if not services:
-        return []
-
     agent = marker.get("agent")
     if not agent:
         return []
     try:
+        from .install_common import resolve_path_scoped_dests
         from .manifest import load_manifest, resolve_variant_files
 
         manifest = load_manifest(agent)
         options = {**(marker.get("options") or {}), "level": marker.get("level", "3")}
         files, _shared, _governed = resolve_variant_files(manifest, options)
+        live_dests = {
+            entry["dest"]
+            for entry in resolve_path_scoped_dests(files, target)
+            if entry.get("path_scoped") and entry.get("dest")
+        }
     except (OSError, ValueError, KeyError, SystemExit):
         # Doctor never fails the run over an unreadable manifest; other
         # checks (D010) already speak to a broken install.
         return []
 
-    live_roots = ", ".join(root for _name, root in services)
     findings: list[ValidationFinding] = []
     for entry in files:
         if not entry.get("path_scoped"):
             continue
         dest = entry.get("dest")
-        if not dest:
+        # `dest` is the manifest's root-relative destination. When it is
+        # still among the live ones, this layout does not relocate the rule
+        # and the file at the root is the current copy, not a leftover.
+        if not dest or dest in live_dests:
+            continue
+        live = _live_locations_for(dest, live_dests)
+        if not live:
             continue
         stale = target / dest
         body = read_text_or_none(stale)
@@ -894,19 +911,19 @@ def _check_stale_path_scoped_rules(
         # team's file, and none of govkit's business.
         if body is None or GOVKIT_BLOCK_BEGIN not in body:
             continue
+        live_list = ", ".join(live)
         team_authored = body.strip() != _govkit_block_only(body).strip()
         if team_authored:
             action = (
                 f"leave the file as it is — govkit did not author it. The govkit "
-                f"block inside it is no longer refreshed; the live layer rules are "
-                f"now under each service ({live_roots}). Delete just the block "
-                f"between the BEGIN/END GOVKIT GOVERNANCE markers if you no longer "
-                f"want it."
+                f"block inside it is no longer refreshed; the live copy of this "
+                f"rule is at {live_list}. Delete just the block between the "
+                f"BEGIN/END GOVKIT GOVERNANCE markers if you no longer want it."
             )
         else:
             action = (
                 f"safe to delete {dest} — it holds only govkit's block, and the "
-                f"live layer rules are now under each service ({live_roots})"
+                f"live copy of this rule is at {live_list}"
             )
         findings.append(ValidationFinding(
             id="D018",
@@ -914,9 +931,9 @@ def _check_stale_path_scoped_rules(
             category="stale-path-scoped-rule",
             file=dest,
             message=(
-                f"{dest} governs no code in this multi-service repo — {agent} "
-                f"resolves AGENTS.md upward from the file being edited and never "
-                f"reaches the repo root from service code"
+                f"{dest} is a superseded rule location — govkit now installs this "
+                f"rule at {live_list}. {agent} resolves AGENTS.md upward from the "
+                f"file being edited, so the copy at {dest} governs none of that code"
             ),
             suggested_action=action,
         ))
@@ -936,14 +953,16 @@ def _govkit_block_only(body: str) -> str:
     return body[begin:end + len(GOVKIT_BLOCK_END)]
 
 
-def _detected_services(target: Path) -> list[tuple[str, str]]:
-    """`detect_services` with doctor's never-raise contract."""
-    try:
-        from .detect import detect_services
+def _live_locations_for(dest: str, live_dests: set[str]) -> list[str]:
+    """Where govkit now installs the rule the manifest declares at `dest`.
 
-        return detect_services(target)
-    except OSError:
-        return []
+    Matched by suffix rather than recomputed, so the answer comes from the
+    same `resolve_path_scoped_dests` call that produced `live_dests` and
+    cannot drift from it. One entry for a single source root, one per
+    service in a multi-service repo.
+    """
+    suffix = "/" + dest
+    return sorted(d for d in live_dests if d.endswith(suffix))
 
 
 # D002 (rule body mentions an absent folder name) is intentionally deferred.

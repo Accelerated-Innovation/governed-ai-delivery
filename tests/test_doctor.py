@@ -1375,3 +1375,151 @@ class TestD018StalePathScopedRules:
             f.file.replace("\\", "/") for f in run_doctor(tmp_path) if f.id == "D018"
         }
         assert reported == {"api/AGENTS.md", "ports/AGENTS.md", "services/AGENTS.md"}
+
+
+class TestD018SupersededSingleRootRules:
+    """#83 — the single-source-root half of the same defect.
+
+    #82 moved codex's path-scoped rules onto the detected source root, so an
+    install made before it has them at the repo root. D018 shipped in #118
+    reporting only the multi-service case, because its guard asked whether
+    services were detected rather than whether govkit still writes to the
+    root-relative location. The check is the same one; only the question was
+    too narrow.
+    """
+
+    def _src_layout(self, target: Path, prefix: str = "src") -> None:
+        for layer in BACKEND_LAYERS:
+            (target / prefix / layer).mkdir(parents=True)
+
+    def _orphan_at_root(self, target: Path, *layers: str) -> None:
+        for layer in layers:
+            (target / layer).mkdir(parents=True, exist_ok=True)
+            (target / layer / "AGENTS.md").write_text(GOVKIT_BLOCK, encoding="utf-8")
+
+    def test_fires_for_a_root_orphan_when_the_source_root_is_src(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._src_layout(tmp_path)
+        _write_marker(tmp_path, agent="codex")
+        self._orphan_at_root(tmp_path, "api")
+
+        d018s = [f for f in run_doctor(tmp_path) if f.id == "D018"]
+        assert len(d018s) == 1
+        assert d018s[0].file.replace("\\", "/") == "api/AGENTS.md"
+
+    def test_names_the_live_location_under_the_source_root(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._src_layout(tmp_path)
+        _write_marker(tmp_path, agent="codex")
+        self._orphan_at_root(tmp_path, "api")
+
+        finding = [f for f in run_doctor(tmp_path) if f.id == "D018"][0]
+        text = (finding.message + finding.suggested_action).replace("\\", "/")
+        assert "src/api/AGENTS.md" in text
+
+    def test_fires_for_the_documented_package_layout(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._src_layout(tmp_path, "src/mypkg")
+        _write_marker(tmp_path, agent="codex")
+        self._orphan_at_root(tmp_path, "api", "ports", "services")
+
+        reported = {
+            f.file.replace("\\", "/") for f in run_doctor(tmp_path) if f.id == "D018"
+        }
+        assert reported == {"api/AGENTS.md", "ports/AGENTS.md", "services/AGENTS.md"}
+
+    def test_a_team_authored_root_orphan_is_never_advised_away(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._src_layout(tmp_path)
+        _write_marker(tmp_path, agent="codex")
+        (tmp_path / "api").mkdir()
+        (tmp_path / "api" / "AGENTS.md").write_text(
+            "# Team notes\n\nOurs.\n\n" + GOVKIT_BLOCK, encoding="utf-8",
+        )
+
+        action = [f for f in run_doctor(tmp_path) if f.id == "D018"][0].suggested_action.lower()
+        assert "leave the file" in action
+        assert "delete api/agents.md" not in action
+
+    def test_silent_when_the_root_is_where_govkit_still_writes(self, tmp_path):
+        """A flat repo: the root-relative destination *is* the live one.
+        Reporting it would call a correct install broken."""
+        from cli.doctor import run_doctor
+
+        for layer in BACKEND_LAYERS:
+            (tmp_path / layer).mkdir(parents=True)
+        (tmp_path / "api" / "handlers.py").write_text("x = 1\n", encoding="utf-8")
+        (tmp_path / "services" / "orders.py").write_text("x = 1\n", encoding="utf-8")
+        _write_marker(tmp_path, agent="codex")
+        (tmp_path / "api" / "AGENTS.md").write_text(GOVKIT_BLOCK, encoding="utf-8")
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D018"] == []
+
+    def test_silent_on_a_greenfield_repo(self, tmp_path):
+        """No source tree at all, so destinations stay root-relative and the
+        root copy is the live one."""
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path, agent="codex")
+        (tmp_path / "api").mkdir()
+        (tmp_path / "api" / "AGENTS.md").write_text(GOVKIT_BLOCK, encoding="utf-8")
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D018"] == []
+
+    def test_the_live_copy_itself_is_never_reported(self, tmp_path):
+        """Both copies present — the one under the source root is current."""
+        from cli.doctor import run_doctor
+
+        self._src_layout(tmp_path)
+        _write_marker(tmp_path, agent="codex")
+        (tmp_path / "src" / "api" / "AGENTS.md").write_text(GOVKIT_BLOCK, encoding="utf-8")
+        self._orphan_at_root(tmp_path, "api")
+
+        reported = {
+            f.file.replace("\\", "/") for f in run_doctor(tmp_path) if f.id == "D018"
+        }
+        assert reported == {"api/AGENTS.md"}
+
+
+def test_d018_covers_every_layout_where_rules_move():
+    """Completeness guard. D018 exists because govkit relocates path-scoped
+    rules; it must fire for every layout that relocates them and stay quiet
+    for every layout that does not. A guard scoped to one relocation shape
+    is how #83 stayed open after #118 shipped the check.
+    """
+    import tempfile
+    from pathlib import Path as _P
+
+    from cli.doctor import run_doctor
+
+    relocating = {
+        "src": ["src"],
+        "src/mypkg": ["src/mypkg"],
+        "multi-service": ["src/orders", "src/billing"],
+    }
+    stationary = {
+        "flat-at-root": [""],
+        "greenfield": [],
+    }
+    for name, prefixes in {**relocating, **stationary}.items():
+        with tempfile.TemporaryDirectory() as tmp:
+            target = _P(tmp)
+            for prefix in prefixes:
+                base = target / prefix if prefix else target
+                for layer in BACKEND_LAYERS:
+                    (base / layer).mkdir(parents=True, exist_ok=True)
+            if name == "flat-at-root":
+                (target / "api" / "handlers.py").write_text("x = 1\n", encoding="utf-8")
+                (target / "services" / "o.py").write_text("x = 1\n", encoding="utf-8")
+            _write_marker(target, agent="codex")
+            (target / "api").mkdir(parents=True, exist_ok=True)
+            (target / "api" / "AGENTS.md").write_text(GOVKIT_BLOCK, encoding="utf-8")
+
+            fired = bool([f for f in run_doctor(target) if f.id == "D018"])
+            assert fired == (name in relocating), (
+                f"{name}: D018 fired={fired}, expected {name in relocating}"
+            )
