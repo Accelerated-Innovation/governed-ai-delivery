@@ -11,6 +11,8 @@ stack apply to call write_skill_context too. PR 5 only needs the writer.
 import json
 from pathlib import Path
 
+import pytest
+
 
 def _write_marker(target: Path, **overrides) -> dict:
     marker_dir = target / ".govkit"
@@ -798,3 +800,246 @@ class TestPiiKeywordList:
         ctx = load_skill_context(tmp_path)
         assert ctx is not None
         assert ctx.pii_keywords == ["email", "iban"]
+
+
+# ---------------------------------------------------------------------------
+# architecture.source_root — #86
+# ---------------------------------------------------------------------------
+
+BACKEND_LAYERS = ("api", "ports", "services", "models", "adapters", "common")
+
+
+def _layers_under(prefix: str) -> list[str]:
+    """Relative dirs for one hexagonal package rooted at `prefix`."""
+    base = f"{prefix}/" if prefix else ""
+    return [f"{base}{layer}" for layer in BACKEND_LAYERS]
+
+
+# (id, directories to create, expected architecture.source_root).
+#
+# Every layout govkit recognises, plus the two that resolve to "no single
+# root". Expected values are written out rather than computed, so a
+# derivation that collapsed to one answer cannot satisfy the table.
+_SOURCE_ROOT_LAYOUTS = [
+    ("flat-at-root", _layers_under(""), ""),
+    ("flat-under-src", _layers_under("src"), "src"),
+    ("documented-package", _layers_under("src/mypkg"), "src/mypkg"),
+    ("multi-service", _layers_under("src/orders") + _layers_under("src/billing"), ""),
+    ("unrecognisable", ["docs"], ""),
+]
+
+_LAYOUT_IDS = [layout_id for layout_id, _, _ in _SOURCE_ROOT_LAYOUTS]
+
+
+def _make_layout(target: Path, dirs: list[str]) -> None:
+    for rel in dirs:
+        (target / rel).mkdir(parents=True, exist_ok=True)
+
+
+def _emit_architecture(target: Path) -> dict:
+    import yaml
+
+    from cli.skill_context import write_skill_context
+
+    marker = _write_marker(target)
+    write_skill_context(target, marker)
+    data = yaml.safe_load(
+        (target / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8"),
+    )
+    return data["architecture"]
+
+
+class TestDerivedSourceRoot:
+    """`architecture.source_root` must describe the repo it is written into.
+
+    It was hardcoded to `"src/"` from the day the writer shipped, so it was
+    wrong for both layouts that are not flat-under-`src/` — including the
+    `src/<package>/` shape REPO_STRUCTURE_README.md prescribes as canonical.
+    Nothing reads the field yet, which is why the lie went unnoticed; #86
+    pins it before a consumer arrives.
+    """
+
+    @pytest.mark.parametrize(
+        "dirs, expected",
+        [(dirs, expected) for _, dirs, expected in _SOURCE_ROOT_LAYOUTS],
+        ids=_LAYOUT_IDS,
+    )
+    def test_source_root_matches_the_layout(self, tmp_path, dirs, expected):
+        _make_layout(tmp_path, dirs)
+
+        assert _emit_architecture(tmp_path)["source_root"] == expected
+
+    @pytest.mark.parametrize(
+        "dirs",
+        [dirs for _, dirs, _ in _SOURCE_ROOT_LAYOUTS],
+        ids=_LAYOUT_IDS,
+    )
+    def test_source_root_agrees_with_detect_source_root(self, tmp_path, dirs):
+        """One notion of where the source lives, not two.
+
+        `detect_source_root` already answers this question for codex rule
+        placement. The emitted value must be byte-equal to it — a near-miss
+        like `src/` beside `src` is the defect #86 reports.
+        """
+        from cli.detect import detect_source_root
+
+        _make_layout(tmp_path, dirs)
+
+        assert _emit_architecture(tmp_path)["source_root"] == detect_source_root(tmp_path)
+
+    def test_the_layout_table_still_distinguishes_three_answers(self):
+        """Guard against the table above going vacuous.
+
+        A parametrize expecting `""` everywhere would pass against the very
+        bug these tests exist to catch, and one that emptied would be
+        skipped in silence.
+        """
+        assert len(_SOURCE_ROOT_LAYOUTS) == len(set(_LAYOUT_IDS)) == 5
+        assert {expected for _, _, expected in _SOURCE_ROOT_LAYOUTS} == {
+            "", "src", "src/mypkg",
+        }
+
+    @pytest.mark.parametrize(
+        "dirs",
+        [dirs for _, dirs, _ in _SOURCE_ROOT_LAYOUTS],
+        ids=_LAYOUT_IDS,
+    )
+    def test_no_layout_emits_the_old_hardcoded_literal(self, tmp_path, dirs):
+        """`src/`, with the trailing slash, is a value no derivation
+        produces — including for the one layout it happened to describe."""
+        _make_layout(tmp_path, dirs)
+
+        assert _emit_architecture(tmp_path)["source_root"] != "src/"
+
+
+class TestSourceRootProvenanceMigration:
+    """The first tunable field whose *derived* value changes for installs
+    that already exist.
+
+    Both branches matter and they pull in opposite directions: an untouched
+    `src/` must refresh to the real root, while a hand-edited one must not.
+    Get the comparison backwards and one of the two silently does the wrong
+    thing — an untouched file freezes a value known to be wrong, or a team's
+    correction is discarded.
+    """
+
+    @staticmethod
+    def _read(target):
+        import yaml
+        return yaml.safe_load(
+            (target / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8"),
+        )
+
+    @staticmethod
+    def _write_pre_change_file(target: Path, live_source_root: str) -> None:
+        """Write the file a pre-#86 govkit produced for a hexagonal repo.
+
+        Hand-built rather than produced by `write_skill_context`: today's
+        writer records the *derived* root in the provenance block, so a file
+        it produced could never reproduce the `src/`-in-both-places state
+        this migration is about. Seeding the fixture with the real writer
+        would leave both tests passing without exercising anything.
+        """
+        import yaml
+
+        def hexagonal_layers() -> dict:
+            return {
+                "inbound": ["api/", "ports/inbound/"],
+                "outbound": ["adapters/", "ports/outbound/"],
+                "domain": ["services/", "models/"],
+            }
+
+        (target / ".govkit").mkdir(parents=True, exist_ok=True)
+        (target / ".govkit" / "skill_context.yaml").write_text(
+            yaml.safe_dump({
+                "architecture": {
+                    "style": "hexagonal",
+                    "source_root": live_source_root,
+                    "layers": hexagonal_layers(),
+                    "detected_signals": ["hexagonal-shape"],
+                },
+                "stack": {},
+                "pii": {"keyword_list": ["email"]},
+                "_govkit_generated": {
+                    "style": "hexagonal",
+                    # What the hardcoded writer recorded for every repo.
+                    "source_root": "src/",
+                    "layers": hexagonal_layers(),
+                },
+            }, sort_keys=False),
+            encoding="utf-8",
+        )
+
+    def test_untouched_pre_change_install_picks_up_the_corrected_root(self, tmp_path):
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        _make_layout(tmp_path, _layers_under("src/mypkg"))
+        self._write_pre_change_file(tmp_path, live_source_root="src/")
+
+        write_skill_context(tmp_path, marker)
+
+        assert self._read(tmp_path)["architecture"]["source_root"] == "src/mypkg"
+
+    def test_hand_edited_pre_change_root_survives_the_correction(self, tmp_path):
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        _make_layout(tmp_path, _layers_under("src/mypkg"))
+        self._write_pre_change_file(tmp_path, live_source_root="services/")
+
+        write_skill_context(tmp_path, marker)
+
+        assert self._read(tmp_path)["architecture"]["source_root"] == "services/"
+
+    def test_both_cases_start_from_the_same_recorded_value(self, tmp_path):
+        """Neither branch above is decided by the provenance record, which
+        reads `src/` in both. Only the live value differs — that is the
+        whole mechanism, and this pins that the fixture models it."""
+        for live in ("src/", "services/"):
+            target = tmp_path / live.strip("/").replace("/", "-")
+            target.mkdir()
+            self._write_pre_change_file(target, live_source_root=live)
+
+            data = self._read(target)
+            assert data["_govkit_generated"]["source_root"] == "src/"
+            assert data["architecture"]["source_root"] == live
+
+
+class TestLoadSkillContextSourceRoot:
+    def test_derived_root_round_trips(self, tmp_path):
+        from cli.skill_context import load_skill_context
+
+        _make_layout(tmp_path, _layers_under("src/mypkg"))
+        _emit_architecture(tmp_path)
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.source_root == "src/mypkg"
+
+    def test_missing_source_root_is_empty_not_a_guess(self, tmp_path):
+        """A file that does not say where the source lives does not license
+        the loader to invent `src/`. Empty is the same "govkit cannot tell"
+        the derivation now uses."""
+        from cli.skill_context import load_skill_context
+
+        (tmp_path / ".govkit").mkdir(parents=True)
+        (tmp_path / ".govkit" / "skill_context.yaml").write_text(
+            "architecture:\n  style: hexagonal\nstack: {}\n", encoding="utf-8",
+        )
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.source_root == ""
+
+    def test_malformed_source_root_is_empty(self, tmp_path):
+        from cli.skill_context import load_skill_context
+
+        (tmp_path / ".govkit").mkdir(parents=True)
+        (tmp_path / ".govkit" / "skill_context.yaml").write_text(
+            "architecture:\n  source_root: [src]\nstack: {}\n", encoding="utf-8",
+        )
+
+        ctx = load_skill_context(tmp_path)
+        assert ctx is not None
+        assert ctx.source_root == ""
