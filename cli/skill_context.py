@@ -83,6 +83,17 @@ _CI_NAME = {"github": "github-actions", "azure": "azure-pipelines"}
 _DEFAULT_PII_KEYWORDS = ["email", "phone", "ssn", "dob", "birth", "address", "name"]
 
 
+@dataclass(frozen=True)
+class ServiceRef:
+    """One service package in a multi-service repo.
+
+    `root` is POSIX-relative to the target, so a consumer can join it onto
+    a layer hint (`src/orders` + `services/`) without knowing the layout.
+    """
+    name: str
+    root: str
+
+
 @dataclass
 class SkillContext:
     """Typed view of .govkit/skill_context.yaml for skill consumers (PR 6b/c).
@@ -109,6 +120,9 @@ class SkillContext:
     llm: bool
     pii_keywords: list[str] = field(default_factory=list)
     extensions: list[dict] = field(default_factory=list)
+    # Empty for a single-service repo, so `if ctx.services:` reads as "is
+    # this a multi-service repo".
+    services: list[ServiceRef] = field(default_factory=list)
 
 
 def _infer_architecture_style(profile) -> str:
@@ -163,7 +177,11 @@ def _extension_facts(target: Path) -> list[dict]:
 #
 # `detected_signals` is deliberately absent: it is an observation of the
 # repo, never a preference, so it always refreshes.
-_TEAM_TUNABLE_ARCHITECTURE = ("style", "source_root", "layers")
+#
+# `services` differs from the other three in one way that matters: govkit
+# writes it only for a multi-service repo, so a live `services` with no
+# record entry is a list the team added themselves. See _preserve_team_edits.
+_TEAM_TUNABLE_ARCHITECTURE = ("style", "source_root", "layers", "services")
 
 # Where govkit records what it derived, so a later run can tell a team's
 # edit from a value it wrote itself. Leading underscore marks it as
@@ -197,6 +215,13 @@ def _preserve_team_edits(existing: dict, architecture: dict) -> dict:
     so they rewrite as they always did — the edit is lost once, then
     protected from the next run onward.
 
+    A record that exists but does not mention a key is a third case, and it
+    reads the same way: govkit did not write that key, so a live value for
+    it came from somewhere else and is kept. `services` needs this — govkit
+    emits it only for a multi-service repo, so a team listing services in a
+    repo govkit reads as single-service has no record entry to differ from.
+    Without it their list would be dropped on the next write.
+
     `layers` describes `style`, so the two are kept coherent: a team that
     corrects only the style gets hints reseeded from the style they chose.
     Without that, the file would claim one architecture while scoping rules
@@ -211,9 +236,9 @@ def _preserve_team_edits(existing: dict, architecture: dict) -> dict:
 
     preserved: set[str] = set()
     for key in _TEAM_TUNABLE_ARCHITECTURE:
-        if key not in live or key not in recorded:
+        if key not in live:
             continue
-        if live[key] != recorded[key]:
+        if key not in recorded or live[key] != recorded[key]:
             architecture[key] = live[key]
             preserved.add(key)
 
@@ -282,7 +307,7 @@ def build_skill_context(target: Path, marker: dict, profile: RepoProfile | None 
     builds one during stack-overlay selection) can pass it in to skip a
     second walk of the target tree.
     """
-    from .detect import build_profile, detect_source_root
+    from .detect import build_profile
 
     if profile is None:
         profile = build_profile(target)
@@ -296,12 +321,24 @@ def build_skill_context(target: Path, marker: dict, profile: RepoProfile | None 
         # second notion of where the source lives. `""` means "no single
         # root" — layers at the target root, several sibling service
         # packages, or a layout govkit cannot read. It is not a directory.
-        "source_root": detect_source_root(target),
+        #
+        # Read off the profile, never re-derived from `target`: cmd_apply
+        # builds the profile before it writes anything, and codex's
+        # path-scoped rules create a folder per layer. Re-deriving here
+        # would describe govkit's own output instead of the team's repo.
+        "source_root": profile.detected_source_root,
         # deepcopy, not a reference: handing out the module-level dict lets a
         # caller mutating the result corrupt _STYLE_LAYERS for every later
         # install in the process.
         "layers": deepcopy(_STYLE_LAYERS.get(style, _STYLE_LAYERS["unknown"])),
     }
+    # Only for the case the flat fields cannot express. Absent — not an
+    # empty list — for a single-service repo, so every file written before
+    # #86 stays valid and `source_root: ""` with no `services` still reads
+    # as "govkit could not tell" rather than "there are zero services".
+    services = profile.detected_services
+    if services:
+        derived["services"] = [{"name": name, "root": root} for name, root in services]
     existing = _read_existing_context(target)
     # Independent copies. Sharing one object between the live block and the
     # provenance record makes yaml.safe_dump emit an anchor and an alias, so
@@ -389,6 +426,27 @@ def _safe_layers(value: object) -> dict[str, list[str]]:
     return normalized
 
 
+def _safe_services(value: object) -> list[ServiceRef]:
+    """Normalize `architecture.services` to a list of ServiceRef.
+
+    Every hand-edit that is not a list of two-string mappings degrades to
+    fewer services rather than raising: `services: orders` would splat into
+    characters under `list()`, a mapping iterates its keys, and an entry
+    missing `root` is a reference a consumer cannot act on. Half an entry is
+    worse than none — a skill would scope work to a service with no path.
+    """
+    if not isinstance(value, list):
+        return []
+    refs: list[ServiceRef] = []
+    for entry in value:
+        if not isinstance(entry, dict):
+            continue
+        name, root = entry.get("name"), entry.get("root")
+        if isinstance(name, str) and name and isinstance(root, str) and root:
+            refs.append(ServiceRef(name=name, root=root))
+    return refs
+
+
 def load_skill_context(target: Path) -> SkillContext | None:
     """Read .govkit/skill_context.yaml and return a typed SkillContext.
 
@@ -436,4 +494,5 @@ def load_skill_context(target: Path) -> SkillContext | None:
         llm=bool(data.get("llm")),
         pii_keywords=_safe_str_list(_safe_dict(data.get("pii")).get("keyword_list")),
         extensions=[e for e in extensions if isinstance(e, dict)] if isinstance(extensions, list) else [],
+        services=_safe_services(arch.get("services")),
     )

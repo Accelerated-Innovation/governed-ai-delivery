@@ -1,7 +1,13 @@
 # Multi-Service Skill Context Plan
 
-**Status:** In progress — 2026-08-03. Covers #86. Increment 1 done
-(derived `source_root`); increments 2–4 not started.
+**Status:** In progress — 2026-08-03. Covers #86. Increments 1–2 done
+(derived `source_root`, `services`); increments 3–4 not started.
+
+**Increment 3 is blocked** on a decision recorded under Follow-ups: codex's
+own path-scoped rules make a multi-service repo look single-service, so the
+`services` list survives `apply` but not a later `upgrade`. Teaching the
+skills to read a field that erases itself would be worse than not shipping
+it.
 
 Give `.govkit/skill_context.yaml` an honest source root and a way to say
 "this repo holds several services", so a skill can scope its work to one of
@@ -223,7 +229,7 @@ recording an older version — otherwise it silently proves nothing.)
 
 Commit: `fix(cli): derive skill_context source_root from the repo (#86)`
 
-### 2. `services` in the emitted context
+### 2. `services` in the emitted context — done
 
 1. Failing test: the multi-service layout emits two `services` entries with
    the right names and roots; single-service layouts emit none.
@@ -233,6 +239,49 @@ Commit: `fix(cli): derive skill_context source_root from the repo (#86)`
    defensive coercion the other fields get — a hand-edited `services:` that
    is a scalar, or holds non-dict entries, must not crash
    `load_skill_context`.
+
+Built on `_layer_root_candidates()`, per open question 1's answer: one walk,
+two readings. `detect_services` filters that list to candidates whose parent
+is `src/` or `Source/`, which is what stops `src/` itself — a source root
+holding the layers directly — from being reported as a service named "src".
+
+Three things the increment settled:
+
+- **Provenance needed a third case.** It compared a live value against the
+  record and preserved it when they differed, skipping any key the record
+  did not hold. `services` is the first field govkit writes only
+  *sometimes*, so a team listing services in a repo govkit reads as
+  single-service had no record entry to differ from, and their list was
+  dropped on the next write. A live key with no record entry now reads as
+  "govkit did not write this", which is the general form of the rule the
+  other three fields never needed.
+- **`services` is absent, never `[]`.** An empty list would erase the
+  distinction between "three services" and "govkit could not read this
+  repo", which both otherwise carry `source_root: ""`.
+- **Non-conforming siblings are omitted** — open question 3, answered by
+  doing: `src/legacy/` beside two real services is not listed, and one
+  conforming package beside a non-conforming one is the single-service case.
+  The omission is still silent, which is the part left open.
+
+**The end-to-end run found a defect the unit tests could not.** Codex places
+a path-scoped `AGENTS.md` inside each layer folder, and for a multi-service
+repo — where there is no single source root — those destinations stay
+root-relative, so `apply` *creates* root-level `api/`, `ports/`, `services/`
+and `adapters/`. `write_skill_context` runs after that, so re-deriving read
+the repo as flat single-service and emitted no services at all. Codex, one
+of three agents, silently got none of this feature.
+
+The cause is that `source_root` and `services` were observed at a different
+moment from `style` and `detected_signals`, which come from a `RepoProfile`
+built during stack selection, before a byte is written. Both now live on
+that profile, so all four facts describe the same repo — the team's, not the
+one govkit just modified. Increment 1 had the same split and got away with
+it: its value was `""` before and after.
+
+Verified with real `govkit apply` over **7 layouts × 3 agents**, diffed
+against the same runs from `main`: the only bytes that differ anywhere in
+an installed tree are the `services` block, and codex now matches the other
+two agents on every layout.
 
 Commit: `feat(cli): describe multi-service repos in skill_context (#86)`
 
@@ -308,9 +357,76 @@ Commit: `docs(backend): document the multi-service skill context (#86)`
    tunable like everything else in the architecture block.
 3. **Does anything need to stop a multi-service repo from having services
    with different shapes?** `src/orders/{api,…}` beside `src/legacy/` that is
-   not hexagonal at all. Detection would list only the conforming ones, which
-   is probably right, but it is a silent omission — the kind this repo has
-   learned to distrust.
+   not hexagonal at all. **Half-answered by increment 2:** detection lists
+   only the conforming packages, and that is right — `src/legacy/` is not a
+   service govkit can say anything useful about, and one conforming package
+   beside a non-conforming one is correctly the single-service case. Both are
+   tested.
+
+   What is still open is the part the original question worried about: the
+   omission is silent. Nothing in the emitted file or in `doctor` says
+   "there is a `src/legacy/` here that govkit did not list". A team reading
+   `services: [orders, billing]` has no way to tell whether that is the whole
+   repo. `doctor` is the natural place — it already reports what it examined
+   — and this should be settled before increment 3 teaches skills to plan
+   against the list.
+
+## Follow-ups
+
+### Codex's path-scoped rules break multi-service repos — blocks increment 3
+
+Two defects with one cause, both found by running `govkit apply` rather than
+by reading code. Neither is created by this plan; increment 2 is what made
+them visible.
+
+**1. The rules govern nothing.** In a `src/{orders,billing}/` repo,
+`detect_source_root` returns `""`, so `resolve_path_scoped_dests` leaves
+codex's destinations root-relative and `apply` writes `api/AGENTS.md`,
+`ports/AGENTS.md`, `services/AGENTS.md`, `adapters/AGENTS.md` and
+`security/AGENTS.md` at the repo root. Verified on a real install: there is
+**no `AGENTS.md` anywhere under `src/orders` or `src/billing`**. Codex
+resolves `AGENTS.md` upward from the file being edited, so a file at
+`src/orders/api/handlers.py` finds the top-level `AGENTS.md` and never the
+root `api/AGENTS.md`. Those five files govern no code at all.
+
+This is the same defect `resolve_path_scoped_dests` was written to fix for
+the `src/<package>/` layout, left unfixed for the multi-service one.
+
+**2. They then hide the services.** Those root-level folders make
+`_layer_root_candidates` match at the target root, so every later reading of
+the repo sees a flat single-service layout. Increment 2 fixed `apply` by
+observing before writing, but the folders are on disk permanently, so a
+later `upgrade` — which builds its profile after the install — derives no
+services and the list is dropped. Measured:
+
+| Agent | after `apply` | after `upgrade` |
+| --- | --- | --- |
+| claude-code | 2 services | 2 services |
+| codex | 2 services | **0** |
+| copilot | 2 services | 2 services |
+
+Nothing reads `services` yet, so the practical impact today is zero. That
+stops being true at increment 3, which is why it blocks it: a skill taught
+to read a field that erases itself on the next `upgrade` is worse than a
+skill that does not know about services.
+
+**Recommended fix: fan the path-scoped rules out per service.**
+`src/orders/api/AGENTS.md` and `src/billing/api/AGENTS.md` rather than one
+root copy. It puts the rules where codex will actually resolve them, and it
+creates no root-level layer folders, so the detection problem disappears
+with the defect that caused it. `detect_services` — which increment 2 adds —
+is exactly what makes it expressible; `resolve_path_scoped_dests` grows one
+branch. claude-code and copilot need no change: their `**/<layer>/**` globs
+already match at any depth, which is the accident recorded in Motivation §3.
+
+Two alternatives, both weaker. *Drop the path-scoped rules entirely for a
+multi-service repo* — smaller, and removes only files that demonstrably do
+nothing, but it leaves those services with no codex layer guidance. *Leave
+it* — increment 3 then has to treat `services` as unreliable on one agent.
+
+Either way, an install that already has the stale root folders keeps them:
+govkit does not delete files it did not write in the user's tree. Worth
+deciding whether `doctor` should name them.
 
 ## Out of scope
 

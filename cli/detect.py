@@ -109,6 +109,13 @@ class RepoProfile:
     detected_api_style: str | None = None
     detected_llm_signals: list[str] = field(default_factory=list)
     detected_architecture_signals: list[str] = field(default_factory=list)
+    # Where the layers live, observed at the same moment as the signals
+    # above. Callers that write these into a file must use the profile
+    # rather than re-deriving from the target: `apply` modifies the tree it
+    # is describing (codex creates a layer folder per path-scoped rule), so
+    # a second reading afterwards is a reading of govkit's own output.
+    detected_source_root: str = ""
+    detected_services: list[tuple[str, str]] = field(default_factory=list)
     # Internal: how many signals matched per language (drives confidence).
     _language_signal_counts: dict[str, int] = field(default_factory=dict)
 
@@ -459,17 +466,29 @@ def _source_folder_sets(target: Path) -> list[set[str]]:
     return sets
 
 
-def detect_source_root(target: Path) -> str:
-    """POSIX-relative directory holding the architecture layer folders.
+_PACKAGE_ROOTS = ("src", "Source")
 
-    `""` when the layers sit at the target root, when no layout is
-    recognisable, or when several sibling packages each look like a service
-    — callers then fall back to root-relative destinations rather than
-    guessing which service a rule belongs to.
 
-    Used to place codex's path-scoped `AGENTS.md` rules next to the code
-    they govern. claude-code and copilot need no equivalent: their rules
-    carry `**/<layer>/**` globs that match at any depth.
+def _layer_root_candidates(target: Path) -> list[Path]:
+    """Every directory under `target` that looks like a set of architecture
+    layers.
+
+    The single walk behind both `detect_source_root` and `detect_services`.
+    They ask different questions of the same list — "is there exactly one?"
+    and "which of these are service packages?" — and keeping the list in one
+    place is what stops the two answers disagreeing. Splitting it would let
+    a fingerprint, a skip-dir rule or the `Source/` sibling drift into one
+    function and not the other, and `skill_context.yaml` would then claim a
+    single source root *and* a set of services.
+
+    Returns `[target]` when the layers sit at the target root, and stops
+    there: a repo with both root-level layers and `src/<pkg>/` packages has
+    no coherent answer, so the root wins and nothing further is collected.
+    That is the behaviour `detect_source_root` has always had, preserved
+    deliberately rather than inherited.
+
+    Direct children only — `iterdir()` on `src/`, `Source/` and each of
+    their packages. Cost is fixed regardless of repo size.
     """
     fingerprints = (_HEXAGONAL_FOLDERS, _LAYERED_FOLDERS, _CLEAN_FOLDERS)
 
@@ -478,10 +497,10 @@ def detect_source_root(target: Path) -> str:
         return any(len(fp & names) >= 2 for fp in fingerprints)
 
     if _matches(target):
-        return ""
+        return [target]
 
     candidates: list[Path] = []
-    for root in (target / "src", target / "Source"):
+    for root in (target / name for name in _PACKAGE_ROOTS):
         if not root.is_dir():
             continue
         if _matches(root):
@@ -495,10 +514,56 @@ def detect_source_root(target: Path) -> str:
             p for p in packages
             if not p.name.startswith(".") and p.name not in _SKIP_DIRS and _matches(p)
         )
+    return candidates
 
-    if len(candidates) != 1:
+
+def detect_source_root(target: Path) -> str:
+    """POSIX-relative directory holding the architecture layer folders.
+
+    `""` when the layers sit at the target root, when no layout is
+    recognisable, or when several sibling packages each look like a service
+    — callers then fall back to root-relative destinations rather than
+    guessing which service a rule belongs to.
+
+    Used to place codex's path-scoped `AGENTS.md` rules next to the code
+    they govern, and written to `skill_context.yaml` so a skill knows where
+    the code lives. claude-code and copilot need no equivalent for rules:
+    those carry `**/<layer>/**` globs that match at any depth.
+    """
+    candidates = _layer_root_candidates(target)
+    # `[target]` is the layers-at-the-root case, whose relative path is "."
+    # rather than "". Both mean "no prefix", and only one of them is a value
+    # a caller can join onto a destination.
+    if len(candidates) != 1 or candidates[0] == target:
         return ""
     return candidates[0].relative_to(target).as_posix()
+
+
+def detect_services(target: Path) -> list[tuple[str, str]]:
+    """`(name, root)` for each service package, or `[]` when there is one.
+
+    A *service* is a package under `src/` or `Source/` that holds its own
+    architecture layers — the `src/{orders,billing}/` shape. `src/` holding
+    the layers directly is a source root, not a service, so it is never
+    named; a repo whose only service is `src/mypkg` is the documented
+    single-service layout and is described by `detect_source_root` alone.
+
+    `name` is the package name: derivable, stable, and what the code
+    already calls itself. Teams that want a friendlier label edit
+    `architecture.services` in skill_context.yaml, which the provenance
+    mechanism preserves like every other tunable.
+
+    Packages that do not conform — `src/legacy/` next to two real services —
+    are omitted. That omission is silent here by design; it is the emitted
+    file, not this function, that has to make it visible.
+    """
+    package_roots = {target / name for name in _PACKAGE_ROOTS}
+    services = [
+        c for c in _layer_root_candidates(target) if c.parent in package_roots
+    ]
+    if len(services) < 2:
+        return []
+    return [(c.name, c.relative_to(target).as_posix()) for c in services]
 
 
 def _detect_architecture(target: Path, prof: RepoProfile) -> None:
@@ -636,5 +701,7 @@ def build_profile(target: Path) -> RepoProfile:
     _detect_frameworks(target, prof)
     _detect_ci(target, prof)
     _detect_architecture(target, prof)
+    prof.detected_source_root = detect_source_root(target)
+    prof.detected_services = detect_services(target)
     _detect_llm_signals(target, prof)
     return prof

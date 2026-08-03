@@ -22,6 +22,8 @@ class TestRepoProfileShape:
         assert prof.detected_api_style is None
         assert prof.detected_llm_signals == []
         assert prof.detected_architecture_signals == []
+        assert prof.detected_source_root == ""
+        assert prof.detected_services == []
 
 
 class TestLanguageDetection:
@@ -751,3 +753,213 @@ class TestFindRecursivePruning:
                 f"_find_recursive walked into a skip dir: {d}; "
                 f"pruning must happen via dirnames[:] mutation"
             )
+
+
+# ---------------------------------------------------------------------------
+# Service detection — #86
+# ---------------------------------------------------------------------------
+
+BACKEND_LAYERS = ("api", "ports", "services", "models", "adapters", "common")
+
+
+def _hexagonal_package(target, prefix: str) -> None:
+    """Create one hexagonal package rooted at `prefix` ("" = target root)."""
+    base = target / prefix if prefix else target
+    for layer in BACKEND_LAYERS:
+        (base / layer).mkdir(parents=True, exist_ok=True)
+
+
+class TestDetectServices:
+    """`detect_services` names the service packages in a multi-service repo.
+
+    It reads the same candidate roots `detect_source_root` walks — the work
+    that function already did and threw away whenever it found more than one
+    (see the plan's open question 1). The two answers must stay consistent,
+    which is what `TestSourceRootAndServicesAgree` below is for.
+    """
+
+    def test_two_service_packages_are_both_named(self, tmp_path):
+        from cli.detect import detect_services
+
+        for svc in ("orders", "billing"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+
+        assert detect_services(tmp_path) == [
+            ("billing", "src/billing"),
+            ("orders", "src/orders"),
+        ]
+
+    def test_three_service_packages_are_all_named(self, tmp_path):
+        """Two is the case #86 reports; nothing may cap the list at two."""
+        from cli.detect import detect_services
+
+        for svc in ("billing", "orders", "shipping"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+
+        assert [name for name, _ in detect_services(tmp_path)] == [
+            "billing", "orders", "shipping",
+        ]
+
+    def test_documented_single_package_is_not_a_service_list(self, tmp_path):
+        """One package is the canonical single-service layout, described by
+        `source_root` alone. Emitting a one-entry list would make every
+        conforming repo look multi-service."""
+        from cli.detect import detect_services
+
+        _hexagonal_package(tmp_path, "src/mypkg")
+
+        assert detect_services(tmp_path) == []
+
+    def test_flat_under_src_is_not_a_service(self, tmp_path):
+        """`src/` holding the layers directly is a source root, not a service
+        package. Naming it would put a service called "src" in the file."""
+        from cli.detect import detect_services
+
+        _hexagonal_package(tmp_path, "src")
+
+        assert detect_services(tmp_path) == []
+
+    def test_layers_at_the_target_root_are_not_a_service(self, tmp_path):
+        from cli.detect import detect_services
+
+        _hexagonal_package(tmp_path, "")
+
+        assert detect_services(tmp_path) == []
+
+    def test_unrecognisable_repo_has_no_services(self, tmp_path):
+        from cli.detect import detect_services
+
+        (tmp_path / "docs").mkdir()
+
+        assert detect_services(tmp_path) == []
+
+    def test_non_conforming_sibling_is_omitted(self, tmp_path):
+        """`src/legacy/` that is not hexagonal at all sits beside two real
+        services. Only the conforming packages are listed — the plan's open
+        question 3."""
+        from cli.detect import detect_services
+
+        for svc in ("orders", "billing"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+        (tmp_path / "src" / "legacy" / "scripts").mkdir(parents=True)
+
+        assert [name for name, _ in detect_services(tmp_path)] == ["billing", "orders"]
+
+    def test_one_conforming_package_beside_a_non_conforming_one(self, tmp_path):
+        """Only one service survives the filter, so this is the single-service
+        case and gets no list."""
+        from cli.detect import detect_services
+
+        _hexagonal_package(tmp_path, "src/orders")
+        (tmp_path / "src" / "legacy" / "scripts").mkdir(parents=True)
+
+        assert detect_services(tmp_path) == []
+
+    def test_skip_dirs_are_never_services(self, tmp_path):
+        from cli.detect import detect_services
+
+        for svc in ("orders", "billing"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+        _hexagonal_package(tmp_path, "src/node_modules")
+        _hexagonal_package(tmp_path, "src/.hidden")
+
+        assert [name for name, _ in detect_services(tmp_path)] == ["billing", "orders"]
+
+    def test_roots_are_posix_relative_to_the_target(self, tmp_path):
+        """Windows separators in an emitted YAML path would be wrong for the
+        agents that read it."""
+        from cli.detect import detect_services
+
+        for svc in ("orders", "billing"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+
+        for _name, root in detect_services(tmp_path):
+            assert "\\" not in root
+            assert not root.startswith("/")
+
+
+class TestSourceRootAndServicesAgree:
+    """One walk, two readings — the invariant that binds them.
+
+    `detect_source_root` and `detect_services` read the same candidate list.
+    If they ever disagree, `skill_context.yaml` states both a single root and
+    a set of services, which is the contradiction #86 exists to remove.
+    """
+
+    # layout -> (dirs to create, expected source_root, expected service count)
+    LAYOUTS = {
+        "flat-at-root":       ([""], "", 0),
+        "flat-under-src":     (["src"], "src", 0),
+        "documented-package": (["src/mypkg"], "src/mypkg", 0),
+        "two-services":       (["src/orders", "src/billing"], "", 2),
+        "three-services":     (["src/orders", "src/billing", "src/shipping"], "", 3),
+    }
+
+    @pytest.mark.parametrize("layout", sorted(LAYOUTS))
+    def test_both_answers_match_the_layout(self, tmp_path, layout):
+        from cli.detect import detect_services, detect_source_root
+
+        dirs, expected_root, expected_count = self.LAYOUTS[layout]
+        for prefix in dirs:
+            _hexagonal_package(tmp_path, prefix)
+
+        assert detect_source_root(tmp_path) == expected_root
+        assert len(detect_services(tmp_path)) == expected_count
+
+    @pytest.mark.parametrize("layout", sorted(LAYOUTS))
+    def test_services_are_listed_only_when_there_is_no_single_root(self, tmp_path, layout):
+        """The contradiction this pair must never produce: a file naming one
+        source root *and* a set of services."""
+        from cli.detect import detect_services, detect_source_root
+
+        dirs, _root, _count = self.LAYOUTS[layout]
+        for prefix in dirs:
+            _hexagonal_package(tmp_path, prefix)
+
+        if detect_services(tmp_path):
+            assert detect_source_root(tmp_path) == "", (
+                f"{layout}: services listed alongside a single source root"
+            )
+
+    def test_the_layout_table_asserts_both_outcomes(self):
+        """Guard against this table drifting to one shape. Written as counts
+        rather than "some layout has services", so a table that lost its
+        multi-service rows — or its single-service ones — fails here instead
+        of quietly making the parametrized tests vacuous."""
+        counts = {count for _dirs, _root, count in self.LAYOUTS.values()}
+        assert len(self.LAYOUTS) == 5
+        assert 0 in counts
+        assert {c for c in counts if c > 1} == {2, 3}
+        assert {root for _d, root, _c in self.LAYOUTS.values()} == {"", "src", "src/mypkg"}
+
+    def test_a_source_root_beside_a_foreign_package_names_neither(self, tmp_path):
+        """`src/` holding layers directly, next to `Source/pkg` that also
+        does. Two candidates, so no single root — but only one of them is a
+        service package, and one service is not a multi-service repo. The
+        honest answer is "govkit cannot tell", not a one-entry list naming
+        `src` as a service.
+
+        This is the case that decided `detect_services` filters candidates by
+        their parent rather than trusting the count.
+        """
+        from cli.detect import detect_services, detect_source_root
+
+        _hexagonal_package(tmp_path, "src")
+        _hexagonal_package(tmp_path, "Source/pkg")
+
+        assert detect_source_root(tmp_path) == ""
+        assert detect_services(tmp_path) == []
+
+    def test_root_layers_win_over_service_packages(self, tmp_path):
+        """A repo with layers at the root *and* `src/{orders,billing}/` has no
+        coherent answer. `detect_source_root` has always stopped at the root
+        in that case; the shared walk keeps that rather than inheriting it by
+        accident, and services stay unlisted."""
+        from cli.detect import detect_services, detect_source_root
+
+        _hexagonal_package(tmp_path, "")
+        for svc in ("orders", "billing"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+
+        assert detect_source_root(tmp_path) == ""
+        assert detect_services(tmp_path) == []
