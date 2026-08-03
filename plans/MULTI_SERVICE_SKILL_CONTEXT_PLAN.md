@@ -502,17 +502,23 @@ That definition needs deciding before the check is written, which is why 2b
 shipped without it. Lifted into **#120** rather than left here, since an open
 question inside a plan marked Implemented is where things go to be forgotten.
 
-### Codex and copilot planning skills assume hexagonal — #119
+### ~~Codex and copilot planning skills assume hexagonal~~ — closed by #119
 
 Found while adding increment 3's section and deliberately not fixed there.
 claude-code's copies of `spec-planning` and `implementation-plan` read
-`architecture.layers`; codex's and copilot's name `ports/inbound/`,
+`architecture.layers`; codex's and copilot's named `ports/inbound/`,
 `services/` and `adapters/` outright. On a Clean or layered repo — where
 govkit correctly records `Presentation/`, `Application/`, `Infrastructure/` —
-two of three agents plan against folders that do not exist.
+two of three agents planned against folders that do not exist. The same held
+for every `type: data` install, which ships these skills and gets
+`models/staging/`.
 
-The parity suite cannot see it: it pins frontmatter plus a few named
-sections, and skill bodies are otherwise free to differ.
+The parity suite could not see it: it pins frontmatter plus a few named
+sections, and skill bodies are otherwise free to differ. #119 added the
+missing invariant — every backend planning skill must reference
+`architecture.layers` and must assert no architecture style — which is the
+narrow, checkable form of "the three agents agree on where the architecture
+comes from".
 
 ### D018 covered only half of what it was shaped for — closed by #83
 

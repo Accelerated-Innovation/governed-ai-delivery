@@ -5,6 +5,7 @@ added to all architecture-preflight SKILL.md files across the three agents
 Per [[feedback_agent_parity]], all 3 agents must ship identical rules and
 skills. This test pins that invariant for the new section."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -305,3 +306,169 @@ def test_ui_planning_skills_do_not_gain_the_section():
     ]
     present = [p for p in ui_paths if p.is_file() and SERVICES_HEADING in p.read_text(encoding="utf-8")]
     assert not present, f"UI skills carry the multi-service section: {present}"
+
+
+# ---------------------------------------------------------------------------
+# Planning skills describe the project's own architecture — #119
+# ---------------------------------------------------------------------------
+
+# Tokens that assert a specific architecture as this project's, rather than
+# reading the one govkit detected. Matched case-insensitively on word
+# boundaries, so `Hexagonal architecture`, `HEXAGONAL` and a bare `hexagonal`
+# are caught alongside the exact phrasing #119 removed.
+#
+# The bare style ids are here because they are what `architecture.style`
+# holds: a skill that names one has decided the answer instead of reading it.
+# `clean` and `layered` are ordinary English, so banning them costs the
+# occasional reworded sentence — accepted deliberately. A false positive is
+# loud and fixable in one edit; a false negative is silent, and this whole
+# check exists because a silent one shipped.
+#
+# `ports/inbound` and `ports/outbound` are hexagonal-only package names.
+# A bare `services/` deliberately is **not** banned: the multi-service
+# section legitimately uses `services/pricing.py` to show a path scoped to a
+# service root, which is a claim about paths, not about this repo's layers.
+_STYLE_ASSERTIONS = (
+    "hexagonal",
+    "clean",
+    "layered",
+    "dbt-layered",
+    "ports/inbound",
+    "ports/outbound",
+)
+
+_STYLE_ASSERTION_RE = re.compile(
+    "|".join(rf"(?<![\w-]){re.escape(token)}(?![\w-])" for token in _STYLE_ASSERTIONS),
+    re.IGNORECASE,
+)
+
+
+def _prose(text: str) -> str:
+    """`text` with fenced code blocks removed.
+
+    Same split `tests/test_stack_neutral_docs.py` makes, for the same reason:
+    a rule must be architecture-neutral, while an *example* may be concrete.
+    A fenced snippet showing `style: hexagonal` documents the file format a
+    skill has to read; the same words in prose assert what this repo is.
+    """
+    kept, in_fence = [], False
+    for line in text.splitlines():
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if not in_fence:
+            kept.append(line)
+    return "\n".join(kept)
+
+
+@pytest.mark.parametrize("skill_path", PLANNING_SKILL_PATHS, ids=_planning_id)
+def test_planning_skill_reads_the_recorded_architecture(skill_path: Path):
+    """govkit detects the style and writes the layer folders down. A planning
+    skill that hardcodes folder names instead plans against packages the repo
+    may not have."""
+    text = skill_path.read_text(encoding="utf-8")
+    for token in (".govkit/skill_context.yaml", "architecture.layers"):
+        assert token in text, (
+            f"{skill_path.relative_to(REPO_ROOT)} never references {token}"
+        )
+
+
+@pytest.mark.parametrize("skill_path", PLANNING_SKILL_PATHS, ids=_planning_id)
+def test_planning_skill_asserts_no_architecture_style(skill_path: Path):
+    """The same six files ship to every backend stack and every layout. A
+    repo govkit reads as `clean` gets `Presentation/`, `Application/` and
+    `Infrastructure/`; one it reads as `dbt-layered` gets `models/staging/`.
+    Telling either agent to produce `ports/inbound/` names folders that do
+    not exist."""
+    offenders = sorted({
+        m.group(0).lower()
+        for m in _STYLE_ASSERTION_RE.finditer(_prose(skill_path.read_text(encoding="utf-8")))
+    })
+    assert not offenders, (
+        f"{skill_path.relative_to(REPO_ROOT)} asserts an architecture style "
+        f"instead of reading the detected one: {offenders}. Read "
+        f"`architecture.style` and `architecture.layers` from "
+        f".govkit/skill_context.yaml instead. If this is a false positive on "
+        f"ordinary English, reword it — the ban is intentionally blunt."
+    )
+
+
+# (text, should_match) — what the matcher must and must not catch. Written as
+# a table so trimming the ban list to whatever happens to pass fails here.
+_STYLE_MATCHER_CASES = [
+    # The exact wording #119 removed.
+    ("3. Identify required design elements aligned to Hexagonal Architecture:", True),
+    ("- Inbound ports (`ports/inbound/`)", True),
+    ("- Outbound ports (`ports/outbound/**`)", True),
+    ("- Follow Hexagonal Architecture (ports + adapters)", True),
+    # Capitalisation variants — the bypass a case-sensitive check allowed.
+    ("Follow Hexagonal architecture", True),
+    ("follow HEXAGONAL ARCHITECTURE", True),
+    # Bare style ids: what `architecture.style` holds. Naming one is deciding
+    # the answer rather than reading it.
+    ("This project uses a hexagonal layout.", True),
+    ("Assume a clean layout.", True),
+    ("Assume a layered layout.", True),
+    ("Assume dbt-layered.", True),
+    # Must NOT match: the multi-service example names a path inside a
+    # service, which is a claim about paths, not about this repo's layers.
+    ("   `src/orders/services/pricing.py`.", False),
+    ("- Domain logic modules and their services", False),
+    # Word boundaries: no firing inside longer words.
+    ("Cleanup of the task list is out of scope.", False),
+    ("Apply the guidance layer-by-layer.", False),
+    ("Read the multilayered guidance.", False),
+    # The wording that replaced it must survive.
+    ("   - Read `.govkit/skill_context.yaml` for the architecture style and the", False),
+    ("     folder hints under `architecture.layers` (inbound / outbound / domain).", False),
+]
+
+
+@pytest.mark.parametrize(
+    "text, should_match", _STYLE_MATCHER_CASES,
+    ids=[f"{'catch' if m else 'allow'}:{t[:38].strip()}" for t, m in _STYLE_MATCHER_CASES],
+)
+def test_the_style_matcher_catches_the_defect_and_nothing_else(text, should_match):
+    assert bool(_STYLE_ASSERTION_RE.search(_prose(text))) is should_match
+
+
+def test_a_fenced_example_may_name_a_style():
+    """Documenting the file format is not asserting an architecture. A skill
+    showing what `.govkit/skill_context.yaml` looks like has to be able to
+    put a real value in it — the same split `test_stack_neutral_docs.py`
+    makes between a rule and an illustration."""
+    fenced = "Read it:\n\n```yaml\narchitecture:\n  style: hexagonal\n```\n\nThen plan.\n"
+    assert not _STYLE_ASSERTION_RE.search(_prose(fenced))
+    # ...but the same sentence outside a fence is still caught.
+    assert _STYLE_ASSERTION_RE.search(_prose("The style is hexagonal.\n"))
+
+
+def test_the_style_assertion_list_still_describes_the_original_defect():
+    """Guard against the ban list being trimmed to whatever happens to pass.
+    Every id here is a value `architecture.style` can hold, and the two
+    package names were in codex's and copilot's copies before #119."""
+    assert {"hexagonal", "clean", "layered", "dbt-layered"} <= set(_STYLE_ASSERTIONS)
+    assert {"ports/inbound", "ports/outbound"} <= set(_STYLE_ASSERTIONS)
+    # The ban must not grow to forbid the multi-service example.
+    assert not any("services/pricing" in token for token in _STYLE_ASSERTIONS)
+
+
+def test_architecture_guidance_parity_across_agents():
+    """The three agents may phrase their skills differently, but they must
+    not disagree about *where this project's layers come from*. #119 existed
+    because claude-code read the recorded architecture and the other two
+    asserted hexagonal — a divergence the frontmatter-and-named-sections
+    parity checks cannot see."""
+    for skill in ("spec-planning", "implementation-plan"):
+        refs = {}
+        for agent in ("claude-code", "codex", "copilot"):
+            text = (REPO_ROOT / "agents" / agent / "skills" / "backend" / skill
+                    / "SKILL.md").read_text(encoding="utf-8")
+            refs[agent] = (
+                "architecture.layers" in text,
+                bool(_STYLE_ASSERTION_RE.search(_prose(text))),
+            )
+        assert len(set(refs.values())) == 1, (
+            f"{skill}: agents disagree on where the architecture comes from: {refs}"
+        )
+        assert refs["claude-code"] == (True, False)
