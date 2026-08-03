@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILL_PATHS = [
     REPO_ROOT / "agents" / agent / "skills" / layer / "architecture-preflight" / "SKILL.md"

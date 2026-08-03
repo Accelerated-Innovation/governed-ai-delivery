@@ -50,6 +50,13 @@ root_package = "myservice"
 #                     (with root_packages = ["orders", "billing"] above)
 # The layer list is identical either way — only the container list grows.
 #
+# You do not have to work the names out by hand. `.govkit/skill_context.yaml`
+# records what govkit detected under `architecture.services` — one entry per
+# service, each carrying the package `name` to use here and its `root`. An
+# empty `architecture.source_root` alongside that list is govkit saying this
+# repo has no single source root because it holds several services. See
+# docs/backend/architecture/REPO_STRUCTURE_README.md.
+#
 # Violations are blocking — they indicate a boundary breach.
 [[tool.importlinter.contracts]]
 name = "Hexagonal Architecture"

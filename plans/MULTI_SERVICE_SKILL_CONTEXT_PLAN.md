@@ -1,12 +1,14 @@
 # Multi-Service Skill Context Plan
 
-**Status:** In progress — 2026-08-03. Covers #86. Increments 1, 2 and 2b done
-(derived `source_root`, `services`, per-service codex rules + doctor D018);
-increments 3–4 not started.
+**Status:** Implemented — 2026-08-03, all increments. Derived `source_root`
+(#117), `services` + per-service codex rules + doctor D018 (#118), planning
+skills that ask which service, and the docs. Closes #86.
 
-Increment 2b unblocked increment 3: codex's path-scoped rules now fan out per
-service, so they govern the code they describe and no longer make a
-multi-service repo read as single-service.
+One increment was not in the plan. **2b** came out of increment 2's
+end-to-end run, which found that codex's path-scoped rules governed no code
+in a multi-service repo and that the folders they created made every later
+reading of the repo see a flat single-service layout. That would have made
+increment 3 unsafe — a skill taught to read a field that erases itself.
 
 Give `.govkit/skill_context.yaml` an honest source root and a way to say
 "this repo holds several services", so a skill can scope its work to one of
@@ -359,7 +361,7 @@ the right advice for each.
 
 Commit: `fix(cli): scope codex path-scoped rules to each service (#86)`
 
-### 3. Skills ask which service
+### 3. Skills ask which service — done
 
 1. Failing test in `tests/test_agent_skills.py`: `spec-planning` and
    `implementation-plan` instruct the agent to check
@@ -367,14 +369,43 @@ Commit: `fix(cli): scope codex path-scoped rules to each service (#86)`
    names none, to ask before planning.
 2. Edit the three agents' copies in lockstep; frontmatter stays byte-identical.
 
+Two things beyond the plan as written:
+
+- **Naming the service is not enough.** The section also requires the
+  chosen service's `root` to prefix every path in the output. Without it a
+  plan says `services/pricing.py`, which is a folder that does not exist in
+  a repo whose only services folders are `src/orders/services/` and
+  `src/billing/services/`. Pinned by a test asserting the section shows a
+  scoped path.
+- **Placed before the inputs section, not appended.** The question has to be
+  resolved before planning starts. That position also keeps the block
+  extractable for the parity test — the next heading is `## `, so the
+  comparison covers the section and nothing after it. Appending would have
+  swallowed the trailing `### Data projects` note in the spec-planning
+  files, and the parity test would have failed for a reason that had
+  nothing to do with the section.
+
+UI copies deliberately untouched, with a test asserting they stay that way.
+
 Commit: `feat(skills): scope planning to one service in multi-service repos (#86)`
 
-### 4. Documentation
+### 4. Documentation — done
 
 1. `docs/backend/architecture/REPO_STRUCTURE_README.md`: the multi-service
    shape and what `skill_context` says about it.
 2. Cross-reference the import-linter reference's `containers` guidance, which
    already documents the same layout from the enforcement side.
+
+The cross-reference runs both ways: the reference file now points at
+`architecture.services` as the place the container names are already
+recorded, so an adopter copies them rather than working them out.
+
+`REPO_STRUCTURE_README.md` is **stack-agnostic**, so it must not name a
+boundary tool — `tests/test_layer_vocabulary.py` enforces that and the doc
+is in its scanned set. The boundary bullet therefore describes what the
+reference contract does and defers to `TECH_STACK.md` for which tool this
+stack uses, per the convention #104 established. Worth recording because
+the obvious draft named the tool and would have failed the check.
 
 Commit: `docs(backend): document the multi-service skill context (#86)`
 
