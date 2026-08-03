@@ -305,3 +305,83 @@ def test_ui_planning_skills_do_not_gain_the_section():
     ]
     present = [p for p in ui_paths if p.is_file() and SERVICES_HEADING in p.read_text(encoding="utf-8")]
     assert not present, f"UI skills carry the multi-service section: {present}"
+
+
+# ---------------------------------------------------------------------------
+# Planning skills describe the project's own architecture — #119
+# ---------------------------------------------------------------------------
+
+# Phrases that assert a specific architecture style as this project's. Each
+# appears only in the hardcoded lists #119 removed — `ports/inbound` and
+# `ports/outbound` are hexagonal-only package names, and naming a style
+# outright contradicts a repo govkit detected as clean or layered.
+#
+# Deliberately narrow. A bare `services/` cannot be banned: the multi-service
+# section legitimately uses `services/pricing.py` as an example of scoping a
+# path to a service root, which is a claim about paths, not about layers.
+_STYLE_ASSERTIONS = (
+    "Hexagonal Architecture",
+    "Clean Architecture",
+    "Layered Architecture",
+    "ports/inbound",
+    "ports/outbound",
+)
+
+
+@pytest.mark.parametrize("skill_path", PLANNING_SKILL_PATHS, ids=_planning_id)
+def test_planning_skill_reads_the_recorded_architecture(skill_path: Path):
+    """govkit detects the style and writes the layer folders down. A planning
+    skill that hardcodes folder names instead plans against packages the repo
+    may not have."""
+    text = skill_path.read_text(encoding="utf-8")
+    for token in (".govkit/skill_context.yaml", "architecture.layers"):
+        assert token in text, (
+            f"{skill_path.relative_to(REPO_ROOT)} never references {token}"
+        )
+
+
+@pytest.mark.parametrize("skill_path", PLANNING_SKILL_PATHS, ids=_planning_id)
+def test_planning_skill_asserts_no_architecture_style(skill_path: Path):
+    """The same six files ship to every backend stack and every layout. A
+    repo govkit reads as `clean` gets `Presentation/`, `Application/` and
+    `Infrastructure/` — telling its agent to produce `ports/inbound/` names
+    folders that do not exist."""
+    text = skill_path.read_text(encoding="utf-8")
+    offenders = [phrase for phrase in _STYLE_ASSERTIONS if phrase in text]
+    assert not offenders, (
+        f"{skill_path.relative_to(REPO_ROOT)} asserts an architecture style "
+        f"instead of reading the detected one: {offenders}"
+    )
+
+
+def test_the_style_assertion_list_still_catches_the_original_defect():
+    """Guard against the ban list being trimmed to whatever happens to pass.
+    Every phrase here was present in codex's or copilot's copies before #119;
+    a list that no longer describes that defect is not protecting against it.
+    """
+    assert "Hexagonal Architecture" in _STYLE_ASSERTIONS
+    assert "ports/inbound" in _STYLE_ASSERTIONS
+    # And the ban must not be so broad it forbids the multi-service example,
+    # which names a path inside a service rather than a layer of this repo.
+    assert not any("services/pricing" in phrase for phrase in _STYLE_ASSERTIONS)
+
+
+def test_architecture_guidance_parity_across_agents():
+    """The three agents may phrase their skills differently, but they must
+    not disagree about *where this project's layers come from*. #119 existed
+    because claude-code read the recorded architecture and the other two
+    asserted hexagonal — a divergence the frontmatter-and-named-sections
+    parity checks cannot see."""
+    for skill in ("spec-planning", "implementation-plan"):
+        refs = {}
+        for agent in ("claude-code", "codex", "copilot"):
+            text = (REPO_ROOT / "agents" / agent / "skills" / "backend" / skill
+                    / "SKILL.md").read_text(encoding="utf-8")
+            refs[agent] = (
+                "architecture.layers" in text,
+                any(p in text for p in _STYLE_ASSERTIONS),
+            )
+        assert len(set(refs.values())) == 1, (
+            f"{skill}: agents disagree on where the architecture comes from: {refs}"
+        )
+        assert refs["claude-code"] == (True, False)
