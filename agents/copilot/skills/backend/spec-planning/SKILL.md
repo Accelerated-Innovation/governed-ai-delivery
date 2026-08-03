@@ -5,6 +5,37 @@ description: Generate a feature plan (plan.md) and eval_criteria.yaml from NFRs 
 
 Plan the implementation of the named feature. When invoked, determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
+## Multi-service repos
+
+Read `.govkit/skill_context.yaml` before planning. When it lists more than
+one entry under `architecture.services`, this repo holds several services
+and every path in your output has to land inside one of them:
+
+```yaml
+architecture:
+  source_root: ''
+  services:
+    - name: billing
+      root: src/billing
+    - name: orders
+      root: src/orders
+```
+
+1. Work out which service the feature belongs to. Take it from the request
+   when it names one — by service name, or by a path under that service's
+   `root`.
+2. If the request names none, **ask which service to plan for** and list the
+   names. Do not guess, and do not plan across all of them at once.
+3. Prefix every file path in your output with that service's `root`. A task
+   touching `services/pricing.py` in the `orders` service is
+   `src/orders/services/pricing.py`.
+4. Name the chosen service in the plan summary, so a reader knows which part
+   of the repo the plan applies to.
+
+When `architecture.services` is absent, the repo holds a single service.
+Use `architecture.source_root` as the prefix instead — an empty value means
+the layer folders sit at the repo root and paths need no prefix.
+
 ## Inputs to read
 
 Feature specs:
