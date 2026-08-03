@@ -282,7 +282,7 @@ def build_skill_context(target: Path, marker: dict, profile: RepoProfile | None 
     builds one during stack-overlay selection) can pass it in to skip a
     second walk of the target tree.
     """
-    from .detect import build_profile
+    from .detect import build_profile, detect_source_root
 
     if profile is None:
         profile = build_profile(target)
@@ -292,7 +292,11 @@ def build_skill_context(target: Path, marker: dict, profile: RepoProfile | None 
     style = _infer_architecture_style(profile)
     derived = {
         "style": style,
-        "source_root": "src/",
+        # The same answer codex rule placement already uses, rather than a
+        # second notion of where the source lives. `""` means "no single
+        # root" — layers at the target root, several sibling service
+        # packages, or a layout govkit cannot read. It is not a directory.
+        "source_root": detect_source_root(target),
         # deepcopy, not a reference: handing out the module-level dict lets a
         # caller mutating the result corrupt _STYLE_LAYERS for every later
         # install in the process.
@@ -412,7 +416,10 @@ def load_skill_context(target: Path) -> SkillContext | None:
     extensions = data.get("extensions")
     return SkillContext(
         architecture_style=arch.get("style", "unknown") if isinstance(arch.get("style"), str) else "unknown",
-        source_root=arch.get("source_root", "src/") if isinstance(arch.get("source_root"), str) else "src/",
+        # Absent or malformed reads as "govkit cannot tell", the same thing
+        # the derivation's `""` means. Defaulting to a directory would have
+        # the loader invent a source root for a file that never named one.
+        source_root=arch.get("source_root") if isinstance(arch.get("source_root"), str) else "",
         detected_signals=_safe_str_list(arch.get("detected_signals")),
         layers=_safe_layers(arch.get("layers")),
         stack_id=stack.get("id") if isinstance(stack.get("id"), str) else None,

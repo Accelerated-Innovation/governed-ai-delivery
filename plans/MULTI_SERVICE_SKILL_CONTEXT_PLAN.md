@@ -1,6 +1,7 @@
 # Multi-Service Skill Context Plan
 
-**Status:** Draft — 2026-08-02. Covers #86. No implementation started.
+**Status:** In progress — 2026-08-03. Covers #86. Increment 1 done
+(derived `source_root`); increments 2–4 not started.
 
 Give `.govkit/skill_context.yaml` an honest source root and a way to say
 "this repo holds several services", so a skill can scope its work to one of
@@ -180,7 +181,7 @@ multi-service repo".
 Each is independently demonstrable and starts with failing tests. Payload
 edits land for **all three agents in lockstep**; run `pytest -k parity`.
 
-### 1. Honest `source_root`
+### 1. Honest `source_root` — done
 
 1. Failing test in `tests/test_skill_context.py`: an applied install's
    `architecture.source_root` equals `detect_source_root(target)` for the
@@ -192,6 +193,33 @@ edits land for **all three agents in lockstep**; run `pytest -k parity`.
 
 No new representation — this alone makes the file stop lying, and is
 revertible on its own.
+
+Two things the increment settled beyond the plan as written:
+
+- **The loader's default moved too.** `load_skill_context` defaulted a
+  missing or malformed `source_root` to `"src/"`, which is the same
+  fabrication on the read side: a file that never says where the code lives
+  does not license the loader to name a directory. It now returns `""` —
+  the "govkit cannot tell" the derivation uses.
+- **Three of the five test layouts derive `""`**, so a table asserting only
+  `emitted == detect_source_root(target)` would pass against a derivation
+  that returned `""` unconditionally. The layouts carry written-out expected
+  values, and a completeness test asserts the table still distinguishes
+  three distinct answers rather than collapsing or emptying.
+
+Verified against real `govkit apply` runs over 5 layouts × 3 agents, diffed
+against the same runs from `main`. **The only bytes that change anywhere in
+an installed tree are the two `source_root` lines** — the live field and the
+provenance record. Rule globs, skill templating, codex's `AGENTS.md`
+placement and doctor's output are all identical, which is the
+"`rule_templating` is unchanged" item under Verification, measured rather
+than argued.
+
+The migration was checked on real installs produced by pre-change code, via
+both `apply` and `upgrade`: an untouched `src/` becomes `src/mypkg`, a
+hand-edited `services/` survives. (`upgrade` no-ops when the marker's
+version already matches the running govkit, so that check needs a marker
+recording an older version — otherwise it silently proves nothing.)
 
 Commit: `fix(cli): derive skill_context source_root from the repo (#86)`
 
@@ -242,11 +270,38 @@ Commit: `docs(backend): document the multi-service skill context (#86)`
 
 ## Open questions
 
-1. **Does `detect_services` belong in `detect.py` or should
-   `detect_source_root` return both?** They walk the same candidates and
-   currently that work is thrown away. One function returning
-   `(root, services)` avoids a second traversal at the cost of a wider
-   signature on a function `install_common` calls for one value.
+1. ~~**Does `detect_services` belong in `detect.py` or should
+   `detect_source_root` return both?**~~ **Neither — extract the shared
+   candidate walk, keep two thin public functions over it.** Answered
+   2026-08-03, before increment 1.
+
+   The question as posed prices the wrong thing. The "second traversal" is
+   `Path.iterdir()` on `src/`, `Source/` and each direct child — no
+   recursion, once per install. Increment 1 measured it at nothing
+   noticeable against a `govkit apply` that copies a hundred files. Saving
+   it is not a reason to widen a signature.
+
+   The real argument for one pass is **Unique**: the invariant binding the
+   two answers — `source_root` is `""` exactly when the candidate list does
+   not hold one entry, and `services` is populated exactly when it holds
+   more than one — has to live somewhere. Two independent walks can drift
+   on a fingerprint, a skip-dir rule, or the `Source/` sibling, and nothing
+   would notice.
+
+   A `(root, services)` tuple buys that at a real cost: `install_common`
+   wants one value, tuple returns invite positional-unpack mistakes, and
+   the existing call site changes for no benefit to itself. A private
+   `_layer_root_candidates(target) -> list[Path]` gets the same single
+   source of truth with **no** caller changing. `detect_source_root` keeps
+   its exact signature and behaviour; `detect_services` is a second thin
+   reading of the same list.
+
+   One wrinkle for increment 2 to settle: `detect_source_root` returns
+   early when the layers sit at the target root, so a repo with both
+   root-level layers *and* `src/{orders,billing}/` never builds a candidate
+   list today. The helper has to decide whether that stays true — it
+   probably should, since such a repo has no coherent answer — but it must
+   be decided rather than inherited.
 2. **Should `name` be the package name or a team-chosen label?** The package
    name is derivable and stable; a label is friendlier in skill output and
    needs somewhere to live. Recommend the package name, with the field
