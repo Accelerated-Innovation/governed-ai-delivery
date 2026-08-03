@@ -486,7 +486,7 @@ earlier install left behind. Kept as a pointer because the reasoning that
 found them is worth keeping: unit tests were green across every layout while
 codex, one of three agents, got none of the feature.
 
-### Should doctor name skipped sibling packages?
+### Should doctor name skipped sibling packages? — tracked as #120
 
 Open question 3's remaining half, deliberately left out of 2b. A team reading
 `services: [orders, billing]` cannot tell whether that is the whole repo.
@@ -499,7 +499,35 @@ few to match a fingerprint, which is the case where govkit almost listed it
 and a team would be surprised it did not.
 
 That definition needs deciding before the check is written, which is why 2b
-shipped without it.
+shipped without it. Lifted into **#120** rather than left here, since an open
+question inside a plan marked Implemented is where things go to be forgotten.
+
+### Codex and copilot planning skills assume hexagonal — #119
+
+Found while adding increment 3's section and deliberately not fixed there.
+claude-code's copies of `spec-planning` and `implementation-plan` read
+`architecture.layers`; codex's and copilot's name `ports/inbound/`,
+`services/` and `adapters/` outright. On a Clean or layered repo — where
+govkit correctly records `Presentation/`, `Application/`, `Infrastructure/` —
+two of three agents plan against folders that do not exist.
+
+The parity suite cannot see it: it pins frontmatter plus a few named
+sections, and skill bodies are otherwise free to differ.
+
+### D018 covered only half of what it was shaped for — closed by #83
+
+D018 shipped in 2b asking "are there services?" when the question it needed
+was "does govkit still write to this location?". The single-source-root
+relocation (#82, `api/AGENTS.md` -> `src/api/AGENTS.md`) is the same defect
+and went unreported, which is how **#83** stayed open after the check landed.
+
+It now asks `resolve_path_scoped_dests` — the same function that decides
+placement — so the check covers every layout that relocates rules and stays
+quiet for every layout that does not, with a completeness test over all five.
+
+Worth recording as a shape: a check guarded by *one cause* of a condition
+rather than by the condition itself will miss the other causes, and look
+correct doing it.
 
 ## Out of scope
 
