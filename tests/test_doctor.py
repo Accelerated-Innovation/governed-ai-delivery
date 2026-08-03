@@ -1200,3 +1200,178 @@ class TestMonorepoDiscovery:
         assert "apps/web" in out.replace("\\", "/")
         # Both clean → exit 0
         assert exc.value.code == 0
+
+
+# ---------------------------------------------------------------------------
+# D018 — path-scoped rules left where govkit no longer writes them
+# ---------------------------------------------------------------------------
+
+BACKEND_LAYERS = ("api", "ports", "services", "models", "adapters", "common")
+
+GOVKIT_BLOCK = (
+    "<!-- BEGIN GOVKIT GOVERNANCE -->\n# govkit rule\n"
+    "<!-- END GOVKIT GOVERNANCE -->\n"
+)
+
+
+def _multi_service_repo(target: Path) -> None:
+    for svc in ("orders", "billing"):
+        for layer in BACKEND_LAYERS:
+            (target / "src" / svc / layer).mkdir(parents=True)
+
+
+class TestD018StalePathScopedRules:
+    """Fanning codex's layer rules out per service leaves any earlier
+    root-level copy behind.
+
+    govkit never deletes it — a team may have written that file, and even
+    when it did not, a stale copy here is inert rather than contradictory:
+    codex resolves AGENTS.md upward from the file being edited and never
+    reaches a root `api/AGENTS.md` from `src/orders/api/`. That is why this
+    reports rather than retiring the file the way
+    `reconcile_legacy_instruction_files` does, where the alternative is the
+    agent loading governance twice.
+    """
+
+    def test_fires_for_a_govkit_orphan_left_at_the_root(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        _multi_service_repo(tmp_path)
+        _write_marker(tmp_path, agent="codex")
+        (tmp_path / "api").mkdir()
+        (tmp_path / "api" / "AGENTS.md").write_text(GOVKIT_BLOCK, encoding="utf-8")
+
+        d018s = [f for f in run_doctor(tmp_path) if f.id == "D018"]
+        assert len(d018s) == 1
+        assert d018s[0].file.replace("\\", "/") == "api/AGENTS.md"
+        assert d018s[0].severity == "warning"
+
+    def test_a_govkit_orphan_may_be_deleted(self, tmp_path):
+        """It holds nothing the team wrote, so the advice can say so."""
+        from cli.doctor import run_doctor
+
+        _multi_service_repo(tmp_path)
+        _write_marker(tmp_path, agent="codex")
+        (tmp_path / "api").mkdir()
+        (tmp_path / "api" / "AGENTS.md").write_text(GOVKIT_BLOCK, encoding="utf-8")
+
+        finding = [f for f in run_doctor(tmp_path) if f.id == "D018"][0]
+        assert "delete" in finding.suggested_action.lower()
+
+    def test_a_team_authored_file_is_never_advised_away(self, tmp_path):
+        """The same location, but the team wrote content outside the block.
+        govkit must not suggest removing a file it did not author."""
+        from cli.doctor import run_doctor
+
+        _multi_service_repo(tmp_path)
+        _write_marker(tmp_path, agent="codex")
+        (tmp_path / "api").mkdir()
+        (tmp_path / "api" / "AGENTS.md").write_text(
+            "# Team notes\n\nOur own guidance.\n\n" + GOVKIT_BLOCK, encoding="utf-8",
+        )
+
+        action = [f for f in run_doctor(tmp_path) if f.id == "D018"][0].suggested_action.lower()
+        # The file itself is never a delete target — only govkit's own block
+        # inside it, which is content govkit put there.
+        assert "leave the file" in action
+        assert "delete api/agents.md" not in action
+        assert "remove api/agents.md" not in action
+        assert "block" in action
+
+    def test_names_the_live_location_so_the_advice_is_actionable(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        _multi_service_repo(tmp_path)
+        _write_marker(tmp_path, agent="codex")
+        (tmp_path / "api").mkdir()
+        (tmp_path / "api" / "AGENTS.md").write_text(GOVKIT_BLOCK, encoding="utf-8")
+
+        finding = [f for f in run_doctor(tmp_path) if f.id == "D018"][0]
+        text = (finding.message + finding.suggested_action).replace("\\", "/")
+        assert "src/orders" in text or "src/billing" in text
+
+    def test_silent_on_a_clean_multi_service_install(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        _multi_service_repo(tmp_path)
+        _write_marker(tmp_path, agent="codex")
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D018"] == []
+
+    def test_silent_when_the_rules_are_where_they_belong(self, tmp_path):
+        """The fanned-out copies must not be mistaken for stale ones."""
+        from cli.doctor import run_doctor
+
+        _multi_service_repo(tmp_path)
+        _write_marker(tmp_path, agent="codex")
+        for svc in ("orders", "billing"):
+            (tmp_path / "src" / svc / "api" / "AGENTS.md").write_text(
+                GOVKIT_BLOCK, encoding="utf-8",
+            )
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D018"] == []
+
+    def test_silent_on_a_single_service_repo_where_the_root_is_correct(self, tmp_path):
+        """A flat repo is where govkit *does* write root-relative layer
+        rules. Flagging them would call a correct install broken."""
+        from cli.doctor import run_doctor
+
+        for layer in BACKEND_LAYERS:
+            (tmp_path / layer).mkdir(parents=True)
+        _write_marker(tmp_path, agent="codex")
+        (tmp_path / "api" / "AGENTS.md").write_text(GOVKIT_BLOCK, encoding="utf-8")
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D018"] == []
+
+    def test_silent_for_a_documented_package_layout(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        for layer in BACKEND_LAYERS:
+            (tmp_path / "src" / "mypkg" / layer).mkdir(parents=True)
+        _write_marker(tmp_path, agent="codex")
+        (tmp_path / "src" / "mypkg" / "api" / "AGENTS.md").write_text(
+            GOVKIT_BLOCK, encoding="utf-8",
+        )
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D018"] == []
+
+    @pytest.mark.parametrize("agent", ["claude-code", "copilot"])
+    def test_silent_for_agents_with_no_path_scoped_rules(self, tmp_path, agent):
+        """Their rules are globs, never files inside layer folders. A stray
+        root `api/AGENTS.md` in such an install is not govkit's business."""
+        from cli.doctor import run_doctor
+
+        _multi_service_repo(tmp_path)
+        _write_marker(tmp_path, agent=agent)
+        (tmp_path / "api").mkdir()
+        (tmp_path / "api" / "AGENTS.md").write_text(GOVKIT_BLOCK, encoding="utf-8")
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D018"] == []
+
+    def test_a_file_without_a_govkit_block_is_not_govkits_business(self, tmp_path):
+        """A root `api/AGENTS.md` the team wrote and govkit never touched is
+        not a stale govkit rule — it is just their file."""
+        from cli.doctor import run_doctor
+
+        _multi_service_repo(tmp_path)
+        _write_marker(tmp_path, agent="codex")
+        (tmp_path / "api").mkdir()
+        (tmp_path / "api" / "AGENTS.md").write_text(
+            "# Purely ours\n", encoding="utf-8",
+        )
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D018"] == []
+
+    def test_every_stale_location_is_reported(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        _multi_service_repo(tmp_path)
+        _write_marker(tmp_path, agent="codex")
+        for layer in ("api", "ports", "services"):
+            (tmp_path / layer).mkdir(exist_ok=True)
+            (tmp_path / layer / "AGENTS.md").write_text(GOVKIT_BLOCK, encoding="utf-8")
+
+        reported = {
+            f.file.replace("\\", "/") for f in run_doctor(tmp_path) if f.id == "D018"
+        }
+        assert reported == {"api/AGENTS.md", "ports/AGENTS.md", "services/AGENTS.md"}

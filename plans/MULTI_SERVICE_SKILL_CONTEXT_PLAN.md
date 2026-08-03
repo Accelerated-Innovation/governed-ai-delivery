@@ -1,13 +1,12 @@
 # Multi-Service Skill Context Plan
 
-**Status:** In progress — 2026-08-03. Covers #86. Increments 1–2 done
-(derived `source_root`, `services`); increments 3–4 not started.
+**Status:** In progress — 2026-08-03. Covers #86. Increments 1, 2 and 2b done
+(derived `source_root`, `services`, per-service codex rules + doctor D018);
+increments 3–4 not started.
 
-**Increment 3 is blocked** on a decision recorded under Follow-ups: codex's
-own path-scoped rules make a multi-service repo look single-service, so the
-`services` list survives `apply` but not a later `upgrade`. Teaching the
-skills to read a field that erases itself would be worse than not shipping
-it.
+Increment 2b unblocked increment 3: codex's path-scoped rules now fan out per
+service, so they govern the code they describe and no longer make a
+multi-service repo read as single-service.
 
 Give `.govkit/skill_context.yaml` an honest source root and a way to say
 "this repo holds several services", so a skill can scope its work to one of
@@ -285,6 +284,81 @@ two agents on every layout.
 
 Commit: `feat(cli): describe multi-service repos in skill_context (#86)`
 
+### 2b. Codex rules scope to each service — done
+
+Not in the original plan. Increment 2's end-to-end run surfaced two defects
+in codex's path-scoped rule placement, and the second of them would have
+made increment 3 unsafe.
+
+1. Failing tests in `tests/test_path_scoped_rules.py`: a multi-service
+   install puts every path-scoped rule under each service and none at the
+   repo root; single-source-root and unrecognisable layouts install exactly
+   as before; the service list survives an `upgrade`.
+2. `resolve_path_scoped_dests` gains one branch — no single root **and**
+   services detected → one destination per service.
+3. Doctor **D018** names rules left where govkit no longer writes them.
+4. `_layer_root_candidates` stops counting govkit's own folders at the
+   target root.
+
+**What the rules were doing before.** In a `src/{orders,billing}/` repo
+there is no single source root, so destinations stayed root-relative and
+`apply` wrote `api/AGENTS.md`, `ports/AGENTS.md`, `services/AGENTS.md`,
+`adapters/AGENTS.md` and `security/AGENTS.md` at the repo root. Codex
+resolves `AGENTS.md` upward from the file being edited, so
+`src/orders/api/handlers.py` reaches the top-level `AGENTS.md` and never the
+root `api/AGENTS.md`. Verified on a real install: **no `AGENTS.md` anywhere
+under either service.** Five files governing nothing — the same defect
+`resolve_path_scoped_dests` was written to fix for `src/<package>/`, left
+unfixed for the multi-service shape.
+
+**Nothing is removed.** `write_managed_agent_block` already replaces a file
+wholesale only when it can prove the file is govkit's own — byte-identical
+to the body, or untouched since `applied_at` — and otherwise appends its
+block below the team's content. Confirmed with a real apply against a
+hand-written root `AGENTS.md` and a hand-written root `api/AGENTS.md`: both
+kept their content, each with one govkit block. Fan-out changes only where
+the *next* write goes, and adds no delete path.
+
+D018 reports what is left behind, with different advice per case, because
+govkit cannot know which it is until it looks:
+
+| Left at the root | Advice |
+| --- | --- |
+| holds only govkit's block | safe to delete, and names the live locations |
+| holds the team's content too | leave the file; the block inside it is stale |
+
+This deliberately does **not** follow `reconcile_legacy_instruction_files`,
+which deletes. That function deletes because leaving its file makes the
+agent load governance *twice* — actively contradictory. A stale root
+`api/AGENTS.md` here governs nothing, so it is inert clutter. Different
+hazard, different remedy.
+
+**The migration was the part that nearly shipped broken.** The first draft
+fixed fresh installs and did nothing for existing ones: the root folders an
+earlier govkit created made `_layer_root_candidates` match at the target
+root, so `detect_services` returned `[]` for ever. The fan-out could never
+fire on the installs that needed it, and **D018 could never fire at all** —
+a check that cannot fail, which is the thing this repo has learned to look
+for. Only the end-to-end replay of a pre-fan-out install caught it; every
+unit test was green.
+
+The fix is that a folder holding nothing but a govkit-authored `AGENTS.md`
+is govkit's artifact, not a source layer — discounted **only at the target
+root**. That scoping is load-bearing. govkit creates layer folders in
+exactly one place: the root, when it could not detect a source root.
+Everywhere else it writes into folders the team already had. Discounting at
+`src/<pkg>/` would drop the source root of a greenfield install whose layer
+folders hold only the rules govkit just wrote, sending the next run's rules
+back to the repo root — pinned by
+`test_a_greenfield_package_layout_does_not_relocate_itself`.
+
+Verified: `apply` twice is idempotent on all four layouts; a pre-fan-out
+install upgrades to per-service rules, keeps its team-authored root file
+intact, keeps its service list, and gets one D018 per stale location with
+the right advice for each.
+
+Commit: `fix(cli): scope codex path-scoped rules to each service (#86)`
+
 ### 3. Skills ask which service
 
 1. Failing test in `tests/test_agent_skills.py`: `spec-planning` and
@@ -373,60 +447,28 @@ Commit: `docs(backend): document the multi-service skill context (#86)`
 
 ## Follow-ups
 
-### Codex's path-scoped rules break multi-service repos — blocks increment 3
+### ~~Codex's path-scoped rules break multi-service repos~~ — closed by 2b
 
-Two defects with one cause, both found by running `govkit apply` rather than
-by reading code. Neither is created by this plan; increment 2 is what made
-them visible.
+Both defects are fixed: the rules fan out per service, and govkit no longer
+reads its own root-level folders as architecture. Doctor D018 names what an
+earlier install left behind. Kept as a pointer because the reasoning that
+found them is worth keeping: unit tests were green across every layout while
+codex, one of three agents, got none of the feature.
 
-**1. The rules govern nothing.** In a `src/{orders,billing}/` repo,
-`detect_source_root` returns `""`, so `resolve_path_scoped_dests` leaves
-codex's destinations root-relative and `apply` writes `api/AGENTS.md`,
-`ports/AGENTS.md`, `services/AGENTS.md`, `adapters/AGENTS.md` and
-`security/AGENTS.md` at the repo root. Verified on a real install: there is
-**no `AGENTS.md` anywhere under `src/orders` or `src/billing`**. Codex
-resolves `AGENTS.md` upward from the file being edited, so a file at
-`src/orders/api/handlers.py` finds the top-level `AGENTS.md` and never the
-root `api/AGENTS.md`. Those five files govern no code at all.
+### Should doctor name skipped sibling packages?
 
-This is the same defect `resolve_path_scoped_dests` was written to fix for
-the `src/<package>/` layout, left unfixed for the multi-service one.
+Open question 3's remaining half, deliberately left out of 2b. A team reading
+`services: [orders, billing]` cannot tell whether that is the whole repo.
 
-**2. They then hide the services.** Those root-level folders make
-`_layer_root_candidates` match at the target root, so every later reading of
-the repo sees a flat single-service layout. Increment 2 fixed `apply` by
-observing before writing, but the folders are on disk permanently, so a
-later `upgrade` — which builds its profile after the install — derives no
-services and the list is dropped. Measured:
+The obvious version is wrong: flagging every unlisted directory under `src/`
+would fire on `src/utils/`, `src/config/` and every shared package, which is
+noise, not honesty. A useful check needs a definition of "near miss" —
+plausibly a package holding *at least one* architecture-layer folder but too
+few to match a fingerprint, which is the case where govkit almost listed it
+and a team would be surprised it did not.
 
-| Agent | after `apply` | after `upgrade` |
-| --- | --- | --- |
-| claude-code | 2 services | 2 services |
-| codex | 2 services | **0** |
-| copilot | 2 services | 2 services |
-
-Nothing reads `services` yet, so the practical impact today is zero. That
-stops being true at increment 3, which is why it blocks it: a skill taught
-to read a field that erases itself on the next `upgrade` is worse than a
-skill that does not know about services.
-
-**Recommended fix: fan the path-scoped rules out per service.**
-`src/orders/api/AGENTS.md` and `src/billing/api/AGENTS.md` rather than one
-root copy. It puts the rules where codex will actually resolve them, and it
-creates no root-level layer folders, so the detection problem disappears
-with the defect that caused it. `detect_services` — which increment 2 adds —
-is exactly what makes it expressible; `resolve_path_scoped_dests` grows one
-branch. claude-code and copilot need no change: their `**/<layer>/**` globs
-already match at any depth, which is the accident recorded in Motivation §3.
-
-Two alternatives, both weaker. *Drop the path-scoped rules entirely for a
-multi-service repo* — smaller, and removes only files that demonstrably do
-nothing, but it leaves those services with no codex layer guidance. *Leave
-it* — increment 3 then has to treat `services` as unreliable on one agent.
-
-Either way, an install that already has the stale root folders keeps them:
-govkit does not delete files it did not write in the user's tree. Worth
-deciding whether `doctor` should name them.
+That definition needs deciding before the check is written, which is why 2b
+shipped without it.
 
 ## Out of scope
 

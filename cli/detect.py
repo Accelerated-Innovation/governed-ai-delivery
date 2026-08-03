@@ -26,6 +26,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 from .fs import read_text_or_none
+from .headers import GOVKIT_BLOCK_BEGIN, GOVKIT_BLOCK_END
 
 # ---------------------------------------------------------------------------
 # Signal definitions
@@ -469,6 +470,46 @@ def _source_folder_sets(target: Path) -> list[set[str]]:
 _PACKAGE_ROOTS = ("src", "Source")
 
 
+def _is_govkit_authored_folder(path: Path) -> bool:
+    """True when `path` holds nothing but a govkit-authored `AGENTS.md`.
+
+    govkit creates layer folders in exactly one place: the target root, when
+    it could not detect a source root and codex's path-scoped destinations
+    stayed root-relative. Everywhere else it writes into folders the team
+    already had — that is how the source root was detected in the first
+    place.
+
+    Counting those folders as evidence of an architecture is what made a
+    multi-service repo permanently unreadable: the first install wrote
+    `api/AGENTS.md` and friends at the root, and every later run then saw
+    layers at the root and reported a flat single-service repo. The damage
+    was self-perpetuating, so neither the per-service fan-out nor doctor's
+    D018 could ever fire on the installs that needed them.
+
+    A folder the team owns is never discounted: one holding their own
+    `AGENTS.md` with govkit's block appended below, or any other file
+    alongside it, is theirs.
+    """
+    try:
+        entries = list(path.iterdir())
+    except OSError:
+        return False
+    if len(entries) != 1:
+        return False
+    only = entries[0]
+    if not only.is_file() or only.name != "AGENTS.md":
+        return False
+    body = read_text_or_none(only)
+    if body is None or GOVKIT_BLOCK_BEGIN not in body:
+        return False
+    # Govkit's block and nothing else — no content the team contributed.
+    begin = body.find(GOVKIT_BLOCK_BEGIN)
+    end = body.find(GOVKIT_BLOCK_END)
+    if end < begin:
+        return False
+    return body[:begin].strip() == "" and body[end + len(GOVKIT_BLOCK_END):].strip() == ""
+
+
 def _layer_root_candidates(target: Path) -> list[Path]:
     """Every directory under `target` that looks like a set of architecture
     layers.
@@ -492,11 +533,18 @@ def _layer_root_candidates(target: Path) -> list[Path]:
     """
     fingerprints = (_HEXAGONAL_FOLDERS, _LAYERED_FOLDERS, _CLEAN_FOLDERS)
 
-    def _matches(root: Path) -> bool:
+    def _matches(root: Path, discount_govkit: bool = False) -> bool:
         names = _child_dir_names(root)
+        if discount_govkit:
+            names = {n for n in names if not _is_govkit_authored_folder(root / n)}
         return any(len(fp & names) >= 2 for fp in fingerprints)
 
-    if _matches(target):
+    # Only the target root discounts govkit's own folders — see
+    # `_is_govkit_authored_folder`. Applying it to `src/<pkg>/` would drop
+    # the source root of a greenfield install whose layer folders are empty
+    # but for the rules govkit just wrote, sending the next run's rules back
+    # to the repo root.
+    if _matches(target, discount_govkit=True):
         return [target]
 
     candidates: list[Path] = []

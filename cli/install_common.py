@@ -119,22 +119,52 @@ def resolve_path_scoped_dests(files: list[dict], target: Path) -> list[dict]:
     a repo laid out as `src/<package>/services/` would get an empty
     root-level folder holding guidance codex never applies.
 
-    When no source root can be determined — a greenfield repo, or several
-    sibling service packages with no single root — destinations are left
+    When several sibling packages each look like a service there is no
+    single root, so each path-scoped entry is written once **per service** —
+    `src/orders/api/AGENTS.md` and `src/billing/api/AGENTS.md` rather than
+    one copy at the repo root. Codex resolves AGENTS.md upward from the file
+    being edited, so a root copy would be reached only by code directly
+    under a root-level `api/`, which a multi-service repo does not have: the
+    rules governed nothing. The empty root folders it created also made
+    every later reading of the repo see a flat single-service layout, which
+    is what erased `architecture.services` from skill_context on upgrade.
+
+    When no source root and no services can be determined — a greenfield
+    repo, or layers already at the target root — destinations are left
     exactly as the manifest declares them, so no existing install changes.
 
+    Nothing is ever removed. Re-rooting only changes where the *next* write
+    goes; a file the team authored at either location keeps its content,
+    because `write_managed_agent_block` appends govkit's block below it.
+    Rules left at a location govkit no longer writes are reported by doctor
+    (D018) rather than deleted.
+
     claude-code and copilot need no equivalent: `rule_templating` gives
-    their rules `**/<layer>/**` globs, which match at any depth.
+    their rules `**/<layer>/**` globs, which match at any depth — and so
+    match inside every service already.
     """
-    from .detect import detect_source_root
+    from .detect import detect_services, detect_source_root
 
     source_root = detect_source_root(target)
-    if not source_root:
+    if source_root:
+        return [
+            {**e, "dest": f"{source_root}/{e['dest']}"} if e.get("path_scoped") else e
+            for e in files
+        ]
+
+    services = detect_services(target)
+    if not services:
         return files
-    return [
-        {**e, "dest": f"{source_root}/{e['dest']}"} if e.get("path_scoped") else e
-        for e in files
-    ]
+
+    fanned: list[dict] = []
+    for entry in files:
+        if not entry.get("path_scoped"):
+            fanned.append(entry)
+            continue
+        fanned.extend(
+            {**entry, "dest": f"{root}/{entry['dest']}"} for _name, root in services
+        )
+    return fanned
 
 
 def reconcile_legacy_instruction_files(

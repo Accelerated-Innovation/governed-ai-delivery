@@ -958,8 +958,105 @@ class TestSourceRootAndServicesAgree:
         from cli.detect import detect_services, detect_source_root
 
         _hexagonal_package(tmp_path, "")
+        (tmp_path / "api" / "handlers.py").write_text("x = 1\n", encoding="utf-8")
+        (tmp_path / "services" / "orders.py").write_text("x = 1\n", encoding="utf-8")
         for svc in ("orders", "billing"):
             _hexagonal_package(tmp_path, f"src/{svc}")
 
         assert detect_source_root(tmp_path) == ""
         assert detect_services(tmp_path) == []
+
+
+class TestGovkitsOwnFoldersAreNotEvidence:
+    """govkit must not read its own output as the repo's architecture.
+
+    Before the per-service fan-out, a multi-service install put codex's
+    layer rules at the repo root — `api/AGENTS.md`, `ports/AGENTS.md` and so
+    on, in folders govkit created. Every later reading then saw layers at
+    the target root and reported a flat single-service repo. The damage was
+    self-perpetuating: once those folders existed, `detect_services` could
+    never again return anything, so the fan-out would never fire on the very
+    installs that needed it and the doctor check for stale rules could never
+    fire either.
+
+    A folder holding nothing but a govkit-authored `AGENTS.md` is govkit's
+    own artifact, not a source layer. Discounted **only at the target
+    root**, which is the one place govkit creates layer folders — everywhere
+    else it writes into folders the team already had, and discounting there
+    would make a greenfield `src/<pkg>/` install relocate its own rules on
+    the second run.
+    """
+
+    GOVKIT_ONLY = (
+        "<!-- BEGIN GOVKIT GOVERNANCE -->\n# rule\n"
+        "<!-- END GOVKIT GOVERNANCE -->\n"
+    )
+
+    def _pollute_root(self, target, *layers):
+        for layer in layers:
+            (target / layer).mkdir(parents=True, exist_ok=True)
+            (target / layer / "AGENTS.md").write_text(self.GOVKIT_ONLY, encoding="utf-8")
+
+    def test_a_polluted_multi_service_repo_still_reports_its_services(self, tmp_path):
+        from cli.detect import detect_services, detect_source_root
+
+        for svc in ("orders", "billing"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+        self._pollute_root(tmp_path, "api", "ports", "services", "adapters", "security")
+
+        assert detect_source_root(tmp_path) == ""
+        assert [n for n, _r in detect_services(tmp_path)] == ["billing", "orders"]
+
+    def test_real_root_layers_are_still_evidence(self, tmp_path):
+        """A team's own flat repo must keep reporting as flat. The layer
+        folders there hold code, not just govkit's file."""
+        from cli.detect import detect_services, detect_source_root
+
+        _hexagonal_package(tmp_path, "")
+        (tmp_path / "api" / "handlers.py").write_text("x = 1\n", encoding="utf-8")
+        (tmp_path / "services" / "orders.py").write_text("x = 1\n", encoding="utf-8")
+
+        assert detect_source_root(tmp_path) == ""
+        assert detect_services(tmp_path) == []
+
+    def test_a_layer_folder_holding_a_teams_own_agents_md_is_evidence(self, tmp_path):
+        """Only a folder holding *nothing but* govkit's block is discounted.
+        A file the team wrote — govkit's block appended below their content —
+        means they own that folder."""
+        from cli.detect import detect_source_root
+
+        _hexagonal_package(tmp_path, "")
+        for layer in ("api", "ports", "services", "adapters"):
+            (tmp_path / layer / "AGENTS.md").write_text(
+                "# Team notes\n\nOurs.\n" + self.GOVKIT_ONLY, encoding="utf-8",
+            )
+
+        # Still reads as layers at the root, so no service packages.
+        assert detect_source_root(tmp_path) == ""
+
+    def test_a_greenfield_package_layout_does_not_relocate_itself(self, tmp_path):
+        """The regression the narrow scoping exists to avoid. Empty layer
+        folders under `src/<pkg>/` hold only govkit's AGENTS.md after the
+        first install; discounting them there would drop the source root and
+        send the next run's rules back to the repo root."""
+        from cli.detect import detect_source_root
+
+        _hexagonal_package(tmp_path, "src/mypkg")
+        for layer in BACKEND_LAYERS:
+            (tmp_path / "src" / "mypkg" / layer / "AGENTS.md").write_text(
+                self.GOVKIT_ONLY, encoding="utf-8",
+            )
+
+        assert detect_source_root(tmp_path) == "src/mypkg"
+
+    def test_a_folder_with_other_files_beside_agents_md_is_evidence(self, tmp_path):
+        from cli.detect import detect_source_root
+
+        _hexagonal_package(tmp_path, "")
+        for layer in ("api", "ports", "services", "adapters"):
+            (tmp_path / layer / "AGENTS.md").write_text(self.GOVKIT_ONLY, encoding="utf-8")
+        (tmp_path / "api" / "handlers.py").write_text("x = 1\n", encoding="utf-8")
+        (tmp_path / "services" / "orders.py").write_text("x = 1\n", encoding="utf-8")
+
+        assert detect_source_root(tmp_path) == ""
+

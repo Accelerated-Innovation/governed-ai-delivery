@@ -1161,18 +1161,35 @@ class TestRepoIsObservedBeforeGovkitWritesToIt:
         )
         assert arch["source_root"] == ""
 
-    def test_codex_really_does_create_the_folders_that_would_hide_them(self, tmp_path):
-        """Without this, the codex row above could pass for the wrong reason
-        — a future change that stopped creating root-level layer folders
-        would make the regression untestable while looking green."""
-        target = tmp_path / "project"
-        target.mkdir()
-        _multi_service(target, "orders", "billing")
+    def test_the_layout_facts_come_from_the_profile_not_a_second_reading(self, tmp_path):
+        """The property itself, pinned where it cannot go vacuous.
 
-        self._apply(target, "codex")
+        The three rows above assert a correct end state. They no longer
+        *exercise* this: once codex's rules fan out per service, `apply`
+        stops creating root-level layer folders, so re-deriving afterwards
+        would reach the right answer anyway and the rows would pass either
+        way. (The guard that used to sit here watched for exactly that
+        change, and the fan-out is it.)
 
-        created = {d.name for d in target.iterdir() if d.is_dir()}
-        assert {"api", "ports", "services", "adapters"} <= created
+        So state it directly: hand `build_skill_context` a profile that
+        disagrees with the tree, and the profile must win. Any future write
+        that reshapes the target — a path-scoped rule for a new type, a
+        scaffold — is then covered without a test having to predict it.
+        """
+        from cli.detect import build_profile
+        from cli.skill_context import build_skill_context
+
+        marker = _write_marker(tmp_path)
+        _multi_service(tmp_path, "orders", "billing")
+        profile = build_profile(tmp_path)
+        assert len(profile.detected_services) == 2
+
+        # The tree now says something else entirely.
+        _make_layout(tmp_path, _layers_under(""))
+        assert build_profile(tmp_path).detected_services == []
+
+        arch = build_skill_context(tmp_path, marker, profile=profile)["architecture"]
+        assert [s["name"] for s in arch["services"]] == ["billing", "orders"]
 
     @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
     def test_apply_records_the_source_root_that_was_there_before_it_ran(self, tmp_path, agent):
