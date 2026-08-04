@@ -328,3 +328,158 @@ def test_glob_based_agents_are_unaffected(tmp_path, agent):
 
     assert not (target / "services").exists()
     assert not (target / "src" / "mypkg" / "services" / "AGENTS.md").exists()
+
+
+# ---------------------------------------------------------------------------
+# Announcing a replaced managed block — #81
+# ---------------------------------------------------------------------------
+
+GOVKIT_BEGIN = "<!-- BEGIN GOVKIT GOVERNANCE -->"
+
+
+def _edit_inside_the_block(path) -> None:
+    text = path.read_text(encoding="utf-8")
+    assert GOVKIT_BEGIN in text, f"no govkit block in {path}"
+    path.write_text(
+        text.replace(GOVKIT_BEGIN, GOVKIT_BEGIN + "\nTEAM EDIT INSIDE BLOCK", 1),
+        encoding="utf-8",
+    )
+
+
+class TestReplacedBlockIsAnnounced:
+    """Replacing the block is correct — it says so in its own note ("content
+    in this block is overwritten on `govkit upgrade`"). Doing it in silence
+    is not.
+
+    #81 framed this as a `--force` gap. It is wider: measured against a real
+    install with the marker aged so `upgrade` does real work, an edit inside
+    the block is replaced by plain `apply`, `apply --force`, plain `upgrade`
+    and `upgrade --force` alike, and none of them said a word. The issue's
+    "survived" row for plain upgrade was the version-match no-op its own
+    reproduction note warns about.
+
+    So this is not modelled on governed-doc protection, which *refuses*
+    without `--force`. The block is govkit-owned and documented as such;
+    the fix is to announce, not to withhold.
+    """
+
+    @staticmethod
+    def _install(target):
+        target.mkdir(parents=True, exist_ok=True)
+        for layer in BACKEND_LAYERS:
+            (target / "src" / "myapp" / layer).mkdir(parents=True, exist_ok=True)
+        _apply_codex(target)
+
+    @staticmethod
+    def _age_marker(target):
+        import json
+        path = target / ".govkit" / "marker.json"
+        marker = json.loads(path.read_text(encoding="utf-8"))
+        marker["version"] = "0.13.0"
+        path.write_text(json.dumps(marker), encoding="utf-8")
+
+    def test_apply_announces_a_replaced_block(self, tmp_path, capsys):
+        target = tmp_path / "project"
+        self._install(target)
+        _edit_inside_the_block(target / "AGENTS.md")
+        capsys.readouterr()
+
+        _apply_codex(target)
+
+        out = capsys.readouterr()
+        combined = out.out + out.err
+        assert "TEAM EDIT INSIDE BLOCK" not in (target / "AGENTS.md").read_text(encoding="utf-8")
+        assert "AGENTS.md" in combined
+        assert "govkit block" in combined.lower()
+
+    def test_upgrade_announces_a_replaced_block(self, tmp_path, capsys):
+        from cli.cmd_upgrade import cmd_upgrade
+
+        target = tmp_path / "project"
+        self._install(target)
+        _edit_inside_the_block(target / "AGENTS.md")
+        self._age_marker(target)
+        capsys.readouterr()
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+        combined = "".join(capsys.readouterr())
+        assert "govkit block" in combined.lower()
+
+    def test_upgrade_force_announces_a_replaced_block(self, tmp_path, capsys):
+        from cli.cmd_upgrade import cmd_upgrade
+
+        target = tmp_path / "project"
+        self._install(target)
+        _edit_inside_the_block(target / "AGENTS.md")
+        self._age_marker(target)
+        capsys.readouterr()
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=True))
+
+        combined = "".join(capsys.readouterr())
+        assert "govkit block" in combined.lower()
+
+    def test_an_untouched_block_is_replaced_in_silence(self, tmp_path, capsys):
+        """The common case. Every run rewrites every block; warning each time
+        would bury the one that matters."""
+        target = tmp_path / "project"
+        self._install(target)
+        capsys.readouterr()
+
+        _apply_codex(target)
+
+        combined = "".join(capsys.readouterr()).lower()
+        assert "govkit block" not in combined
+
+    def test_edits_outside_the_block_never_warn(self, tmp_path, capsys):
+        """Content outside the block is the team's and survives, so there is
+        nothing to announce."""
+        target = tmp_path / "project"
+        self._install(target)
+        path = target / "AGENTS.md"
+        path.write_text("# Team notes\n\nMUST SURVIVE\n" + path.read_text(encoding="utf-8"),
+                        encoding="utf-8")
+        capsys.readouterr()
+
+        _apply_codex(target)
+
+        combined = "".join(capsys.readouterr()).lower()
+        assert "MUST SURVIVE" in path.read_text(encoding="utf-8")
+        assert "govkit block" not in combined
+
+    def test_the_warning_names_the_file_and_says_where_to_put_edits(self, tmp_path, capsys):
+        target = tmp_path / "project"
+        self._install(target)
+        _edit_inside_the_block(target / "AGENTS.md")
+        capsys.readouterr()
+
+        _apply_codex(target)
+
+        combined = "".join(capsys.readouterr())
+        assert "AGENTS.md" in combined
+        assert "outside" in combined.lower()
+
+    def test_a_pre_hash_block_edited_after_install_is_announced(self, tmp_path, capsys):
+        """Blocks written before #81 carry no hash. They fall back to mtime
+        against the marker's applied_at, the same fallback governed docs use
+        for pre-hash headers — otherwise every existing install would be
+        silent until its first rewrite."""
+        import re
+
+        target = tmp_path / "project"
+        self._install(target)
+        path = target / "AGENTS.md"
+        # Strip the hash line to simulate a block from before this change.
+        path.write_text(
+            re.sub(r"^<!-- govkit:block-hash .*-->\n", "", path.read_text(encoding="utf-8"),
+                   flags=re.MULTILINE),
+            encoding="utf-8",
+        )
+        _edit_inside_the_block(path)
+        capsys.readouterr()
+
+        _apply_codex(target)
+
+        combined = "".join(capsys.readouterr()).lower()
+        assert "govkit block" in combined

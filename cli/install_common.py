@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 from . import paths
 from .fs import copy_entry, read_text_or_none
-from .headers import GOVKIT_BLOCK_BEGIN, upsert_govkit_block
+from .headers import GOVKIT_BLOCK_BEGIN, block_body_is_edited, upsert_govkit_block
 from .marker import _compare_version, read_govkit_marker
 
 if TYPE_CHECKING:
@@ -68,6 +68,44 @@ def _unmodified_since(path: Path, applied_at: str | None) -> bool:
         return False
 
 
+def _warn_if_block_edits_are_discarded(
+    dest: Path, existing: str, applied_at: str | None,
+) -> None:
+    """Announce that a rewrite is about to discard edits inside the block.
+
+    Replacing the block is correct and documented — its own note says the
+    content is overwritten on `govkit upgrade`, and that is what makes the
+    surrounding file safe to own. Doing it in silence is the defect (#81).
+
+    Deliberately **not** modelled on governed-doc protection, which refuses
+    without `--force`. That file is the team's and worth withholding a write
+    over; this block is govkit's and withholding would break the contract
+    the note states. So this warns on every path — plain `apply`, plain
+    `upgrade` and both `--force` variants — because all four discard the
+    edit, which is what measuring the four actually showed. #81 reported it
+    as a `--force` gap only, having hit the version-match no-op that makes a
+    plain upgrade look like it preserved the edit.
+
+    A block with no recorded hash predates that record, so it falls back to
+    mtime against the marker's `applied_at`, the same fallback governed docs
+    use for pre-hash headers. Without the fallback every install that exists
+    today would stay silent until its first rewrite.
+    """
+    edited = block_body_is_edited(existing)
+    if edited is None:
+        # Undecidable from content. Only the timestamp is left, and it only
+        # means anything once there is a prior install to compare against.
+        edited = applied_at is not None and not _unmodified_since(dest, applied_at)
+    if not edited:
+        return
+    print(
+        f"  warning: replaced your edits inside the govkit block at {dest} "
+        "— that block is managed by govkit; put your own instructions "
+        "outside it so they survive",
+        file=sys.stderr,
+    )
+
+
 def write_managed_agent_block(dest: Path, body: str, applied_at: str | None = None) -> None:
     """Install govkit's governance into `dest` as a managed block.
 
@@ -83,6 +121,8 @@ def write_managed_agent_block(dest: Path, body: str, applied_at: str | None = No
     replace_unblocked = False
     if existing is not None and GOVKIT_BLOCK_BEGIN not in existing:
         replace_unblocked = existing == body or _unmodified_since(dest, applied_at)
+    if existing is not None and GOVKIT_BLOCK_BEGIN in existing:
+        _warn_if_block_edits_are_discarded(dest, existing, applied_at)
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(
         upsert_govkit_block(existing, body, replace_unblocked=replace_unblocked),

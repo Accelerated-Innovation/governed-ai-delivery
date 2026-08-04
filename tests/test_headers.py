@@ -356,3 +356,113 @@ class TestUpsertGovkitBlock:
         out = upsert_govkit_block(old_full, "NEW GOVERNANCE", replace_unblocked=True)
         assert "old govkit governance" not in out
         assert "NEW GOVERNANCE" in out
+
+
+# ---------------------------------------------------------------------------
+# Managed-block edit detection — #81
+# ---------------------------------------------------------------------------
+
+class TestManagedBlockHash:
+    """govkit records what it wrote into the block, so a later run can tell a
+    team's edit from its own content.
+
+    Same provenance shape the skill_context architecture block uses, and for
+    the same reason: comparing the live body against the *new* body would
+    flag every legitimate govkit content change as a user edit.
+    """
+
+    def test_a_written_block_records_its_body_hash(self):
+        from cli.headers import parse_block_hash, upsert_govkit_block
+
+        out = upsert_govkit_block(None, "GOVERNANCE BODY")
+        assert parse_block_hash(out) is not None
+
+    def test_the_recorded_hash_matches_the_body_that_was_written(self):
+        from cli.headers import block_body_is_edited, upsert_govkit_block
+
+        out = upsert_govkit_block(None, "GOVERNANCE BODY")
+        assert block_body_is_edited(out) is False
+
+    def test_an_edit_inside_the_block_is_detected(self):
+        from cli.headers import block_body_is_edited, upsert_govkit_block
+
+        out = upsert_govkit_block(None, "GOVERNANCE BODY")
+        tampered = out.replace("GOVERNANCE BODY", "GOVERNANCE BODY\nTEAM EDIT")
+        assert block_body_is_edited(tampered) is True
+
+    def test_an_edit_above_the_note_is_detected(self):
+        """A rewrite replaces the whole span between the markers, so a line
+        inserted anywhere inside it is discarded — including above govkit's
+        note, where reading the body positionally would not have looked."""
+        from cli.headers import block_body_is_edited, upsert_govkit_block
+
+        begin = "<!-- BEGIN GOVKIT GOVERNANCE -->"
+        out = upsert_govkit_block(None, "GOVERNANCE BODY")
+        tampered = out.replace(begin, begin + "\nTEAM EDIT", 1)
+        assert block_body_is_edited(tampered) is True
+
+    def test_an_edit_between_the_note_and_the_body_is_detected(self):
+        from cli.headers import block_body_is_edited, parse_block_hash, upsert_govkit_block
+
+        out = upsert_govkit_block(None, "GOVERNANCE BODY")
+        hash_line = f"<!-- govkit:block-hash {parse_block_hash(out)} -->"
+        tampered = out.replace(hash_line, hash_line + "\nTEAM EDIT", 1)
+        assert block_body_is_edited(tampered) is True
+
+    def test_edits_outside_the_block_are_not_the_blocks_business(self):
+        """Content around the block is the team's by design — changing it is
+        not an edit *to* the block."""
+        from cli.headers import block_body_is_edited, upsert_govkit_block
+
+        out = upsert_govkit_block("# team top\n", "GOVERNANCE BODY")
+        assert block_body_is_edited(out) is False
+        assert block_body_is_edited(out + "\n# team bottom\n") is False
+
+    def test_a_block_with_no_recorded_hash_is_undecidable(self):
+        """Pre-#81 blocks carry no hash. `None` means "cannot tell" so the
+        caller falls back to mtime, rather than silently reading as "clean"."""
+        from cli.headers import block_body_is_edited
+
+        begin = "<!-- BEGIN GOVKIT GOVERNANCE -->"
+        end = "<!-- END GOVKIT GOVERNANCE -->"
+        legacy = f"{begin}\nOLD GOVERNANCE\n{end}\n"
+        assert block_body_is_edited(legacy) is None
+
+    def test_text_with_no_block_at_all_is_undecidable(self):
+        from cli.headers import block_body_is_edited
+
+        assert block_body_is_edited("# just a team file\n") is None
+
+    def test_rewriting_a_block_refreshes_the_hash(self):
+        """An untouched block must not read as edited after govkit changes
+        the governance text — the record moves with the content."""
+        from cli.headers import block_body_is_edited, upsert_govkit_block
+
+        first = upsert_govkit_block(None, "OLD GOVERNANCE")
+        second = upsert_govkit_block(first, "NEW GOVERNANCE")
+        assert "OLD GOVERNANCE" not in second
+        assert block_body_is_edited(second) is False
+
+    def test_the_hash_line_is_not_mistaken_for_governance(self):
+        """It lives inside the block, so it must not leak into the body that
+        gets hashed — or the hash would never match itself."""
+        from cli.headers import upsert_govkit_block
+
+        out = upsert_govkit_block(None, "GOVERNANCE BODY")
+        assert out.count("GOVERNANCE BODY") == 1
+
+    def test_markers_are_unchanged_so_existing_readers_still_work(self):
+        """`detect._is_govkit_authored_folder` and doctor's D018 both locate
+        the block by these exact strings. Adding the hash must not move them.
+        """
+        from cli.headers import (
+            GOVKIT_BLOCK_BEGIN,
+            GOVKIT_BLOCK_END,
+            upsert_govkit_block,
+        )
+
+        out = upsert_govkit_block(None, "GOVERNANCE BODY")
+        assert GOVKIT_BLOCK_BEGIN == "<!-- BEGIN GOVKIT GOVERNANCE -->"
+        assert GOVKIT_BLOCK_END == "<!-- END GOVKIT GOVERNANCE -->"
+        assert out.startswith(GOVKIT_BLOCK_BEGIN)
+        assert out.rstrip().endswith(GOVKIT_BLOCK_END)

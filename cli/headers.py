@@ -20,6 +20,7 @@ renders invisibly in tooling that respects markdown comments.
 """
 
 import hashlib
+import re
 from pathlib import Path
 
 _HEADER_START = "<!-- govkit:editable"
@@ -37,6 +38,74 @@ _BLOCK_NOTE = (
     "`govkit upgrade`. Put your own instructions outside it. -->"
 )
 
+# SHA-256 of the body govkit last wrote into the block, recorded inside the
+# block so a later run can tell a team's edit from its own content. Comparing
+# the live body against the *new* body instead would flag every legitimate
+# governance change as a user edit — the same trap the skill_context
+# provenance record exists to avoid.
+#
+# It lives on its own line rather than in the BEGIN marker because that
+# marker's exact text is what `detect._is_govkit_authored_folder` and
+# doctor's D018 search for.
+_BLOCK_HASH_RE = re.compile(r"^<!-- govkit:block-hash ([0-9a-f]{64}) -->$", re.MULTILINE)
+
+
+def _block_hash_line(digest: str) -> str:
+    return f"<!-- govkit:block-hash {digest} -->"
+
+
+def compute_block_body_hash(body: str) -> str:
+    """SHA-256 of a managed block's body, normalized the way it is stored.
+
+    Hashes the decoded string with trailing newlines stripped, so a
+    line-ending rewrite on checkout never registers as an edit.
+    """
+    return hashlib.sha256(body.rstrip("\n").encode("utf-8")).hexdigest()
+
+
+def parse_block_hash(text: str) -> str | None:
+    """The hash govkit recorded in `text`'s managed block, or None."""
+    match = _BLOCK_HASH_RE.search(text)
+    return match.group(1) if match else None
+
+
+def extract_block_body(text: str) -> str | None:
+    """The governance body inside `text`'s managed block, or None.
+
+    Everything between the markers except govkit's own bookkeeping lines —
+    the note and the recorded hash. Those are dropped **wherever they sit**
+    rather than by position: a rewrite replaces the whole span between the
+    markers, so a line the team inserted anywhere in it is an edit that will
+    be discarded, including above the note where a positional reading would
+    not have looked.
+    """
+    begin = text.find(GOVKIT_BLOCK_BEGIN)
+    if begin == -1:
+        return None
+    end = text.find(GOVKIT_BLOCK_END, begin)
+    if end == -1:
+        return None
+    inner = text[begin + len(GOVKIT_BLOCK_BEGIN):end]
+    kept = [
+        line for line in inner.split("\n")
+        if line.strip() != _BLOCK_NOTE and not _BLOCK_HASH_RE.fullmatch(line.strip())
+    ]
+    return "\n".join(kept).strip("\n")
+
+
+def block_body_is_edited(text: str) -> bool | None:
+    """Has the managed block's body changed since govkit wrote it?
+
+    `None` means undecidable — no block, or a block from before the hash was
+    recorded. Callers fall back to mtime rather than reading it as "clean",
+    because a silent "no" is exactly the failure #81 reports.
+    """
+    recorded = parse_block_hash(text)
+    body = extract_block_body(text)
+    if recorded is None or body is None:
+        return None
+    return compute_block_body_hash(body) != recorded
+
 
 def upsert_govkit_block(
     existing: str | None, body: str, replace_unblocked: bool = False,
@@ -52,7 +121,11 @@ def upsert_govkit_block(
     - `existing` has no block and not `replace_unblocked` ⇒ the block is
       appended below the team's content, which is preserved.
     """
-    block = f"{GOVKIT_BLOCK_BEGIN}\n{_BLOCK_NOTE}\n{body.rstrip(chr(10))}\n{GOVKIT_BLOCK_END}\n"
+    hash_line = _block_hash_line(compute_block_body_hash(body))
+    block = (
+        f"{GOVKIT_BLOCK_BEGIN}\n{_BLOCK_NOTE}\n{hash_line}\n"
+        f"{body.rstrip(chr(10))}\n{GOVKIT_BLOCK_END}\n"
+    )
     if existing is None or replace_unblocked and GOVKIT_BLOCK_BEGIN not in existing:
         return block
 
