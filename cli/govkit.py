@@ -22,6 +22,7 @@ Usage:
     govkit init my_feature --target /path/to/project
     govkit init my_feature --starter backend --target /path/to/project
     govkit validate --target /path/to/project
+    govkit --version
 """
 
 from __future__ import annotations
@@ -37,6 +38,7 @@ from .cmd_stack import register as _register_stack
 from .cmd_upgrade import register as _register_upgrade
 from .cmd_validate import register as _register_validate
 from .doctor import register as _register_doctor
+from .version import GOVKIT_VERSION
 
 # Subcommand registrars. Each command module owns its argparse surface and
 # binds its handler via `set_defaults(func=...)`. Adding a command = create its
@@ -58,6 +60,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         prog="govkit",
         description="governed AI delivery kit — apply spec scaffolding to a project",
+    )
+    # Reports the same number `marker.json` records and `upgrade` compares
+    # against — both read it from `cli/version.py`. A user quoting
+    # `govkit --version` in a bug report is then describing the install that
+    # actually ran.
+    #
+    # The version action resolves during parsing, so it answers even though
+    # the subparser below is `required=True` and a bare `govkit` is an error.
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {GOVKIT_VERSION}",
+        help="print the installed govkit version and exit",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     for register in _REGISTRARS:
