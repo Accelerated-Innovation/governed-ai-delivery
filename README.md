@@ -691,6 +691,17 @@ govkit distinguishes these categories of files:
 
 **govkit never overwrites files you authored.** Everything govkit installs lives in a namespace it owns — a `govkit/` subdirectory under the rules dir, a `govkit-` prefix on skills, or a fenced managed block inside Codex's `AGENTS.md`. So your own `CLAUDE.md`, a rule you named `.claude/rules/api.md`, or a skill you named `spec-planning` all coexist with govkit's copies untouched. When you upgrade an install created by an older govkit that *did* write a top-level `CLAUDE.md`, `upgrade` retires that orphan only when it can prove it was govkit's own (byte-identical to the shipped governance, or unmodified since the last apply); if you edited it, it is kept and you're told how to adopt the managed layout.
 
+The inside of Codex's managed block is the one place that rule does not
+reach — it is govkit's content, and every `apply` and `upgrade` rewrites it,
+as the note fenced in the block says. That is what makes the rest of the
+file safe to own. If you edit inside the block anyway, govkit now tells you
+when it replaces your edit:
+
+```
+warning: replaced your edits inside the govkit block at AGENTS.md
+— that block is managed by govkit; put your own instructions outside it
+```
+
 After upgrading, review the diff and commit:
 
 ```bash
