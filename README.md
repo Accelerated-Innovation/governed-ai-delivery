@@ -191,6 +191,7 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 | `govkit extension` | `extension list` shows bundled extension packs; `extension add <id> --target <path>` copies one into your project's `extensions/<id>/`. |
 | `govkit upgrade` | Refresh the files govkit owns (contracts, CI gates, templates) to a new version without touching the files you own. |
 | `govkit list` | List available agents and starter templates. |
+| `govkit --version` | Print the installed version — the same one recorded in `.govkit/marker.json` and compared by `upgrade`. |
 
 > `govkit doctor` and `govkit validate` cover different surfaces: **doctor** checks whether the installed governance still *fits the repo*; **validate** checks whether your *features* meet the governed contract. Both are designed to run in CI.
 
