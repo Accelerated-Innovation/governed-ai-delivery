@@ -1060,3 +1060,143 @@ class TestGovkitsOwnFoldersAreNotEvidence:
 
         assert detect_source_root(tmp_path) == ""
 
+
+
+# ---------------------------------------------------------------------------
+# Near-miss packages — #120
+# ---------------------------------------------------------------------------
+
+class TestDetectNearMissPackages:
+    """Packages govkit *almost* recognised as services.
+
+    `detect_services` omits anything that does not hold enough architecture
+    layers, correctly — but silently. A team reading `services: [orders,
+    billing]` cannot tell whether that is the whole repo.
+
+    A near miss is a package overlapping some fingerprint by exactly one
+    folder: enough that govkit looked at it, too little to name it. That is
+    the set where the omission is surprising. `src/utils/` overlapping
+    nothing is not surprising and is not reported — reporting every unlisted
+    directory would fire on every shared package in every repo.
+    """
+
+    def test_a_package_with_one_hexagonal_folder_is_a_near_miss(self, tmp_path):
+        from cli.detect import detect_near_miss_packages
+
+        for svc in ("orders", "billing"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+        (tmp_path / "src" / "legacy" / "ports").mkdir(parents=True)
+
+        assert [root for root, _layers in detect_near_miss_packages(tmp_path)] == [
+            "src/legacy",
+        ]
+
+    def test_the_matched_folders_are_reported(self, tmp_path):
+        """So the message can say what govkit saw, not just that it saw
+        something."""
+        from cli.detect import detect_near_miss_packages
+
+        for svc in ("orders", "billing"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+        (tmp_path / "src" / "legacy" / "adapters").mkdir(parents=True)
+
+        assert detect_near_miss_packages(tmp_path) == [("src/legacy", ("adapters",))]
+
+    def test_a_clean_architecture_near_miss_is_found(self, tmp_path):
+        from cli.detect import detect_near_miss_packages
+
+        for svc in ("orders", "billing"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+        (tmp_path / "src" / "shared" / "Domain").mkdir(parents=True)
+
+        assert detect_near_miss_packages(tmp_path) == [("src/shared", ("Domain",))]
+
+    def test_a_package_overlapping_nothing_is_not_reported(self, tmp_path):
+        """`src/utils/` is not a service and nobody expected it to be.
+        Reporting it is the noise this check exists to avoid."""
+        from cli.detect import detect_near_miss_packages
+
+        for svc in ("orders", "billing"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+        (tmp_path / "src" / "utils" / "helpers").mkdir(parents=True)
+        (tmp_path / "src" / "config").mkdir(parents=True)
+
+        assert detect_near_miss_packages(tmp_path) == []
+
+    def test_a_lowercase_services_folder_overlaps_nothing(self, tmp_path):
+        """The layered fingerprint holds `Services`, not `services`. A
+        package with only `src/x/services/` matches no fingerprint at all, so
+        it is not a near miss — #120's original write-up got this wrong and
+        would have had the check silent on its own example."""
+        from cli.detect import detect_near_miss_packages
+
+        for svc in ("orders", "billing"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+        (tmp_path / "src" / "reporting" / "services").mkdir(parents=True)
+
+        assert detect_near_miss_packages(tmp_path) == []
+
+    def test_a_recognised_service_is_never_a_near_miss(self, tmp_path):
+        from cli.detect import detect_near_miss_packages, detect_services
+
+        for svc in ("orders", "billing"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+
+        named = {root for _n, root in detect_services(tmp_path)}
+        assert named == {"src/orders", "src/billing"}
+        assert not [r for r, _ in detect_near_miss_packages(tmp_path) if r in named]
+
+    def test_reported_for_a_single_service_repo_too(self, tmp_path):
+        """The sub-question #120 left open, answered yes. One conforming
+        package and one near miss reads as single-service, and govkit picked
+        a source root while ignoring the other package — more surprising
+        there, not less."""
+        from cli.detect import detect_near_miss_packages, detect_source_root
+
+        _hexagonal_package(tmp_path, "src/orders")
+        (tmp_path / "src" / "legacy" / "ports").mkdir(parents=True)
+
+        assert detect_source_root(tmp_path) == "src/orders"
+        assert detect_near_miss_packages(tmp_path) == [("src/legacy", ("ports",))]
+
+    def test_silent_when_the_layers_sit_at_the_repo_root(self, tmp_path):
+        from cli.detect import detect_near_miss_packages
+
+        _hexagonal_package(tmp_path, "")
+
+        assert detect_near_miss_packages(tmp_path) == []
+
+    def test_silent_on_a_repo_with_no_source_root(self, tmp_path):
+        from cli.detect import detect_near_miss_packages
+
+        (tmp_path / "docs").mkdir()
+
+        assert detect_near_miss_packages(tmp_path) == []
+
+    def test_skip_dirs_and_hidden_packages_are_ignored(self, tmp_path):
+        from cli.detect import detect_near_miss_packages
+
+        for svc in ("orders", "billing"):
+            _hexagonal_package(tmp_path, f"src/{svc}")
+        (tmp_path / "src" / "node_modules" / "ports").mkdir(parents=True)
+        (tmp_path / "src" / ".cache" / "ports").mkdir(parents=True)
+
+        assert detect_near_miss_packages(tmp_path) == []
+
+    def test_the_threshold_is_the_one_detection_uses(self, tmp_path):
+        """Near miss is defined against the same fingerprints and the same
+        `>= 2` threshold `detect_source_root` applies. If the check kept its
+        own copy the two would drift and this would report packages that are
+        in fact services, or miss ones that are not."""
+        from cli.detect import detect_near_miss_packages, detect_services
+
+        # Exactly the threshold: two hexagonal folders -> a service.
+        (tmp_path / "src" / "orders" / "ports").mkdir(parents=True)
+        (tmp_path / "src" / "orders" / "adapters").mkdir(parents=True)
+        (tmp_path / "src" / "billing" / "ports").mkdir(parents=True)
+        (tmp_path / "src" / "billing" / "adapters").mkdir(parents=True)
+        # One below it -> a near miss.
+        (tmp_path / "src" / "legacy" / "ports").mkdir(parents=True)
+
+        assert len(detect_services(tmp_path)) == 2
+        assert [r for r, _ in detect_near_miss_packages(tmp_path)] == ["src/legacy"]

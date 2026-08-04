@@ -1523,3 +1523,119 @@ def test_d018_covers_every_layout_where_rules_move():
             assert fired == (name in relocating), (
                 f"{name}: D018 fired={fired}, expected {name in relocating}"
             )
+
+
+class TestD019SkippedServicePackages:
+    """#120 — govkit names what it did not list.
+
+    `architecture.services` omits packages that hold too few architecture
+    layers. Correct, but silent: a team reading `services: [orders, billing]`
+    cannot tell whether that is the whole repo, and since #118 the planning
+    skills offer only the names govkit found.
+    """
+
+    def _services(self, target: Path) -> None:
+        for svc in ("orders", "billing"):
+            for layer in BACKEND_LAYERS:
+                (target / "src" / svc / layer).mkdir(parents=True)
+
+    def test_names_a_near_miss_package(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._services(tmp_path)
+        (tmp_path / "src" / "legacy" / "ports").mkdir(parents=True)
+        _write_marker(tmp_path)
+
+        d019s = [f for f in run_doctor(tmp_path) if f.id == "D019"]
+        assert len(d019s) == 1
+        assert "src/legacy" in d019s[0].message.replace("\\", "/")
+
+    def test_is_informational_not_a_failure(self, tmp_path):
+        """Nothing is broken — the repo just is not fully described. Doctor
+        exits non-zero only on errors, and this must not change that."""
+        from cli.doctor import run_doctor
+
+        self._services(tmp_path)
+        (tmp_path / "src" / "legacy" / "ports").mkdir(parents=True)
+        _write_marker(tmp_path)
+
+        finding = [f for f in run_doctor(tmp_path) if f.id == "D019"][0]
+        assert finding.severity == "info"
+
+    def test_says_what_it_saw_and_what_was_missing(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._services(tmp_path)
+        (tmp_path / "src" / "legacy" / "ports").mkdir(parents=True)
+        _write_marker(tmp_path)
+
+        finding = [f for f in run_doctor(tmp_path) if f.id == "D019"][0]
+        text = finding.message + finding.suggested_action
+        assert "ports" in text
+        assert "architecture.services" in text
+
+    def test_silent_when_every_package_is_a_service(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._services(tmp_path)
+        _write_marker(tmp_path)
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D019"] == []
+
+    def test_silent_for_packages_that_look_nothing_like_services(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._services(tmp_path)
+        (tmp_path / "src" / "utils" / "helpers").mkdir(parents=True)
+        (tmp_path / "src" / "config").mkdir(parents=True)
+        _write_marker(tmp_path)
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D019"] == []
+
+    def test_reports_each_near_miss_separately(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._services(tmp_path)
+        (tmp_path / "src" / "legacy" / "ports").mkdir(parents=True)
+        (tmp_path / "src" / "shared" / "Domain").mkdir(parents=True)
+        _write_marker(tmp_path)
+
+        reported = {
+            f.file.replace("\\", "/") for f in run_doctor(tmp_path) if f.id == "D019"
+        }
+        assert reported == {"src/legacy", "src/shared"}
+
+    def test_fires_on_a_single_service_repo(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        for layer in BACKEND_LAYERS:
+            (tmp_path / "src" / "orders" / layer).mkdir(parents=True)
+        (tmp_path / "src" / "legacy" / "ports").mkdir(parents=True)
+        _write_marker(tmp_path)
+
+        assert len([f for f in run_doctor(tmp_path) if f.id == "D019"]) == 1
+
+    def test_silent_on_a_flat_repo(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        for layer in BACKEND_LAYERS:
+            (tmp_path / layer).mkdir(parents=True)
+        _write_marker(tmp_path)
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D019"] == []
+
+    def test_does_not_change_the_exit_code(self, tmp_path):
+        """An info finding alone must leave `govkit doctor` green."""
+        import argparse
+
+        import pytest as _pytest
+
+        from cli.doctor import cmd_doctor
+
+        self._services(tmp_path)
+        (tmp_path / "src" / "legacy" / "ports").mkdir(parents=True)
+        _write_marker(tmp_path)
+
+        with _pytest.raises(SystemExit) as exc:
+            cmd_doctor(argparse.Namespace(target=str(tmp_path)))
+        assert exc.value.code == 0

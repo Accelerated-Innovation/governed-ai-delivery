@@ -94,6 +94,13 @@ _LAYERED_FOLDERS = {"Controllers", "Services", "Repositories"}
 _CLEAN_FOLDERS = {"Application", "Domain", "Infrastructure", "Presentation"}
 _DBT_FOLDERS = {"staging", "intermediate", "marts"}
 
+# The fingerprints source-root detection matches against, and how many of a
+# fingerprint's folders a package must hold to be recognised. `detect_services`
+# and `detect_near_miss_packages` read both from here so "one below
+# recognised" cannot drift away from what recognised means.
+_LAYER_FINGERPRINTS = (_HEXAGONAL_FOLDERS, _LAYERED_FOLDERS, _CLEAN_FOLDERS)
+_FINGERPRINT_THRESHOLD = 2
+
 
 # ---------------------------------------------------------------------------
 # RepoProfile
@@ -531,13 +538,13 @@ def _layer_root_candidates(target: Path) -> list[Path]:
     Direct children only — `iterdir()` on `src/`, `Source/` and each of
     their packages. Cost is fixed regardless of repo size.
     """
-    fingerprints = (_HEXAGONAL_FOLDERS, _LAYERED_FOLDERS, _CLEAN_FOLDERS)
-
     def _matches(root: Path, discount_govkit: bool = False) -> bool:
         names = _child_dir_names(root)
         if discount_govkit:
             names = {n for n in names if not _is_govkit_authored_folder(root / n)}
-        return any(len(fp & names) >= 2 for fp in fingerprints)
+        return any(
+            len(fp & names) >= _FINGERPRINT_THRESHOLD for fp in _LAYER_FINGERPRINTS
+        )
 
     # Only the target root discounts govkit's own folders — see
     # `_is_govkit_authored_folder`. Applying it to `src/<pkg>/` would drop
@@ -585,6 +592,51 @@ def detect_source_root(target: Path) -> str:
     if len(candidates) != 1 or candidates[0] == target:
         return ""
     return candidates[0].relative_to(target).as_posix()
+
+
+def detect_near_miss_packages(target: Path) -> list[tuple[str, tuple[str, ...]]]:
+    """`(root, matched folders)` for packages govkit almost called services.
+
+    `detect_services` omits any package holding too few architecture layers.
+    That is right — govkit can say nothing useful about `src/legacy/` — but
+    it is silent, and a team reading `services: [orders, billing]` cannot
+    tell whether that is the whole repo.
+
+    A near miss overlaps some fingerprint by **exactly one** folder: enough
+    that govkit looked at it, too little to name it. Reporting every
+    unlisted directory instead would fire on `src/utils/`, `src/config/` and
+    every shared package in every multi-service repo, which is noise — and
+    noise trains people to ignore the check.
+
+    The fingerprints and the threshold are the ones `_layer_root_candidates`
+    uses, not a second copy, so "one below recognised" cannot drift away
+    from what recognised means.
+
+    Note the fingerprints are case-sensitive: the layered one holds
+    `Services`, so a package with only `src/x/services/` overlaps nothing
+    and is not a near miss.
+    """
+    recognised = set(_layer_root_candidates(target))
+    near_misses: list[tuple[str, tuple[str, ...]]] = []
+    for root in (target / name for name in _PACKAGE_ROOTS):
+        if not root.is_dir():
+            continue
+        try:
+            packages = sorted(p for p in root.iterdir() if p.is_dir())
+        except OSError:
+            continue
+        for package in packages:
+            if package.name.startswith(".") or package.name in _SKIP_DIRS:
+                continue
+            if package in recognised:
+                continue
+            names = _child_dir_names(package)
+            matched = max((fp & names for fp in _LAYER_FINGERPRINTS), key=len, default=set())
+            if 0 < len(matched) < _FINGERPRINT_THRESHOLD:
+                near_misses.append(
+                    (package.relative_to(target).as_posix(), tuple(sorted(matched))),
+                )
+    return near_misses
 
 
 def detect_services(target: Path) -> list[tuple[str, str]]:
