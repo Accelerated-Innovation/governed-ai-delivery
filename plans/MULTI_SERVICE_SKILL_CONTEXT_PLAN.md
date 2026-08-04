@@ -486,7 +486,7 @@ earlier install left behind. Kept as a pointer because the reasoning that
 found them is worth keeping: unit tests were green across every layout while
 codex, one of three agents, got none of the feature.
 
-### Should doctor name skipped sibling packages? — tracked as #120
+### ~~Should doctor name skipped sibling packages?~~ — closed by #120
 
 Open question 3's remaining half, deliberately left out of 2b. A team reading
 `services: [orders, billing]` cannot tell whether that is the whole repo.
@@ -501,6 +501,26 @@ and a team would be surprised it did not.
 That definition needs deciding before the check is written, which is why 2b
 shipped without it. Lifted into **#120** rather than left here, since an open
 question inside a plan marked Implemented is where things go to be forgotten.
+
+**Settled, and the near-miss rule needed correcting first.** Doctor **D019**
+now reports a package overlapping one fingerprint by exactly one folder,
+reading the fingerprints and the `>= 2` threshold from the same constants
+`_layer_root_candidates` uses so the two cannot drift.
+
+#120's write-up illustrated a near miss with `src/reporting/services/`. That
+is wrong: the fingerprints are case-sensitive and the layered one holds
+`Services`, so a lone lowercase `services/` overlaps **nothing** and is not a
+near miss at all. Building the check against that example would have produced
+one that stayed silent on the very case its issue used to justify it. Real
+near misses are `src/legacy/ports/` and `src/shared/Domain/`, and there is a
+test pinning that the lowercase case is not one.
+
+The open sub-question — whether to report when `services` is absent entirely
+— is answered **yes**. One conforming package beside a near miss reads as
+single-service, so govkit picked a source root and ignored the other package.
+That is more surprising there, not less.
+
+Severity is `info`: nothing is broken, and the right fix is often nothing.
 
 ### ~~Codex and copilot planning skills assume hexagonal~~ — closed by #119
 

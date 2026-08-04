@@ -965,6 +965,58 @@ def _live_locations_for(dest: str, live_dests: set[str]) -> list[str]:
     return sorted(d for d in live_dests if d.endswith(suffix))
 
 
+@_register_check("D019")
+def _check_skipped_service_packages(
+    target: Path, marker: dict,
+) -> list[ValidationFinding]:
+    """D019 — a package govkit almost recognised as a service, and did not.
+
+    `architecture.services` in skill_context lists the packages holding a
+    full set of architecture layers. Anything short of that is omitted,
+    correctly — govkit can say nothing useful about `src/legacy/` — but the
+    omission is silent, and since #118 the planning skills offer only the
+    names govkit found. A team reading `services: [orders, billing]` has no
+    way to tell whether that is the whole repo.
+
+    Only *near misses* are reported: a package overlapping one architecture
+    fingerprint by a single folder, which is where govkit looked and almost
+    named it. Reporting every unlisted directory would fire on `src/utils/`,
+    `src/config/` and every shared package in every repo — noise, and noise
+    trains people to ignore the check.
+
+    Informational. Nothing is broken; the repo is simply not fully
+    described, and the fix may well be "nothing".
+    """
+    try:
+        from .detect import detect_near_miss_packages
+
+        near_misses = detect_near_miss_packages(target)
+    except OSError:
+        return []
+
+    findings: list[ValidationFinding] = []
+    for root, matched in near_misses:
+        seen = ", ".join(f"{name}/" for name in matched)
+        findings.append(ValidationFinding(
+            id="D019",
+            severity="info",
+            category="unlisted-service-package",
+            file=root,
+            message=(
+                f"{root} holds {seen} but too few architecture layers for govkit "
+                f"to recognise it as a service, so it is absent from "
+                f"architecture.services in .govkit/skill_context.yaml"
+            ),
+            suggested_action=(
+                f"no action needed if {root} is not a service. If it is one, give "
+                f"it the layer folders this project's architecture uses (see "
+                f"architecture.layers in .govkit/skill_context.yaml), or add it to "
+                f"architecture.services by hand — govkit preserves that edit"
+            ),
+        ))
+    return findings
+
+
 # D002 (rule body mentions an absent folder name) is intentionally deferred.
 # The body of most rule files contains explanatory text that references
 # architecture concepts ("adapters implement outbound port contracts...")
