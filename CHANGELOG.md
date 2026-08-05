@@ -8,6 +8,86 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-08-04
+
+Boundary enforcement now runs in a tool that understands each backend stack,
+multi-service repos are described and governed as such, and several checks
+that could pass without examining anything were repaired.
+
+**Upgrading:** `govkit upgrade` moves files in two cases. In a multi-service
+repo, Codex's layer rules move from the repo root into each service; the old
+root copies are left in place and reported by the new D018 rather than
+deleted. Codex's managed `AGENTS.md` block also gains a content hash line.
+Neither touches content you wrote.
+
+### Added
+
+- Boundary enforcement for every backend stack, in a tool that can read its
+  source: `dependency-cruiser` (nodejs-fastify), `go-arch-lint` (go-gin),
+  ArchUnit (java-spring-boot) and ArchUnitNET (dotnet-aspnet) join
+  import-linter (python-fastapi). The gate is selected per stack, and each
+  reference contract ships at L3. All five are executed against generated
+  fixtures in CI, not merely asserted structurally.
+- `architecture.services` in `.govkit/skill_context.yaml` — one entry per
+  service package, with `name` and `root` — so a skill can scope its work to
+  one service. Absent for single-service repos, which keeps every existing
+  file valid. `SkillContext.services` exposes it as typed `ServiceRef`s.
+- The backend `spec-planning` and `implementation-plan` skills ask which
+  service to plan for when a repo holds several and the request names none,
+  and scope every path in their output to that service's root.
+- `govkit --version`, reporting the same version recorded in
+  `.govkit/marker.json` and compared by `upgrade`.
+- **doctor D018** — path-scoped rules left where govkit no longer writes
+  them, with different advice for a govkit orphan and a file you authored.
+- **doctor D019** — packages govkit almost recognised as services and did
+  not list, so the omission stops being silent.
+
+### Changed
+
+- **Codex's path-scoped rules install once per service in a multi-service
+  repo** (`src/orders/api/AGENTS.md`), instead of a single copy at the repo
+  root that governed no code — Codex resolves `AGENTS.md` upward from the
+  file being edited and never reached it from service code.
+- **Codex's managed `AGENTS.md` block records a hash of its own content**, so
+  govkit can tell your edit from its own. Replacing the block is unchanged
+  and still documented in the block; what is new is that govkit now says so
+  when it discards an edit made inside it.
+- `architecture.source_root` is derived from the repo instead of being
+  hardcoded to `src/`. `""` now means "no single source root" — layers at
+  the repo root, several services, or a layout govkit cannot read — and is
+  read together with `services`.
+- The backend planning skills read the detected architecture rather than
+  assuming hexagonal. On a Clean, layered or dbt repo, Codex and Copilot
+  previously named packages that did not exist.
+- Stack-agnostic backend docs no longer state stack-specific rules or name a
+  boundary tool; they defer to `TECH_STACK.md`. Python code examples remain
+  as labelled illustrations.
+- The hexagonal layer vocabulary is consistent across the payload, and
+  `REPO_STRUCTURE_README.md` documents the multi-service shape.
+- `doctor` and `calibrate` discover nested installs in a monorepo instead of
+  stopping at the first governed root.
+
+### Fixed
+
+- The shipped import-linter reference analysed **nothing**: it declared
+  `root_package = "src"`, which is not a package in the prescribed src
+  layout, so grimp resolved zero dependencies and every contract reported
+  KEPT — including against injected violations. It also now ships from L3.
+- L4+ installs ran `boundary-check`, `sonarqube`, `security-scan` and
+  `commit-format` **twice** on every push, because the L3 and L4 gate files
+  both defined them.
+- D001 could not expand brace globs (`**/*.{py,go,ts}`), so installs
+  carrying such a rule reported a permanent, unfixable error against a
+  correct repo.
+- D008 missed LLM dependencies: the marker list omitted `claude-agent-sdk`
+  (which never pulls in `anthropic`), and the scanned manifests omitted
+  `.csproj`, `go.mod` and `build.gradle`, so .NET, Go and Java projects
+  false-negatived regardless of SDK.
+- Team edits to the `architecture` block of `skill_context.yaml` survive the
+  rewrite that every apply, upgrade, stack apply and calibrate performs.
+- `calibrate` correcting the architecture style now re-scopes the installed
+  rules, and re-renders the PII keyword list into rule bodies.
+
 ## [0.16.0] — 2026-07-30
 
 ### Added
