@@ -35,13 +35,19 @@ Apply `docs/ui/design/BRAND.md` explicitly:
 
 ## References
 
+Images (screenshots, sketches, wireframes, mockups) and interactive
+prototypes — for example an AI-generated HTML prototype or a design-tool
+export — both belong in `design/references/`.
+
 | File in `design/references/` | Learn from | Do not copy | Authority |
 |---|---|---|---|
 | None yet | | | Advisory |
 
 References are advisory unless this document promotes a named property to an
 accepted requirement. They never override accessibility, security, behavior,
-API contracts, or the brand contract.
+API contracts, or the brand contract. Prototype code is reference material
+only — it is never imported, copied, or extended in `src/`; promoted behavior
+transfers through `acceptance.feature` and `plan.md`.
 
 ## Design Acceptance
 

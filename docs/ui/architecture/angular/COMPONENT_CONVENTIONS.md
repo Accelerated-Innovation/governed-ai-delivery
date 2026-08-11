@@ -231,7 +231,10 @@ setFilter(filter: string) {
 
 ## 9. Testing
 
-All components must be tested with **Vitest + Angular Testing Utilities**.
+All components must be tested with **Jest + Angular Testing Library**, per
+`TECH_STACK.md`. This section carries the component-test rules; the full
+test-layer contract (API boundary, queries/stores, journeys, visual
+comparisons) is `TESTING.md`.
 
 ### Requirements
 
@@ -244,7 +247,6 @@ All components must be tested with **Vitest + Angular Testing Utilities**.
 ### Example
 
 ```typescript
-import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { screen, render } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { UserProfileComponent } from './user-profile.component';
@@ -254,7 +256,7 @@ describe('UserProfileComponent', () => {
     // Arrange
     const profile = { id: '1', firstName: 'Alice', lastName: 'Smith' };
     // Mock the query function
-    vi.mocked(injectUserProfile).mockReturnValue({
+    jest.mocked(injectUserProfile).mockReturnValue({
       data: () => profile,
       isPending: () => false,
       isError: () => false,
@@ -269,14 +271,14 @@ describe('UserProfileComponent', () => {
     expect(screen.getByText('Alice Smith')).toBeInTheDocument();
 
     // Accessibility check
-    const { axe } = await import('vitest-axe');
+    const { axe } = await import('jest-axe');
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
   it('shows loading spinner while data fetches', async () => {
     // Mock pending state
-    vi.mocked(injectUserProfile).mockReturnValue({
+    jest.mocked(injectUserProfile).mockReturnValue({
       data: () => undefined,
       isPending: () => true,
       isError: () => false,

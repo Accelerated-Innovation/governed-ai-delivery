@@ -7,6 +7,16 @@ change the visual language of the application. Replace every `TBD` that affects
 the feature being built. This file defines project-wide visual intent; each
 feature's `design.md` defines its local application.
 
+## Brand Sources
+
+List the external brand guides, design systems, or style documents used to
+complete this contract, by repository-relative path or URL. Brand sources are
+advisory inputs — the completed sections below are what bind.
+
+| Source | Location | Notes |
+|---|---|---|
+| TBD | TBD | TBD |
+
 ## Brand Character
 
 - Product or service name: TBD

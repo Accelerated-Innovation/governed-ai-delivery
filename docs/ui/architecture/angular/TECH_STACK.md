@@ -25,7 +25,18 @@ See `docs/ui/architecture/angular/STATE_MANAGEMENT.md` for usage rules.
 
 ---
 
-## 3. Testing
+## 3. Styling
+
+| Concern | Approach |
+|---|---|
+| Component styles | Component-scoped stylesheets (`styleUrl`), emulated encapsulation |
+| Design tokens | CSS custom properties mapping `docs/ui/design/BRAND.md` roles |
+
+No Tailwind mandate — utility frameworks are a per-project ADR decision. See `STYLING.md` for the styling contract.
+
+---
+
+## 4. Testing
 
 | Concern | Tool |
 |---|---|
@@ -36,7 +47,7 @@ See `docs/ui/architecture/angular/STATE_MANAGEMENT.md` for usage rules.
 
 ---
 
-## 4. Observability
+## 5. Observability
 
 | Concern | Tool |
 |---|---|
@@ -48,7 +59,7 @@ OpenTelemetry instrumentation lives in `src/shared/observability/`. Features mus
 
 ---
 
-## 5. HTTP
+## 6. HTTP
 
 | Concern | Tool |
 |---|---|
@@ -59,7 +70,7 @@ No raw `fetch` or `axios`. Use the shared `ApiService` in `src/shared/api/api.se
 
 ---
 
-## 6. Quality Gates (CI)
+## 7. Quality Gates (CI)
 
 | Gate | Tool |
 |---|---|
@@ -71,13 +82,14 @@ No raw `fetch` or `axios`. Use the shared `ApiService` in `src/shared/api/api.se
 
 ---
 
-## 7. Governance
+## 8. Governance
 
 | Concern | Location |
 |---|---|
 | Architecture contract | `docs/ui/architecture/MVVM_CONTRACT.md` |
 | Component conventions | `docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md` |
 | State management rules | `docs/ui/architecture/angular/STATE_MANAGEMENT.md` |
+| Styling contract | `docs/ui/architecture/angular/STYLING.md` |
 | Evaluation criteria | `docs/ui/evaluation/eval_criteria.md` |
 | FIRST scoring rubric | `docs/ui/evaluation/FIRST_SCORING_RUBRIC.md` |
 | Virtue scoring rubric | `docs/ui/evaluation/VIRTUE_SCORING_RUBRIC.md` |

@@ -394,6 +394,8 @@ The 8-step lifecycle above applies to all project types. Key differences by type
 - `api.md` for API client functions
 - `accessibility.md` for accessibility concerns
 
+**Visual direction:** Tailwind maps semantic tokens from `docs/ui/design/BRAND.md`. See `docs/ui/architecture/react/STYLING.md`. Feature `design.md` + advisory `design/references/` work the same as for Next.js below.
+
 **Implementation order:** API functions → React Query hooks → Zustand stores → Components → E2E tests
 
 **CI gates:** `ci/github/ui-quality-gate.yml`, `ci/github/ui-eval-gate.yml`
@@ -403,6 +405,8 @@ The 8-step lifecycle above applies to all project types. Key differences by type
 **Architecture:** MVVM with vertical slice feature structure. Standalone components with `OnPush`. See `docs/ui/architecture/MVVM_CONTRACT.md`.
 
 **Layer rules:** Same as React, with Angular-specific content.
+
+**Visual direction:** Component-scoped styles consume semantic tokens from `docs/ui/design/BRAND.md`; no Tailwind mandate. See `docs/ui/architecture/angular/STYLING.md`.
 
 **Implementation order:** API functions → TanStack Query inject functions → Signal stores → Standalone components → E2E tests
 
@@ -423,7 +427,10 @@ This rule cannot be waived by ADR.
 
 **Visual direction:** Tailwind CSS v4 maps semantic tokens from
 `docs/ui/design/BRAND.md`. Each L4+ feature includes `design.md` and an
-advisory `design/references/` folder for screenshots, sketches, and mockups.
+advisory `design/references/` folder for screenshots, sketches, mockups, and
+interactive prototypes (for example an AI-generated HTML prototype —
+reference-only; prototype code is never imported into `src/`). `govkit
+doctor` (D020) warns when the folder and `design.md` drift apart.
 
 **Implementation order:** contracts/types → backend API adapter → application
 use case/view model → Server Component composition → minimal Client Components
@@ -829,12 +836,16 @@ These guides map concrete products to the provider-neutral `llm-application` por
 
 - [COMPONENT_CONVENTIONS.md](docs/ui/architecture/react/COMPONENT_CONVENTIONS.md)
 - [STATE_MANAGEMENT.md](docs/ui/architecture/react/STATE_MANAGEMENT.md) — React Query + Zustand
+- [STYLING.md](docs/ui/architecture/react/STYLING.md) — Tailwind mechanism for the `BRAND.md` semantic tokens
+- [TESTING.md](docs/ui/architecture/react/TESTING.md) — test layers, API boundary, journeys, visual comparisons
 - [TECH_STACK.md](docs/ui/architecture/react/TECH_STACK.md)
 
 ### Angular UI
 
 - [COMPONENT_CONVENTIONS.md](docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md)
 - [STATE_MANAGEMENT.md](docs/ui/architecture/angular/STATE_MANAGEMENT.md) — TanStack Angular Query + Signals
+- [STYLING.md](docs/ui/architecture/angular/STYLING.md) — component-scoped styles over `BRAND.md` semantic tokens
+- [TESTING.md](docs/ui/architecture/angular/TESTING.md) — test layers, API boundary, journeys, visual comparisons
 - [TECH_STACK.md](docs/ui/architecture/angular/TECH_STACK.md)
 
 ### Data (Core — Level 4)

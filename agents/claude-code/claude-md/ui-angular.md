@@ -36,6 +36,8 @@ Read before generating any code:
 - `docs/ui/architecture/MVVM_CONTRACT.md`
 - `docs/ui/architecture/angular/COMPONENT_CONVENTIONS.md`
 - `docs/ui/architecture/angular/STATE_MANAGEMENT.md`
+- `docs/ui/architecture/angular/STYLING.md`
+- `docs/ui/architecture/angular/TESTING.md`
 - `docs/ui/architecture/angular/TECH_STACK.md`
 - `docs/ui/architecture/ACCESSIBILITY_STANDARDS.md`
 

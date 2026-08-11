@@ -132,9 +132,12 @@ This is informational and does not block planning.
 - Confirm `docs/ui/design/BRAND.md` is complete for the visual decisions this
   feature needs
 - Review `features/<feature_name>/design.md`
-- Inventory files under `features/<feature_name>/design/references/`
-- Treat screenshots and mockups as advisory unless `design.md` explicitly
-  promotes a named property to an accepted requirement
+- Inventory files under `features/<feature_name>/design/references/` —
+  images and interactive prototypes alike
+- Treat screenshots, mockups, and prototypes as advisory unless `design.md`
+  explicitly promotes a named property to an accepted requirement
+- Confirm no implementation will import or copy prototype code — prototypes
+  inform; `src/` code is written fresh under the architecture contracts
 - Record loading, empty, error, success, responsive, keyboard, focus, and
   reduced-motion states
 

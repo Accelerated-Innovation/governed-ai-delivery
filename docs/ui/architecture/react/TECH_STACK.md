@@ -20,7 +20,7 @@
 | CSS framework | Tailwind CSS | 3+ |
 | Component variants | `clsx` + `tailwind-merge` | latest |
 
-No custom global stylesheets. All styles via Tailwind utility classes. Use `clsx`/`twMerge` for conditional class composition in components.
+All component styling via Tailwind utility classes; the single global entry stylesheet is constrained to the roles listed in `STYLING.md`. Use `clsx`/`twMerge` for conditional class composition in components. Brand values come from `docs/ui/design/BRAND.md` semantic tokens — see `STYLING.md`.
 
 ---
 
@@ -88,8 +88,9 @@ No Axios. Use the shared base client in `src/shared/api/client.ts`.
 | Concern | Location |
 |---|---|
 | Architecture contract | `docs/ui/architecture/MVVM_CONTRACT.md` |
-| Component conventions | `docs/ui/architecture/COMPONENT_CONVENTIONS.md` |
-| State management rules | `docs/ui/architecture/STATE_MANAGEMENT.md` |
+| Component conventions | `docs/ui/architecture/react/COMPONENT_CONVENTIONS.md` |
+| State management rules | `docs/ui/architecture/react/STATE_MANAGEMENT.md` |
+| Styling contract | `docs/ui/architecture/react/STYLING.md` |
 | Evaluation criteria | `docs/ui/evaluation/eval_criteria.md` |
 | FIRST scoring rubric | `docs/ui/evaluation/FIRST_SCORING_RUBRIC.md` |
 | Virtue scoring rubric | `docs/ui/evaluation/VIRTUE_SCORING_RUBRIC.md` |
