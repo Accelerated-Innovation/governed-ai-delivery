@@ -109,6 +109,20 @@ class TestStylingContract:
         )
 
 
+class TestTopLevelReadme:
+    """The top-level README's per-stack doc lists must include the docs
+    this plan added — a doc absent from the README is invisible to users
+    browsing the repo."""
+
+    @pytest.mark.parametrize("stack", ["react", "angular"])
+    @pytest.mark.parametrize("doc", ["STYLING.md", "TESTING.md"])
+    def test_readme_links_added_stack_docs(self, stack, doc):
+        text = _read(REPO_ROOT / "README.md")
+        assert f"docs/ui/architecture/{stack}/{doc}" in text, (
+            f"README.md must link docs/ui/architecture/{stack}/{doc}"
+        )
+
+
 class TestBrandSourcesTraceability:
     def test_brand_template_has_brand_sources_line(self):
         """D7: the BRAND.md template records where external brand guides
