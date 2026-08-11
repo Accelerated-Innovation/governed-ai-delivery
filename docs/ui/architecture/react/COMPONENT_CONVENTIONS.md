@@ -17,11 +17,10 @@ Live in `src/shared/components/`. Truly generic UI primitives (Button, Input, Mo
 ```
 MyComponent/
 ├── MyComponent.tsx         # Component implementation
-├── MyComponent.test.tsx    # Component tests
-└── MyComponent.module.css  # Styles (if using CSS modules)
+└── MyComponent.test.tsx    # Component tests
 ```
 
-One component per file. Index barrel files are permitted at the feature components level only.
+One component per file. Index barrel files are permitted at the feature components level only. Components style themselves with Tailwind utility classes — no per-component stylesheet files. See `STYLING.md`.
 
 ---
 
@@ -68,7 +67,6 @@ Use React Hook Form. Never manage form state with `useState` per field.
 - Hooks: camelCase prefixed with `use` (`useUserProfile`)
 - Stores: camelCase prefixed with `use` (`useFilterStore`)
 - API functions: camelCase verb + resource (`fetchUserProfile`, `updateUserProfile`)
-- CSS module classes: camelCase (`styles.profileCard`)
 
 ---
 
@@ -77,7 +75,7 @@ Use React Hook Form. Never manage form state with `useState` per field.
 - `any` type — use `unknown` and narrow, or define a proper type
 - `useEffect` for data fetching — use React Query
 - Direct DOM manipulation — use refs only when no React alternative exists
-- Inline styles for layout — use CSS modules or a design token system
+- Inline styles for layout or brand styling — use Tailwind utilities and the semantic tokens in `STYLING.md`
 - Business logic in JSX — extract to a function or hook
 
 ---
