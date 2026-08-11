@@ -1291,10 +1291,120 @@ class TestD018StalePathScopedRules:
         assert "src/orders" in text or "src/billing" in text
 
     def test_silent_on_a_clean_multi_service_install(self, tmp_path):
-        from cli.doctor import run_doctor
 
         _multi_service_repo(tmp_path)
         _write_marker(tmp_path, agent="codex")
+
+
+# ---------------------------------------------------------------------------
+# D020 — design references drift (UI_DOCS_PARITY_AND_DESIGN_REFERENCES_PLAN
+# increment 5)
+# ---------------------------------------------------------------------------
+
+
+def _ui_feature_with_design(target: Path, name: str = "dashboard",
+                            design_body: str | None = None) -> Path:
+    """A UI feature dir holding a design.md and a design/references/ folder."""
+    feature = target / "features" / name
+    refs = feature / "design" / "references"
+    refs.mkdir(parents=True)
+    (refs / "README.md").write_text("# Design References\n", encoding="utf-8")
+    if design_body is None:
+        design_body = (
+            "# Feature Design\n\n"
+            "## Reference Images, Mockups, and Prototypes\n\n"
+            "| File | What to learn from it | What not to copy | Authority |\n"
+            "|---|---|---|---|\n"
+            "| None yet | | | Advisory |\n"
+        )
+    (feature / "design.md").write_text(design_body, encoding="utf-8")
+    return feature
+
+
+class TestD020DesignReferenceDrift:
+    """design.md's reference table and the files in design/references/ drift
+    silently: a dropped-in mockup nobody documented, or a documented file
+    someone deleted. D020 surfaces both as warnings — design.md stays
+    advisory to validate (test_validate.py pins that), so doctor never
+    errors on it."""
+
+    def _marker(self, target: Path) -> None:
+        _write_marker(
+            target,
+            options={"type": "ui-react", "ci": "github"},
+            stack=None,
+        )
+
+    def test_undocumented_reference_file_warns(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._marker(tmp_path)
+        feature = _ui_feature_with_design(tmp_path)
+        (feature / "design" / "references" / "checkout-mockup.png").write_bytes(b"\x89PNG")
+
+        hits = [f for f in run_doctor(tmp_path) if f.id == "D020"]
+        assert hits and hits[0].severity == "warning"
+        assert hits[0].category == "design-reference-unlisted"
+        assert "checkout-mockup.png" in hits[0].message
+        assert "design.md" in hits[0].suggested_action
+
+    def test_documented_but_deleted_reference_warns(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._marker(tmp_path)
+        _ui_feature_with_design(tmp_path, design_body=(
+            "# Feature Design\n\n"
+            "## Reference Images, Mockups, and Prototypes\n\n"
+            "| File | What to learn from it | What not to copy | Authority |\n"
+            "|---|---|---|---|\n"
+            "| `login-flow.html` | screen order | markup | Advisory |\n"
+        ))
+
+        hits = [f for f in run_doctor(tmp_path) if f.id == "D020"]
+        assert hits and hits[0].severity == "warning"
+        assert hits[0].category == "design-reference-missing"
+        assert "login-flow.html" in hits[0].message
+
+    def test_documented_and_present_is_silent(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._marker(tmp_path)
+        feature = _ui_feature_with_design(tmp_path, design_body=(
+            "# Feature Design\n\n"
+            "## Reference Images, Mockups, and Prototypes\n\n"
+            "| File | What to learn from it | What not to copy | Authority |\n"
+            "|---|---|---|---|\n"
+            "| `checkout-mockup.png` | layout | exact colors | Advisory |\n"
+        ))
+        (feature / "design" / "references" / "checkout-mockup.png").write_bytes(b"\x89PNG")
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D020"] == []
+
+    def test_references_readme_is_not_a_reference(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._marker(tmp_path)
+        _ui_feature_with_design(tmp_path)
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D020"] == []
+
+    def test_none_yet_placeholder_is_not_a_missing_file(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        self._marker(tmp_path)
+        _ui_feature_with_design(tmp_path)  # default body carries "None yet"
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D020"] == []
+
+    def test_feature_without_design_md_is_silent(self, tmp_path):
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path)  # backend marker, no design.md anywhere
+        feature = tmp_path / "features" / "billing"
+        feature.mkdir(parents=True)
+        (feature / "acceptance.feature").write_text("Feature: Billing\n", encoding="utf-8")
+
+        assert [f for f in run_doctor(tmp_path) if f.id == "D020"] == []
 
         assert [f for f in run_doctor(tmp_path) if f.id == "D018"] == []
 

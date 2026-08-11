@@ -1017,6 +1017,110 @@ def _check_skipped_service_packages(
     return findings
 
 
+# First table cell that names a file: `checkout-mockup.png`, login-flow.html.
+# Header cells ("File"), separators ("---"), and the "None yet" placeholder
+# carry no dot-extension and never match.
+_DESIGN_REFERENCE_FILENAME = re.compile(r"^[\w][\w.\- ]*\.[A-Za-z0-9]+$")
+
+
+def _design_reference_table_files(design_text: str) -> list[str]:
+    """Filenames documented in design.md's reference table rows.
+
+    Reads the first cell of every markdown table row, backticks stripped.
+    Both UI starters shape the table with the filename first; cells that
+    don't look like a filename are ignored rather than parsed strictly, so
+    a hand-edited table keeps working.
+    """
+    names: list[str] = []
+    for line in design_text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = [c.strip() for c in stripped.strip("|").split("|")]
+        if not cells:
+            continue
+        first = cells[0].strip("`").strip()
+        if _DESIGN_REFERENCE_FILENAME.match(first):
+            names.append(first)
+    return names
+
+
+@_register_check("D020")
+def _check_design_reference_drift(
+    target: Path, marker: dict,
+) -> list[ValidationFinding]:
+    """D020 — design/references/ files and design.md's table drift apart.
+
+    The reference contract (feature design.md) says every retained file
+    under design/references/ gets a table row declaring what to learn from
+    it and its authority. Nothing enforced that: a mockup dropped into the
+    folder stays undocumented, and a documented file can be deleted leaving
+    a dangling row. Both directions are warnings — design.md is advisory to
+    `govkit validate` (a contract its tests pin), so doctor surfaces the
+    drift without failing anyone's CI.
+    """
+    features_dir = target / "features"
+    if not features_dir.is_dir():
+        return []
+    try:
+        feature_dirs = sorted(d for d in features_dir.iterdir() if d.is_dir())
+    except OSError:
+        return []
+
+    findings: list[ValidationFinding] = []
+    for feature in feature_dirs:
+        text = read_text_or_none(feature / "design.md")
+        if text is None:
+            continue
+        rel = f"features/{feature.name}"
+        refs_dir = feature / "design" / "references"
+        on_disk: list[str] = []
+        if refs_dir.is_dir():
+            try:
+                on_disk = sorted(
+                    p.name for p in refs_dir.iterdir()
+                    if p.is_file() and p.name != "README.md"
+                )
+            except OSError:
+                on_disk = []
+
+        for name in on_disk:
+            if name not in text:
+                findings.append(ValidationFinding(
+                    id="D020",
+                    severity="warning",
+                    category="design-reference-unlisted",
+                    file=f"{rel}/design/references/{name}",
+                    message=(
+                        f"{rel}/design/references/{name} is not documented "
+                        f"in {rel}/design.md"
+                    ),
+                    suggested_action=(
+                        f"add a row for {name} to the reference table in "
+                        f"{rel}/design.md (what to learn from it, what not "
+                        "to copy, authority) or delete the file"
+                    ),
+                ))
+
+        for name in _design_reference_table_files(text):
+            if not (refs_dir / name).is_file():
+                findings.append(ValidationFinding(
+                    id="D020",
+                    severity="warning",
+                    category="design-reference-missing",
+                    file=f"{rel}/design.md",
+                    message=(
+                        f"{rel}/design.md documents {name} but "
+                        f"{rel}/design/references/{name} does not exist"
+                    ),
+                    suggested_action=(
+                        f"restore {name} under {rel}/design/references/ or "
+                        "remove its table row from design.md"
+                    ),
+                ))
+    return findings
+
+
 # D002 (rule body mentions an absent folder name) is intentionally deferred.
 # The body of most rule files contains explanatory text that references
 # architecture concepts ("adapters implement outbound port contracts...")
