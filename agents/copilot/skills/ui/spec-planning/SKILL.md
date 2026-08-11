@@ -67,9 +67,12 @@ For each Gherkin scenario tagged `@accessibility`: describe the WCAG criteria an
 ### 5.5 Visual Direction
 
 Map the approved brand and feature `design.md` to semantic tokens, component
-states, responsive behavior, and accessibility. List every screenshot/mockup
-reference with what may be learned from it. References remain advisory unless
-`design.md` promotes a named property to a requirement.
+states, responsive behavior, and accessibility. List every screenshot,
+mockup, and prototype reference with what may be learned from it. References
+remain advisory unless `design.md` promotes a named property to a
+requirement. Prototype code (for example an AI-generated HTML prototype in
+`design/references/`) is never imported, copied, or extended in `src/` —
+promoted behavior enters the plan through `design.md`.
 
 ### 6. Evaluation Compliance Summary
 

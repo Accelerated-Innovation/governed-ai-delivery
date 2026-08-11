@@ -38,9 +38,12 @@ Describe how `docs/ui/design/BRAND.md` applies to this feature:
 - Shape, depth, and icon treatment:
 - Motion and reduced-motion behavior:
 
-## Reference Images and Mockups
+## Reference Images, Mockups, and Prototypes
 
 Store feature references in `design/references/` and list them here.
+References include static images (screenshots, sketches, wireframes,
+mockups) and interactive prototypes — for example an AI-generated HTML
+prototype or a design-tool export.
 
 | File | What to learn from it | What not to copy | Authority |
 |---|---|---|---|
@@ -49,6 +52,10 @@ Store feature references in `design/references/` and list them here.
 References are advisory unless a specific property is promoted here to an
 accepted requirement. They never override accessibility, security, accepted
 behavior, API contracts, or the approved brand contract.
+
+Prototype code is reference material only. It is never imported, copied, or
+extended in `src/`; behavior a prototype demonstrates transfers only by
+promotion here and then into `acceptance.feature` and `plan.md`.
 
 ## Component and Content Notes
 

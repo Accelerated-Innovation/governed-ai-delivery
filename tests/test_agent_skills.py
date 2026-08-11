@@ -196,6 +196,22 @@ def test_ui_skills_enforce_nextjs_boundary_and_design(skill_path: Path):
 
 
 @pytest.mark.parametrize(
+    "skill_path",
+    [p for p in UI_SKILLS if p.parent.name != "adr-author"],
+    ids=lambda p: f"{p.parents[3].name}/{p.parent.name}",
+)
+def test_ui_skills_cover_prototype_references(skill_path: Path):
+    """UI_DOCS_PARITY_AND_DESIGN_REFERENCES_PLAN.md increment 4: the
+    planning skills inventory prototypes (including AI-generated HTML
+    prototypes) alongside screenshots/mockups, as advisory references
+    whose code is never imported into src/."""
+    text = skill_path.read_text(encoding="utf-8")
+    assert "prototype" in text.lower(), (
+        f"{skill_path.parent.name} must cover prototype references"
+    )
+
+
+@pytest.mark.parametrize(
     "skill", ("adr-author", "architecture-preflight", "spec-planning", "implementation-plan"),
 )
 def test_ui_nextjs_skill_content_parity(skill: str):

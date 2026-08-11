@@ -155,6 +155,45 @@ class TestAsymmetryReadme:
         )
 
 
+UI_STARTERS = ("starter_ui", "starter_ui_nextjs")
+
+
+class TestDesignReferenceContract:
+    """Plan increment 4 (D3/D4): design references cover interactive
+    prototypes — including AI-generated HTML prototypes — stored in the
+    same design/references/ folder, advisory by default, with prototype
+    code never imported into src/. The two UI starters keep intentionally
+    different design.md shapes, so consistency here is semantic (both carry
+    the contract), not byte identity."""
+
+    @pytest.mark.parametrize("starter", UI_STARTERS)
+    def test_design_md_covers_prototypes(self, starter):
+        text = _read(REPO_ROOT / "features" / starter / "design.md")
+        assert "prototype" in text.lower(), (
+            f"features/{starter}/design.md must extend the reference table "
+            "to interactive prototypes"
+        )
+        assert "never imported" in text, (
+            f"features/{starter}/design.md must state the no-code-reuse "
+            "rule: prototype code is never imported, copied, or extended "
+            "in src/"
+        )
+
+    @pytest.mark.parametrize("starter", UI_STARTERS)
+    def test_references_readme_accepts_prototypes(self, starter):
+        text = _read(
+            REPO_ROOT / "features" / starter / "design" / "references" / "README.md"
+        )
+        assert "prototype" in text.lower(), (
+            f"features/{starter}/design/references/README.md must name "
+            "interactive prototypes among accepted reference kinds"
+        )
+        assert "never imported" in text, (
+            f"features/{starter}/design/references/README.md must carry the "
+            "no-code-reuse rule for prototype files"
+        )
+
+
 class TestAgentInstructionDocLists:
     """A doc added to the payload but unreachable from the instruction files
     is invisible to the agents that are supposed to read it. Reachable means

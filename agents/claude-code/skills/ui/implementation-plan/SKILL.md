@@ -49,6 +49,8 @@ or business logic in Next.js server code.
 ### 5. View — Components
 - [ ] Build components bottom-up (leaf components first)
 - [ ] Wire to hooks — no direct API calls
+- [ ] No code imported or copied from `design/references/` prototypes —
+      references inform; implementation follows the architecture contracts
 - [ ] Write component tests (React Testing Library / Angular Testing Library)
 - [ ] Run axe accessibility check in each test
 
