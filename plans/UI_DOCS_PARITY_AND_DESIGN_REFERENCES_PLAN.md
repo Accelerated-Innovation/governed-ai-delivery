@@ -2,12 +2,49 @@
 
 > **Status:** Approved source of truth
 > **Approved:** 2026-08-11
-> **Implementation status:** Not started
+> **Implementation status:** Complete (2026-08-11, branch
+> `feat/ui-docs-parity-design-references`)
 > **Scope:** Make each per-stack UI architecture doc set (`react`, `angular`,
 > `nextjs`) individually fully functional, and extend the feature design
 > reference contract to cover interactive prototypes (including
 > Claude-generated design files), without changing the advisory status of
 > `design.md`.
+
+---
+
+## Implementation Record
+
+All five increments implemented test-first, one commit each:
+
+1. `feat(payload): ship STYLING.md for react and angular UI stacks` — also
+   fixed react TECH_STACK's stale governance paths discovered en route.
+2. `feat(payload): ship TESTING.md for react and angular UI stacks` — also
+   fixed angular COMPONENT_CONVENTIONS naming Vitest/`vi.mocked`/vitest-axe
+   against TECH_STACK's declared Jest stack (same read-order contradiction
+   class as react's CSS modules), and pointed calibrate's `step.testing` at
+   the per-stack TESTING.md for all UI types.
+3. `docs(payload): record the intentional nextjs docs asymmetry`.
+4. `feat(payload): cover interactive prototypes in the design reference
+   contract` — the two starters keep their intentionally different design.md
+   shapes, so the consistency tests are semantic (both carry the prototype
+   wording and the D4 rule), not byte identity.
+5. `feat(doctor): warn when design references and design.md drift (D020)`.
+
+Anti-drift tests live in `tests/test_ui_stack_docs.py` plus additions to
+`tests/test_calibrate.py`, `tests/test_agent_skills.py`, and
+`tests/test_doctor.py`. Verification: fast loop 2280 passed; e2e tier 134
+passed (16 environment skips: JDK-dependent ArchUnit tests); `pytest -k
+parity` green; skill bodies byte-identical across agents.
+
+Deviation from §4 as written: the instruction-file doc lists are asserted
+as "reachable" (explicit path or a directory-wide "read all files under
+docs/ui/architecture/" instruction) because the copilot L4 and all L5
+instruction files use the directory-wide form and need no per-file edits.
+
+Observation recorded for a future pass (out of scope here):
+`features/ui_task_dashboard/` — a shared worked example for ui-react and
+ui-angular at L4 — ships no `design.md` while both starters and the skills
+treat it as the sixth UI artifact.
 
 ---
 
