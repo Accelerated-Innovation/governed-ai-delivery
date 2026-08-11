@@ -281,9 +281,11 @@ def build_checklist(target: Path, marker: dict) -> list[CalibrationStep]:
             "user flows, accessibility thresholds, and opt-in visual regression."
         )
     elif is_ui_type(type_value):
-        testing_path = "docs/ui/evaluation/eval_criteria.md"
+        testing_path = f"{arch}/TESTING.md"
         testing_suggestion = (
-            "Confirm component, E2E, FIRST, and accessibility thresholds match team practice."
+            "Confirm test layers, component/E2E frameworks, and accessibility "
+            "thresholds match team practice. Evaluation thresholds live in "
+            "docs/ui/evaluation/eval_criteria.md."
         )
     elif type_value == "data":
         testing_path = f"{arch}/TESTING.md"

@@ -183,7 +183,10 @@ const useFilterStore = create((set) => ({
 
 ## 8. Testing
 
-All components must be tested with **Vitest + React Testing Library**.
+All components must be tested with **Vitest + React Testing Library**, per
+`TECH_STACK.md`. This section carries the component-test rules; the full
+test-layer contract (API boundary, hooks/stores, journeys, visual
+comparisons) is `TESTING.md`.
 
 ### Requirements
 

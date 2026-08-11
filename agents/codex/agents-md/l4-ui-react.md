@@ -28,6 +28,7 @@ Read before generating any code:
 - `docs/ui/architecture/react/COMPONENT_CONVENTIONS.md`
 - `docs/ui/architecture/react/STATE_MANAGEMENT.md`
 - `docs/ui/architecture/react/STYLING.md`
+- `docs/ui/architecture/react/TESTING.md`
 - `docs/ui/architecture/react/TECH_STACK.md`
 - `docs/ui/evaluation/eval_criteria.md`
 

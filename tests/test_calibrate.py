@@ -125,6 +125,18 @@ class TestBuildChecklist:
         assert "docs/ui/design/BRAND.md" in paths
         assert len(steps) == 10
 
+    @pytest.mark.parametrize("ui_type,stack", [("ui-react", "react"), ("ui-angular", "angular")])
+    def test_ui_testing_step_targets_per_stack_testing_doc(self, tmp_path, ui_type, stack):
+        """react/angular ship a per-stack TESTING.md (plan increment 2), so
+        the testing step calibrates that doc — not the evaluation criteria
+        it pointed at when no per-stack testing doc existed."""
+        from cli.calibrate import build_checklist
+
+        marker = _write_marker(tmp_path, options={"type": ui_type, "ci": "github"}, stack=None)
+        steps = build_checklist(tmp_path, marker)
+        testing = next(s for s in steps if s.id == "step.testing")
+        assert testing.file_path == f"docs/ui/architecture/{stack}/TESTING.md"
+
     def test_no_internal_pr_references_in_user_facing_text(self, tmp_path):
         """Calibration steps are user-facing; they must not leak internal
         roadmap/PR references (e.g. "PR 5+", "PR 6a wires the consumers")."""

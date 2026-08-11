@@ -32,6 +32,7 @@ CORE_STACK_DOCS = (
     "COMPONENT_CONVENTIONS.md",
     "STATE_MANAGEMENT.md",
     "STYLING.md",
+    "TESTING.md",
 )
 
 # Per-agent instruction-file directory, per cli/agent_layout.py naming.
@@ -86,6 +87,18 @@ class TestStylingContract:
             "styling rules instead of restating them"
         )
 
+    def test_angular_component_conventions_use_jest_not_vitest(self):
+        """angular/TECH_STACK.md declares Jest + Angular Testing Library;
+        COMPONENT_CONVENTIONS.md historically said Vitest with vi.mocked/
+        vitest-axe examples — the same read-order contradiction as react's
+        CSS modules."""
+        text = _read(UI_ARCH / "angular" / "COMPONENT_CONVENTIONS.md")
+        for stale in ("Vitest", "vi.mocked", "vitest-axe"):
+            assert stale not in text, (
+                f"angular/COMPONENT_CONVENTIONS.md still references '{stale}' — "
+                "contradicts TECH_STACK.md's Jest testing stack"
+            )
+
     def test_angular_styling_is_component_scoped(self):
         """D6: Angular styles are component-scoped with BRAND tokens; no
         Tailwind mandate."""
@@ -117,16 +130,17 @@ class TestAgentInstructionDocLists:
     @pytest.mark.parametrize("agent", sorted(AGENT_INSTRUCTION_DIRS))
     @pytest.mark.parametrize("ui_type,stack", [("ui-react", "react"), ("ui-angular", "angular")])
     @pytest.mark.parametrize("prefix", ["", "l4-"])
-    def test_instruction_file_reaches_styling_doc(self, agent, ui_type, stack, prefix):
+    @pytest.mark.parametrize("doc", ["STYLING.md", "TESTING.md"])
+    def test_instruction_file_reaches_added_docs(self, agent, ui_type, stack, prefix, doc):
         path = (
             REPO_ROOT / "agents" / agent / AGENT_INSTRUCTION_DIRS[agent] / f"{prefix}{ui_type}.md"
         )
         text = _read(path)
-        explicit = f"docs/ui/architecture/{stack}/STYLING.md" in text
+        explicit = f"docs/ui/architecture/{stack}/{doc}" in text
         directory_wide = "all files under `docs/ui/architecture/" in text
         assert explicit or directory_wide, (
             f"{path.relative_to(REPO_ROOT)} must make "
-            f"docs/ui/architecture/{stack}/STYLING.md reachable — list it "
+            f"docs/ui/architecture/{stack}/{doc} reachable — list it "
             "explicitly or instruct reading all files under "
             "docs/ui/architecture/"
         )
