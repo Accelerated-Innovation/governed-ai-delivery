@@ -74,7 +74,10 @@ Only 6 architecture docs vary per backend/data stack (`TECH_STACK.md`, `API_CONV
 UI project types are standalone and reject both `--stack` and
 `govkit stack apply`. `ui-nextjs` uses its own server-first API-first payload;
 direct SQL/database dependencies are a non-waivable boundary enforced by
-doctor D016.
+doctor D016. The `nextjs/` docs folder is intentionally larger than `react/`
+and `angular/` — its extra docs are server-first concerns with no SPA
+equivalent. Do not replicate them for parity; see
+`docs/ui/architecture/README.md`.
 
 ## When changing behavior, keep the payload internally consistent
 

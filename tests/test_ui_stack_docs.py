@@ -120,6 +120,41 @@ class TestBrandSourcesTraceability:
         )
 
 
+class TestAsymmetryReadme:
+    """docs/ui/architecture/README.md records why the nextjs folder ships
+    more docs than react/angular, so a future 'parity' pass doesn't
+    manufacture server-first docs for SPA stacks. It is repo-side only —
+    the manifests' governed lists name entries explicitly and must not
+    pick it up."""
+
+    def test_readme_names_the_intentionally_nextjs_only_docs(self):
+        text = _read(UI_ARCH / "README.md")
+        for doc in (
+            "APPLICATION_STRUCTURE.md",
+            "API_BOUNDARY.md",
+            "SERVER_CLIENT_BOUNDARIES.md",
+        ):
+            assert doc in text, f"README.md must name nextjs-only doc {doc}"
+        assert "MVVM_CONTRACT.md" in text, (
+            "README.md must say react/angular structure lives in MVVM_CONTRACT.md"
+        )
+
+    @pytest.mark.parametrize("agent", sorted(AGENT_INSTRUCTION_DIRS))
+    def test_readme_is_not_installed_by_any_manifest(self, agent):
+        manifest_text = (
+            REPO_ROOT / "agents" / agent / "manifest.json"
+        ).read_text(encoding="utf-8")
+        assert "docs/ui/architecture/README.md" not in manifest_text, (
+            f"{agent}: the asymmetry README is repo-side documentation and "
+            "must not be installed"
+        )
+        # Would sweep the README (and anything else) into every UI install.
+        assert '"docs/ui/architecture/"' not in manifest_text, (
+            f"{agent}: manifests must name docs/ui/architecture/ entries "
+            "explicitly, never the whole directory"
+        )
+
+
 class TestAgentInstructionDocLists:
     """A doc added to the payload but unreachable from the instruction files
     is invisible to the agents that are supposed to read it. Reachable means
