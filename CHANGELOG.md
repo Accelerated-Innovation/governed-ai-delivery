@@ -8,6 +8,69 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.18.0] — 2026-08-12
+
+The React and Angular UI doc sets become individually fully functional —
+each now carries its own styling and testing contracts instead of leaving
+those decisions implicit — and the feature design-reference contract
+learns about interactive prototypes, including AI-generated ones.
+
+**Upgrading:** `govkit upgrade` on a `ui-react` or `ui-angular` install
+adds two governed docs (`STYLING.md`, `TESTING.md`) and refreshes the
+per-stack docs and agent rules. A `BRAND.md` you have edited is
+edit-protected and keeps your content; the new "Brand Sources" section
+arrives only where BRAND.md is unmodified. Existing feature `design.md`
+files are yours and are never touched — the prototype wording ships in
+newly scaffolded features.
+
+### Added
+
+- `docs/ui/architecture/react/STYLING.md` and `angular/STYLING.md` — how
+  each stack implements the `BRAND.md` semantic tokens. React styles with
+  Tailwind per its declared stack; Angular uses component-scoped styles
+  over CSS custom properties, with no Tailwind mandate. Brand values live
+  only in `BRAND.md`; the styling docs carry mechanism, never values.
+- `docs/ui/architecture/react/TESTING.md` and `angular/TESTING.md` — the
+  per-stack test-layer contract (API boundary, hooks/queries and stores,
+  component tests, Playwright journeys, visual comparisons), matching the
+  pattern nextjs and every backend stack already followed.
+- **Brand Sources** section in `BRAND.md` — records the external brand
+  guides or design systems a team translated into the contract, so
+  completed values stay traceable. Sources remain advisory; the completed
+  contract is what binds.
+- Interactive prototypes in the design-reference contract: feature
+  `design.md` and `design/references/` now explicitly accept an
+  AI-generated HTML prototype or design-tool export alongside screenshots
+  and mockups. Prototypes are advisory like every reference, and prototype
+  code is never imported, copied, or extended in `src/` — behavior
+  transfers only by promotion through `design.md`. The UI planning skills
+  inventory prototypes accordingly.
+- **doctor D020** — `design/references/` files undocumented in
+  `design.md`, and documented files that no longer exist. Warnings in both
+  directions; `design.md` remains advisory to `govkit validate`.
+
+### Changed
+
+- `govkit calibrate` for `ui-react`/`ui-angular` points its testing step
+  at the new per-stack `TESTING.md` instead of the evaluation-criteria
+  fallback used when no such doc existed.
+- React and Angular `COMPONENT_CONVENTIONS.md` testing sections slim down
+  to component-test rules plus a pointer to `TESTING.md`.
+
+### Fixed
+
+- React's docs contradicted each other on styling: `TECH_STACK.md`
+  mandated Tailwind while `COMPONENT_CONVENTIONS.md` still showed CSS
+  modules in its file layout and naming rules. Tailwind is the single
+  source of truth; the CSS-module remnants are gone.
+- Angular's `COMPONENT_CONVENTIONS.md` said Vitest (with `vi.mocked` and
+  `vitest-axe` examples) while `TECH_STACK.md` declares Jest + Angular
+  Testing Library. The conventions now match the declared stack.
+- React `TECH_STACK.md`'s governance table pointed at
+  `docs/ui/architecture/COMPONENT_CONVENTIONS.md` and
+  `STATE_MANAGEMENT.md` without the `react/` segment — paths that do not
+  exist.
+
 ## [0.17.0] — 2026-08-04
 
 Boundary enforcement now runs in a tool that understands each backend stack,
