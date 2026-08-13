@@ -22,7 +22,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CI_DIRS = [REPO_ROOT / "ci" / "github", REPO_ROOT / "ci" / "azure"]
 
 # `govkit <subcommand>` as an executed command, not a prose mention.
-INVOKES_RE = re.compile(r"^\s*(?:-\s*script:\s*|run:\s*)?govkit\s+(doctor|validate|apply|init)\b", re.MULTILINE)
+# Deliberately matches ANY subcommand rather than an enumerated list: the first
+# version named doctor|validate|apply|init, so `govkit evidence` shipped in a
+# gate without a pin and this suite stayed green. A new subcommand must not be
+# able to escape the pin requirement by not being on a list.
+INVOKES_RE = re.compile(
+    r"^\s*(?:-\s*script:\s*|run:\s*)?govkit\s+[a-z][a-z-]*\b", re.MULTILINE
+)
 # A pinned install: govkit~=X.Y.Z (compatible-release, patch-only within the minor)
 PINNED_RE = re.compile(r"pip install\s+['\"]?govkit~=(\d+\.\d+\.\d+)['\"]?")
 # Any install at all, pinned or not.
