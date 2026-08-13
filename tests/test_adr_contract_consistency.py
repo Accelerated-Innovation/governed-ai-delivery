@@ -104,6 +104,53 @@ def test_skill_points_at_an_adr_template(layer: str, skill: Path):
     )
 
 
+# ---------------------------------------------------------------------------
+# The agent must never write `Accepted`
+# ---------------------------------------------------------------------------
+#
+# This is the payload half of the approval-attestation decision. A CI gate that
+# catches an agent-typed `Accepted` after the fact is cleanup; the record still
+# says whatever the agent wrote. `Accepted` is a derived state — true because an
+# approver named in governance/approval_policy.yaml approved that decision at
+# that commit — so the only status an author can honestly write is `Proposed`.
+#
+# AUTONOMOUS_BUGFIX_AGENT_ANALYSIS.md §2 lists ADR-must-be-Accepted as the only
+# "No. Hard stop." for an autonomous agent, precisely because nothing let a
+# non-human set it. After this, nothing lets a *human* set it by typing either.
+
+STATUS_MENU = "Proposed | Accepted | Rejected | Superseded"
+POLICY_PATH = "governance/approval_policy.yaml"
+GATE_JOB = "adr-approval-check"
+
+
+@pytest.mark.parametrize("layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v))
+def test_skill_does_not_hand_the_agent_the_status_menu(layer: str, skill: Path):
+    """The template offers the vocabulary because a human reads it and picks.
+    Repeating the menu in the skill is what let an agent pick `Accepted`."""
+    assert STATUS_MENU not in skill.read_text(encoding="utf-8"), (
+        f"{_rel(skill)} hands the agent the full status vocabulary, so nothing "
+        f"stops it writing '{GATE_TOKEN}' — the one status it cannot earn"
+    )
+
+
+@pytest.mark.parametrize("layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v))
+def test_skill_tells_the_agent_to_author_proposed(layer: str, skill: Path):
+    assert "Proposed" in skill.read_text(encoding="utf-8"), (
+        f"{_rel(skill)} never names the one status an author may write"
+    )
+
+
+@pytest.mark.parametrize("layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v))
+def test_skill_names_where_approval_authority_lives(layer: str, skill: Path):
+    """An instruction not to write `Accepted` is a rule in prose — the exact
+    prohibited pattern AUTHORITY_AND_APPROVAL_CONTRACT.md names ('permission
+    declarations inside prompt text') if it is not backed by something real. The
+    skill must point at the policy and the gate that enforce it."""
+    text = skill.read_text(encoding="utf-8")
+    assert POLICY_PATH in text, f"{_rel(skill)} does not reference {POLICY_PATH}"
+    assert GATE_JOB in text, f"{_rel(skill)} does not name the {GATE_JOB} gate"
+
+
 @pytest.mark.parametrize("layer", ["backend", "ui"])
 def test_adr_skill_body_parity_across_agents(layer: str):
     """[[feedback_agent_parity]] — the ADR skill must not drift between agents."""

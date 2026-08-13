@@ -27,7 +27,13 @@ Short, action-oriented statement describing the decision.
 
 ## Status
 
-Proposed | Accepted | Rejected | Superseded
+Write `Proposed`. Never write `Accepted`.
+
+`Accepted` is a derived state, not a word an author types. It is true because an
+approver named in `governance/approval_policy.yaml` approved *this decision* at
+*this commit* — the `adr-approval-check` CI gate verifies exactly that, and fails
+a pull request whose ADR claims `Accepted` without it. `Rejected` and
+`Superseded` are recorded by whoever makes that call, not by you.
 
 ## Consequences
 
@@ -50,6 +56,10 @@ Does this violate any part of `ARCH_CONTRACT.md`, `BOUNDARIES.md`, `SECURITY_AUT
 
 Required reviewers (team lead, architect, or security lead based on scope) and link to PR or issue.
 
+Naming someone here *requests* a decision; it does not record one. A reviewer assesses evidence or content; only an approver listed in `governance/approval_policy.yaml` commits the decision, and only their approving review — bound to the head commit — makes the ADR Accepted. Leave no signature, date, or approver name here as though the decision were already made.
+
 ---
 
-Write the ADR to `docs/{{docs_area}}/architecture/ADR/<slug>.md`. If required information is missing, stop and ask before drafting.
+Write the ADR to `docs/{{docs_area}}/architecture/ADR/<slug>.md` with status `Proposed`. If required information is missing, stop and ask before drafting.
+
+Implementation of a dependent feature waits until the ADR is Accepted. That is something you observe — `govkit validate` reports ADRs claiming it without provenance, and `adr-approval-check` proves it — never something you assert by editing the status line.
