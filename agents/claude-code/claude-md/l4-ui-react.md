@@ -75,6 +75,21 @@ These are hard constraints. Never violate without an accepted ADR.
 
 ---
 
+## Mandatory Feature Structure
+
+Every feature must live under `features/<feature_name>/` with these artifacts:
+
+- `acceptance.feature`
+- `nfrs.md`
+- `eval_criteria.yaml`
+- `plan.md`
+- `architecture_preflight.md`
+- `design.md`
+
+Implementation must not begin unless all six artifacts exist and are complete.
+
+---
+
 ## Feature Workflow
 
 Every feature follows this mandatory sequence:

@@ -64,8 +64,9 @@ Every feature must live under `features/<feature_name>/` with these artifacts:
 * `eval_criteria.yaml`
 * `plan.md`
 * `architecture_preflight.md`
+* `design.md`
 
-Implementation must not begin unless all artifacts exist and are complete.
+Implementation must not begin unless all six artifacts exist and are complete.
 
 ---
 
