@@ -8,6 +8,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Defect lane.** A change that restores already-established behavior now
+  carries one schema-backed record — `fixes/<id>/fix.yaml` — instead of the
+  five-artifact feature contract. `govkit fix init <id>` scaffolds it,
+  `govkit validate` checks it, and `/govkit-fix-record` walks the agent through
+  eligibility before any code is written. L4+; L3 keeps no artifact model.
+- `governance/schemas/fix_record.schema.json` — area-agnostic, shipped as a
+  governed file to every project type.
+- `ci/{github,azure}/fix-lane-gate.yml` — the only gate with the diff, and so
+  the only one that can catch a source change carrying no governance at all.
+  Inactive until `SOURCE_PATHS` is configured, mirroring `repo-scope-check`.
+
+### Changed
+
+- `govkit validate` now reports a second artifact family alongside features,
+  following the extensions precedent: silent when absent, own exit code.
+- `PARITY_TEST.md`'s skill inventory said 11 skills / 33 files against an actual
+  12 / 36. Corrected, and a test now pins it so the stated count cannot drift.
+- `ci/README.md`'s workflow matrix listed three Next.js rows twice.
+
 ## [0.18.0] — 2026-08-12
 
 The React and Angular UI doc sets become individually fully functional —

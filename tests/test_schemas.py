@@ -849,3 +849,114 @@ class TestDataEvalCriteriaSchema:
             manifest["variants"]["type"]["data"].get("level_4", {}).get("governed", [])
         )
         assert "governance/data/schemas/" in governed, agent
+
+
+# ---------------------------------------------------------------------------
+# Fix record schema (defect lane)
+# ---------------------------------------------------------------------------
+
+FIX_RECORD_SCHEMA_PATH = REPO_ROOT / "governance" / "schemas" / "fix_record.schema.json"
+
+
+class TestFixRecordSchema:
+    """The defect lane's single artifact. Area-agnostic, like
+    evaluation_prediction.schema.json — a fix record has the same shape whether
+    the repo is api, ui, or data, so it does not live under governance/<area>/."""
+
+    def _schema(self) -> dict:
+        return json.loads(FIX_RECORD_SCHEMA_PATH.read_text(encoding="utf-8"))
+
+    def _valid_record(self) -> dict:
+        return {
+            "version": 1,
+            "id": "task-filter-reset",
+            "summary": "Task filter resets to All when navigating back from detail",
+            "expectation": {
+                "source": "features/ui_task_dashboard/acceptance.feature",
+                "reference": "Scenario: Filter persists across navigation",
+            },
+            "failure": {
+                "observed": "Filter state discarded on back-navigation",
+                "reported_in": "issue #482",
+            },
+            "surface": {"paths": ["src/features/tasks/hooks/useTaskFilter.ts"]},
+            "reproduction": {
+                "test": "src/features/tasks/hooks/useTaskFilter.test.ts",
+                "scenario": "restores persisted filter on remount",
+            },
+            "risk": {
+                "architecture": False,
+                "security_auth": False,
+                "data_handling": False,
+                "public_contract": False,
+                "nfr": False,
+                "cross_service": False,
+            },
+            "introduces_new_behavior": False,
+        }
+
+    def _errors(self, instance: dict) -> list:
+        return list(Draft202012Validator(self._schema()).iter_errors(instance))
+
+    def test_schema_is_valid_json_schema(self):
+        Draft202012Validator.check_schema(self._schema())
+
+    def test_valid_record_validates(self):
+        errors = self._errors(self._valid_record())
+        assert not errors, "\n".join(e.message for e in errors)
+
+    def test_rejects_string_version(self):
+        """House convention: version is an integer, never a string."""
+        instance = self._valid_record() | {"version": "1"}
+        assert self._errors(instance)
+
+    def test_rejects_unknown_top_level_key(self):
+        instance = self._valid_record() | {"lane": "fix"}
+        assert self._errors(instance)
+
+    def test_rejects_evaluation_prediction(self):
+        """This lane deliberately carries no FIRST/Virtue prediction machinery —
+        its self-attestation problem is a separate decision."""
+        instance = self._valid_record() | {"evaluation_prediction": {"first": {}}}
+        assert self._errors(instance)
+
+    @pytest.mark.parametrize(
+        "section", ["expectation", "failure", "surface", "reproduction", "risk"],
+    )
+    def test_every_section_is_required(self, section):
+        instance = self._valid_record()
+        del instance[section]
+        assert self._errors(instance), f"{section} should be required"
+
+    def test_expectation_requires_a_source(self):
+        """Condition 1 is otherwise pure assertion — an unsourced claim that a
+        fix restores established behavior is not reviewable."""
+        instance = self._valid_record()
+        del instance["expectation"]["source"]
+        assert self._errors(instance)
+
+    def test_reproduction_requires_a_test(self):
+        """Condition 2: a fix without a regression test is not in this lane."""
+        instance = self._valid_record()
+        del instance["reproduction"]["test"]
+        assert self._errors(instance)
+
+    @pytest.mark.parametrize(
+        "flag",
+        ["architecture", "security_auth", "data_handling", "public_contract", "nfr", "cross_service"],
+    )
+    def test_every_risk_flag_is_required(self, flag):
+        """Condition 4 is checked two ways against the diff, so a missing flag
+        cannot be read as 'false'."""
+        instance = self._valid_record()
+        del instance["risk"][flag]
+        assert self._errors(instance), f"risk.{flag} should be required"
+
+    def test_surface_requires_at_least_one_path(self):
+        instance = self._valid_record()
+        instance["surface"]["paths"] = []
+        assert self._errors(instance)
+
+    def test_introduces_new_behavior_must_be_boolean(self):
+        instance = self._valid_record() | {"introduces_new_behavior": "no"}
+        assert self._errors(instance)

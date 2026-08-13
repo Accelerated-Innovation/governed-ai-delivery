@@ -42,9 +42,7 @@ Copy the relevant templates for your project type:
 | `l3-ui-nextjs-quality-gate.yml` | — | — | Next.js L3 | — |
 | `ui-nextjs-quality-gate.yml` | — | — | Next.js L4/L5 | — |
 | `ui-nextjs-eval-gate.yml` | — | — | Next.js L4/L5 | — |
-| `l3-ui-nextjs-quality-gate.yml` | — | — | Next.js L3 | — |
-| `ui-nextjs-quality-gate.yml` | — | — | Next.js L4/L5 | — |
-| `ui-nextjs-eval-gate.yml` | — | — | Next.js L4/L5 | — |
+| `fix-lane-gate.yml` (L4+, configure first) | ✓ | ✓ | ✓ | ✓ |
 | `data-common-gate.yml` | — | — | — | ✓ |
 | `dbt-gate.yml` | — | — | — | `python-dbt` |
 | `databricks-gate.yml` | — | — | — | `databricks-lakehouse` |
@@ -212,6 +210,26 @@ A critical distinction in this governance framework: some checks enforce **actua
 | Architecture boundaries | boundary-gate-python | Runs `import-linter` to enforce hexagonal layering (`python-fastapi` only) |
 | Security vulnerabilities | l3-quality-gate | Snyk dependency scan |
 | Code quality metrics | l3-quality-gate | SonarQube duplication and complexity |
+| Governing artifact coverage | fix-lane-gate | Source changed in the PR is accounted for by a fix record or a feature |
+| Fix record correspondence | fix-lane-gate | A fix record's `surface.paths` matches what the diff actually changed, and the diff carries a test |
+
+#### The fix-lane gate needs configuring before it does anything
+
+Set `SOURCE_PATHS` in the workflow to your application source roots
+(comma-separated prefixes, e.g. `src/,lib/`). Until you do, the gate prints
+that it is inactive and passes — a fresh install stays green, and the false
+positives are your choice rather than govkit's. `.govkit/skill_context.yaml`
+records what govkit detected under `architecture.source_root` and
+`architecture.services[].root`; note `source_root: ""` means *no single root*
+and is not a value to paste in.
+
+This is the only gate that can catch a code change carrying no governance at
+all. `govkit validate` iterates artifacts that already exist, so a PR that
+changes source and creates none passes it untouched. The gate is also where a
+fix record's declarations meet reality: `validate` can prove a record is
+internally consistent, but `surface.paths` and the risk flags are both authored,
+so they can agree with each other while disagreeing with the diff. Only CI has
+the diff.
 
 ### Prediction-only (plan.md scores, not actuals)
 

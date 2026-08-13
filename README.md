@@ -185,8 +185,9 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 | `govkit apply` | Install / scaffold governance into your project. Detects your stack, writes the `.govkit` marker. |
 | `govkit calibrate` | Guided, type-aware review to make installed defaults match your repo. UI reviews include brand readiness; `--non-interactive` writes a checklist file and `--only <step>` revisits one decision. |
 | `govkit doctor` | Read-only **governance-fit** checks (rule globs, CI/stack/language/framework fit, stale baselines, extensions, and the Next.js database boundary). Run once you have source code, and in CI. Monorepo-aware. |
-| `govkit validate` | Level-aware **per-feature** compliance check (artifact existence, Gherkin structure, NFR coverage, eval-criteria schema, prediction thresholds). No-op at L3. |
+| `govkit validate` | Level-aware compliance check over **features** (artifact existence, Gherkin structure, NFR coverage, eval-criteria schema, prediction thresholds) and **fix records** (schema, eligibility conditions). No-op at L3. |
 | `govkit init <feature>` | Scaffold a new feature folder from the appropriate starter (L4+). |
+| `govkit fix init <id>` | Scaffold a defect-lane fix record at `fixes/<id>/fix.yaml` (L4+) — one artifact instead of five, for a change that restores already-established behavior. |
 | `govkit stack` | `stack list` shows bundled tech-stack overlays; `stack apply <id>` swaps the stack on an existing install. |
 | `govkit extension` | `extension list` shows bundled extension packs; `extension add <id> --target <path>` copies one into your project's `extensions/<id>/`. |
 | `govkit upgrade` | Refresh the files govkit owns (contracts, CI gates, templates) to a new version without touching the files you own. |
@@ -354,6 +355,63 @@ The lifecycle is identical across agents; only the invocation syntax differs.
 | Implementation plan | `/govkit-implementation-plan my_feature` | `/govkit-implementation-plan` | `$govkit-implementation-plan my_feature` |
 
 Copilot infers the feature from context rather than taking it as an argument; Codex invokes skills with a `$` prefix.
+
+---
+
+## The defect lifecycle
+
+Not every change is a feature. A bug fix that **restores behavior something
+already established** carries one record instead of five artifacts.
+
+The distinction is not size — it is whether the behavior was already specified.
+A three-line change that introduces a capability is a feature; a hundred-line
+change that makes the code finally do what the contract always said is a defect.
+
+### Step 1: Confirm it qualifies
+
+All four must hold. If any fails, use the feature lifecycle above instead — and,
+where the contract requires one, an ADR.
+
+| # | Condition | How it is checked |
+|---|---|---|
+| 1 | Restores behavior an existing requirement, contract, ADR, or spec established | You declare it; `govkit validate` requires the cited source to resolve |
+| 2 | Includes a reproduction or regression test | `validate` requires the test path to resolve; CI requires the diff to carry one |
+| 3 | Introduces no new intended behavior | You declare it |
+| 4 | Does not change architecture, security/auth, data handling, public contracts, NFRs, or cross-service ownership | Declared per area, and contradicted from the changed paths where govkit owns the namespace |
+
+### Step 2: Write the failing test
+
+Reproduce the defect first. A fix whose test never failed has not been shown to
+fix anything.
+
+### Step 3: Scaffold the record
+
+```bash
+govkit fix init task-filter-reset --target .
+```
+
+Then complete `fixes/task-filter-reset/fix.yaml`. Ask the agent for help with
+`/govkit-fix-record`.
+
+### Step 4: Fix, validate, and open the PR
+
+```bash
+govkit validate --target .
+```
+
+**Be clear about what this buys.** Conditions 1 and 3 are declarations the
+tooling cannot verify — `validate` checks that your cited source resolves, not
+that it says what you claim. The record makes those claims explicit and narrow
+so a reviewer can check them in seconds. That is a real gain over five documents
+of prose, and it is not the same thing as proof.
+
+### Closing the code-only gap
+
+`govkit validate` iterates artifacts that already exist, so a PR that changes
+source and creates none passes it untouched. `ci/*/fix-lane-gate.yml` is the
+only gate that can see that, because it is the only one with the diff. It is
+**inactive until you set `SOURCE_PATHS`** in the workflow, so a fresh install
+stays green — see [ci/README.md](ci/README.md).
 
 ---
 

@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:governed-ai-delivery:schemas:fix_record",
+  "title": "Fix Record Schema",
+  "description": "Schema for fixes/<id>/fix.yaml — the single artifact of the defect lane. A fix that restores already-established behavior carries this one record instead of the five-artifact feature contract. Area-agnostic: the shape is the same for api, cli, ui, and data projects, so this lives in governance/schemas/ rather than governance/<area>/schemas/.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "id",
+    "summary",
+    "expectation",
+    "failure",
+    "surface",
+    "reproduction",
+    "risk",
+    "introduces_new_behavior"
+  ],
+  "properties": {
+    "version": {
+      "description": "Fix record format version.",
+      "type": "integer",
+      "minimum": 1
+    },
+
+    "id": {
+      "description": "Slug identifying this fix; must match the fixes/<id>/ directory name.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+
+    "summary": {
+      "description": "One line stating the defect, in the language of the affected behavior.",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "expectation": {
+      "description": "Eligibility condition 1 — what already established the behavior being restored. A fix that cannot cite a source is introducing behavior, not restoring it, and belongs in the feature lane.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source"],
+      "properties": {
+        "source": {
+          "description": "Repo-relative path to the requirement, contract, ADR, or spec that established the behavior. Must resolve — govkit validate checks it.",
+          "type": "string",
+          "minLength": 1
+        },
+        "reference": {
+          "description": "The specific scenario, section, or clause within that source.",
+          "type": "string"
+        }
+      }
+    },
+
+    "failure": {
+      "description": "What was actually observed, and where it was reported.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observed"],
+      "properties": {
+        "observed": { "type": "string", "minLength": 1 },
+        "reported_in": {
+          "description": "Issue, incident, or report reference.",
+          "type": "string"
+        }
+      }
+    },
+
+    "surface": {
+      "description": "What the fix touches. Cross-checked against the risk flags below.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paths"],
+      "properties": {
+        "paths": {
+          "description": "Repo-relative paths changed by this fix.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+
+    "reproduction": {
+      "description": "Eligibility condition 2 — the test that fails before the fix and passes after.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["test"],
+      "properties": {
+        "test": {
+          "description": "Repo-relative path to the reproduction or regression test. Must resolve — govkit validate checks it.",
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario": {
+          "description": "The specific test case name within that file.",
+          "type": "string"
+        }
+      }
+    },
+
+    "risk": {
+      "description": "Eligibility condition 4. Every flag is required so an omission cannot be read as false. Each is cross-checked against surface.paths in both directions: a false beside a change in that area fails, and so does a true — a true means the change belongs in the feature lane, not this one.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "architecture",
+        "security_auth",
+        "data_handling",
+        "public_contract",
+        "nfr",
+        "cross_service"
+      ],
+      "properties": {
+        "architecture": { "type": "boolean" },
+        "security_auth": { "type": "boolean" },
+        "data_handling": { "type": "boolean" },
+        "public_contract": { "type": "boolean" },
+        "nfr": { "type": "boolean" },
+        "cross_service": { "type": "boolean" }
+      }
+    },
+
+    "introduces_new_behavior": {
+      "description": "Eligibility condition 3. Must be false to stay in this lane; true promotes the change to the feature lane.",
+      "type": "boolean"
+    },
+
+    "evidence": {
+      "description": "Optional references supporting the fix — CI run, before/after capture, profiling output.",
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

@@ -738,6 +738,38 @@ def _run_extension_checks(target: Path, strict: bool) -> int:
     return 1 if any_fail else 0
 
 
+def _run_fix_checks(target: Path) -> int:
+    """Validate all discovered fix records. Silent when the defect lane is
+    absent — repos that never adopt it see no change.
+
+    Unlike extensions, an invalid fix record is a hard failure rather than a
+    strict-mode warning: the record is the *whole* governance artifact for that
+    change, so a broken one means the change is ungoverned. Warnings (no schema
+    installed, check-jsonschema missing) stay visible without failing, matching
+    check_eval_criteria.
+    """
+    from .fixes import FIXES_DIR, discover_fix_records, validate_fix_record
+
+    records = discover_fix_records(target)
+    if not records:
+        return 0
+
+    print(f"\ngovkit validate — {FIXES_DIR}/\n")
+    any_fail = False
+    for record in records:
+        issues, warnings = validate_fix_record(record, target)
+        for msg in warnings:
+            print(f"  {WARN}  {msg}")
+        if issues:
+            for msg in issues:
+                print(f"  {FAIL}  {msg}")
+            any_fail = True
+        elif not warnings:
+            print(f"  {PASS}  {record.rel}")
+    print()
+    return 1 if any_fail else 0
+
+
 def run_validation(target: Path, level: str | None = None, strict: bool = False) -> int:
     """Run all governance checks on the target project. Returns exit code."""
     if not target.exists():
@@ -762,6 +794,11 @@ def run_validation(target: Path, level: str | None = None, strict: bool = False)
         )
         return ext_exit
 
+    # The defect lane is L4+, like the feature contract it sits beside. Checked
+    # before the features/ guard so a repo mid-setup still hears about a broken
+    # fix record rather than only the missing directory.
+    fix_exit = _run_fix_checks(target)
+
     features_dir = target / "features"
     if not features_dir.exists():
         print(f"Error: no features/ directory found in '{target}'.")
@@ -773,7 +810,7 @@ def run_validation(target: Path, level: str | None = None, strict: bool = False)
 
     if not feature_dirs:
         print("No feature directories found to validate.")
-        return ext_exit
+        return max(ext_exit, fix_exit)
 
     level_labels = {
         "3": "L3 Governed AI Delivery (Foundations)",
@@ -787,4 +824,4 @@ def run_validation(target: Path, level: str | None = None, strict: bool = False)
     failed = len(feature_dirs) - passed
     print(f"{len(feature_dirs)} feature(s) checked, {passed} passed, {failed} failed")
     feature_exit = 0 if failed == 0 else 1
-    return max(feature_exit, ext_exit)
+    return max(feature_exit, ext_exit, fix_exit)

@@ -1,0 +1,122 @@
+# Azure DevOps mirror of ci/github/fix-lane-gate.yml.
+#
+# PURPOSE: Close the code-only escape hatch. `govkit validate` iterates artifacts
+#          that already exist, so a PR that changes source and creates no
+#          governing artifact passes every other gate untouched.
+#
+# validate is a working-tree tool: it can prove a fix record is internally
+# consistent, but not that its declarations match what the PR actually changed.
+# Only the diff can, and only CI has it.
+#
+# CONFIGURE THIS: set SOURCE_PATHS to your application source roots
+#   (comma-separated path prefixes, e.g. "src/,lib/"). The gate is INACTIVE
+#   until you do, so a fresh install stays green.
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  SOURCE_PATHS: YOUR_SOURCE_PATHS
+
+stages:
+  - stage: FixLane
+    displayName: Fix lane
+    jobs:
+      - job: FixLaneCheck
+        displayName: Governing artifact for source changes
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - script: pip install pyyaml
+            displayName: Install pyyaml
+
+          - script: |
+              # Three-dot: what this branch changed relative to the merge base.
+              # Two-dot would also report changes main made since the branch point.
+              git diff --name-only origin/main...HEAD | python - <<'EOF'
+              import os
+              import sys
+
+              import yaml
+
+              raw = os.environ.get("SOURCE_PATHS", "")
+              prefixes = [p.strip() for p in raw.split(",") if p.strip()]
+              if not prefixes or "YOUR_SOURCE_PATHS" in prefixes:
+                  print("SOURCE_PATHS is not configured — fix-lane gate inactive.")
+                  print("Set it in this workflow to your application source roots")
+                  print("(comma-separated, e.g. 'src/,lib/') to enable the gate.")
+                  sys.exit(0)
+
+              changed = [ln.strip() for ln in sys.stdin if ln.strip()]
+              touched_source = [
+                  p for p in changed if any(p.startswith(pre) for pre in prefixes)
+              ]
+              if not touched_source:
+                  print("No application source changed; nothing for this gate to check.")
+                  sys.exit(0)
+
+              fix_records = [
+                  p for p in changed
+                  if p.startswith("fixes/") and p.endswith("fix.yaml")
+              ]
+              feature_changes = [p for p in changed if p.startswith("features/")]
+
+              errors = []
+              if not fix_records and not feature_changes:
+                  errors.append(
+                      "source changed with no governing artifact: "
+                      + ", ".join(sorted(touched_source)[:10])
+                  )
+
+              tests = [p for p in changed if "test" in os.path.basename(p).lower()]
+
+              # Condition 2 — a fix without a regression test is not in the light lane.
+              # Checked against the diff, which is the only place it is provable.
+              if fix_records and not tests:
+                  errors.append(
+                      "a fix record is present but the diff adds or modifies no test"
+                  )
+
+              # Correspondence: surface.paths must account for what actually changed.
+              declared = set()
+              for record in fix_records:
+                  try:
+                      with open(record, encoding="utf-8") as fh:
+                          data = yaml.safe_load(fh) or {}
+                  except (OSError, yaml.YAMLError) as exc:
+                      errors.append(f"{record} could not be read: {exc}")
+                      continue
+                  declared.update((data.get("surface") or {}).get("paths") or [])
+
+              if fix_records:
+                  # The regression test lives under a source root too, but it is the
+                  # proof of the fix rather than part of it — surface.paths describes
+                  # what was repaired, so demanding the test appear there would be wrong.
+                  undeclared = sorted(set(touched_source) - declared - set(tests))
+                  if undeclared:
+                      errors.append(
+                          "changed source not declared in any fix record's surface.paths: "
+                          + ", ".join(undeclared[:10])
+                      )
+
+              if errors:
+                  for e in errors:
+                      print(f"FAIL: {e}")
+                  print("")
+                  print("A source change needs a governing artifact. Either:")
+                  print("  1. `govkit fix init <id>` and complete fixes/<id>/fix.yaml")
+                  print("     — for a defect that restores already-established behavior")
+                  print("  2. `govkit init <feature>` and complete the feature artifacts")
+                  print("     — for anything that introduces new behavior")
+                  sys.exit(1)
+
+              print("Source changes are covered by a governing artifact.")
+              EOF
+            displayName: Check governing artifact covers the source change

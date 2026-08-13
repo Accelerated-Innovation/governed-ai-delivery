@@ -22,6 +22,24 @@ Every feature must live under `features/<feature_name>/` with these required art
 
 Implementation must not begin unless all five artifacts exist and are complete.
 
+## Defect fixes
+
+A change that *restores* behavior an existing requirement, contract, ADR, or
+spec already established may use the fix lane instead of the five artifacts
+above: one record at `fixes/<id>/fix.yaml`, scaffolded by `govkit fix init <id>`.
+
+It qualifies only when all four hold:
+
+- It restores established behavior, and names the source that established it
+- It includes a reproduction or regression test
+- It introduces no new intended behavior
+- It does not change architecture, security/auth, data handling, public
+  contracts, NFRs, or cross-service ownership
+
+If any of those fails, the change belongs in the feature lane above — and, where
+the contract requires one, behind an ADR. Declaring a risk flag `true` does not
+waive it; it moves the change out of this lane.
+
 ## Gherkin Conventions
 
 - Every `acceptance.feature` must have a `Feature:` keyword, at least one `Scenario:`, and Given/When/Then steps

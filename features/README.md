@@ -10,6 +10,11 @@ Copy the appropriate starter when beginning a new feature. Backend/data
 starters contain the five common artifacts. UI starters add `design.md` and
 reference-image guidance as a sixth governed input.
 
+Not every change is a feature. A defect that *restores* behavior something
+already established uses the defect lane instead — one record at
+`fixes/<id>/fix.yaml` from `govkit fix init <id>`, not five artifacts here.
+See the defect lifecycle in the root README.
+
 | Starter | Use for | Copy from |
 |---|---|---|
 | `starter_backend/` | Python / Hexagonal Architecture API features | `features/starter_backend/` |
