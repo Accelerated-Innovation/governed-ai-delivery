@@ -499,22 +499,28 @@
           "by_type": {
             "api":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml",
                 "ci/github/fix-lane-gate.yml",
+                "ci/github/adr-approval-gate.yml",
                 "ci/github/evidence-gate.yml"] },
             "cli":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml",
                 "ci/github/fix-lane-gate.yml",
+                "ci/github/adr-approval-gate.yml",
                 "ci/github/evidence-gate.yml"] },
             "ui-react":   { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml",
                 "ci/github/fix-lane-gate.yml",
+                "ci/github/adr-approval-gate.yml",
                 "ci/github/evidence-gate.yml"] },
             "ui-angular": { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml",
                 "ci/github/fix-lane-gate.yml",
+                "ci/github/adr-approval-gate.yml",
                 "ci/github/evidence-gate.yml"] },
             "ui-nextjs":  { "governed": ["ci/github/ui-nextjs-quality-gate.yml", "ci/github/ui-nextjs-eval-gate.yml",
                 "ci/github/fix-lane-gate.yml",
+                "ci/github/adr-approval-gate.yml",
                 "ci/github/evidence-gate.yml"] },
             "data":       {
               "governed": ["ci/github/repo-scope-check.yml", "ci/github/data-common-gate.yml",
                 "ci/github/fix-lane-gate.yml",
+                "ci/github/adr-approval-gate.yml",
                 "ci/github/evidence-gate.yml"],
               "by_stack": {
                 "python-dbt": { "governed": ["ci/github/dbt-gate.yml"] },
@@ -539,6 +545,7 @@
                 "ci/github/multi-agent-gate.yml",
                 "ci/github/promptfoo-gate.yml",
                 "ci/github/fix-lane-gate.yml",
+                "ci/github/adr-approval-gate.yml",
                 "ci/github/evidence-gate.yml"
               ],
               "by_stack": {
@@ -559,6 +566,7 @@
                 "ci/github/multi-agent-gate.yml",
                 "ci/github/promptfoo-gate.yml",
                 "ci/github/fix-lane-gate.yml",
+                "ci/github/adr-approval-gate.yml",
                 "ci/github/evidence-gate.yml"
               ],
               "by_stack": {
@@ -578,6 +586,7 @@
               "ci/github/multi-agent-gate.yml",
               "ci/github/promptfoo-gate.yml",
                 "ci/github/fix-lane-gate.yml",
+                "ci/github/adr-approval-gate.yml",
                 "ci/github/evidence-gate.yml"
             ] },
             "ui-angular": { "governed": [
@@ -589,6 +598,7 @@
               "ci/github/multi-agent-gate.yml",
               "ci/github/promptfoo-gate.yml",
                 "ci/github/fix-lane-gate.yml",
+                "ci/github/adr-approval-gate.yml",
                 "ci/github/evidence-gate.yml"
             ] },
             "ui-nextjs": { "governed": [
@@ -599,6 +609,7 @@
               "ci/github/multi-agent-gate.yml",
               "ci/github/promptfoo-gate.yml",
                 "ci/github/fix-lane-gate.yml",
+                "ci/github/adr-approval-gate.yml",
                 "ci/github/evidence-gate.yml"
             ] }
           }
@@ -648,22 +659,28 @@
           "by_type": {
             "api":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml",
                 "ci/azure/fix-lane-gate.yml",
+                "ci/azure/adr-approval-gate.yml",
                 "ci/azure/evidence-gate.yml"] },
             "cli":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml",
                 "ci/azure/fix-lane-gate.yml",
+                "ci/azure/adr-approval-gate.yml",
                 "ci/azure/evidence-gate.yml"] },
             "ui-react":   { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml",
                 "ci/azure/fix-lane-gate.yml",
+                "ci/azure/adr-approval-gate.yml",
                 "ci/azure/evidence-gate.yml"] },
             "ui-angular": { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml",
                 "ci/azure/fix-lane-gate.yml",
+                "ci/azure/adr-approval-gate.yml",
                 "ci/azure/evidence-gate.yml"] },
             "ui-nextjs":  { "governed": ["ci/azure/ui-nextjs-quality-gate.yml", "ci/azure/ui-nextjs-eval-gate.yml",
                 "ci/azure/fix-lane-gate.yml",
+                "ci/azure/adr-approval-gate.yml",
                 "ci/azure/evidence-gate.yml"] },
             "data":       {
               "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/data-common-gate.yml",
                 "ci/azure/fix-lane-gate.yml",
+                "ci/azure/adr-approval-gate.yml",
                 "ci/azure/evidence-gate.yml"],
               "by_stack": {
                 "python-dbt": { "governed": ["ci/azure/dbt-gate.yml"] },
@@ -688,6 +705,7 @@
                 "ci/azure/multi-agent-gate.yml",
                 "ci/azure/promptfoo-gate.yml",
                 "ci/azure/fix-lane-gate.yml",
+                "ci/azure/adr-approval-gate.yml",
                 "ci/azure/evidence-gate.yml"
               ],
               "by_stack": {
@@ -708,6 +726,7 @@
                 "ci/azure/multi-agent-gate.yml",
                 "ci/azure/promptfoo-gate.yml",
                 "ci/azure/fix-lane-gate.yml",
+                "ci/azure/adr-approval-gate.yml",
                 "ci/azure/evidence-gate.yml"
               ],
               "by_stack": {
@@ -727,6 +746,7 @@
               "ci/azure/multi-agent-gate.yml",
               "ci/azure/promptfoo-gate.yml",
                 "ci/azure/fix-lane-gate.yml",
+                "ci/azure/adr-approval-gate.yml",
                 "ci/azure/evidence-gate.yml"
             ] },
             "ui-angular": { "governed": [
@@ -738,6 +758,7 @@
               "ci/azure/multi-agent-gate.yml",
               "ci/azure/promptfoo-gate.yml",
                 "ci/azure/fix-lane-gate.yml",
+                "ci/azure/adr-approval-gate.yml",
                 "ci/azure/evidence-gate.yml"
             ] },
             "ui-nextjs": { "governed": [
@@ -748,6 +769,7 @@
               "ci/azure/multi-agent-gate.yml",
               "ci/azure/promptfoo-gate.yml",
                 "ci/azure/fix-lane-gate.yml",
+                "ci/azure/adr-approval-gate.yml",
                 "ci/azure/evidence-gate.yml"
             ] }
           }
