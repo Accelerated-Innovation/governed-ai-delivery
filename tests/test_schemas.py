@@ -960,3 +960,109 @@ class TestFixRecordSchema:
     def test_introduces_new_behavior_must_be_boolean(self):
         instance = self._valid_record() | {"introduces_new_behavior": "no"}
         assert self._errors(instance)
+
+
+# ---------------------------------------------------------------------------
+# Approval policy schema (ADR attestation)
+# ---------------------------------------------------------------------------
+
+APPROVAL_POLICY_SCHEMA_PATH = (
+    REPO_ROOT / "governance" / "schemas" / "approval_policy.schema.json"
+)
+
+
+class TestApprovalPolicySchema:
+    """The file that turns an authenticated review into an approval.
+
+    `Accepted` on an ADR is meant to be a derived state — true because an
+    authorised approver approved that decision at that commit. Nothing derives
+    it unless something first says *which identities hold approval authority*,
+    and AUTHORITY_AND_APPROVAL_CONTRACT.md is explicit that "a reviewer does not
+    gain approval authority". So the Reviewer / Approver split has to live in
+    the data, not only in the prose — hence a required `role` drawn from that
+    contract's vocabulary.
+
+    Area-agnostic like fix_record.schema.json: an ADR approval has the same
+    shape whether the repo is api, ui, or data.
+    """
+
+    def _schema(self) -> dict:
+        return json.loads(APPROVAL_POLICY_SCHEMA_PATH.read_text(encoding="utf-8"))
+
+    def _valid_policy(self) -> dict:
+        return {
+            "version": 1,
+            "approvers": [
+                {"login": "octo-architect", "role": "approver"},
+                {"login": "octo-security", "role": "reviewer"},
+            ],
+        }
+
+    def _errors(self, instance: dict) -> list:
+        return list(Draft202012Validator(self._schema()).iter_errors(instance))
+
+    def test_schema_is_valid_json_schema(self):
+        Draft202012Validator.check_schema(self._schema())
+
+    def test_valid_policy_validates(self):
+        errors = self._errors(self._valid_policy())
+        assert not errors, "\n".join(e.message for e in errors)
+
+    def test_rejects_string_version(self):
+        """House convention: version is an integer, never a string."""
+        assert self._errors(self._valid_policy() | {"version": "1"})
+
+    def test_rejects_unknown_top_level_key(self):
+        assert self._errors(self._valid_policy() | {"approved_by": "me"})
+
+    def test_rejects_unknown_approver_key(self):
+        instance = self._valid_policy()
+        instance["approvers"][0]["email"] = "a@example.com"
+        assert self._errors(instance)
+
+    @pytest.mark.parametrize("field", ["version", "approvers"])
+    def test_top_level_fields_are_required(self, field):
+        instance = self._valid_policy()
+        del instance[field]
+        assert self._errors(instance), f"{field} should be required"
+
+    @pytest.mark.parametrize("field", ["login", "role"])
+    def test_every_approver_declares_a_login_and_a_role(self, field):
+        """A login with no role is exactly the collapse the authority contract
+        forbids — an identity in the file reads as authorised by being listed."""
+        instance = self._valid_policy()
+        del instance["approvers"][0][field]
+        assert self._errors(instance), f"approvers[].{field} should be required"
+
+    def test_rejects_a_role_outside_the_authority_contract_vocabulary(self):
+        instance = self._valid_policy()
+        instance["approvers"][0]["role"] = "owner"
+        assert self._errors(instance)
+
+    @pytest.mark.parametrize(
+        "role",
+        ["approver", "reviewer", "human-execution-owner", "accountable-principal"],
+    )
+    def test_accepts_every_role_the_authority_contract_names(self, role):
+        instance = self._valid_policy()
+        instance["approvers"][0]["role"] = role
+        errors = self._errors(instance)
+        assert not errors, "\n".join(e.message for e in errors)
+
+    def test_rejects_an_empty_login(self):
+        instance = self._valid_policy()
+        instance["approvers"][0]["login"] = ""
+        assert self._errors(instance)
+
+    def test_accepts_an_empty_approver_list(self):
+        """A policy naming nobody is well-formed but authorises nobody. The
+        gate fails closed on it rather than the schema rejecting it, so the
+        message a team sees names the real problem."""
+        errors = self._errors(self._valid_policy() | {"approvers": []})
+        assert not errors, "\n".join(e.message for e in errors)
+
+    def test_scope_is_optional_and_constrains_which_adrs_a_login_may_approve(self):
+        instance = self._valid_policy()
+        instance["approvers"][0]["scope"] = ["docs/backend/architecture/ADR/"]
+        errors = self._errors(instance)
+        assert not errors, "\n".join(e.message for e in errors)

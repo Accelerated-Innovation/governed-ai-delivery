@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:governed-ai-delivery:schemas:approval_policy",
+  "title": "Approval Policy Schema",
+  "description": "Schema for governance/approval_policy.yaml — the file that turns an authenticated review into an approval. An ADR's `Accepted` status is meant to be a derived state: true because an authorised approver approved that decision at that commit, not because the word was typed. Nothing can derive it until something says which identities hold approval authority, which is what this file declares. Area-agnostic: an ADR approval has the same shape whether the repo is api, cli, ui, or data, so this lives in governance/schemas/ rather than governance/<area>/schemas/.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "approvers"],
+  "properties": {
+    "version": {
+      "description": "Approval policy format version.",
+      "type": "integer",
+      "minimum": 1
+    },
+
+    "approvers": {
+      "description": "The identities this repository recognises, each with the role it holds. An empty list is well-formed but authorises nobody — the CI gate fails closed on it, so the message names the real problem instead of a schema error.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["login", "role"],
+        "properties": {
+          "login": {
+            "description": "Platform account login (a GitHub username). Matched against the `user.login` of an approving review, so it must be the account name, not a display name or email.",
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "description": "The role this identity holds, drawn from AUTHORITY_AND_APPROVAL_CONTRACT.md's human-roles table. Only `approver` confers approval authority: 'a reviewer does not gain approval authority', and an approval by anyone else is the contract's prohibited pattern 'approval by an unauthorized identity'. The other roles are declarable so the governance loop is recorded in one place without any of them silently reading as authorisation.",
+            "type": "string",
+            "enum": [
+              "approver",
+              "reviewer",
+              "human-execution-owner",
+              "accountable-principal"
+            ]
+          },
+          "scope": {
+            "description": "Optional repo-relative path prefixes this identity may approve within. Absent means every ADR in the repository. Approval is scoped by the authority contract, so a security lead who approves only security ADRs can be declared as such.",
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+
+    "require_approval_for": {
+      "description": "Optional repo-relative path prefixes the ADR approval gate covers. Absent means every `docs/*/architecture/ADR/` directory, which is where the shipped templates put ADRs.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}
