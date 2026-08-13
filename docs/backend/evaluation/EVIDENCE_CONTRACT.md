@@ -50,6 +50,23 @@ contract. An unmeasured dimension that reports green is indistinguishable from a
 verified one, which is exactly how a fabricated score survives review. A gate
 must report what it did not measure as loudly as what it did.
 
+**A present-but-unreadable artifact is `ERROR`, never `PASS`.** A file that
+parses is not automatically an evidence file. An empty document, a document
+missing the field the tool writes, or a field of the wrong type all carry *no
+information* — and reading "no violations found" out of them would give an
+artifact that says nothing the same verdict as a clean scan. That is the same
+failure as a fabricated score, arriving by a different route.
+
+The distinction between the two non-verdicts is worth keeping sharp:
+
+- `INCONCLUSIVE` — we did not evaluate this. Nothing was produced, or what was
+  produced does not cover this dimension.
+- `ERROR` — we tried to evaluate and could not. An artifact exists and someone
+  probably believes it is working.
+
+`ERROR` is the louder of the two on purpose. A broken report that a team thinks
+is protecting them is worse than a report they know is missing.
+
 One blocking failure fails the gate. `ERROR`, missing execution, and stale
 evidence never become a pass through aggregation. Weighted or averaged scoring
 applies only to non-blocking criteria — which is why an *average* of twelve

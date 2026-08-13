@@ -234,3 +234,68 @@ class TestFastThreshold:
         _junit(tmp_path, [("t1", 5.0, True)])
         v = _by_dimension(collect_evidence(tmp_path))["Fast"]
         assert v.outcome is Outcome.INCONCLUSIVE
+
+
+class TestMalformedAxeIsNotAPass:
+    """A parseable file is not the same as an evidence file.
+
+    `{}`, `[]` and `{"violations": "oops"}` all previously read as "no
+    violations found" and reported PASS — an artifact carrying no evidence
+    producing the same verdict as a clean scan. The contract calls that out
+    directly: insufficient or out-of-scope evidence is never a pass.
+    """
+
+    def _write(self, tmp_path: Path, payload) -> None:
+        import json
+
+        (tmp_path / "axe.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    @pytest.mark.parametrize(
+        "payload, why",
+        [
+            ({}, "no violations key at all"),
+            ([], "empty array carries no result objects"),
+            ({"violations": "oops"}, "violations is not a list"),
+            ({"violations": {"a": 1}}, "violations is a mapping, not a list"),
+            ([{}], "result object has no violations key"),
+            (["not-a-result"], "array of non-objects"),
+            (None, "null document"),
+            (42, "scalar document"),
+        ],
+    )
+    def test_unsupported_shapes_do_not_pass(self, tmp_path, payload, why):
+        self._write(tmp_path, payload)
+        v = _by_dimension(collect_evidence(tmp_path))["Accessibility"]
+        assert v.outcome is not Outcome.PASS, f"{why}: {v.detail}"
+        assert v.outcome is Outcome.ERROR, f"{why}: got {v.outcome}"
+        assert "shape" in v.detail.lower(), v.detail
+
+    def test_only_a_real_empty_result_passes(self, tmp_path):
+        """The one shape that legitimately means 'scanned, found nothing'."""
+        self._write(tmp_path, {"violations": []})
+        v = _by_dimension(collect_evidence(tmp_path))["Accessibility"]
+        assert v.outcome is Outcome.PASS, v.detail
+
+    def test_array_of_valid_results_passes(self, tmp_path):
+        self._write(tmp_path, [{"violations": []}, {"violations": []}])
+        v = _by_dimension(collect_evidence(tmp_path))["Accessibility"]
+        assert v.outcome is Outcome.PASS, v.detail
+
+    def test_one_malformed_file_among_valid_ones_is_not_masked(self, tmp_path):
+        import json
+
+        (tmp_path / "axe.json").write_text(json.dumps({"violations": []}), encoding="utf-8")
+        (tmp_path / "axe-2.json").write_text(json.dumps({"nope": 1}), encoding="utf-8")
+        v = _by_dimension(collect_evidence(tmp_path))["Accessibility"]
+        assert v.outcome is Outcome.ERROR, v.detail
+
+    def test_malformed_axe_fails_the_run(self, tmp_path):
+        self._write(tmp_path, {})
+        exit_code, _ = summarize(collect_evidence(tmp_path))
+        assert exit_code == 1
+
+    def test_the_file_name_is_named(self, tmp_path):
+        """A reader has to know which artifact to go and look at."""
+        self._write(tmp_path, {})
+        v = _by_dimension(collect_evidence(tmp_path))["Accessibility"]
+        assert "axe.json" in v.detail, v.detail

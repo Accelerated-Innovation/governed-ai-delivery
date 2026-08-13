@@ -186,15 +186,37 @@ def _assess_fast(
 
 
 def _read_axe(paths: list[Path]) -> tuple[list[dict] | None, str | None]:
+    """Aggregate axe JSON. Returns (violations, error). Never raises.
+
+    A file that parses as JSON is not automatically an axe report. `{}`,
+    `[]` and `{"violations": "oops"}` all carry no evidence, and treating any
+    of them as "scanned, found nothing" would give an artifact with no
+    information the same verdict as a clean scan — the failure the evidence
+    contract exists to prevent. Every result must be a mapping whose
+    `violations` is genuinely a list; anything else is a shape error.
+    """
     violations = []
     for path in paths:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError) as exc:
             return None, f"{path.name} could not be parsed: {exc}"
-        for result in data if isinstance(data, list) else [data]:
-            if isinstance(result, dict):
-                violations.extend(v for v in (result.get("violations") or []) if isinstance(v, dict))
+
+        results = data if isinstance(data, list) else [data]
+        recognised = 0
+        for result in results:
+            if not isinstance(result, dict):
+                continue
+            found = result.get("violations")
+            if not isinstance(found, list):
+                continue
+            recognised += 1
+            violations.extend(v for v in found if isinstance(v, dict))
+        if recognised == 0:
+            return None, (
+                f"{path.name} has unsupported axe JSON shape — expected a result "
+                'object with a "violations" list, or an array of them'
+            )
     return violations, None
 
 
@@ -203,6 +225,15 @@ def _assess_accessibility(violations: list[dict] | None, error: str | None, foun
         return Verdict("Accessibility", Outcome.ERROR, error)
     if not found:
         return Verdict("Accessibility", Outcome.INCONCLUSIVE, "no axe report found")
+    if violations is None:
+        # A report was present but could not be read. ERROR rather than
+        # INCONCLUSIVE: the distinction is "we did not evaluate" versus "we
+        # tried and could not", and a broken artifact someone thinks is working
+        # deserves the louder of the two.
+        return Verdict(
+            "Accessibility", Outcome.ERROR,
+            "an axe report was found but could not be interpreted",
+        )
     counts: dict[str, int] = {}
     for violation in violations or []:
         impact = str(violation.get("impact") or "unknown")
