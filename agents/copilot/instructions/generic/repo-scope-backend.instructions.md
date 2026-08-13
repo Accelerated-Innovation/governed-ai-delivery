@@ -12,7 +12,7 @@ These instructions apply when planning any backend feature that may span multipl
 
 Before planning any feature, verify the "Repository Scope" section in `features/<feature>/nfrs.md` is complete:
 
-- [ ] "This feature is contained to" has a checked box (single repo OR multi-repo)
+- [ ] **Scope:** declares `single-repo` or `multi-repo`
 - [ ] If multi-repo: "Multi-Repository Details" table is filled with all repos, owners, modules, and contracts
 - [ ] "Primary Owner" field names the orchestrating repo
 - [ ] "Key Cross-Repo Contracts" lists the integration points

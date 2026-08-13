@@ -56,7 +56,7 @@ Before proceeding to ADR determination, validate repository scope. See: `docs/RE
 
 Verify the "Repository Scope" section in `features/<feature>/nfrs.md` is complete:
 
-- [ ] One box is checked: "This repository only" OR "Multiple repositories" (with table)
+- [ ] **Scope:** declares `single-repo` or `multi-repo`
 - [ ] If multi-repo: all repos, owners, modules, and contracts are documented
 - [ ] "Primary Owner" and "Key Cross-Repo Contracts" are listed
 
