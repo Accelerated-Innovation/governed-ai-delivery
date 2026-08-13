@@ -492,3 +492,32 @@ def test_architecture_guidance_parity_across_agents():
             f"{skill}: agents disagree on where the architecture comes from: {refs}"
         )
         assert refs["claude-code"] == (True, False)
+
+
+def test_parity_doc_skill_count_matches_reality():
+    """PARITY_TEST.md states the skill inventory as a number, and it had already
+    drifted (11 skills / 33 files against an actual 12 / 36) before the defect
+    lane added one. A stated count nothing checks is a count that goes stale."""
+    import re
+
+    skill_files = sorted(REPO_ROOT.glob("agents/*/skills/*/*/SKILL.md"))
+    agents = {p.parents[3].name for p in skill_files}
+    assert agents == {"claude-code", "codex", "copilot"}, agents
+
+    per_agent = len(skill_files) // len(agents)
+    doc = (REPO_ROOT / "PARITY_TEST.md").read_text(encoding="utf-8")
+    match = re.search(
+        r"The (\d+) skills \((\d+) backend \+ (\d+) UI\) × 3 agents = (\d+) SKILL\.md files",
+        doc,
+    )
+    assert match, "PARITY_TEST.md no longer states the skill inventory in the pinned form"
+    stated_total, stated_backend, stated_ui, stated_files = (int(g) for g in match.groups())
+
+    backend = len({p.parent.name for p in skill_files if p.parents[1].name == "backend"})
+    ui = len({p.parent.name for p in skill_files if p.parents[1].name == "ui"})
+    assert (stated_backend, stated_ui) == (backend, ui), (
+        f"PARITY_TEST.md says {stated_backend} backend + {stated_ui} UI; "
+        f"the tree has {backend} + {ui}"
+    )
+    assert stated_total == per_agent == backend + ui
+    assert stated_files == len(skill_files)

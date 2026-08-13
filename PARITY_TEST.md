@@ -58,7 +58,7 @@ What "leakage" specifically means:
 
 Every `SKILL.md` across `agents/{claude-code,codex,copilot}/skills/**/` ships **frontmatter that is byte-identical** for the same skill across agents. The Open Skills format is the lowest common denominator — `name:` + `description:` only, no `argument-hint:` or `user-invocable:` extensions.
 
-The 11 skills (7 backend + 4 UI) × 3 agents = 33 SKILL.md files. `tests/test_govkit.py::TestNoUiDimensionInManifests` and the skill-resolution tests lock this in.
+The 12 skills (8 backend + 4 UI) × 3 agents = 36 SKILL.md files. `tests/test_govkit.py::TestNoUiDimensionInManifests` and the skill-resolution tests lock this in.
 
 ### 4. Agent-specific loader behavior
 
