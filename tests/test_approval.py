@@ -21,6 +21,13 @@ from pathlib import Path
 import pytest
 import yaml
 
+from cli.approval import (
+    check_approval_policy,
+    discover_adrs,
+    parse_adr_status,
+)
+from cli.headers import format_editable_header
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 POLICY_SRC = REPO_ROOT / "governance" / "approval_policy.yaml"
 SCHEMA_SRC = REPO_ROOT / "governance" / "schemas" / "approval_policy.schema.json"
@@ -146,3 +153,261 @@ class TestPolicyShipsToTargets:
             assert "governance/schemas/approval_policy.schema.json" in governed, (
                 f"{agent} {project_type} L{level}"
             )
+
+
+# ---------------------------------------------------------------------------
+# The working-tree half: cli/approval.py
+# ---------------------------------------------------------------------------
+
+
+def _write_adr(
+    target: Path, name: str, status: str = "Accepted",
+    area: str = "backend", approval: str | None = None,
+    heading: str = "## 10. Approval",
+    govkit_authored: bool = False,
+) -> Path:
+    body = f"# ADR-0001: {name}\n\n## Status\n{status}\n\n## 1. Context\n\nWhy.\n"
+    if approval is not None:
+        body += f"\n{heading}\n{approval}\n"
+    if govkit_authored:
+        from cli.headers import compute_body_hash
+
+        body = format_editable_header(
+            baseline="0.18.0", body_hash=compute_body_hash(body),
+        ) + body
+    path = target / "docs" / area / "architecture" / "ADR" / f"{name}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body, encoding="utf-8")
+    return path
+
+
+def _install_policy(target: Path, data: dict | str | None = None) -> Path:
+    """Mirror what `govkit apply` ships. `None` installs the real shipped file."""
+    path = target / "governance" / "approval_policy.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if data is None:
+        path.write_text(POLICY_SRC.read_text(encoding="utf-8"), encoding="utf-8")
+    elif isinstance(data, str):
+        path.write_text(data, encoding="utf-8")
+    else:
+        path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    return path
+
+
+def _install_schema(target: Path) -> None:
+    dest = target / "governance" / "schemas"
+    dest.mkdir(parents=True, exist_ok=True)
+    (dest / "approval_policy.schema.json").write_text(
+        SCHEMA_SRC.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+
+
+def _configured(login: str = "octo-architect") -> dict:
+    return {"version": 1, "approvers": [{"login": login, "role": "approver"}]}
+
+
+class TestDiscovery:
+    def test_no_docs_tree_is_silent(self, tmp_path):
+        assert discover_adrs(tmp_path) == []
+
+    def test_finds_adrs_under_every_area(self, tmp_path):
+        _write_adr(tmp_path, "0001-alpha", area="backend")
+        _write_adr(tmp_path, "0002-beta", area="data")
+        _write_adr(tmp_path, "0003-gamma", area="ui")
+        assert [p.name for p in discover_adrs(tmp_path)] == [
+            "0001-alpha.md", "0002-beta.md", "0003-gamma.md",
+        ]
+
+    def test_excludes_the_template(self, tmp_path):
+        _write_adr(tmp_path, "0001-alpha")
+        _write_adr(tmp_path, "TEMPLATE")
+        assert [p.name for p in discover_adrs(tmp_path)] == ["0001-alpha.md"]
+
+    def test_ignores_non_markdown_and_other_doc_dirs(self, tmp_path):
+        _write_adr(tmp_path, "0001-alpha")
+        (tmp_path / "docs" / "backend" / "architecture" / "ADR" / "notes.txt").write_text(
+            "x", encoding="utf-8",
+        )
+        stray = tmp_path / "docs" / "backend" / "architecture" / "BOUNDARIES.md"
+        stray.write_text("## Status\nAccepted\n", encoding="utf-8")
+        assert [p.name for p in discover_adrs(tmp_path)] == ["0001-alpha.md"]
+
+
+class TestStatusParsing:
+    def test_reads_the_status_line(self, tmp_path):
+        path = _write_adr(tmp_path, "0001-alpha", status="Accepted")
+        assert parse_adr_status(path.read_text(encoding="utf-8")) == "Accepted"
+
+    def test_reads_a_non_accepted_status(self, tmp_path):
+        path = _write_adr(tmp_path, "0001-alpha", status="Proposed")
+        assert parse_adr_status(path.read_text(encoding="utf-8")) == "Proposed"
+
+    def test_unparseable_status_is_none(self):
+        assert parse_adr_status("# ADR-0001\n\nno status here\n") is None
+
+    def test_the_shipped_template_vocabulary_line_is_not_an_accepted_claim(self):
+        """`Proposed | Accepted | Rejected | Superseded` is a menu, not a claim."""
+        text = "# ADR-XXX\n\n## Status\nProposed | Accepted | Rejected | Superseded\n"
+        assert parse_adr_status(text) != "Accepted"
+
+
+class TestPolicyChecks:
+    def test_silent_when_nothing_is_installed(self, tmp_path):
+        """A repo with no ADRs and no policy hears nothing — absence is not a
+        finding, the same contract the defect lane carries."""
+        assert check_approval_policy(tmp_path) == ([], [])
+
+    def test_adrs_without_a_policy_warn(self, tmp_path):
+        _write_adr(tmp_path, "0001-alpha")
+        issues, warnings = check_approval_policy(tmp_path)
+        assert not issues
+        assert any("approval_policy.yaml" in w for w in warnings), warnings
+
+    def test_unparseable_policy_is_an_issue(self, tmp_path):
+        _install_policy(tmp_path, "version: 1\napprovers: [oops\n")
+        issues, _warnings = check_approval_policy(tmp_path)
+        assert any("could not be parsed" in i for i in issues), issues
+
+    def test_policy_that_is_not_a_mapping_is_an_issue(self, tmp_path):
+        _install_policy(tmp_path, "- just\n- a\n- list\n")
+        issues, _warnings = check_approval_policy(tmp_path)
+        assert issues
+
+    def test_missing_approvers_key_is_an_issue(self, tmp_path):
+        _install_policy(tmp_path, "version: 1\n")
+        issues, _warnings = check_approval_policy(tmp_path)
+        assert any("approvers" in i for i in issues), issues
+
+    def test_unedited_sentinel_policy_warns_that_attestation_is_unconfigured(
+        self, tmp_path,
+    ):
+        """The shipped file authorises nobody by design. Saying so is the point:
+        a repo must not read 'no findings' as 'attestation is on'."""
+        _install_policy(tmp_path)
+        issues, warnings = check_approval_policy(tmp_path)
+        assert not issues
+        assert any("not configured" in w for w in warnings), warnings
+
+    def test_empty_approver_list_warns(self, tmp_path):
+        _install_policy(tmp_path, {"version": 1, "approvers": []})
+        issues, warnings = check_approval_policy(tmp_path)
+        assert not issues
+        assert any("not configured" in w for w in warnings), warnings
+
+    def test_reviewers_alone_do_not_configure_attestation(self, tmp_path):
+        """AUTHORITY_AND_APPROVAL_CONTRACT.md: 'a reviewer does not gain
+        approval authority'. A policy of reviewers authorises nobody."""
+        _install_policy(
+            tmp_path,
+            {"version": 1, "approvers": [{"login": "octo-qa", "role": "reviewer"}]},
+        )
+        _issues, warnings = check_approval_policy(tmp_path)
+        assert any("not configured" in w for w in warnings), warnings
+
+    def test_a_configured_policy_is_silent(self, tmp_path):
+        _install_schema(tmp_path)
+        _install_policy(tmp_path, _configured())
+        assert check_approval_policy(tmp_path) == ([], [])
+
+    def test_schema_violation_is_an_issue_when_the_schema_is_installed(self, tmp_path):
+        _install_schema(tmp_path)
+        _install_policy(
+            tmp_path,
+            {"version": 1, "approvers": [{"login": "octo", "role": "wizard"}]},
+        )
+        issues, _warnings = check_approval_policy(tmp_path)
+        assert any("approval_policy.schema.json" in i for i in issues), issues
+
+    def test_missing_schema_reduces_coverage_visibly(self, tmp_path):
+        """Three-tier degradation, as check_eval_criteria established: reduced
+        coverage is a warning, never a silent pass."""
+        _install_policy(tmp_path, _configured())
+        _issues, warnings = check_approval_policy(tmp_path)
+        assert any("no approval_policy schema installed" in w for w in warnings), warnings
+
+
+class TestAdrStatusChecks:
+    def test_a_proposed_adr_is_silent(self, tmp_path):
+        _install_policy(tmp_path, _configured())
+        _install_schema(tmp_path)
+        _write_adr(tmp_path, "0001-alpha", status="Proposed")
+        assert check_approval_policy(tmp_path) == ([], [])
+
+    def test_accepted_without_an_approval_section_warns(self, tmp_path):
+        _install_policy(tmp_path, _configured())
+        _install_schema(tmp_path)
+        _write_adr(tmp_path, "0001-alpha", status="Accepted")
+        issues, warnings = check_approval_policy(tmp_path)
+        assert not issues, "migration posture: warn on pre-existing, never fail"
+        assert any("0001-alpha.md" in w for w in warnings), warnings
+
+    def test_an_empty_approval_section_does_not_count(self, tmp_path):
+        """The shipped template's three empty colon-terminated labels are bound
+        to no identity, no date and no commit — that is the defect, not the fix."""
+        _install_policy(tmp_path, _configured())
+        _install_schema(tmp_path)
+        _write_adr(
+            tmp_path, "0001-alpha",
+            approval="Approved by:\n- Architect:\n- Security (if applicable):",
+        )
+        _issues, warnings = check_approval_policy(tmp_path)
+        assert any("0001-alpha.md" in w for w in warnings), warnings
+
+    @pytest.mark.parametrize(
+        "heading",
+        ["## 10. Approval", "## 11. Approval", "## Approval", "## Review"],
+    )
+    def test_both_shipped_vocabularies_and_the_numbered_prefix_are_accepted(
+        self, tmp_path, heading,
+    ):
+        """The templates emit `## 10. Approval` (UI numbers it `## 11.`) while the
+        adr-author skill teaches `## Review`. Both ship from govkit, so a
+        customer's ADR may carry either."""
+        _install_policy(tmp_path, _configured())
+        _install_schema(tmp_path)
+        _write_adr(
+            tmp_path, "0001-alpha", heading=heading,
+            approval="Approved by @octo-architect in PR #12 at 2f8c1ab.",
+        )
+        assert check_approval_policy(tmp_path) == ([], [])
+
+    def test_a_govkit_authored_unmodified_adr_is_silent(self, tmp_path):
+        """govkit ships exactly one real ADR — data's 0001 — with no Approval
+        section at all. Requiring a customer's approver to attest a decision
+        govkit made for them is incoherent, and would have failed every data
+        repo on the next upgrade."""
+        _install_policy(tmp_path, _configured())
+        _install_schema(tmp_path)
+        _write_adr(tmp_path, "0001-alpha", area="data", govkit_authored=True)
+        assert check_approval_policy(tmp_path) == ([], [])
+
+    def test_an_edited_govkit_adr_is_the_customers_again(self, tmp_path):
+        _install_policy(tmp_path, _configured())
+        _install_schema(tmp_path)
+        path = _write_adr(tmp_path, "0001-alpha", area="data", govkit_authored=True)
+        path.write_text(
+            path.read_text(encoding="utf-8") + "\n## 2. Decision\n\nOurs now.\n",
+            encoding="utf-8",
+        )
+        _issues, warnings = check_approval_policy(tmp_path)
+        assert any("0001-alpha.md" in w for w in warnings), warnings
+
+    def test_require_approval_for_scopes_which_adrs_are_checked(self, tmp_path):
+        _install_policy(
+            tmp_path,
+            _configured() | {"require_approval_for": ["docs/backend/"]},
+        )
+        _install_schema(tmp_path)
+        _write_adr(tmp_path, "0001-alpha", area="backend")
+        _write_adr(tmp_path, "0002-beta", area="data")
+        _issues, warnings = check_approval_policy(tmp_path)
+        joined = " ".join(warnings)
+        assert "0001-alpha.md" in joined and "0002-beta.md" not in joined, warnings
+
+    def test_never_raises_on_an_unreadable_adr(self, tmp_path):
+        _install_policy(tmp_path, _configured())
+        _install_schema(tmp_path)
+        path = _write_adr(tmp_path, "0001-alpha")
+        path.write_bytes(b"\xff\xfe\x00bad")
+        issues, warnings = check_approval_policy(tmp_path)
+        assert any("0001-alpha.md" in m for m in issues + warnings)
