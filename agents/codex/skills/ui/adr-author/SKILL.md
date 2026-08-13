@@ -9,7 +9,7 @@ You are authoring an Architecture Decision Record for a UI architectural decisio
 
 Read all existing accepted ADRs in `docs/ui/architecture/ADR/` before writing. Do not contradict an accepted ADR without explicitly superseding it.
 
-Use the template at `governance/ui/templates/architecture_preflight.md` and produce the ADR in `docs/ui/architecture/ADR/`.
+Use the template at `docs/ui/architecture/ADR/TEMPLATE.md` and produce the ADR in `docs/ui/architecture/ADR/`.
 
 ---
 
