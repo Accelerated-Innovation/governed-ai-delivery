@@ -4181,7 +4181,13 @@ class TestNoUiDimensionInManifests:
         assert "docs/ui/design/" in variant["governed"]
         assert "docs/ui/architecture/react/" not in variant["governed"]
         assert "docs/ui/architecture/angular/" not in variant["governed"]
-        assert variant["level_4"]["shared"] == ["features/starter_ui_nextjs/"]
+        # Isolation is about which *starters* land, so compare the features/
+        # entries rather than the whole list — shared also carries repo-wide
+        # governance every type receives (e.g. governance/approval_policy.yaml).
+        starters = [
+            e for e in variant["level_4"]["shared"] if e.startswith("features/")
+        ]
+        assert starters == ["features/starter_ui_nextjs/"]
         assert "features/ui_task_dashboard/" not in variant["level_4"]["shared"]
         assert "level_5" in variant
 

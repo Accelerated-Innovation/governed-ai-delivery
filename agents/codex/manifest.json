@@ -51,11 +51,13 @@
             { "src": "skills/backend/fix-record/", "dest": ".agents/skills/govkit-fix-record/" }
           ],
           "shared": [
+            "governance/approval_policy.yaml",
             "features/starter_data/"
           ],
           "governed": [
             "governance/data/schemas/",
-            "governance/schemas/fix_record.schema.json"
+            "governance/schemas/fix_record.schema.json",
+            "governance/schemas/approval_policy.schema.json"
           ]
         }
       },
@@ -86,6 +88,7 @@
             { "src": "skills/backend/fix-record/", "dest": ".agents/skills/govkit-fix-record/" }
           ],
           "shared": [
+            "governance/approval_policy.yaml",
             "features/starter_backend/",
             "features/schema_contract_example/"
           ],
@@ -95,7 +98,8 @@
             "governance/backend/schemas/",
             "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json",
-            "governance/schemas/fix_record.schema.json"
+            "governance/schemas/fix_record.schema.json",
+            "governance/schemas/approval_policy.schema.json"
           ]
         },
         "level_5": {
@@ -125,6 +129,7 @@
             { "src": "skills/backend/fix-record/", "dest": ".agents/skills/govkit-fix-record/" }
           ],
           "shared": [
+            "governance/approval_policy.yaml",
             "features/starter_backend_l5/",
             "features/schema_contract_example/"
           ],
@@ -133,7 +138,8 @@
             "governance/backend/schemas/",
             "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json",
-            "governance/schemas/fix_record.schema.json"
+            "governance/schemas/fix_record.schema.json",
+            "governance/schemas/approval_policy.schema.json"
           ]
         }
       },
@@ -164,6 +170,7 @@
             { "src": "skills/backend/fix-record/", "dest": ".agents/skills/govkit-fix-record/" }
           ],
           "shared": [
+            "governance/approval_policy.yaml",
             "features/starter_cli/"
           ],
           "governed": [
@@ -172,7 +179,8 @@
             "governance/backend/schemas/",
             "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json",
-            "governance/schemas/fix_record.schema.json"
+            "governance/schemas/fix_record.schema.json",
+            "governance/schemas/approval_policy.schema.json"
           ]
         },
         "level_5": {
@@ -202,6 +210,7 @@
             { "src": "skills/backend/fix-record/", "dest": ".agents/skills/govkit-fix-record/" }
           ],
           "shared": [
+            "governance/approval_policy.yaml",
             "features/starter_cli_l5/"
           ],
           "governed": [
@@ -209,7 +218,8 @@
             "governance/backend/schemas/",
             "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json",
-            "governance/schemas/fix_record.schema.json"
+            "governance/schemas/fix_record.schema.json",
+            "governance/schemas/approval_policy.schema.json"
           ]
         }
       },
@@ -244,13 +254,15 @@
             { "src": "skills/backend/fix-record/", "dest": ".agents/skills/govkit-fix-record/" }
           ],
           "shared": [
+            "governance/approval_policy.yaml",
             "features/starter_ui/",
             "features/ui_task_dashboard/"
           ],
           "governed": [
             "docs/ui/evaluation/",
             "governance/ui/",
-            "governance/schemas/fix_record.schema.json"
+            "governance/schemas/fix_record.schema.json",
+            "governance/schemas/approval_policy.schema.json"
           ]
         },
         "level_5": {
@@ -272,6 +284,7 @@
             { "src": "skills/backend/fix-record/", "dest": ".agents/skills/govkit-fix-record/" }
           ],
           "shared": [
+            "governance/approval_policy.yaml",
             "features/starter_ui/",
             "features/ui_task_dashboard/"
           ],
@@ -283,7 +296,8 @@
             "docs/ui/design/",
             "docs/ui/evaluation/",
             "governance/ui/",
-            "governance/schemas/fix_record.schema.json"
+            "governance/schemas/fix_record.schema.json",
+            "governance/schemas/approval_policy.schema.json"
           ]
         }
       },
@@ -318,13 +332,15 @@
             { "src": "skills/backend/fix-record/", "dest": ".agents/skills/govkit-fix-record/" }
           ],
           "shared": [
+            "governance/approval_policy.yaml",
             "features/starter_ui/",
             "features/ui_task_dashboard/"
           ],
           "governed": [
             "docs/ui/evaluation/",
             "governance/ui/",
-            "governance/schemas/fix_record.schema.json"
+            "governance/schemas/fix_record.schema.json",
+            "governance/schemas/approval_policy.schema.json"
           ]
         },
         "level_5": {
@@ -346,6 +362,7 @@
             { "src": "skills/backend/fix-record/", "dest": ".agents/skills/govkit-fix-record/" }
           ],
           "shared": [
+            "governance/approval_policy.yaml",
             "features/starter_ui/",
             "features/ui_task_dashboard/"
           ],
@@ -357,7 +374,8 @@
             "docs/ui/design/",
             "docs/ui/evaluation/",
             "governance/ui/",
-            "governance/schemas/fix_record.schema.json"
+            "governance/schemas/fix_record.schema.json",
+            "governance/schemas/approval_policy.schema.json"
           ]
         }
       },
@@ -391,12 +409,14 @@
             { "src": "skills/backend/fix-record/", "dest": ".agents/skills/govkit-fix-record/" }
           ],
           "shared": [
+            "governance/approval_policy.yaml",
             "features/starter_ui_nextjs/"
           ],
           "governed": [
             "docs/ui/evaluation/",
             "governance/ui/",
-            "governance/schemas/fix_record.schema.json"
+            "governance/schemas/fix_record.schema.json",
+            "governance/schemas/approval_policy.schema.json"
           ]
         },
         "level_5": {
@@ -417,6 +437,7 @@
             { "src": "skills/backend/fix-record/", "dest": ".agents/skills/govkit-fix-record/" }
           ],
           "shared": [
+            "governance/approval_policy.yaml",
             "features/starter_ui_nextjs/"
           ],
           "governed": [
@@ -427,7 +448,8 @@
             "docs/ui/design/",
             "docs/ui/evaluation/",
             "governance/ui/",
-            "governance/schemas/fix_record.schema.json"
+            "governance/schemas/fix_record.schema.json",
+            "governance/schemas/approval_policy.schema.json"
           ]
         }
       }
