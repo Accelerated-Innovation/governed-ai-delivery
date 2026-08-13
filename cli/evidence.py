@@ -75,6 +75,41 @@ _JUDGEMENT_ONLY = {
 }
 
 
+# Which dimensions describe a given project type.
+#
+# Reporting a dimension as INCONCLUSIVE asserts it *should* be measured. For a
+# dimension that does not apply to the project at all, that is a false claim in
+# the quieter direction — it manufactures a gap and tells a team to instrument
+# something the framework already decided is out of scope.
+#
+# `cli/validate.py` already routes by marker.options.type; this keeps the two
+# consistent rather than leaving one type-aware and the other blind.
+_UI_TYPES = frozenset({"ui-react", "ui-angular", "ui-nextjs"})
+
+
+def applicable_dimensions(project_type: str | None) -> tuple[str, ...]:
+    """The dimensions worth reporting for `project_type`.
+
+    An unknown or absent type reports everything. Hiding a dimension because
+    the marker could not be read would be the wrong direction to fail: silence
+    reads as a pass, which is the failure this whole module exists to prevent.
+    """
+    if project_type is None:
+        return DIMENSIONS
+    if project_type == "data":
+        # ADR-0001 (Accepted): the 7 Virtues rubric "was written for
+        # application code", and FIRST "scores unit-test design; data features
+        # are verified by schema tests, singular tests, and query predicates —
+        # a different surface with its own contract". Working survives because
+        # the ADR's replacement *is* deterministic CI outcomes, and whether
+        # those passed is what Working reports.
+        return ("Working",)
+    dims = [*FIRST_DIMENSIONS, *VIRTUE_DIMENSIONS]
+    if project_type in _UI_TYPES:
+        dims.append("Accessibility")
+    return tuple(dims)
+
+
 class Outcome(Enum):
     """From EVALUATION_EVIDENCE_AND_COMPLETION_CONTRACT.md. INCONCLUSIVE is not
     a pass: no evidence, insufficient evidence, or evidence out of scope."""
@@ -245,7 +280,11 @@ def _assess_accessibility(violations: list[dict] | None, error: str | None, foun
     return Verdict("Accessibility", Outcome.PASS, f"no critical or serious axe violations ({seen})")
 
 
-def collect_evidence(target: Path, fast_max_seconds: float | None = None) -> list[Verdict]:
+def collect_evidence(
+    target: Path,
+    fast_max_seconds: float | None = None,
+    project_type: str | None = None,
+) -> list[Verdict]:
     """Report a verdict for every dimension, every run.
 
     Reporting all of them is the point: a dimension left out of the output is
@@ -265,7 +304,7 @@ def collect_evidence(target: Path, fast_max_seconds: float | None = None) -> lis
         "Accessibility": _assess_accessibility(violations, axe_error, bool(axe_paths)),
     }
     verdicts = []
-    for dimension in DIMENSIONS:
+    for dimension in applicable_dimensions(project_type):
         if dimension in measured:
             verdicts.append(measured[dimension])
         elif dimension in _JUDGEMENT_ONLY:

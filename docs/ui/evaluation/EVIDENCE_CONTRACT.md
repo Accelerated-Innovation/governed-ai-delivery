@@ -108,6 +108,30 @@ so is the point of this contract.
 Every row marked "not measured" reports `INCONCLUSIVE`. None of them reports
 `PASS`.
 
+### Only the dimensions that describe this project are reported
+
+Reporting a dimension as `INCONCLUSIVE` asserts it *should* be measured. For a
+dimension that does not apply to the project at all, that is a false claim in
+the quieter direction — it manufactures a gap and tells a team to instrument
+something already ruled out of scope.
+
+| Project type | Reported |
+|---|---|
+| `api`, `cli` | FIRST and the 7 Virtues |
+| `ui-react`, `ui-angular`, `ui-nextjs` | the above plus Accessibility |
+| `data` | Working only |
+| unknown / no marker | everything |
+
+`data` follows ADR-0001, which removed the FIRST and Virtue rubrics for data
+features: the Virtues rubric *"was written for application code"*, and FIRST
+*"scores unit-test design; data features are verified by schema tests, singular
+tests, and query predicates — a different surface with its own contract"*.
+Working survives because the ADR's replacement is deterministic CI outcomes, and
+whether those passed is exactly what Working reports.
+
+An unknown type reports everything. Narrowing on uncertainty would hide a
+dimension, and silence reads as a pass.
+
 ## What must never be scored mechanically
 
 **Clear** — "identifiers are descriptive and domain-aligned", "functions do one

@@ -99,3 +99,55 @@ class TestWiring:
         from cli import govkit
 
         assert "cli.cmd_evidence" in [r.__module__ for r in govkit._REGISTRARS]
+
+
+class TestProjectTypeFromMarker:
+    """The command reads the type govkit already recorded, rather than asking
+    the user to repeat it — and degrades to reporting everything when it cannot."""
+
+    def _marker(self, target: Path, project_type: str) -> None:
+        import json
+
+        (target / ".govkit").mkdir(parents=True, exist_ok=True)
+        (target / ".govkit" / "marker.json").write_text(
+            json.dumps({
+                "version": "0.18.0", "level": "4", "agent": "claude-code",
+                "options": {"type": project_type, "ci": "github"},
+                "applied_at": "2026-08-13T00:00:00Z",
+            }),
+            encoding="utf-8",
+        )
+
+    def test_data_project_is_not_told_about_virtues(self, tmp_path, capsys):
+        self._marker(tmp_path, "data")
+        _passing_junit(tmp_path)
+        with pytest.raises(SystemExit):
+            cmd_evidence(_args(tmp_path))
+        out = capsys.readouterr().out
+        assert "Working" in out
+        for absent in ("Unique", "Simple", "Clear", "Isolated"):
+            assert absent not in out, f"{absent} reported for a data project"
+
+    def test_backend_project_is_not_told_about_accessibility(self, tmp_path, capsys):
+        self._marker(tmp_path, "api")
+        _passing_junit(tmp_path)
+        with pytest.raises(SystemExit):
+            cmd_evidence(_args(tmp_path))
+        assert "Accessibility" not in capsys.readouterr().out
+
+    def test_ui_project_keeps_accessibility(self, tmp_path, capsys):
+        self._marker(tmp_path, "ui-react")
+        _passing_junit(tmp_path)
+        with pytest.raises(SystemExit):
+            cmd_evidence(_args(tmp_path))
+        assert "Accessibility" in capsys.readouterr().out
+
+    def test_missing_marker_reports_everything(self, tmp_path, capsys):
+        """No marker is not a licence to report less."""
+        from cli.evidence import DIMENSIONS
+
+        _passing_junit(tmp_path)
+        with pytest.raises(SystemExit):
+            cmd_evidence(_args(tmp_path))
+        out = capsys.readouterr().out
+        assert not [d for d in DIMENSIONS if d not in out]

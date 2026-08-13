@@ -18,6 +18,8 @@ import pytest
 
 from cli.evidence import (
     DIMENSIONS,
+    FIRST_DIMENSIONS,
+    VIRTUE_DIMENSIONS,
     Outcome,
     collect_evidence,
     summarize,
@@ -299,3 +301,75 @@ class TestMalformedAxeIsNotAPass:
         self._write(tmp_path, {})
         v = _by_dimension(collect_evidence(tmp_path))["Accessibility"]
         assert "axe.json" in v.detail, v.detail
+
+
+class TestDimensionsApplyByProjectType:
+    """Report the dimensions that apply to this project, and no others.
+
+    `cli/validate.py` already routes by `marker.options.type` — data features
+    skip the prediction check entirely per ADR-0001, which says the 7 Virtues
+    rubric "was written for application code" and the FIRST rubric "scores
+    unit-test design; data features are verified by schema tests, singular
+    tests, and query predicates — a different surface with its own contract".
+
+    Evidence shipped type-blind, so a dbt project was told it had eleven
+    unmeasured gaps that an accepted ADR says are not gaps. Reporting a
+    dimension as INCONCLUSIVE asserts it *should* be measured; for a dimension
+    that does not apply, that is a false claim in the quieter direction.
+    """
+
+    def _dims(self, tmp_path: Path, project_type=None) -> set:
+        _junit(tmp_path, [("t1", 0.01, True)])
+        return {v.dimension for v in collect_evidence(tmp_path, project_type=project_type)}
+
+    def test_unknown_type_reports_everything(self, tmp_path):
+        """Hiding a dimension because the type is unreadable would be the wrong
+        direction to fail: silence reads as a pass."""
+        assert self._dims(tmp_path) == set(DIMENSIONS)
+
+    @pytest.mark.parametrize("project_type", ["api", "cli"])
+    def test_backend_has_no_accessibility_dimension(self, tmp_path, project_type):
+        """A backend project has no axe report and never will; reporting it as
+        an unmeasured gap is noise, not honesty."""
+        assert "Accessibility" not in self._dims(tmp_path, project_type)
+
+    @pytest.mark.parametrize("project_type", ["ui-react", "ui-angular", "ui-nextjs"])
+    def test_ui_keeps_accessibility(self, tmp_path, project_type):
+        assert "Accessibility" in self._dims(tmp_path, project_type)
+
+    @pytest.mark.parametrize("project_type", ["api", "cli", "ui-react"])
+    def test_non_data_keeps_the_full_rubric(self, tmp_path, project_type):
+        dims = self._dims(tmp_path, project_type)
+        for d in (*FIRST_DIMENSIONS, *VIRTUE_DIMENSIONS):
+            assert d in dims, d
+
+    def test_data_drops_first_and_the_other_virtues(self, tmp_path):
+        """ADR-0001: those rubrics do not describe a data feature's surface."""
+        dims = self._dims(tmp_path, "data")
+        for d in ("Fast", "Isolated", "Repeatable", "Self-Verifying", "Timely",
+                  "Unique", "Simple", "Clear", "Easy", "Developed", "Brief"):
+            assert d not in dims, f"{d} should not be reported for a data project"
+
+    def test_data_keeps_working(self, tmp_path):
+        """ADR-0001 replaced the prediction with deterministic CI outcomes —
+        schema tests, singular tests, query predicates. Whether those passed is
+        exactly what Working reports."""
+        assert "Working" in self._dims(tmp_path, "data")
+
+    def test_data_still_fails_on_a_failing_test_run(self, tmp_path):
+        _junit(tmp_path, [("t1", 0.01, False)])
+        verdicts = collect_evidence(tmp_path, project_type="data")
+        exit_code, _ = summarize(verdicts)
+        assert exit_code == 1
+
+    def test_data_with_no_evidence_still_fails_empty_analysis(self, tmp_path):
+        exit_code, summary = summarize(collect_evidence(tmp_path, project_type="data"))
+        assert exit_code == 1
+        assert "analysed nothing" in summary.lower()
+
+    def test_narrowing_cannot_manufacture_a_pass(self, tmp_path):
+        """The filter removes dimensions that do not apply — it must never turn
+        a FAIL or an unmeasured run into a green one."""
+        _axe(tmp_path, ["critical"])
+        verdicts = collect_evidence(tmp_path, project_type="ui-react")
+        assert summarize(verdicts)[0] == 1
