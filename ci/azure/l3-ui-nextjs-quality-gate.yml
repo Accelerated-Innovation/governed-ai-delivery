@@ -25,6 +25,14 @@ stages:
           - script: npm ci
             displayName: Install dependencies
 
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.11'
+            displayName: Set up Python
+
+          - script: pip install govkit~=0.18.0
+            displayName: Install GovKit
+
           - script: govkit doctor --target .
             displayName: Enforce API and database boundary
 
