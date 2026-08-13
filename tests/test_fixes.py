@@ -168,3 +168,79 @@ class TestSkeleton:
     def test_skeleton_carries_the_requested_id(self):
         instance = yaml.safe_load(FIX_RECORD_SKELETON.format(id="my-defect"))
         assert instance["id"] == "my-defect"
+
+
+class TestValidateIntegration:
+    """`run_validation` gains a second artifact family, exactly as extensions
+    did: silent when absent, its own exit code, combined via max()."""
+
+    def _target(self, tmp_path: Path, level: str = "4") -> Path:
+        import json
+
+        (tmp_path / ".govkit").mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".govkit" / "marker.json").write_text(
+            json.dumps({
+                "version": "0.18.0", "level": level, "agent": "claude-code",
+                "options": {"type": "api", "ci": "github"},
+                "applied_at": "2026-08-13T00:00:00Z",
+            }),
+            encoding="utf-8",
+        )
+        # Empty features/ isolates the fix lane: list_user_features returns [],
+        # so the only thing that can move the exit code is the fix record.
+        (tmp_path / "features").mkdir(exist_ok=True)
+        return tmp_path
+
+    def test_absent_lane_is_silent(self, tmp_path, capsys):
+        """Repos without a defect lane must see no output change at all."""
+        from cli.validate import run_validation
+
+        target = self._target(tmp_path)
+        assert run_validation(target) == 0
+        assert "fix" not in capsys.readouterr().out.lower()
+
+    def test_valid_record_passes_and_is_reported(self, tmp_path, capsys):
+        from cli.validate import run_validation
+
+        target = self._target(tmp_path)
+        _install_schema(target)
+        _write_record(target, "alpha", _valid_record("alpha"))
+        assert run_validation(target) == 0
+        assert "alpha" in capsys.readouterr().out
+
+    def test_invalid_record_fails_the_run(self, tmp_path):
+        from cli.validate import run_validation
+
+        target = self._target(tmp_path)
+        data = _valid_record("alpha")
+        del data["risk"]
+        _write_record(target, "alpha", data)
+        assert run_validation(target) == 1
+
+    def test_lane_is_not_checked_at_l3(self, tmp_path):
+        """L3 ships no artifact model; the defect lane starts at L4."""
+        from cli.validate import run_validation
+
+        target = self._target(tmp_path, level="3")
+        data = _valid_record("alpha")
+        del data["risk"]
+        _write_record(target, "alpha", data)
+        assert run_validation(target) == 0
+
+    def test_lane_is_checked_at_l5(self, tmp_path):
+        from cli.validate import run_validation
+
+        target = self._target(tmp_path, level="5")
+        data = _valid_record("alpha")
+        del data["risk"]
+        _write_record(target, "alpha", data)
+        assert run_validation(target) == 1
+
+    def test_warning_alone_does_not_fail(self, tmp_path, capsys):
+        """No schema installed is a visible gap, not a failure."""
+        from cli.validate import run_validation
+
+        target = self._target(tmp_path)
+        _write_record(target, "alpha", _valid_record("alpha"))
+        assert run_validation(target) == 0
+        assert "schema" in capsys.readouterr().out
