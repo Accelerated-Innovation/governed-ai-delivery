@@ -151,6 +151,75 @@ def test_skill_names_where_approval_authority_lives(layer: str, skill: Path):
     assert GATE_JOB in text, f"{_rel(skill)} does not name the {GATE_JOB} gate"
 
 
+# ---------------------------------------------------------------------------
+# The templates' Approval section
+# ---------------------------------------------------------------------------
+#
+# `## Status` and `## Approval` sat ~140 lines apart, unlinked, and Approval was
+# three empty colon-terminated labels bound to no identity, no date and no
+# commit. A name typed on one of those lines is not an approval — it is the
+# prohibited pattern "treating chat acknowledgment ... as approval" written down.
+
+ALL_ADR_TEMPLATES = ADR_TEMPLATES | {
+    "data": REPO_ROOT / "docs" / "data" / "architecture" / "ADR" / "TEMPLATE.md",
+}
+
+# The numbered prefix differs by layer (UI numbers Approval `## 11.`), so match
+# it the way cli/approval.py does rather than by an exact heading.
+APPROVAL_HEADING_RE = re.compile(
+    r"^##\s+(?:\d+\.\s*)?Approval\b.*$", re.MULTILINE | re.IGNORECASE,
+)
+
+
+def _approval_section(layer: str) -> str:
+    text = ALL_ADR_TEMPLATES[layer].read_text(encoding="utf-8")
+    match = APPROVAL_HEADING_RE.search(text)
+    assert match, f"{_rel(ALL_ADR_TEMPLATES[layer])} has no Approval section"
+    nxt = re.search(r"^##\s", text[match.end():], re.MULTILINE)
+    return text[match.end():match.end() + nxt.start()] if nxt else text[match.end():]
+
+
+def test_every_layer_ships_an_adr_template():
+    """Non-vacuous guard for the parametrized tests below."""
+    assert len(ALL_ADR_TEMPLATES) == 3
+    for path in ALL_ADR_TEMPLATES.values():
+        assert path.is_file(), f"missing {_rel(path)}"
+
+
+@pytest.mark.parametrize("layer", sorted(ALL_ADR_TEMPLATES))
+def test_approval_section_offers_no_name_field_to_fill_in(layer: str):
+    """`Approved by:` invites a typed name to stand in for an approval."""
+    section = _approval_section(layer)
+    assert "Approved by:" not in section, (
+        f"{_rel(ALL_ADR_TEMPLATES[layer])} still offers an 'Approved by:' field — "
+        "a name typed there is bound to no identity, no date and no commit"
+    )
+
+
+@pytest.mark.parametrize("layer", sorted(ALL_ADR_TEMPLATES))
+def test_approval_section_says_where_the_approval_actually_comes_from(layer: str):
+    section = _approval_section(layer)
+    for expected in ("governance/approval_policy.yaml", "adr-approval-check"):
+        assert expected in section, (
+            f"{_rel(ALL_ADR_TEMPLATES[layer])} Approval section never mentions "
+            f"{expected}, so a reader cannot tell what makes this ADR Accepted"
+        )
+
+
+@pytest.mark.parametrize("layer", sorted(ALL_ADR_TEMPLATES))
+def test_status_section_is_linked_to_the_approval_it_derives_from(layer: str):
+    """The two sections were ~140 lines apart and unlinked. A reader who sees
+    the vocabulary menu has to be told that one of those words is not theirs."""
+    text = ALL_ADR_TEMPLATES[layer].read_text(encoding="utf-8")
+    status = re.search(r"^## Status\s*\n(.+)$", text, re.MULTILINE)
+    nxt = re.search(r"^##\s", text[status.end():], re.MULTILINE)
+    body = text[status.end():status.end() + nxt.start()]
+    assert "derived" in body.lower(), (
+        f"{_rel(ALL_ADR_TEMPLATES[layer])} Status section does not say that "
+        f"'{GATE_TOKEN}' is derived rather than typed"
+    )
+
+
 @pytest.mark.parametrize("layer", ["backend", "ui"])
 def test_adr_skill_body_parity_across_agents(layer: str):
     """[[feedback_agent_parity]] — the ADR skill must not drift between agents."""

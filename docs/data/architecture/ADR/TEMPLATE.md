@@ -3,6 +3,9 @@
 ## Status
 Proposed | Accepted | Rejected | Superseded
 
+Write `Proposed`. `Accepted` is a **derived** state, not a word an author types
+— see the Approval section at the end of this template for what makes it true.
+
 ## Date
 YYYY-MM-DD
 
@@ -151,7 +154,19 @@ If the decision changes scope:
 
 ## 10. Approval
 
-Approved by:
+`Accepted` in the Status section is a **derived** state. It is true because an
+approver named in `governance/approval_policy.yaml` submitted an approving
+review of the commit carrying this decision — nothing written in this section
+makes it true, and the `adr-approval-check` CI gate fails a pull request whose
+ADR claims `Accepted` without that review.
+
+So this section records **which decision authority this ADR needs**, not who
+gave it. Leave no name, date, or signature here as though the decision were
+already made: a reviewer assesses evidence or content, an approver commits the
+decision, and the approval itself lives where it cannot be typed.
+
+Decision authority required:
+
 - Data architect / lead:
 - Privacy / compliance (if PII impact):
 - Product / downstream owner (if contract impact):
