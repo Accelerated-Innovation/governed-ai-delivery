@@ -21,14 +21,14 @@ When a change affects behavior, contributors should update the relevant document
 1. Fork the repository
 2. Clone your fork: `git clone https://github.com/<your-username>/governed-ai-delivery.git`
 3. Create a branch for your change
-4. Install in development mode: `pip install -e ".[dev]"`
+4. Install in development mode: `pip install -e ".[test]"`
 5. Run the CLI: `govkit list`
 
 ### Maintainers
 
 1. Clone the repository
 2. Create a branch from `main`
-3. Install in development mode: `pip install -e ".[dev]"`
+3. Install in development mode: `pip install -e ".[test]"`
 4. Run the CLI: `govkit list`
 
 ---
@@ -149,6 +149,19 @@ CI templates in `ci/` are installed into target projects. Changes should:
 * Be applied consistently across supported CI platforms where relevant
 * Be documented in `ci/README.md`
 * Be tested against worked examples or a representative target project
+
+**Gates that invoke `govkit` must install it, at the shipping version.** A gate
+running `govkit doctor` or `govkit validate` needs its own `pip install
+govkit~=<version>` step — the runner has no govkit on `PATH`, and an unpinned
+install would couple a customer's merge criteria to whatever PyPI serves that
+morning while their payload prose stays frozen at install time.
+
+The pin must equal the version in `pyproject.toml`, which
+`tests/test_ci_govkit_dependency.py` enforces. **A release that bumps the
+version must update the `govkit~=` pin in every CI template in the same
+commit**, or the suite fails. CI templates are governed files, so `govkit
+upgrade` rewrites them — which is what keeps a tightened contract from reaching
+an adopter's gate without an explicit upgrade.
 
 ---
 

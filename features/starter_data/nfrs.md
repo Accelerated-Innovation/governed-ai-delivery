@@ -10,9 +10,13 @@ Replace every **TBD** with a real value before this feature ships.
 
 ## Repository Scope
 
-- [ ] **This repository only**
-- [ ] **Multiple repositories** — list each repo, its owner, the modules
-  involved, and the contracts exposed:
+**Scope:** `single-repo`
+<!-- Replace `single-repo` with `multi-repo` if this feature spans multiple repositories, then complete the table below -->
+
+### Multi-Repository Details
+
+*Complete only if scope is `multi-repo`.* List each repo, its owner, the
+modules involved, and the contracts exposed:
 
 | Repo | Owner | Module | Contract |
 |---|---|---|---|

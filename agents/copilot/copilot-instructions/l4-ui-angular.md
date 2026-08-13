@@ -58,9 +58,9 @@ See `docs/ui/architecture/MVVM_CONTRACT.md` for full rules.
 
 Every feature must live under `features/<feature_name>/` with:
 
-* `acceptance.feature`, `nfrs.md`, `eval_criteria.yaml`, `plan.md`, `architecture_preflight.md`
+* `acceptance.feature`, `nfrs.md`, `eval_criteria.yaml`, `plan.md`, `architecture_preflight.md`, `design.md`
 
-Implementation must not begin until all artifacts exist and are complete.
+Implementation must not begin until all six artifacts exist and are complete.
 
 ---
 

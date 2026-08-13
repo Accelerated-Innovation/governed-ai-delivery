@@ -21,14 +21,17 @@ artifacts and that those artifacts meet minimum quality thresholds.
 Level-aware: Level 3 checks fewer artifacts and skips evaluation scoring.
 Level 4 checks all 5 artifacts with full evaluation enforcement.
 
-Uses only the Python standard library. Full JSON Schema validation of
-eval_criteria.yaml is deferred to CI or `check-jsonschema` if installed.
+Depends only on the standard library plus pyyaml, a declared runtime dependency
+(see `pyproject.toml`). Full JSON Schema validation of eval_criteria.yaml is
+deferred to CI or `check-jsonschema` if installed.
 """
 
 import re
 import subprocess
 from enum import Enum
 from pathlib import Path
+
+import yaml
 
 from .features import list_user_features
 from .marker import TYPE_AREA, read_govkit_marker
@@ -134,13 +137,31 @@ def check_gherkin_syntax(feature_dir: Path) -> tuple[CheckStatus, str]:
     return CheckStatus.PASS, f"{_ACCEPTANCE_FEATURE} has valid Gherkin structure"
 
 
+# A line that *talks about* TBD rather than leaving one. `**TBD**` is the
+# emphasised form starters use ("Replace every **TBD** with a real value");
+# "TBD entries" is how the govkit rule itself is phrased. Both are documentation,
+# not placeholders — the bare \bTBD\b scan matched govkit's own worked example,
+# failing `govkit validate` on a file govkit ships.
+_RE_TBD_SELF_REFERENCE = re.compile(r"\*\*TBD\*\*|\bTBD entries\b")
+
+
 def check_nfrs_no_tbd(feature_dir: Path) -> tuple[CheckStatus, str]:
-    """Check that nfrs.md has no remaining TBD entries."""
+    """Check that nfrs.md has no remaining TBD placeholders.
+
+    Placeholders occur in several real shapes across `features/*/nfrs.md` — a bare
+    list item, a value after a colon, a table cell, and mid-sentence ("Baseline TBD
+    after 2 weeks") — so the scan stays deliberately broad. Only the two
+    self-referential forms above are exempt.
+    """
     path = feature_dir / _NFRS_MD
     if not path.exists():
         return CheckStatus.FAIL, f"{_NFRS_MD} not found"
     lines = path.read_text(encoding="utf-8").splitlines()
-    tbd_lines = [i + 1 for i, ln in enumerate(lines) if re.search(r"\bTBD\b", ln)]
+    tbd_lines = [
+        i + 1
+        for i, ln in enumerate(lines)
+        if re.search(r"\bTBD\b", ln) and not _RE_TBD_SELF_REFERENCE.search(ln)
+    ]
     if tbd_lines:
         return CheckStatus.FAIL, f"{_NFRS_MD} contains TBD entries (lines {', '.join(map(str, tbd_lines))})"
     return CheckStatus.PASS, f"{_NFRS_MD} has no TBD entries"
@@ -278,6 +299,99 @@ def check_eval_criteria(feature_dir: Path) -> tuple[CheckStatus, str]:
     return CheckStatus.PASS, f"{_EVAL_CRITERIA_YAML} valid against {schema.name}"
 
 
+# One fenced YAML block. Non-greedy *within* a block so an earlier fence cannot
+# absorb a later one — the prediction block is then selected by content, not by
+# being first. A single `.*?evaluation_prediction:.*?` pattern anchored on the
+# first fence in the file and ran straight past intervening fences, so an
+# unrelated earlier block's `: null` was reported as a prediction null.
+_RE_YAML_BLOCK = re.compile(r"```ya?ml\s*\n(.*?)```", re.DOTALL)
+
+# A score group declares its mean under one of these keys. Backend plans use
+# `first:`/`virtues:` with `average:`; the UI template nests scores under
+# `component_tests.FIRST_scores` and declares `predicted_average`.
+_AVERAGE_KEYS = ("average", "predicted_average")
+
+# Declared averages are recorded to one or two decimals, so 31/7 = 4.4285… is
+# legitimately written 4.4. Tolerate rounding; catch a fabricated figure.
+_AVERAGE_TOLERANCE = 0.05
+
+# FIRST_SCORING_RUBRIC.md and VIRTUE_SCORING_RUBRIC.md both say:
+# "Fail: average < 4.0 OR any individual score below 3". Only the average half
+# was ever enforced.
+_MIN_INDIVIDUAL_SCORE = 3
+
+
+def _as_number(value: object) -> float | None:
+    """Numeric value, excluding bool (which is an int subclass in Python)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
+
+
+def _declared_average(node: dict) -> float | None:
+    for key in _AVERAGE_KEYS:
+        number = _as_number(node.get(key))
+        if number is not None:
+            return number
+    return None
+
+
+def _subtree_scores(node: dict) -> list[float]:
+    """Every `score:` beneath this node, not descending into a nested group that
+    declares its own average — so `first` and `virtues` stay separate."""
+    scores = []
+    for key, value in node.items():
+        if key == "score":
+            number = _as_number(value)
+            if number is not None:
+                scores.append(number)
+        elif isinstance(value, dict) and _declared_average(value) is None:
+            scores.extend(_subtree_scores(value))
+    return scores
+
+
+def _score_groups(node: object, label: str = "evaluation_prediction") -> list[tuple]:
+    """(label, scores, declared_average) for every subtree declaring an average."""
+    groups: list[tuple] = []
+    if not isinstance(node, dict):
+        return groups
+    declared = _declared_average(node)
+    if declared is not None:
+        groups.append((label, _subtree_scores(node), declared))
+    for key, value in node.items():
+        if isinstance(value, dict):
+            groups.extend(_score_groups(value, key))
+    return groups
+
+
+def _prediction_score_problems(block: str) -> tuple[list[str], list[str]]:
+    """Cross-check each declared average against the scores beside it.
+
+    The declared `average:` was previously read and never verified, so a plan
+    could claim 4.5 over scores averaging 3.1. Groups that declare an average
+    without individual scores are left alone — those plans stay valid.
+    """
+    try:
+        parsed = yaml.safe_load(block)
+    except yaml.YAMLError:
+        return [], []  # eval-gate reports unparseable blocks; don't double-fail here
+    prediction = parsed.get("evaluation_prediction") if isinstance(parsed, dict) else None
+
+    inconsistent, low_scores = [], []
+    for label, scores, declared in _score_groups(prediction):
+        if not scores:
+            continue
+        computed = sum(scores) / len(scores)
+        if abs(computed - declared) > _AVERAGE_TOLERANCE:
+            inconsistent.append(
+                f"{label} declares {declared:g} but its scores average {computed:.2f}"
+            )
+        low_scores.extend(
+            f"{label}={score:g}" for score in scores if score < _MIN_INDIVIDUAL_SCORE
+        )
+    return inconsistent, low_scores
+
+
 def check_plan_eval_prediction(feature_dir: Path) -> tuple[CheckStatus, str]:
     """Check that plan.md has an evaluation_prediction block with averages >= 4.0."""
     path = feature_dir / _PLAN_MD
@@ -285,14 +399,12 @@ def check_plan_eval_prediction(feature_dir: Path) -> tuple[CheckStatus, str]:
         return CheckStatus.FAIL, f"{_PLAN_MD} not found"
     text = path.read_text(encoding="utf-8")
 
-    block_match = re.search(
-        r"```ya?ml\s*\n(.*?evaluation_prediction:.*?)```",
-        text, re.DOTALL,
+    block = next(
+        (b for b in _RE_YAML_BLOCK.findall(text) if "evaluation_prediction:" in b),
+        None,
     )
-    if not block_match:
+    if block is None:
         return CheckStatus.FAIL, f"{_PLAN_MD} missing evaluation_prediction block"
-
-    block = block_match.group(1)
 
     null_matches = re.findall(r":\s*null\b", block)
     if null_matches:
@@ -310,6 +422,18 @@ def check_plan_eval_prediction(feature_dir: Path) -> tuple[CheckStatus, str]:
 
     if below_threshold:
         return CheckStatus.FAIL, f"{_PLAN_MD} evaluation_prediction average(s) below 4.0: {', '.join(below_threshold)}"
+
+    inconsistent, low_scores = _prediction_score_problems(block)
+    if inconsistent:
+        return CheckStatus.FAIL, (
+            f"{_PLAN_MD} evaluation_prediction is internally inconsistent — "
+            + "; ".join(inconsistent)
+        )
+    if low_scores:
+        return CheckStatus.FAIL, (
+            f"{_PLAN_MD} evaluation_prediction has individual score(s) below 3: "
+            + ", ".join(low_scores)
+        )
     return CheckStatus.PASS, f"{_PLAN_MD} evaluation_prediction averages OK ({', '.join(averages)})"
 
 

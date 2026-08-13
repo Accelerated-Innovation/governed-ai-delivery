@@ -27,7 +27,7 @@ Short, action-oriented statement describing the decision.
 
 ## Status
 
-Proposed / Approved / Rejected / Deprecated
+Proposed | Accepted | Rejected | Superseded
 
 ## Consequences
 

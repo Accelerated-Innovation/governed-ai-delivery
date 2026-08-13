@@ -12,9 +12,7 @@ Before proceeding to boundary analysis or ADR determination, validate repository
 
 Verify the "Repository Scope" section in `features/<feature_name>/nfrs.md` is **complete and explicit**:
 
-- [ ] One of these is checked:
-  - [ ] "This repository only"
-  - [ ] "Multiple repositories" (with table filled in)
+- [ ] **Scope:** declares `single-repo` or `multi-repo`
 - [ ] If multi-repo:
   - [ ] "Multi-Repository Details" table lists all repos, owner teams, modules/services, and contracts
   - [ ] "Primary Owner" field identifies the orchestrating repo

@@ -289,6 +289,54 @@ class TestCheckNfrsNoTbd:
         ok, msg = check_nfrs_no_tbd(tmp_path)
         assert ok is CheckStatus.PASS  # \bTBD\b won't match TBDATA
 
+    def test_self_referential_prose_is_not_a_placeholder(self, tmp_path):
+        """`features/ui_task_dashboard/nfrs.md` documents the rule in prose, and
+        the bare \\bTBD\\b scan matched its own documentation — failing
+        `govkit validate` on govkit's own shipped worked example."""
+        write(tmp_path / "nfrs.md", """\
+            ## Performance
+            - p95 latency < 200ms
+            - No TBD entries are permitted in this file before Architecture Preflight begins
+
+            Replace every **TBD** with a real value before this feature ships.
+        """)
+        ok, msg = check_nfrs_no_tbd(tmp_path)
+        assert ok is CheckStatus.PASS, msg
+
+    def test_placeholder_still_caught_beside_prose(self, tmp_path):
+        """The exemption must not become an escape hatch."""
+        write(tmp_path / "nfrs.md", """\
+            ## Performance
+            - No TBD entries are permitted in this file
+
+            ## Availability
+            - TBD
+        """)
+        ok, msg = check_nfrs_no_tbd(tmp_path)
+        assert ok is CheckStatus.FAIL
+        assert "5" in msg  # the bare placeholder line, not the prose line
+
+    def test_placeholder_shapes_used_by_real_features(self, tmp_path):
+        """Table cells and mid-sentence placeholders are real forms in
+        features/*/nfrs.md and must all still fail."""
+        for line in (
+            "- TBD",
+            "Lineage destination: TBD (Datahub / OpenLineage — pick one).",
+            "| Consent tracking | TBD (does source carry consent flags?) |",
+            "| Rolling 7-day median | Baseline TBD after 2 weeks |",
+        ):
+            write(tmp_path / "nfrs.md", f"## Performance\n{line}\n")
+            ok, msg = check_nfrs_no_tbd(tmp_path)
+            assert ok is CheckStatus.FAIL, f"placeholder not caught: {line!r}"
+
+    def test_shipped_worked_example_has_no_placeholders(self, tmp_path):
+        """Non-vacuous end-to-end guard: the worked example ships in every
+        ui-react/ui-angular manifest and is not starter-prefixed, so
+        `list_user_features` validates it in customer repos."""
+        repo_root = Path(__file__).resolve().parent.parent
+        ok, msg = check_nfrs_no_tbd(repo_root / "features" / "ui_task_dashboard")
+        assert ok is CheckStatus.PASS, msg
+
 
 # ---------------------------------------------------------------------------
 # check_nfrs_sections
@@ -620,6 +668,168 @@ class TestCheckPlanEvalPrediction:
         ok, msg = check_plan_eval_prediction(tmp_path)
         assert ok is CheckStatus.FAIL
         assert "3.5" in msg
+
+    def test_unrelated_earlier_yaml_block_is_not_absorbed(self, tmp_path):
+        """The block pattern anchored on the *first* ```yaml fence and let `.*?`
+        run past intervening fences, so an unrelated earlier block's `: null` was
+        reported as an evaluation_prediction null."""
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yaml
+            rollout:
+              canary_percent: null
+            ```
+
+            ```yaml
+            evaluation_prediction:
+              first:
+                average: 4.6
+              virtues:
+                average: 4.4
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.PASS, msg
+
+    def test_yml_fence_is_accepted(self, tmp_path):
+        """```yml is as valid as ```yaml and must resolve the same block."""
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yml
+            evaluation_prediction:
+              first:
+                average: 4.6
+              virtues:
+                average: 4.4
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.PASS, msg
+
+
+class TestPredictionInternalConsistency:
+    """The declared `average:` was never checked against the scores beside it, so
+    a plan could claim 4.5 over scores averaging 3.1. Cross-check only where
+    individual scores are present; declared-only plans stay valid."""
+
+    def test_declared_average_contradicting_its_scores_fails(self, tmp_path):
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yaml
+            evaluation_prediction:
+              first:
+                fast: {score: 3, evidence: "x"}
+                isolated: {score: 3, evidence: "x"}
+                repeatable: {score: 3, evidence: "x"}
+                self_verifying: {score: 3, evidence: "x"}
+                timely: {score: 3, evidence: "x"}
+                average: 4.5
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.FAIL
+        assert "first" in msg and "4.5" in msg
+
+    def test_rounded_declared_average_is_tolerated(self, tmp_path):
+        """31/7 = 4.4285... declared as 4.4 — one-decimal rounding, not a lie.
+        `features/ui_task_dashboard/plan.md` declares 4.71 for 33/7 = 4.7142..."""
+        write(tmp_path / "plan.md", VALID_PLAN)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.PASS, msg
+
+    def test_declared_only_plan_still_passes(self, tmp_path):
+        """Backward compatibility: no individual scores means nothing to cross-check."""
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yaml
+            evaluation_prediction:
+              first:
+                average: 4.6
+              virtues:
+                average: 4.4
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.PASS, msg
+
+    def test_individual_score_below_three_fails(self, tmp_path):
+        """FIRST_SCORING_RUBRIC.md: 'Fail: average < 4.0 OR any individual score
+        below 3'. Only the average half was enforced."""
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yaml
+            evaluation_prediction:
+              first:
+                fast: {score: 5, evidence: "x"}
+                isolated: {score: 5, evidence: "x"}
+                repeatable: {score: 5, evidence: "x"}
+                self_verifying: {score: 5, evidence: "x"}
+                timely: {score: 2, evidence: "flaky"}
+                average: 4.4
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.FAIL
+        assert "below 3" in msg
+
+    def test_ui_shape_is_cross_checked(self, tmp_path):
+        """governance/ui/templates/plan.md nests scores under
+        `component_tests.FIRST_scores` and declares `predicted_average`."""
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yaml
+            evaluation_prediction:
+              component_tests:
+                FIRST_scores:
+                  fast: { score: 3, rationale: "" }
+                  isolated: { score: 3, rationale: "" }
+                  repeatable: { score: 3, rationale: "" }
+                  self_verifying: { score: 3, rationale: "" }
+                  timely: { score: 3, rationale: "" }
+                predicted_average: 4.8
+              accessibility:
+                predicted_axe_violations: 0
+                wcag_level: AA
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.FAIL
+        assert "component_tests" in msg
+
+    def test_ui_shape_consistent_prediction_passes(self, tmp_path):
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yaml
+            evaluation_prediction:
+              component_tests:
+                FIRST_scores:
+                  fast: { score: 5, rationale: "" }
+                  isolated: { score: 4, rationale: "" }
+                  repeatable: { score: 4, rationale: "" }
+                  self_verifying: { score: 5, rationale: "" }
+                  timely: { score: 4, rationale: "" }
+                predicted_average: 4.4
+              accessibility:
+                predicted_axe_violations: 0
+                wcag_level: AA
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.PASS, msg
+
+    def test_shipped_worked_example_still_passes(self, tmp_path):
+        """Non-vacuous guard against tightening the check past govkit's own payload."""
+        repo_root = Path(__file__).resolve().parent.parent
+        example = repo_root / "features" / "ui_task_dashboard"
+        ok, msg = check_plan_eval_prediction(example)
+        assert ok is CheckStatus.PASS, msg
 
     def test_missing_file(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)

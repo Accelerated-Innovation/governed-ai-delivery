@@ -65,4 +65,4 @@
 - `@accessibility`-tagged scenarios must have jest-axe assertions in component tests and axe scans in Playwright E2E tests
 - `@e2e`-tagged scenarios must have passing Playwright tests before merge
 - `@nfr-performance` targets must be verified via Lighthouse CI in the CI pipeline
-- No TBD entries are permitted in this file before Architecture Preflight begins
+- Every placeholder must be replaced with a concrete value before Architecture Preflight begins

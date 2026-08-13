@@ -16,9 +16,11 @@ Every feature must live under `features/<feature_name>/` with these required art
 
 - `acceptance.feature` — Gherkin scenarios with Given/When/Then steps
 - `nfrs.md` — Non-functional requirements (no TBD entries permitted; sections per `NFRS_CONVENTIONS.md`)
+- `eval_criteria.yaml` — Evaluation configuration validated against the agent's schema
+- `architecture_preflight.md` — Pre-implementation alignment check
 - `plan.md` — Implementation plan with increments, tests, and deliverables
 
-Implementation must not begin unless all three artifacts exist and are complete.
+Implementation must not begin unless all five artifacts exist and are complete.
 
 ## Gherkin Conventions
 
@@ -32,6 +34,8 @@ Before writing any implementation code:
 
 - Verify `nfrs.md` contains no TBD entries
 - Verify `acceptance.feature` has complete scenarios
+- Verify `eval_criteria.yaml` exists and validates against the schema
+- Verify `architecture_preflight.md` exists and its status is not Blocked
 - Verify `plan.md` exists with defined increments and tests
 - Verify "Repository Scope" section in `nfrs.md` is complete (see Repository Scope Enforcement rule)
 
