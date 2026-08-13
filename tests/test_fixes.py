@@ -377,3 +377,149 @@ class TestEligibility:
         record = discover_fix_records(tmp_path)[0]
         issues, _ = validate_fix_record(record, tmp_path)
         assert issues == [], issues
+
+
+class TestPathSafety:
+    """Record-authored paths must be repo-relative and contained.
+
+    Mirrors `cli/extensions.py::_check_safe_file_path`. A record is authored by
+    an agent, so "the path exists" is not the question — "the path is inside the
+    repo it claims to describe" is.
+    """
+
+    def _record(self, tmp_path: Path, **overrides) -> tuple:
+        _install_schema(tmp_path)
+        data = _valid_record("alpha")
+        _materialize(tmp_path, data)
+        for dotted, value in overrides.items():
+            section, _, key = dotted.partition(".")
+            if key:
+                data[section][key] = value
+            else:
+                data[section] = value
+        _write_record(tmp_path, "alpha", data)
+        return discover_fix_records(tmp_path)[0], tmp_path
+
+    @pytest.mark.parametrize("abs_path", ["/etc/passwd", "C:\Windows\system.ini"])
+    @pytest.mark.parametrize("field", ["expectation.source", "reproduction.test"])
+    def test_absolute_paths_are_rejected(self, tmp_path, field, abs_path):
+        """Path.is_absolute() is host-specific, so both flavours must be caught."""
+        record, target = self._record(tmp_path, **{field: abs_path})
+        issues, _ = validate_fix_record(record, target)
+        assert any("absolute" in i for i in issues), issues
+
+    @pytest.mark.parametrize("field", ["expectation.source", "reproduction.test"])
+    def test_parent_escape_is_rejected(self, tmp_path, field):
+        outside = tmp_path.parent / "outside.md"
+        outside.write_text("x", encoding="utf-8")
+        record, target = self._record(tmp_path, **{field: f"../{outside.name}"})
+        issues, _ = validate_fix_record(record, target)
+        assert any("outside" in i for i in issues), issues
+
+    def test_surface_path_escape_is_rejected(self, tmp_path):
+        outside = tmp_path.parent / "outside.py"
+        outside.write_text("x", encoding="utf-8")
+        record, target = self._record(tmp_path, **{"surface.paths": [f"../{outside.name}"]})
+        issues, _ = validate_fix_record(record, target)
+        assert any("outside" in i for i in issues), issues
+
+    @pytest.mark.parametrize("field", ["expectation.source", "reproduction.test"])
+    def test_directory_is_not_a_valid_citation(self, tmp_path, field):
+        """A citation names a spec or a test, not a folder."""
+        (tmp_path / "docs" / "backend" / "architecture").mkdir(parents=True, exist_ok=True)
+        record, target = self._record(
+            tmp_path, **{field: "docs/backend/architecture"}
+        )
+        issues, _ = validate_fix_record(record, target)
+        assert any("not a file" in i for i in issues), issues
+
+    def test_dot_slash_prefix_is_tolerated(self, tmp_path):
+        """`./src/x.py` is the same path as `src/x.py` and must not be rejected,
+        nor mangled — the old lstrip('./') turned '../x' into 'x', silently
+        erasing an escape."""
+        data = _valid_record("alpha")
+        _materialize(tmp_path, data)
+        data["surface"]["paths"] = ["./" + data["surface"]["paths"][0]]
+        _install_schema(tmp_path)
+        _write_record(tmp_path, "alpha", data)
+        record = discover_fix_records(tmp_path)[0]
+        issues, _ = validate_fix_record(record, tmp_path)
+        assert issues == [], issues
+
+    def test_governed_area_match_survives_a_dot_slash_prefix(self, tmp_path):
+        """Normalization must not be able to hide a governed-area path."""
+        data = _valid_record("alpha")
+        _materialize(tmp_path, data)
+        data["surface"]["paths"] = ["./features/sample/nfrs.md"]
+        (tmp_path / "features" / "sample").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "features" / "sample" / "nfrs.md").write_text("x", encoding="utf-8")
+        _install_schema(tmp_path)
+        _write_record(tmp_path, "alpha", data)
+        record = discover_fix_records(tmp_path)[0]
+        issues, _ = validate_fix_record(record, tmp_path)
+        assert any("nfr" in i for i in issues), issues
+
+
+class TestNestedStructureWithoutSchemaTooling:
+    """The record is the *whole* governance artifact for a defect-lane change.
+    When the schema or check-jsonschema is unavailable, a warning is the right
+    signal for reduced coverage — but an incomplete record must still fail.
+    """
+
+    def _issues(self, tmp_path: Path, data: dict) -> list[str]:
+        # Deliberately no _install_schema: this is the degraded path.
+        _write_record(tmp_path, "alpha", data)
+        record = discover_fix_records(tmp_path)[0]
+        issues, warnings = validate_fix_record(record, tmp_path)
+        assert any("schema" in w for w in warnings), warnings
+        return issues
+
+    def test_expectation_without_a_source_fails(self, tmp_path):
+        data = _valid_record("alpha")
+        data["expectation"] = {"reference": "somewhere"}
+        assert any("expectation.source" in i for i in self._issues(tmp_path, data))
+
+    def test_empty_expectation_source_fails(self, tmp_path):
+        data = _valid_record("alpha")
+        data["expectation"]["source"] = "   "
+        assert any("expectation.source" in i for i in self._issues(tmp_path, data))
+
+    def test_reproduction_without_a_test_fails(self, tmp_path):
+        data = _valid_record("alpha")
+        data["reproduction"] = {}
+        assert any("reproduction.test" in i for i in self._issues(tmp_path, data))
+
+    def test_empty_surface_paths_fails(self, tmp_path):
+        data = _valid_record("alpha")
+        data["surface"]["paths"] = []
+        assert any("surface.paths" in i for i in self._issues(tmp_path, data))
+
+    def test_non_string_surface_path_fails(self, tmp_path):
+        data = _valid_record("alpha")
+        data["surface"]["paths"] = [123]
+        assert any("surface.paths" in i for i in self._issues(tmp_path, data))
+
+    @pytest.mark.parametrize(
+        "flag",
+        ["architecture", "security_auth", "data_handling", "public_contract", "nfr", "cross_service"],
+    )
+    def test_missing_risk_flag_fails(self, tmp_path, flag):
+        data = _valid_record("alpha")
+        del data["risk"][flag]
+        assert any(flag in i for i in self._issues(tmp_path, data))
+
+    def test_non_boolean_risk_flag_fails(self, tmp_path):
+        data = _valid_record("alpha")
+        data["risk"]["architecture"] = "no"
+        assert any("architecture" in i for i in self._issues(tmp_path, data))
+
+    def test_non_boolean_introduces_new_behavior_fails(self, tmp_path):
+        data = _valid_record("alpha")
+        data["introduces_new_behavior"] = "no"
+        assert any("introduces_new_behavior" in i for i in self._issues(tmp_path, data))
+
+    @pytest.mark.parametrize("section", ["expectation", "failure", "surface", "reproduction", "risk"])
+    def test_non_mapping_section_fails(self, tmp_path, section):
+        data = _valid_record("alpha")
+        data[section] = "not a mapping"
+        assert self._issues(tmp_path, data)

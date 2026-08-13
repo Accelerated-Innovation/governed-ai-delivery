@@ -38,9 +38,16 @@ _ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 def cmd_fix_init(args: argparse.Namespace) -> None:
     """Create `fixes/<id>/fix.yaml` from the skeleton."""
     target = Path(args.target).resolve()
+    # Before anything reads or writes: a missing target would otherwise read the
+    # marker from nowhere, resolve to L3, and report the wrong problem — and a
+    # typo'd path would grow a fixes/ tree somewhere surprising.
+    if not target.is_dir():
+        print(f"Error: target directory '{target}' does not exist.", file=sys.stderr)
+        sys.exit(1)
+
     stored = read_govkit_marker(target) or {}
 
-    # Level gate first, before any other check — mirrors cmd_init.
+    # Level gate next, before any other check — mirrors cmd_init.
     level = args.level or stored.get("level") or "3"
     if level == "3":
         print(

@@ -34,7 +34,7 @@ green" contract as `check_eval_criteria`.
 import re
 import subprocess
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import yaml
 
@@ -167,6 +167,69 @@ def _check_required_keys(record: FixRecord) -> list[str]:
     return [f"{record.rel} missing required key(s): {', '.join(missing)}"]
 
 
+_RISK_FLAGS = (
+    "architecture",
+    "security_auth",
+    "data_handling",
+    "public_contract",
+    "nfr",
+    "cross_service",
+)
+
+_MAPPING_SECTIONS = ("expectation", "failure", "surface", "reproduction", "risk")
+
+
+def _nonempty_str(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _check_nested_structure(record: FixRecord) -> list[str]:
+    """Enforce the nested contract in-process, not only via check-jsonschema.
+
+    The record is the *whole* governance artifact for a defect-lane change, so a
+    structurally incomplete one cannot be allowed through on a warning when the
+    schema or the validator binary is unavailable. Reduced coverage is worth a
+    warning; a missing `expectation.source` is not.
+
+    Mirrors `governance/schemas/fix_record.schema.json`. Kept deliberately
+    narrow — required-and-typed only — so the schema stays the detailed
+    authority and this does not become a second, drifting copy of it.
+    """
+    data = record.data
+    wrong_type = [
+        f"{record.rel} {section} must be a mapping"
+        for section in _MAPPING_SECTIONS
+        if section in data and not isinstance(data[section], dict)
+    ]
+    if wrong_type:
+        # Everything below indexes into these sections.
+        return wrong_type
+
+    issues = []
+    if not _nonempty_str((data.get("expectation") or {}).get("source")):
+        issues.append(f"{record.rel} expectation.source must be a non-empty string")
+    if not _nonempty_str((data.get("failure") or {}).get("observed")):
+        issues.append(f"{record.rel} failure.observed must be a non-empty string")
+    if not _nonempty_str((data.get("reproduction") or {}).get("test")):
+        issues.append(f"{record.rel} reproduction.test must be a non-empty string")
+
+    paths = (data.get("surface") or {}).get("paths")
+    if not isinstance(paths, list) or not paths or not all(_nonempty_str(p) for p in paths):
+        issues.append(
+            f"{record.rel} surface.paths must be a non-empty list of strings"
+        )
+
+    risk = data.get("risk") or {}
+    issues += [
+        f"{record.rel} risk.{flag} must be present and boolean"
+        for flag in _RISK_FLAGS
+        if not isinstance(risk.get(flag), bool)
+    ]
+    if not isinstance(data.get("introduces_new_behavior"), bool):
+        issues.append(f"{record.rel} introduces_new_behavior must be boolean")
+    return issues
+
+
 def _check_id_matches_directory(record: FixRecord) -> list[str]:
     declared = record.data.get("id")
     if declared is None or declared == record.id:
@@ -195,32 +258,67 @@ _GOVERNED_AREA_PATTERNS = {
 
 
 def _posix(path: str) -> str:
-    return path.replace("\\", "/").lstrip("./")
+    """Normalise separators for pattern matching.
+
+    Only a leading `./` is stripped, and only once. The previous
+    `lstrip("./")` removed *every* leading `.` and `/`, which turned `../x`
+    into `x` — silently erasing an escape — and `.hidden/x` into `hidden/x`.
+    """
+    return path.replace("\\", "/").removeprefix("./")
+
+
+def _check_safe_path(
+    label: str, path: object, target: Path, hint: str, *, must_be_file: bool = True,
+) -> list[str]:
+    """Resolve `path` against `target` and require it to be relative, contained,
+    existing, and a file.
+
+    Mirrors `cli/extensions.py::_check_safe_file_path`. A fix record is authored
+    — often by an agent — so "does this path exist" is the wrong question on its
+    own; "is it inside the repository it claims to describe" is the one that
+    stops an absolute path or a `..` from reaching outside.
+    """
+    if not isinstance(path, str) or not path.strip():
+        return [f"{label} must be a non-empty string"]
+    # Path.is_absolute() is host-specific: "/etc/passwd" is not absolute on
+    # Windows (no drive), and "C:\\x" is not absolute on POSIX. Check both so
+    # neither flavour slips through on either platform.
+    if PurePosixPath(path).is_absolute() or PureWindowsPath(path).is_absolute():
+        return [f"{label}: {path!r} must be relative to the repository, not absolute"]
+    base = target.resolve()
+    candidate = (target / path).resolve(strict=False)
+    if not candidate.is_relative_to(base):
+        return [f"{label}: {path!r} resolves outside the repository"]
+    if not candidate.exists():
+        return [f"{label} '{path}' does not resolve — {hint}"]
+    if must_be_file and not candidate.is_file():
+        return [f"{label}: {path!r} is not a file"]
+    return []
 
 
 def _check_paths_resolve(record: FixRecord, target: Path) -> list[str]:
-    """Conditions 1 and 2 are assertions until their paths resolve."""
+    """Conditions 1 and 2 are assertions until their paths resolve — inside the
+    repository, and at a file rather than a directory."""
     issues = []
-    source = (record.data.get("expectation") or {}).get("source")
-    if isinstance(source, str) and not (target / source).exists():
-        issues.append(
-            f"{record.rel} expectation.source '{source}' does not resolve — a fix "
-            "that cannot cite what established the behavior is introducing it, "
-            "and belongs in the feature lane"
-        )
-    test = (record.data.get("reproduction") or {}).get("test")
-    if isinstance(test, str) and not (target / test).exists():
-        issues.append(
-            f"{record.rel} reproduction.test '{test}' does not resolve — the light "
-            "lane requires a test that fails before the fix"
-        )
-    missing = [
-        p for p in ((record.data.get("surface") or {}).get("paths") or [])
-        if isinstance(p, str) and not (target / p).exists()
-    ]
-    if missing:
-        issues.append(
-            f"{record.rel} surface.paths do not resolve: {', '.join(missing)}"
+    issues += _check_safe_path(
+        f"{record.rel} expectation.source",
+        (record.data.get("expectation") or {}).get("source"),
+        target,
+        "a fix that cannot cite what established the behavior is introducing it, "
+        "and belongs in the feature lane",
+    )
+    issues += _check_safe_path(
+        f"{record.rel} reproduction.test",
+        (record.data.get("reproduction") or {}).get("test"),
+        target,
+        "the light lane requires a test that fails before the fix",
+    )
+    for path in (record.data.get("surface") or {}).get("paths") or []:
+        issues += _check_safe_path(
+            f"{record.rel} surface.paths",
+            path,
+            target,
+            "surface.paths names the files the fix changes",
         )
     return issues
 
@@ -281,8 +379,8 @@ def _validate_against_schema(
     schema = target / SCHEMA_REL
     if not schema.is_file():
         return [], [
-            f"{record.rel} structure OK — no fix_record schema installed; "
-            "instance validation skipped"
+            f"{record.rel} instance validation skipped — "
+            "no fix_record schema installed"
         ]
     try:
         result = subprocess.run(
@@ -291,7 +389,8 @@ def _validate_against_schema(
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return [], [
-            f"{record.rel} structure OK — install check-jsonschema for full validation"
+            f"{record.rel} instance validation skipped — "
+            "install check-jsonschema for full validation"
         ]
     if result.returncode != 0:
         detail = (result.stdout or result.stderr or "").strip().splitlines()
@@ -319,9 +418,13 @@ def validate_fix_record(
     if issues:
         return issues, []
 
+    # In-process nested checks run regardless of tooling availability, and the
+    # schema check still runs so its warning is visible alongside them — a
+    # reader needs to know coverage was reduced *and* what was already wrong.
+    nested = _check_nested_structure(record)
     schema_issues, warnings = _validate_against_schema(record, target)
-    if schema_issues:
-        return schema_issues, warnings
+    if nested or schema_issues:
+        return nested + schema_issues, warnings
 
     # Eligibility runs only once the record is structurally sound — there is no
     # value in reasoning about conditions in a record missing half its fields.

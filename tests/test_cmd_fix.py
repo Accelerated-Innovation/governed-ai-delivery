@@ -132,3 +132,30 @@ class TestWiring:
 
         modules = [r.__module__ for r in govkit._REGISTRARS]
         assert "cli.cmd_fix" in modules, modules
+
+
+class TestTargetValidation:
+    """Consistent with `govkit extension add`: a bad --target is an error, not a
+    directory tree conjured somewhere surprising."""
+
+    def test_missing_target_errors_before_creating_anything(self, tmp_path, capsys):
+        missing = tmp_path / "nope"
+        with pytest.raises(SystemExit) as exc:
+            cmd_fix_init(_args(missing))
+        assert exc.value.code == 1
+        assert not missing.exists(), "target was created despite being invalid"
+
+    def test_file_as_target_errors(self, tmp_path, capsys):
+        not_a_dir = tmp_path / "afile"
+        not_a_dir.write_text("x", encoding="utf-8")
+        with pytest.raises(SystemExit) as exc:
+            cmd_fix_init(_args(not_a_dir))
+        assert exc.value.code == 1
+
+    def test_target_check_precedes_the_level_gate(self, tmp_path):
+        """A missing target reads the marker from nowhere and would otherwise
+        resolve to L3, reporting the wrong problem."""
+        missing = tmp_path / "nope"
+        with pytest.raises(SystemExit):
+            cmd_fix_init(_args(missing, level="4"))
+        assert not missing.exists()
