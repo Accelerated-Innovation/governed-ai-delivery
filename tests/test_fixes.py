@@ -34,8 +34,10 @@ def _valid_record(record_id: str = "task-filter-reset") -> dict:
         "id": record_id,
         "summary": "Filter resets when navigating back",
         "expectation": {
-            "source": "features/sample/acceptance.feature",
-            "reference": "Scenario: Filter persists",
+            # Deliberately not under features/ — materializing a path there
+            # would create a directory list_user_features treats as a feature.
+            "source": "docs/backend/architecture/API_CONVENTIONS.md",
+            "reference": "Section 4: pagination state",
         },
         "failure": {"observed": "Filter discarded on back-navigation"},
         "surface": {"paths": ["src/hooks/useTaskFilter.ts"]},
@@ -61,6 +63,16 @@ def _write_record(target: Path, record_id: str, data) -> Path:
     else:
         path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
     return path
+
+
+def _materialize(target: Path, data: dict) -> None:
+    """Create the files a record references, so eligibility checks resolve.
+    Tests that assert on *non*-resolution deliberately skip this."""
+    rels = [data["expectation"]["source"], data["reproduction"]["test"], *data["surface"]["paths"]]
+    for rel in rels:
+        f = target / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("x", encoding="utf-8")
 
 
 def _install_schema(target: Path) -> None:
@@ -109,6 +121,7 @@ class TestDiscovery:
 class TestValidation:
     def test_valid_record_has_no_issues(self, tmp_path):
         _install_schema(tmp_path)
+        _materialize(tmp_path, _valid_record("alpha"))
         _write_record(tmp_path, "alpha", _valid_record("alpha"))
         record = discover_fix_records(tmp_path)[0]
         issues, _ = validate_fix_record(record, tmp_path)
@@ -142,6 +155,7 @@ class TestValidation:
 
     def test_missing_schema_warns_rather_than_passing_silently(self, tmp_path):
         """No schema installed is a visible gap, not silent green."""
+        _materialize(tmp_path, _valid_record("alpha"))
         _write_record(tmp_path, "alpha", _valid_record("alpha"))
         record = discover_fix_records(tmp_path)[0]
         issues, warnings = validate_fix_record(record, tmp_path)
@@ -204,6 +218,7 @@ class TestValidateIntegration:
 
         target = self._target(tmp_path)
         _install_schema(target)
+        _materialize(target, _valid_record("alpha"))
         _write_record(target, "alpha", _valid_record("alpha"))
         assert run_validation(target) == 0
         assert "alpha" in capsys.readouterr().out
@@ -241,6 +256,124 @@ class TestValidateIntegration:
         from cli.validate import run_validation
 
         target = self._target(tmp_path)
+        _materialize(target, _valid_record("alpha"))
         _write_record(target, "alpha", _valid_record("alpha"))
         assert run_validation(target) == 0
         assert "schema" in capsys.readouterr().out
+
+
+class TestEligibility:
+    """The four conditions, checked as far as a working-tree tool honestly can.
+
+    `surface.paths` is *declared*, not derived from a diff, so cross-checking
+    risk against it proves internal consistency — not correspondence with what
+    the PR actually changed. That correspondence is CI's job, where the diff
+    exists. Same split as declared-vs-computed averages in plan.md.
+    """
+
+    def _record_with(self, tmp_path: Path, **overrides) -> tuple:
+        _install_schema(tmp_path)
+        data = _valid_record("alpha")
+        for key, value in overrides.items():
+            data[key] = value
+        _write_record(tmp_path, "alpha", data)
+        return discover_fix_records(tmp_path)[0], tmp_path
+
+    def _touch(self, tmp_path: Path, rel: str) -> None:
+        p = tmp_path / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("x", encoding="utf-8")
+
+    def _fully_resolvable(self, tmp_path: Path) -> dict:
+        data = _valid_record("alpha")
+        _materialize(tmp_path, data)
+        return data
+
+    def test_fully_resolvable_record_passes(self, tmp_path):
+        _install_schema(tmp_path)
+        _write_record(tmp_path, "alpha", self._fully_resolvable(tmp_path))
+        record = discover_fix_records(tmp_path)[0]
+        issues, _ = validate_fix_record(record, tmp_path)
+        assert issues == [], issues
+
+    def test_unresolved_expectation_source_fails(self, tmp_path):
+        """Condition 1 is otherwise pure assertion."""
+        record, target = self._record_with(tmp_path)
+        issues, _ = validate_fix_record(record, target)
+        assert any("expectation.source" in i for i in issues), issues
+
+    def test_missing_reproduction_test_fails(self, tmp_path):
+        """Condition 2: no regression test, no light lane."""
+        self._touch(tmp_path, "docs/backend/architecture/API_CONVENTIONS.md")
+        self._touch(tmp_path, "src/hooks/useTaskFilter.ts")
+        record, target = self._record_with(tmp_path)
+        issues, _ = validate_fix_record(record, target)
+        assert any("reproduction.test" in i for i in issues), issues
+
+    def test_missing_surface_path_fails(self, tmp_path):
+        self._touch(tmp_path, "docs/backend/architecture/API_CONVENTIONS.md")
+        self._touch(tmp_path, "src/hooks/useTaskFilter.test.ts")
+        record, target = self._record_with(tmp_path)
+        issues, _ = validate_fix_record(record, target)
+        assert any("surface.paths" in i for i in issues), issues
+
+    @pytest.mark.parametrize(
+        "flag",
+        ["architecture", "security_auth", "data_handling", "public_contract", "nfr", "cross_service"],
+    )
+    def test_any_risk_flag_true_promotes_to_the_feature_lane(self, tmp_path, flag):
+        """A `true` is not a waiver — it means this change is out of the lane."""
+        data = self._fully_resolvable(tmp_path)
+        data["risk"][flag] = True
+        _install_schema(tmp_path)
+        _write_record(tmp_path, "alpha", data)
+        record = discover_fix_records(tmp_path)[0]
+        issues, _ = validate_fix_record(record, tmp_path)
+        assert any("feature lane" in i for i in issues), issues
+        assert any(flag in i for i in issues), issues
+
+    def test_new_behavior_promotes_to_the_feature_lane(self, tmp_path):
+        """Condition 3."""
+        data = self._fully_resolvable(tmp_path)
+        data["introduces_new_behavior"] = True
+        _install_schema(tmp_path)
+        _write_record(tmp_path, "alpha", data)
+        record = discover_fix_records(tmp_path)[0]
+        issues, _ = validate_fix_record(record, tmp_path)
+        assert any("feature lane" in i for i in issues), issues
+
+    @pytest.mark.parametrize(
+        "path, flag",
+        [
+            ("docs/backend/architecture/ARCH_CONTRACT.md", "architecture"),
+            ("features/sample/nfrs.md", "nfr"),
+            ("governance/backend/schemas/eval_criteria.schema.json", "public_contract"),
+            # Area-agnostic schemas have no <area> segment; a pattern requiring
+            # one silently missed them, which a real-CLI run caught.
+            ("governance/schemas/fix_record.schema.json", "public_contract"),
+        ],
+    )
+    def test_touching_a_governed_area_contradicts_a_false_flag(self, tmp_path, path, flag):
+        """The other half of the two-sided check: a false beside a change in a
+        govkit-owned namespace is a contradiction the record must not carry."""
+        data = self._fully_resolvable(tmp_path)
+        data["surface"]["paths"] = [path]
+        self._touch(tmp_path, path)
+        _install_schema(tmp_path)
+        _write_record(tmp_path, "alpha", data)
+        record = discover_fix_records(tmp_path)[0]
+        issues, _ = validate_fix_record(record, tmp_path)
+        assert any(flag in i for i in issues), issues
+
+    def test_undecidable_flags_are_not_guessed(self, tmp_path):
+        """govkit owns no namespace that definitionally means 'security' or
+        'data handling', so those declarations stand alone rather than being
+        cross-checked against an invented glob."""
+        data = self._fully_resolvable(tmp_path)
+        data["surface"]["paths"] = ["src/auth/session.ts"]
+        self._touch(tmp_path, "src/auth/session.ts")
+        _install_schema(tmp_path)
+        _write_record(tmp_path, "alpha", data)
+        record = discover_fix_records(tmp_path)[0]
+        issues, _ = validate_fix_record(record, tmp_path)
+        assert issues == [], issues

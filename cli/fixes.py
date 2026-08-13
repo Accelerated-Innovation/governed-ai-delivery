@@ -31,6 +31,7 @@ the type would create a cycle. Warnings carry the same "visible gaps, not silent
 green" contract as `check_eval_criteria`.
 """
 
+import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -176,6 +177,101 @@ def _check_id_matches_directory(record: FixRecord) -> list[str]:
     ]
 
 
+# Risk flags govkit can contradict from a path alone, because govkit *owns* the
+# namespace and its meaning is definitional rather than inferred.
+#
+# security_auth, data_handling and cross_service are deliberately absent. There
+# is no govkit-owned directory that definitionally means "security" or "data
+# handling", and services are declared in skill_context.yaml rather than implied
+# by a path. Inventing a glob for those would manufacture false contradictions;
+# those declarations stand alone here and are checked against the real diff in CI.
+_GOVERNED_AREA_PATTERNS = {
+    "architecture": re.compile(r"^docs/[^/]+/architecture/"),
+    "nfr": re.compile(r"^features/[^/]+/nfrs\.md$"),
+    # The area segment is optional: per-type schemas live at
+    # governance/<area>/schemas/, area-agnostic ones at governance/schemas/.
+    "public_contract": re.compile(r"^governance/([^/]+/)?schemas/"),
+}
+
+
+def _posix(path: str) -> str:
+    return path.replace("\\", "/").lstrip("./")
+
+
+def _check_paths_resolve(record: FixRecord, target: Path) -> list[str]:
+    """Conditions 1 and 2 are assertions until their paths resolve."""
+    issues = []
+    source = (record.data.get("expectation") or {}).get("source")
+    if isinstance(source, str) and not (target / source).exists():
+        issues.append(
+            f"{record.rel} expectation.source '{source}' does not resolve — a fix "
+            "that cannot cite what established the behavior is introducing it, "
+            "and belongs in the feature lane"
+        )
+    test = (record.data.get("reproduction") or {}).get("test")
+    if isinstance(test, str) and not (target / test).exists():
+        issues.append(
+            f"{record.rel} reproduction.test '{test}' does not resolve — the light "
+            "lane requires a test that fails before the fix"
+        )
+    missing = [
+        p for p in ((record.data.get("surface") or {}).get("paths") or [])
+        if isinstance(p, str) and not (target / p).exists()
+    ]
+    if missing:
+        issues.append(
+            f"{record.rel} surface.paths do not resolve: {', '.join(missing)}"
+        )
+    return issues
+
+
+def _check_lane_membership(record: FixRecord) -> list[str]:
+    """A declared risk is not a waiver. Any `true` means this change is outside
+    the light lane — it belongs in the feature lane, and where the contract
+    requires it, behind an ADR."""
+    issues = []
+    raised = sorted(
+        flag for flag, value in (record.data.get("risk") or {}).items() if value is True
+    )
+    if raised:
+        issues.append(
+            f"{record.rel} declares risk.{', risk.'.join(raised)} — this change "
+            "belongs in the feature lane, not the fix lane"
+        )
+    if record.data.get("introduces_new_behavior") is True:
+        issues.append(
+            f"{record.rel} declares introduces_new_behavior — restoring "
+            "established behavior is what this lane is for; new behavior "
+            "belongs in the feature lane"
+        )
+    return issues
+
+
+def _check_risk_matches_surface(record: FixRecord) -> list[str]:
+    """The other side of the two-sided check: a `false` beside a change in a
+    govkit-owned namespace is a contradiction.
+
+    Note this compares two *declared* fields — `surface.paths` is authored, not
+    derived from a diff — so it proves the record is internally consistent, not
+    that it matches what the PR changed. That correspondence is CI's job, where
+    the diff exists.
+    """
+    risk = record.data.get("risk") or {}
+    paths = [_posix(p) for p in ((record.data.get("surface") or {}).get("paths") or []) if isinstance(p, str)]
+    issues = []
+    for flag, pattern in _GOVERNED_AREA_PATTERNS.items():
+        if risk.get(flag) is not False:
+            continue
+        hits = [p for p in paths if pattern.search(p)]
+        if hits:
+            issues.append(
+                f"{record.rel} declares risk.{flag} false but changes "
+                f"{', '.join(hits)} — that is a {flag} change, so the record "
+                "contradicts itself"
+            )
+    return issues
+
+
 def _validate_against_schema(
     record: FixRecord, target: Path,
 ) -> tuple[list[str], list[str]]:
@@ -223,4 +319,15 @@ def validate_fix_record(
     if issues:
         return issues, []
 
-    return _validate_against_schema(record, target)
+    schema_issues, warnings = _validate_against_schema(record, target)
+    if schema_issues:
+        return schema_issues, warnings
+
+    # Eligibility runs only once the record is structurally sound — there is no
+    # value in reasoning about conditions in a record missing half its fields.
+    eligibility = [
+        *_check_paths_resolve(record, target),
+        *_check_lane_membership(record),
+        *_check_risk_matches_surface(record),
+    ]
+    return eligibility, warnings
