@@ -289,6 +289,54 @@ class TestCheckNfrsNoTbd:
         ok, msg = check_nfrs_no_tbd(tmp_path)
         assert ok is CheckStatus.PASS  # \bTBD\b won't match TBDATA
 
+    def test_self_referential_prose_is_not_a_placeholder(self, tmp_path):
+        """`features/ui_task_dashboard/nfrs.md` documents the rule in prose, and
+        the bare \\bTBD\\b scan matched its own documentation — failing
+        `govkit validate` on govkit's own shipped worked example."""
+        write(tmp_path / "nfrs.md", """\
+            ## Performance
+            - p95 latency < 200ms
+            - No TBD entries are permitted in this file before Architecture Preflight begins
+
+            Replace every **TBD** with a real value before this feature ships.
+        """)
+        ok, msg = check_nfrs_no_tbd(tmp_path)
+        assert ok is CheckStatus.PASS, msg
+
+    def test_placeholder_still_caught_beside_prose(self, tmp_path):
+        """The exemption must not become an escape hatch."""
+        write(tmp_path / "nfrs.md", """\
+            ## Performance
+            - No TBD entries are permitted in this file
+
+            ## Availability
+            - TBD
+        """)
+        ok, msg = check_nfrs_no_tbd(tmp_path)
+        assert ok is CheckStatus.FAIL
+        assert "5" in msg  # the bare placeholder line, not the prose line
+
+    def test_placeholder_shapes_used_by_real_features(self, tmp_path):
+        """Table cells and mid-sentence placeholders are real forms in
+        features/*/nfrs.md and must all still fail."""
+        for line in (
+            "- TBD",
+            "Lineage destination: TBD (Datahub / OpenLineage — pick one).",
+            "| Consent tracking | TBD (does source carry consent flags?) |",
+            "| Rolling 7-day median | Baseline TBD after 2 weeks |",
+        ):
+            write(tmp_path / "nfrs.md", f"## Performance\n{line}\n")
+            ok, msg = check_nfrs_no_tbd(tmp_path)
+            assert ok is CheckStatus.FAIL, f"placeholder not caught: {line!r}"
+
+    def test_shipped_worked_example_has_no_placeholders(self, tmp_path):
+        """Non-vacuous end-to-end guard: the worked example ships in every
+        ui-react/ui-angular manifest and is not starter-prefixed, so
+        `list_user_features` validates it in customer repos."""
+        repo_root = Path(__file__).resolve().parent.parent
+        ok, msg = check_nfrs_no_tbd(repo_root / "features" / "ui_task_dashboard")
+        assert ok is CheckStatus.PASS, msg
+
 
 # ---------------------------------------------------------------------------
 # check_nfrs_sections

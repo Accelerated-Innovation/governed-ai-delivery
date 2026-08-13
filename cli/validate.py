@@ -137,13 +137,31 @@ def check_gherkin_syntax(feature_dir: Path) -> tuple[CheckStatus, str]:
     return CheckStatus.PASS, f"{_ACCEPTANCE_FEATURE} has valid Gherkin structure"
 
 
+# A line that *talks about* TBD rather than leaving one. `**TBD**` is the
+# emphasised form starters use ("Replace every **TBD** with a real value");
+# "TBD entries" is how the govkit rule itself is phrased. Both are documentation,
+# not placeholders — the bare \bTBD\b scan matched govkit's own worked example,
+# failing `govkit validate` on a file govkit ships.
+_RE_TBD_SELF_REFERENCE = re.compile(r"\*\*TBD\*\*|\bTBD entries\b")
+
+
 def check_nfrs_no_tbd(feature_dir: Path) -> tuple[CheckStatus, str]:
-    """Check that nfrs.md has no remaining TBD entries."""
+    """Check that nfrs.md has no remaining TBD placeholders.
+
+    Placeholders occur in several real shapes across `features/*/nfrs.md` — a bare
+    list item, a value after a colon, a table cell, and mid-sentence ("Baseline TBD
+    after 2 weeks") — so the scan stays deliberately broad. Only the two
+    self-referential forms above are exempt.
+    """
     path = feature_dir / _NFRS_MD
     if not path.exists():
         return CheckStatus.FAIL, f"{_NFRS_MD} not found"
     lines = path.read_text(encoding="utf-8").splitlines()
-    tbd_lines = [i + 1 for i, ln in enumerate(lines) if re.search(r"\bTBD\b", ln)]
+    tbd_lines = [
+        i + 1
+        for i, ln in enumerate(lines)
+        if re.search(r"\bTBD\b", ln) and not _RE_TBD_SELF_REFERENCE.search(ln)
+    ]
     if tbd_lines:
         return CheckStatus.FAIL, f"{_NFRS_MD} contains TBD entries (lines {', '.join(map(str, tbd_lines))})"
     return CheckStatus.PASS, f"{_NFRS_MD} has no TBD entries"
