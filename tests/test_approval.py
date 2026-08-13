@@ -411,3 +411,93 @@ class TestAdrStatusChecks:
         path.write_bytes(b"\xff\xfe\x00bad")
         issues, warnings = check_approval_policy(tmp_path)
         assert any("0001-alpha.md" in m for m in issues + warnings)
+
+
+class TestValidateIntegration:
+    """`run_validation` gains a third artifact family, exactly as extensions and
+    the defect lane did: silent when absent, its own exit code, combined via
+    max(). No new command — the CLI should not grow one whose only real answer
+    lives in CI."""
+
+    def _target(self, tmp_path: Path, level: str = "4") -> Path:
+        (tmp_path / ".govkit").mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".govkit" / "marker.json").write_text(
+            json.dumps({
+                "version": "0.18.0", "level": level, "agent": "claude-code",
+                "options": {"type": "api", "ci": "github"},
+                "applied_at": "2026-08-13T00:00:00Z",
+            }),
+            encoding="utf-8",
+        )
+        # Empty features/ isolates the approval checks: list_user_features
+        # returns [], so nothing else can move the exit code.
+        (tmp_path / "features").mkdir(exist_ok=True)
+        return tmp_path
+
+    def test_absent_attestation_is_silent(self, tmp_path, capsys):
+        """A repo with neither ADRs nor a policy sees no output change."""
+        from cli.validate import run_validation
+
+        target = self._target(tmp_path)
+        assert run_validation(target) == 0
+        assert "approval" not in capsys.readouterr().out.lower()
+
+    def test_a_configured_policy_is_reported_as_passing(self, tmp_path, capsys):
+        from cli.validate import run_validation
+
+        target = self._target(tmp_path)
+        _install_schema(target)
+        _install_policy(target, _configured())
+        assert run_validation(target) == 0
+        assert "approval_policy.yaml" in capsys.readouterr().out
+
+    def test_an_accepted_adr_without_provenance_warns_without_failing(
+        self, tmp_path, capsys,
+    ):
+        """Migration posture: warn on pre-existing, fail on changed. Only CI
+        sees 'changed', so validate never fails on this."""
+        from cli.validate import run_validation
+
+        target = self._target(tmp_path)
+        _install_schema(target)
+        _install_policy(target, _configured())
+        _write_adr(target, "0001-alpha")
+        assert run_validation(target) == 0
+        assert "0001-alpha.md" in capsys.readouterr().out
+
+    def test_a_malformed_policy_fails_the_run(self, tmp_path):
+        """The policy is what makes an approval an approval. A broken one means
+        the repo cannot derive Accepted at all, so this is not a warning."""
+        from cli.validate import run_validation
+
+        target = self._target(tmp_path)
+        _install_policy(target, "- not\n- a mapping\n")
+        assert run_validation(target) == 1
+
+    def test_not_checked_at_l3(self, tmp_path, capsys):
+        """L3 receives neither the policy nor the gate; the attestation model
+        starts at L4 beside the contract that gates on Accepted."""
+        from cli.validate import run_validation
+
+        target = self._target(tmp_path, level="3")
+        _install_policy(target, "- not\n- a mapping\n")
+        assert run_validation(target) == 0
+
+    def test_checked_at_l5(self, tmp_path):
+        from cli.validate import run_validation
+
+        target = self._target(tmp_path, level="5")
+        _install_policy(target, "- not\n- a mapping\n")
+        assert run_validation(target) == 1
+
+    def test_a_govkit_authored_adr_alone_produces_no_finding(self, tmp_path, capsys):
+        """The case that matters: a fresh `--type data` install must not warn
+        about the ADR govkit put there."""
+        from cli.validate import run_validation
+
+        target = self._target(tmp_path)
+        _install_schema(target)
+        _install_policy(target, _configured())
+        _write_adr(target, "0001-data-features", area="data", govkit_authored=True)
+        assert run_validation(target) == 0
+        assert "0001-data-features" not in capsys.readouterr().out
