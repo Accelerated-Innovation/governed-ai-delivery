@@ -203,3 +203,34 @@ def test_dimensions_match_the_shipped_rubrics():
         assert dim in first, dim
     for dim in ("Working", "Unique", "Simple", "Clear", "Easy", "Developed", "Brief"):
         assert dim in virtues, dim
+
+
+class TestFastThreshold:
+    """A team can make Fast blocking by declaring the threshold they calibrated.
+
+    The threshold is a flag rather than an eval_criteria.yaml field on purpose:
+    it is repo-wide policy, and eval_criteria.yaml is per-feature. Putting it
+    there would have meant one feature's file silently deciding the gate for the
+    whole repo, and a closed-schema edit for a field nothing else reads.
+    """
+
+    def test_under_threshold_passes(self, tmp_path):
+        _junit(tmp_path, [("t1", 0.01, True), ("t2", 0.05, True)])
+        v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
+        assert v.outcome is Outcome.PASS, v.detail
+
+    def test_over_threshold_fails_and_names_the_test(self, tmp_path):
+        _junit(tmp_path, [("quick", 0.01, True), ("crawler", 1.4, True)])
+        v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
+        assert v.outcome is Outcome.FAIL
+        assert "crawler" in v.detail, v.detail
+
+    def test_threshold_without_durations_is_still_inconclusive(self, tmp_path):
+        """A declared threshold does not conjure evidence."""
+        v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
+        assert v.outcome is Outcome.INCONCLUSIVE
+
+    def test_no_threshold_keeps_the_observation_advisory(self, tmp_path):
+        _junit(tmp_path, [("t1", 5.0, True)])
+        v = _by_dimension(collect_evidence(tmp_path))["Fast"]
+        assert v.outcome is Outcome.INCONCLUSIVE

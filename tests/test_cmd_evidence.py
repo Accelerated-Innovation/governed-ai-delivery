@@ -14,8 +14,8 @@ import pytest
 from cli.cmd_evidence import cmd_evidence, register
 
 
-def _args(target: Path):
-    return argparse.Namespace(target=str(target))
+def _args(target: Path, fast_max_seconds: float | None = None):
+    return argparse.Namespace(target=str(target), fast_max_seconds=fast_max_seconds)
 
 
 def _passing_junit(target: Path) -> None:

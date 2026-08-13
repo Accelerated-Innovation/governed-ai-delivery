@@ -43,7 +43,7 @@ def cmd_evidence(args: argparse.Namespace) -> None:
         print(f"Error: target directory '{target}' does not exist.", file=sys.stderr)
         sys.exit(1)
 
-    verdicts = collect_evidence(target)
+    verdicts = collect_evidence(target, fast_max_seconds=args.fast_max_seconds)
     print("\ngovkit evidence — measured quality evidence\n")
     width = max(len(v.dimension) for v in verdicts)
     for verdict in verdicts:
@@ -61,4 +61,12 @@ def register(subparsers) -> None:
         help="Report measured quality evidence from CI artifacts",
     )
     p.add_argument("--target", default=".", help=paths.TARGET_HELP)
+    p.add_argument(
+        "--fast-max-seconds", type=float, default=None,
+        help=(
+            "Per-test duration ceiling. Without it, Fast reports its observed "
+            "durations but stays INCONCLUSIVE — govkit will not invent a "
+            "threshold your team has not calibrated."
+        ),
+    )
     p.set_defaults(func=cmd_evidence)

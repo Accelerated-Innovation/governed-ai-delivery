@@ -104,7 +104,8 @@ def _find(target: Path, globs) -> list[Path]:
 
 def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
     """Aggregate JUnit XML. Returns (totals, error). Never raises."""
-    totals = {"tests": 0, "failures": 0, "errors": 0, "durations": []}
+    totals = {"tests": 0, "failures": 0, "errors": 0, "durations": [], "slowest_name": None}
+    slowest = -1.0
     for path in paths:
         try:
             root = ET.parse(path).getroot()
@@ -117,9 +118,13 @@ def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
             totals["errors"] += int(suite.get("errors") or 0)
         for case in root.iter("testcase"):
             try:
-                totals["durations"].append(float(case.get("time") or 0.0))
+                seconds = float(case.get("time") or 0.0)
             except ValueError:
                 continue
+            totals["durations"].append(seconds)
+            if seconds > slowest:
+                slowest = seconds
+                totals["slowest_name"] = case.get("name")
     return totals, None
 
 
@@ -142,23 +147,41 @@ def _assess_working(totals: dict | None, error: str | None, found: bool) -> Verd
     return Verdict("Working", Outcome.PASS, f"{totals['tests']} tests passed")
 
 
-def _assess_fast(totals: dict | None, found: bool) -> Verdict:
-    """Observed, deliberately not judged.
+def _assess_fast(
+    totals: dict | None, found: bool, max_seconds: float | None,
+    slowest_name: str | None,
+) -> Verdict:
+    """Observed always; judged only against a threshold the team declared.
 
     JUnit carries per-test durations, so the measurement is free. Turning the
     rubric's 1-5 bands into a pass/fail threshold is a calibration decision,
     and ADR-0001 warns that inventing a rubric nobody has calibrated recreates
-    the ceremony this work removes. Report the number; leave the policy.
+    the ceremony this work removes. So govkit reports the number and leaves the
+    policy — until a team sets `--fast-max-seconds`, at which point their
+    calibration, not govkit's guess, makes it blocking.
     """
     if not found or not totals or not totals["durations"]:
         return Verdict("Fast", Outcome.INCONCLUSIVE, "no per-test durations recorded")
     durations = sorted(totals["durations"])
     slowest = durations[-1]
-    over_200ms = sum(1 for d in durations if d > 0.2)
+    if max_seconds is None:
+        over_200ms = sum(1 for d in durations if d > 0.2)
+        return Verdict(
+            "Fast", Outcome.INCONCLUSIVE,
+            f"observed: slowest test {slowest:g}s, {over_200ms} of {len(durations)} over 200ms "
+            "— set --fast-max-seconds to make this blocking",
+        )
+    over = [d for d in durations if d > max_seconds]
+    if over:
+        name = f" (slowest: {slowest_name})" if slowest_name else ""
+        return Verdict(
+            "Fast", Outcome.FAIL,
+            f"{len(over)} of {len(durations)} tests exceed {max_seconds:g}s; "
+            f"slowest {slowest:g}s{name}",
+        )
     return Verdict(
-        "Fast", Outcome.INCONCLUSIVE,
-        f"observed: slowest test {slowest:g}s, {over_200ms} of {len(durations)} over 200ms "
-        "— set a threshold to make this blocking",
+        "Fast", Outcome.PASS,
+        f"all {len(durations)} tests under {max_seconds:g}s (slowest {slowest:g}s)",
     )
 
 
@@ -191,7 +214,7 @@ def _assess_accessibility(violations: list[dict] | None, error: str | None, foun
     return Verdict("Accessibility", Outcome.PASS, f"no critical or serious axe violations ({seen})")
 
 
-def collect_evidence(target: Path) -> list[Verdict]:
+def collect_evidence(target: Path, fast_max_seconds: float | None = None) -> list[Verdict]:
     """Report a verdict for every dimension, every run.
 
     Reporting all of them is the point: a dimension left out of the output is
@@ -204,7 +227,10 @@ def collect_evidence(target: Path) -> list[Verdict]:
 
     measured = {
         "Working": _assess_working(totals, junit_error, bool(junit_paths)),
-        "Fast": _assess_fast(totals, bool(junit_paths)),
+        "Fast": _assess_fast(
+            totals, bool(junit_paths), fast_max_seconds,
+            (totals or {}).get("slowest_name"),
+        ),
         "Accessibility": _assess_accessibility(violations, axe_error, bool(axe_paths)),
     }
     verdicts = []

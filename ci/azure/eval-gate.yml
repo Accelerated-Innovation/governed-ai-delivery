@@ -1,4 +1,15 @@
 # Azure DevOps pipeline — Enforces evaluation score predictions and runs LLM eval suites on every PR.
+#
+# ADVISORY AS OF THE EVIDENCE CONTRACT. The scores this gate reads are written
+# into plan.md by the agent that did the work. docs/<area>/evaluation/
+# EVIDENCE_CONTRACT.md names that a producer self-check and makes it advisory:
+# "the task owner never commits its own final gate." Treat a failure here as a
+# forecast under the bar, not as a quality verdict.
+#
+# The merge gate for quality is ci/<platform>/evidence-gate.yml, which reports
+# what an executed tool observed. This gate's behavior is unchanged so nothing
+# breaks for existing adopters; prefer the evidence gate as the required check.
+#
 # Validate with your Azure DevOps admin before use.
 #
 # JOBS:
