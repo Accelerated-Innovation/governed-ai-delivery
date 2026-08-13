@@ -660,6 +660,129 @@ class TestCheckPlanEvalPrediction:
         ok, msg = check_plan_eval_prediction(tmp_path)
         assert ok is CheckStatus.PASS, msg
 
+
+class TestPredictionInternalConsistency:
+    """The declared `average:` was never checked against the scores beside it, so
+    a plan could claim 4.5 over scores averaging 3.1. Cross-check only where
+    individual scores are present; declared-only plans stay valid."""
+
+    def test_declared_average_contradicting_its_scores_fails(self, tmp_path):
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yaml
+            evaluation_prediction:
+              first:
+                fast: {score: 3, evidence: "x"}
+                isolated: {score: 3, evidence: "x"}
+                repeatable: {score: 3, evidence: "x"}
+                self_verifying: {score: 3, evidence: "x"}
+                timely: {score: 3, evidence: "x"}
+                average: 4.5
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.FAIL
+        assert "first" in msg and "4.5" in msg
+
+    def test_rounded_declared_average_is_tolerated(self, tmp_path):
+        """31/7 = 4.4285... declared as 4.4 — one-decimal rounding, not a lie.
+        `features/ui_task_dashboard/plan.md` declares 4.71 for 33/7 = 4.7142..."""
+        write(tmp_path / "plan.md", VALID_PLAN)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.PASS, msg
+
+    def test_declared_only_plan_still_passes(self, tmp_path):
+        """Backward compatibility: no individual scores means nothing to cross-check."""
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yaml
+            evaluation_prediction:
+              first:
+                average: 4.6
+              virtues:
+                average: 4.4
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.PASS, msg
+
+    def test_individual_score_below_three_fails(self, tmp_path):
+        """FIRST_SCORING_RUBRIC.md: 'Fail: average < 4.0 OR any individual score
+        below 3'. Only the average half was enforced."""
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yaml
+            evaluation_prediction:
+              first:
+                fast: {score: 5, evidence: "x"}
+                isolated: {score: 5, evidence: "x"}
+                repeatable: {score: 5, evidence: "x"}
+                self_verifying: {score: 5, evidence: "x"}
+                timely: {score: 2, evidence: "flaky"}
+                average: 4.4
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.FAIL
+        assert "below 3" in msg
+
+    def test_ui_shape_is_cross_checked(self, tmp_path):
+        """governance/ui/templates/plan.md nests scores under
+        `component_tests.FIRST_scores` and declares `predicted_average`."""
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yaml
+            evaluation_prediction:
+              component_tests:
+                FIRST_scores:
+                  fast: { score: 3, rationale: "" }
+                  isolated: { score: 3, rationale: "" }
+                  repeatable: { score: 3, rationale: "" }
+                  self_verifying: { score: 3, rationale: "" }
+                  timely: { score: 3, rationale: "" }
+                predicted_average: 4.8
+              accessibility:
+                predicted_axe_violations: 0
+                wcag_level: AA
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.FAIL
+        assert "component_tests" in msg
+
+    def test_ui_shape_consistent_prediction_passes(self, tmp_path):
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yaml
+            evaluation_prediction:
+              component_tests:
+                FIRST_scores:
+                  fast: { score: 5, rationale: "" }
+                  isolated: { score: 4, rationale: "" }
+                  repeatable: { score: 4, rationale: "" }
+                  self_verifying: { score: 5, rationale: "" }
+                  timely: { score: 4, rationale: "" }
+                predicted_average: 4.4
+              accessibility:
+                predicted_axe_violations: 0
+                wcag_level: AA
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.PASS, msg
+
+    def test_shipped_worked_example_still_passes(self, tmp_path):
+        """Non-vacuous guard against tightening the check past govkit's own payload."""
+        repo_root = Path(__file__).resolve().parent.parent
+        example = repo_root / "features" / "ui_task_dashboard"
+        ok, msg = check_plan_eval_prediction(example)
+        assert ok is CheckStatus.PASS, msg
+
     def test_missing_file(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)
         ok, msg = check_plan_eval_prediction(tmp_path)
