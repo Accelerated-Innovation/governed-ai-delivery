@@ -621,6 +621,45 @@ class TestCheckPlanEvalPrediction:
         assert ok is CheckStatus.FAIL
         assert "3.5" in msg
 
+    def test_unrelated_earlier_yaml_block_is_not_absorbed(self, tmp_path):
+        """The block pattern anchored on the *first* ```yaml fence and let `.*?`
+        run past intervening fences, so an unrelated earlier block's `: null` was
+        reported as an evaluation_prediction null."""
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yaml
+            rollout:
+              canary_percent: null
+            ```
+
+            ```yaml
+            evaluation_prediction:
+              first:
+                average: 4.6
+              virtues:
+                average: 4.4
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.PASS, msg
+
+    def test_yml_fence_is_accepted(self, tmp_path):
+        """```yml is as valid as ```yaml and must resolve the same block."""
+        write(tmp_path / "plan.md", """\
+            # Plan
+
+            ```yml
+            evaluation_prediction:
+              first:
+                average: 4.6
+              virtues:
+                average: 4.4
+            ```
+        """)
+        ok, msg = check_plan_eval_prediction(tmp_path)
+        assert ok is CheckStatus.PASS, msg
+
     def test_missing_file(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)
         ok, msg = check_plan_eval_prediction(tmp_path)

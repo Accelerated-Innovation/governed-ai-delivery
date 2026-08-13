@@ -278,6 +278,14 @@ def check_eval_criteria(feature_dir: Path) -> tuple[CheckStatus, str]:
     return CheckStatus.PASS, f"{_EVAL_CRITERIA_YAML} valid against {schema.name}"
 
 
+# One fenced YAML block. Non-greedy *within* a block so an earlier fence cannot
+# absorb a later one — the prediction block is then selected by content, not by
+# being first. A single `.*?evaluation_prediction:.*?` pattern anchored on the
+# first fence in the file and ran straight past intervening fences, so an
+# unrelated earlier block's `: null` was reported as a prediction null.
+_RE_YAML_BLOCK = re.compile(r"```ya?ml\s*\n(.*?)```", re.DOTALL)
+
+
 def check_plan_eval_prediction(feature_dir: Path) -> tuple[CheckStatus, str]:
     """Check that plan.md has an evaluation_prediction block with averages >= 4.0."""
     path = feature_dir / _PLAN_MD
@@ -285,14 +293,12 @@ def check_plan_eval_prediction(feature_dir: Path) -> tuple[CheckStatus, str]:
         return CheckStatus.FAIL, f"{_PLAN_MD} not found"
     text = path.read_text(encoding="utf-8")
 
-    block_match = re.search(
-        r"```ya?ml\s*\n(.*?evaluation_prediction:.*?)```",
-        text, re.DOTALL,
+    block = next(
+        (b for b in _RE_YAML_BLOCK.findall(text) if "evaluation_prediction:" in b),
+        None,
     )
-    if not block_match:
+    if block is None:
         return CheckStatus.FAIL, f"{_PLAN_MD} missing evaluation_prediction block"
-
-    block = block_match.group(1)
 
     null_matches = re.findall(r":\s*null\b", block)
     if null_matches:
