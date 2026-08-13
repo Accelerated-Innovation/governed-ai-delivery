@@ -78,9 +78,18 @@ Each FIRST principle is scored 1–5 per test file or test suite. The minimum ac
 
 1. Score each principle 1–5 for the test suite under review
 2. Calculate the average across all five principles
-3. **Pass:** average >= 4.0 AND no individual score below 3
-4. **Fail:** average < 4.0 OR any individual score below 3
-5. Record scores in the feature's `plan.md` evaluation_prediction block during planning, and validate against actuals during review
+3. **Meets the bar:** average >= 4.0 AND no individual score below 3
+4. **Below the bar:** average < 4.0 OR any individual score below 3
+5. Record scores in the feature's `plan.md` evaluation_prediction block during planning
+
+These scores are a **forecast**, not a verdict. You are scoring work you are
+about to do, or have just done, against your own rubric — a producer
+self-check, which `EVIDENCE_CONTRACT.md` makes advisory: *"the task owner never
+commits its own final gate."*
+
+Merge is gated by `govkit evidence`, on what the test run actually produced. A
+forecast under the bar means revise the plan; it does not by itself block a
+merge, and a forecast above the bar proves nothing.
 
 ---
 

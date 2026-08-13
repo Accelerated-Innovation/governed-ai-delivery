@@ -10,6 +10,39 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Measured evidence.** `govkit evidence` reads what CI produced — the test
+  report, axe results — and gives a verdict per rubric dimension. Wired up by
+  `ci/{github,azure}/evidence-gate.yml`. Working and Accessibility are gated
+  today; Fast becomes gated once a team sets `--fast-max-seconds`. Everything
+  else reports `INCONCLUSIVE`, which is **not** a pass.
+- `docs/<area>/evaluation/EVIDENCE_CONTRACT.md` — the delivery-side evidence
+  vocabulary, promoted from the L5 extension that already governed the agent
+  systems govkit's users build.
+
+### Changed
+
+- **The FIRST/Virtue prediction is now an advisory forecast, not a merge gate.**
+  Those scores are written by the agent that did the work; the evidence contract
+  makes a producer self-check advisory by definition. A threshold breach now
+  WARNs. Internal contradiction and missing values still FAIL — the artifact
+  must be complete and honest about itself, it just no longer carries a verdict.
+  This applies to backend and UI the argument ADR-0001 accepted for data in July.
+- `eval-gate` and `ui-eval-gate` are marked advisory in their headers. Their
+  behavior is deliberately unchanged, so nothing breaks on `govkit upgrade`.
+- `docs/backend/evaluation/EVAL_STACK.md` described a "Home-Grown Evaluation
+  Framework" that enforced FIRST and Virtue scores at CI time and was "required
+  on all projects". **No such framework was ever built** — the only
+  implementation was a parser reading the agent's own numbers out of `plan.md`.
+  Replaced with `govkit evidence` and a note recording what happened.
+- The four scoring rubrics ended with "validate against actuals during review".
+  Nothing implemented it. They now say what the scores are for and where the
+  real gate is.
+- `tests/test_ci_govkit_dependency.py` enumerated `doctor|validate|apply|init`,
+  so `govkit evidence` could ship in a gate without a version pin and the suite
+  stayed green. It now matches any subcommand.
+- Removed two stale rows from `ci/README.md`'s "Not Enforced by CI" table; both
+  checks shipped some time ago.
+
 - **Defect lane.** A change that restores already-established behavior now
   carries one schema-backed record — `fixes/<id>/fix.yaml` — instead of the
   five-artifact feature contract. `govkit fix init <id>` scaffolds it,

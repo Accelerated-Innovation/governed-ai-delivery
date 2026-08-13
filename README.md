@@ -188,6 +188,7 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 | `govkit validate` | Level-aware compliance check over **features** (artifact existence, Gherkin structure, NFR coverage, eval-criteria schema, prediction thresholds) and **fix records** (schema, eligibility conditions). No-op at L3. |
 | `govkit init <feature>` | Scaffold a new feature folder from the appropriate starter (L4+). |
 | `govkit fix init <id>` | Scaffold a defect-lane fix record at `fixes/<id>/fix.yaml` (L4+) — one artifact instead of five, for a change that restores already-established behavior. |
+| `govkit evidence` | Report measured quality evidence from CI artifacts — a verdict per rubric dimension, with unmeasured ones reported as INCONCLUSIVE rather than green. |
 | `govkit stack` | `stack list` shows bundled tech-stack overlays; `stack apply <id>` swaps the stack on an existing install. |
 | `govkit extension` | `extension list` shows bundled extension packs; `extension add <id> --target <path>` copies one into your project's `extensions/<id>/`. |
 | `govkit upgrade` | Refresh the files govkit owns (contracts, CI gates, templates) to a new version without touching the files you own. |

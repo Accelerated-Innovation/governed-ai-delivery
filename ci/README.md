@@ -212,6 +212,7 @@ A critical distinction in this governance framework: some checks enforce **actua
 | Code quality metrics | l3-quality-gate | SonarQube duplication and complexity |
 | Governing artifact coverage | fix-lane-gate | Source changed in the PR is accounted for by a fix record or a feature |
 | Fix record correspondence | fix-lane-gate | A fix record's `surface.paths` matches what the diff actually changed, and the diff carries a test |
+| Measured quality evidence | evidence-gate | `govkit evidence` reads the test report and axe results and gives a verdict per rubric dimension. Unmeasured dimensions report INCONCLUSIVE, which is **not** a pass |
 
 #### The fix-lane gate needs configuring before it does anything
 
@@ -235,8 +236,8 @@ the diff.
 
 | Check | Pipeline | What it does | How to close the gap |
 |---|---|---|---|
-| FIRST scores | eval-gate | Checks predicted averages >= 4.0 in `plan.md` | Add a post-test job that scores actual test suites against the [FIRST rubric](../docs/backend/evaluation/FIRST_SCORING_RUBRIC.md) |
-| Virtue scores | eval-gate | Checks predicted averages >= 4.0 in `plan.md` | Add static analysis metrics (complexity, duplication, coverage) and compare to thresholds |
+| FIRST scores | eval-gate | Reads a forecast the authoring agent wrote. **Advisory** — see `EVIDENCE_CONTRACT.md` | Largely closed: `evidence-gate` measures Working and Fast. Emit a test report from your test run |
+| Virtue scores | eval-gate | Reads a forecast the authoring agent wrote. **Advisory** | Partly closed: Working is measured. Duplication, complexity and coverage remain unmeasured and report INCONCLUSIVE |
 | Accessibility | ui-eval-gate | Checks predicted axe violations == 0 | Already partially enforced — Playwright axe scans run. Ensure `continue-on-error` is false. |
 
 ### Stubbed (require team configuration)
@@ -256,9 +257,7 @@ These governance rules are communicated to agents via CLAUDE.md / copilot-instru
 
 | Rule | Why no CI gate | Recommendation |
 |---|---|---|
-| Architecture preflight must exist before planning | No file existence check | Add a job that checks `features/*/architecture_preflight.md` exists for any feature with a `plan.md` |
 | ADR required when preflight flags it | No ADR validation | Add a job that checks for ADR files when preflight contains "ADR required" |
-| One increment per commit | No commit granularity check | Add commit message format validation (`feat(<scope>): increment N — ...`) |
 | Gherkin scenarios must map to tests | No test coverage gate | Add a job that cross-references `@nfr-*` tags with test files |
 
 ---
