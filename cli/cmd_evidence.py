@@ -28,6 +28,7 @@ from pathlib import Path
 
 from . import paths
 from .evidence import Outcome, collect_evidence, summarize
+from .marker import read_govkit_marker
 
 _LABEL = {
     Outcome.PASS: "\033[32mPASS\033[0m",
@@ -43,7 +44,16 @@ def cmd_evidence(args: argparse.Namespace) -> None:
         print(f"Error: target directory '{target}' does not exist.", file=sys.stderr)
         sys.exit(1)
 
-    verdicts = collect_evidence(target, fast_max_seconds=args.fast_max_seconds)
+    # Report the dimensions that describe this project. An unreadable marker
+    # reports everything — narrowing on uncertainty would hide a dimension,
+    # and silence reads as a pass.
+    marker = read_govkit_marker(target) or {}
+    project_type = (marker.get("options") or {}).get("type")
+    verdicts = collect_evidence(
+        target,
+        fast_max_seconds=args.fast_max_seconds,
+        project_type=project_type,
+    )
     print("\ngovkit evidence — measured quality evidence\n")
     width = max(len(v.dimension) for v in verdicts)
     for verdict in verdicts:
