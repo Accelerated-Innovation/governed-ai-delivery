@@ -4291,7 +4291,10 @@ class TestDataCiContract:
         )
 
         ci_governed = [path for path in governed if path.startswith(f"ci/{platform}/")]
-        assert ci_governed == [repo_scope, data_common]
+        # The defect lane ships from L4, like the feature contract it sits
+        # beside; L3 has no per-change artifact model at all.
+        fix_lane = [f"ci/{platform}/fix-lane-gate.yml"] if level != "3" else []
+        assert ci_governed == [repo_scope, data_common, *fix_lane]
 
     @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
     @pytest.mark.parametrize(
@@ -4313,7 +4316,10 @@ class TestDataCiContract:
         assert ci_block.get("governed", []) == []
         assert ci_block["by_type"]["data"]["governed"] == expected
         assert ci_block["level_4"].get("governed", []) == []
-        assert ci_block["level_4"]["by_type"]["data"]["governed"] == expected
+        # L4 adds the defect lane gate on top of the L3 common set.
+        assert ci_block["level_4"]["by_type"]["data"]["governed"] == [
+            *expected, f"ci/{platform}/fix-lane-gate.yml",
+        ]
 
 
 class TestDataCommonCiGate:
@@ -4429,7 +4435,10 @@ class TestPythonDbtCiGate:
         )
 
         ci_governed = [path for path in governed if path.startswith(f"ci/{platform}/")]
-        assert ci_governed == [repo_scope, data_common, dbt_gate]
+        # The defect lane ships from L4, like the feature contract it sits
+        # beside; L3 has no per-change artifact model at all.
+        fix_lane = [f"ci/{platform}/fix-lane-gate.yml"] if level != "3" else []
+        assert ci_governed == [repo_scope, data_common, dbt_gate, *fix_lane]
 
     @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
     @pytest.mark.parametrize(
@@ -4589,7 +4598,10 @@ class TestDatabricksCiGate:
         )
 
         ci_governed = [path for path in governed if path.startswith(f"ci/{platform}/")]
-        assert ci_governed == [repo_scope, data_common, databricks_gate]
+        # The defect lane ships from L4, like the feature contract it sits
+        # beside; L3 has no per-change artifact model at all.
+        fix_lane = [f"ci/{platform}/fix-lane-gate.yml"] if level != "3" else []
+        assert ci_governed == [repo_scope, data_common, databricks_gate, *fix_lane]
 
     @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
     @pytest.mark.parametrize(

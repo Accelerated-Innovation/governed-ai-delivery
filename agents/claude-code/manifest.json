@@ -47,7 +47,8 @@
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/govkit-spec-planning/" },
             { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/govkit-architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/govkit-implementation-plan/" }
+            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/govkit-implementation-plan/" },
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
           ],
           "shared": [
             "features/starter_backend/",
@@ -58,7 +59,8 @@
             "docs/backend/guides/",
             "governance/backend/schemas/",
             "governance/backend/templates/",
-            "governance/schemas/evaluation_prediction.schema.json"
+            "governance/schemas/evaluation_prediction.schema.json",
+            "governance/schemas/fix_record.schema.json"
           ]
         },
         "level_5": {
@@ -84,7 +86,8 @@
             { "src": "skills/backend/adr-author/", "dest": ".claude/skills/govkit-adr-author/" },
             { "src": "skills/backend/genai-preflight/", "dest": ".claude/skills/govkit-genai-preflight/" },
             { "src": "skills/backend/eval-suite-planning/", "dest": ".claude/skills/govkit-eval-suite-planning/" },
-            { "src": "skills/backend/multi-agent-design/", "dest": ".claude/skills/govkit-multi-agent-design/" }
+            { "src": "skills/backend/multi-agent-design/", "dest": ".claude/skills/govkit-multi-agent-design/" },
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
           ],
           "shared": [
             "features/starter_backend_l5/",
@@ -94,7 +97,8 @@
             "docs/backend/",
             "governance/backend/schemas/",
             "governance/backend/templates/",
-            "governance/schemas/evaluation_prediction.schema.json"
+            "governance/schemas/evaluation_prediction.schema.json",
+            "governance/schemas/fix_record.schema.json"
           ]
         }
       },
@@ -121,7 +125,8 @@
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/govkit-spec-planning/" },
             { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/govkit-architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/govkit-implementation-plan/" }
+            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/govkit-implementation-plan/" },
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
           ],
           "shared": [
             "features/starter_cli/"
@@ -131,7 +136,8 @@
             "docs/backend/guides/",
             "governance/backend/schemas/",
             "governance/backend/templates/",
-            "governance/schemas/evaluation_prediction.schema.json"
+            "governance/schemas/evaluation_prediction.schema.json",
+            "governance/schemas/fix_record.schema.json"
           ]
         },
         "level_5": {
@@ -157,7 +163,8 @@
             { "src": "skills/backend/adr-author/", "dest": ".claude/skills/govkit-adr-author/" },
             { "src": "skills/backend/genai-preflight/", "dest": ".claude/skills/govkit-genai-preflight/" },
             { "src": "skills/backend/eval-suite-planning/", "dest": ".claude/skills/govkit-eval-suite-planning/" },
-            { "src": "skills/backend/multi-agent-design/", "dest": ".claude/skills/govkit-multi-agent-design/" }
+            { "src": "skills/backend/multi-agent-design/", "dest": ".claude/skills/govkit-multi-agent-design/" },
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
           ],
           "shared": [
             "features/starter_cli_l5/"
@@ -166,7 +173,8 @@
             "docs/backend/",
             "governance/backend/schemas/",
             "governance/backend/templates/",
-            "governance/schemas/evaluation_prediction.schema.json"
+            "governance/schemas/evaluation_prediction.schema.json",
+            "governance/schemas/fix_record.schema.json"
           ]
         }
       },
@@ -193,7 +201,8 @@
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
             { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/govkit-ui-spec-planning/" },
             { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/govkit-ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" }
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" },
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -201,7 +210,8 @@
           ],
           "governed": [
             "docs/ui/evaluation/",
-            "governance/ui/"
+            "governance/ui/",
+            "governance/schemas/fix_record.schema.json"
           ]
         },
         "level_5": {
@@ -215,7 +225,8 @@
             { "src": "skills/ui/adr-author/", "dest": ".claude/skills/govkit-ui-adr-author/" },
             { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/govkit-ui-spec-planning/" },
             { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/govkit-ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" }
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" },
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -228,7 +239,8 @@
             "docs/ui/architecture/react/",
             "docs/ui/design/",
             "docs/ui/evaluation/",
-            "governance/ui/"
+            "governance/ui/",
+            "governance/schemas/fix_record.schema.json"
           ]
         }
       },
@@ -255,7 +267,8 @@
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
             { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/govkit-ui-spec-planning/" },
             { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/govkit-ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" }
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" },
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -263,7 +276,8 @@
           ],
           "governed": [
             "docs/ui/evaluation/",
-            "governance/ui/"
+            "governance/ui/",
+            "governance/schemas/fix_record.schema.json"
           ]
         },
         "level_5": {
@@ -277,7 +291,8 @@
             { "src": "skills/ui/adr-author/", "dest": ".claude/skills/govkit-ui-adr-author/" },
             { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/govkit-ui-spec-planning/" },
             { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/govkit-ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" }
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" },
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
           ],
           "shared": [
             "features/starter_ui/",
@@ -290,7 +305,8 @@
             "docs/ui/architecture/angular/",
             "docs/ui/design/",
             "docs/ui/evaluation/",
-            "governance/ui/"
+            "governance/ui/",
+            "governance/schemas/fix_record.schema.json"
           ]
         }
       },
@@ -317,14 +333,16 @@
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
             { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/govkit-ui-spec-planning/" },
             { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/govkit-ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" }
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" },
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
           ],
           "shared": [
             "features/starter_ui_nextjs/"
           ],
           "governed": [
             "docs/ui/evaluation/",
-            "governance/ui/"
+            "governance/ui/",
+            "governance/schemas/fix_record.schema.json"
           ]
         },
         "level_5": {
@@ -338,7 +356,8 @@
             { "src": "skills/ui/adr-author/", "dest": ".claude/skills/govkit-ui-adr-author/" },
             { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/govkit-ui-spec-planning/" },
             { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/govkit-ui-architecture-preflight/" },
-            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" }
+            { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" },
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
           ],
           "shared": [
             "features/starter_ui_nextjs/"
@@ -350,7 +369,8 @@
             "docs/ui/architecture/nextjs/",
             "docs/ui/design/",
             "docs/ui/evaluation/",
-            "governance/ui/"
+            "governance/ui/",
+            "governance/schemas/fix_record.schema.json"
           ]
         }
       },
@@ -377,13 +397,15 @@
             { "src": "rules/generic/spec-compliance.md", "dest": ".claude/rules/govkit/spec-compliance.md" },
             { "src": "skills/backend/spec-planning/", "dest": ".claude/skills/govkit-spec-planning/" },
             { "src": "skills/backend/architecture-preflight/", "dest": ".claude/skills/govkit-architecture-preflight/" },
-            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/govkit-implementation-plan/" }
+            { "src": "skills/backend/implementation-plan/", "dest": ".claude/skills/govkit-implementation-plan/" },
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
           ],
           "shared": [
             "features/starter_data/"
           ],
           "governed": [
-            "governance/data/schemas/"
+            "governance/data/schemas/",
+            "governance/schemas/fix_record.schema.json"
           ]
         }
       }
@@ -431,13 +453,19 @@
           "shared": [],
           "governed": [],
           "by_type": {
-            "api":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml"] },
-            "cli":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml"] },
-            "ui-react":   { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml"] },
-            "ui-angular": { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml"] },
-            "ui-nextjs":  { "governed": ["ci/github/ui-nextjs-quality-gate.yml", "ci/github/ui-nextjs-eval-gate.yml"] },
+            "api":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml",
+                "ci/github/fix-lane-gate.yml"] },
+            "cli":        { "governed": ["ci/github/quality-gate.yml", "ci/github/eval-gate.yml",
+                "ci/github/fix-lane-gate.yml"] },
+            "ui-react":   { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml",
+                "ci/github/fix-lane-gate.yml"] },
+            "ui-angular": { "governed": ["ci/github/ui-quality-gate.yml", "ci/github/ui-eval-gate.yml",
+                "ci/github/fix-lane-gate.yml"] },
+            "ui-nextjs":  { "governed": ["ci/github/ui-nextjs-quality-gate.yml", "ci/github/ui-nextjs-eval-gate.yml",
+                "ci/github/fix-lane-gate.yml"] },
             "data":       {
-              "governed": ["ci/github/repo-scope-check.yml", "ci/github/data-common-gate.yml"],
+              "governed": ["ci/github/repo-scope-check.yml", "ci/github/data-common-gate.yml",
+                "ci/github/fix-lane-gate.yml"],
               "by_stack": {
                 "python-dbt": { "governed": ["ci/github/dbt-gate.yml"] },
                 "databricks-lakehouse": { "governed": ["ci/github/databricks-gate.yml"] }
@@ -459,7 +487,8 @@
                 "ci/github/deepeval-gate.yml",
                 "ci/github/guardrails-check.yml",
                 "ci/github/multi-agent-gate.yml",
-                "ci/github/promptfoo-gate.yml"
+                "ci/github/promptfoo-gate.yml",
+                "ci/github/fix-lane-gate.yml"
               ],
               "by_stack": {
                 "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
@@ -477,7 +506,8 @@
                 "ci/github/deepeval-gate.yml",
                 "ci/github/guardrails-check.yml",
                 "ci/github/multi-agent-gate.yml",
-                "ci/github/promptfoo-gate.yml"
+                "ci/github/promptfoo-gate.yml",
+                "ci/github/fix-lane-gate.yml"
               ],
               "by_stack": {
                 "python-fastapi": { "governed": ["ci/github/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
@@ -494,7 +524,8 @@
               "ci/github/deepeval-gate.yml",
               "ci/github/guardrails-check.yml",
               "ci/github/multi-agent-gate.yml",
-              "ci/github/promptfoo-gate.yml"
+              "ci/github/promptfoo-gate.yml",
+                "ci/github/fix-lane-gate.yml"
             ] },
             "ui-angular": { "governed": [
               "ci/github/l3-ui-quality-gate.yml",
@@ -503,7 +534,8 @@
               "ci/github/deepeval-gate.yml",
               "ci/github/guardrails-check.yml",
               "ci/github/multi-agent-gate.yml",
-              "ci/github/promptfoo-gate.yml"
+              "ci/github/promptfoo-gate.yml",
+                "ci/github/fix-lane-gate.yml"
             ] },
             "ui-nextjs": { "governed": [
               "ci/github/ui-nextjs-quality-gate.yml",
@@ -511,7 +543,8 @@
               "ci/github/deepeval-gate.yml",
               "ci/github/guardrails-check.yml",
               "ci/github/multi-agent-gate.yml",
-              "ci/github/promptfoo-gate.yml"
+              "ci/github/promptfoo-gate.yml",
+                "ci/github/fix-lane-gate.yml"
             ] }
           }
         }
@@ -558,13 +591,19 @@
           "shared": [],
           "governed": [],
           "by_type": {
-            "api":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml"] },
-            "cli":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml"] },
-            "ui-react":   { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml"] },
-            "ui-angular": { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml"] },
-            "ui-nextjs":  { "governed": ["ci/azure/ui-nextjs-quality-gate.yml", "ci/azure/ui-nextjs-eval-gate.yml"] },
+            "api":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml",
+                "ci/azure/fix-lane-gate.yml"] },
+            "cli":        { "governed": ["ci/azure/quality-gate.yml", "ci/azure/eval-gate.yml",
+                "ci/azure/fix-lane-gate.yml"] },
+            "ui-react":   { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml",
+                "ci/azure/fix-lane-gate.yml"] },
+            "ui-angular": { "governed": ["ci/azure/ui-quality-gate.yml", "ci/azure/ui-eval-gate.yml",
+                "ci/azure/fix-lane-gate.yml"] },
+            "ui-nextjs":  { "governed": ["ci/azure/ui-nextjs-quality-gate.yml", "ci/azure/ui-nextjs-eval-gate.yml",
+                "ci/azure/fix-lane-gate.yml"] },
             "data":       {
-              "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/data-common-gate.yml"],
+              "governed": ["ci/azure/repo-scope-check.yml", "ci/azure/data-common-gate.yml",
+                "ci/azure/fix-lane-gate.yml"],
               "by_stack": {
                 "python-dbt": { "governed": ["ci/azure/dbt-gate.yml"] },
                 "databricks-lakehouse": { "governed": ["ci/azure/databricks-gate.yml"] }
@@ -586,7 +625,8 @@
                 "ci/azure/deepeval-gate.yml",
                 "ci/azure/guardrails-check.yml",
                 "ci/azure/multi-agent-gate.yml",
-                "ci/azure/promptfoo-gate.yml"
+                "ci/azure/promptfoo-gate.yml",
+                "ci/azure/fix-lane-gate.yml"
               ],
               "by_stack": {
                 "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
@@ -604,7 +644,8 @@
                 "ci/azure/deepeval-gate.yml",
                 "ci/azure/guardrails-check.yml",
                 "ci/azure/multi-agent-gate.yml",
-                "ci/azure/promptfoo-gate.yml"
+                "ci/azure/promptfoo-gate.yml",
+                "ci/azure/fix-lane-gate.yml"
               ],
               "by_stack": {
                 "python-fastapi": { "governed": ["ci/azure/boundary-gate-python.yml", "governance/backend/importlinter-reference.toml"] },
@@ -621,7 +662,8 @@
               "ci/azure/deepeval-gate.yml",
               "ci/azure/guardrails-check.yml",
               "ci/azure/multi-agent-gate.yml",
-              "ci/azure/promptfoo-gate.yml"
+              "ci/azure/promptfoo-gate.yml",
+                "ci/azure/fix-lane-gate.yml"
             ] },
             "ui-angular": { "governed": [
               "ci/azure/l3-ui-quality-gate.yml",
@@ -630,7 +672,8 @@
               "ci/azure/deepeval-gate.yml",
               "ci/azure/guardrails-check.yml",
               "ci/azure/multi-agent-gate.yml",
-              "ci/azure/promptfoo-gate.yml"
+              "ci/azure/promptfoo-gate.yml",
+                "ci/azure/fix-lane-gate.yml"
             ] },
             "ui-nextjs": { "governed": [
               "ci/azure/ui-nextjs-quality-gate.yml",
@@ -638,7 +681,8 @@
               "ci/azure/deepeval-gate.yml",
               "ci/azure/guardrails-check.yml",
               "ci/azure/multi-agent-gate.yml",
-              "ci/azure/promptfoo-gate.yml"
+              "ci/azure/promptfoo-gate.yml",
+                "ci/azure/fix-lane-gate.yml"
             ] }
           }
         }

@@ -233,7 +233,11 @@ def test_ui_nextjs_skill_content_parity(skill: str):
 PLANNING_SKILL_PATHS = [
     REPO_ROOT / "agents" / agent / "skills" / "backend" / skill / "SKILL.md"
     for agent in ("claude-code", "codex", "copilot")
-    for skill in ("spec-planning", "implementation-plan")
+    # fix-record plans a defect the way spec-planning plans a feature: it scopes
+    # to one service, reads the recorded architecture rather than asserting one,
+    # and must not guess. Registering it here inherits those guarantees instead
+    # of restating them in a parallel test.
+    for skill in ("spec-planning", "implementation-plan", "fix-record")
 ]
 
 SERVICES_HEADING = "## Multi-service repos"
@@ -244,9 +248,9 @@ def _planning_id(p: Path) -> str:
 
 
 def test_the_planning_skill_set_is_what_we_think_it_is():
-    """Six files: two planning skills across three agents. If a path moved,
+    """Nine files: three planning skills across three agents. If a path moved,
     the parametrized tests below would silently cover fewer files."""
-    assert len(PLANNING_SKILL_PATHS) == 6
+    assert len(PLANNING_SKILL_PATHS) == 9
     missing = [p for p in PLANNING_SKILL_PATHS if not p.is_file()]
     assert not missing, f"planning skills not found: {missing}"
 
