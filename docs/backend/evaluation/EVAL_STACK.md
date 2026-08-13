@@ -8,7 +8,7 @@ The *what* is defined in `eval_criteria.md`. This document defines the *how*.
 
 # 1. Evaluation Architecture
 
-Evaluation is modelled as a hexagonal concern. The home-grown evaluation framework defines the **evaluation port** — the contract that all features must satisfy. Other tools are **outbound adapters** that implement observation, evaluation, and reporting against that contract.
+Evaluation is modelled as a hexagonal concern. `govkit evidence` defines the **evaluation port** — the contract that all features must satisfy. Other tools are **outbound adapters** that implement observation, evaluation, and reporting against that contract.
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -18,8 +18,9 @@ Evaluation is modelled as a hexagonal concern. The home-grown evaluation framewo
                │
        ┌───────┼──────────┬──────────┬──────────┐
        ▼       ▼          ▼          ▼          ▼
-  Home-grown  DeepEval  Promptfoo  RAGAS    Langfuse
-  (CI gates)  (quality) (safety)  (retrieval) (visibility)
+  govkit      DeepEval  Promptfoo  RAGAS    Langfuse
+  evidence    (quality) (safety)  (retrieval) (visibility)
+  (CI gate)
 ```
 
 No single tool owns all roles. Projects activate the adapters appropriate to their stage and feature type.
@@ -28,20 +29,44 @@ No single tool owns all roles. Projects activate the adapters appropriate to the
 
 # 2. Tool Roles
 
-## Home-Grown Evaluation Framework
+## govkit evidence
 
-**Role:** CI gate enforcement for FIRST and 7 Virtues
+**Role:** CI gate on measured quality evidence
 
-**When:** Every build, all levels
+**When:** Every build, L4+
 
-Used to enforce the project's code and test quality contract at CI time:
+`govkit evidence` reads the reports your test run produced and gives a verdict
+per rubric dimension: `PASS`, `FAIL`, `INCONCLUSIVE`, or `ERROR`. It is wired up
+by `ci/<platform>/evidence-gate.yml`.
 
-- FIRST score enforcement
-- 7 Code Virtue score enforcement
-- Feature-level `eval_criteria.yaml` thresholds
-- Fail-fast on regression
+It reads the standard XML test report every mainstream runner can emit, and — for
+UI projects — accessibility results as JSON:
 
-This adapter is **required** on all projects. It is the only evaluation tool that blocks merges for code quality.
+```bash
+pytest --junitxml=junit.xml                       # python
+npx vitest run --reporter=junit --outputFile=junit.xml   # node
+# any runner that writes the same report format works; nothing is stack-specific
+```
+
+- Working — the test run had no failures
+- Accessibility — no critical or serious axe violations
+- Fast — blocking once the team sets `--fast-max-seconds`
+- Everything else — `INCONCLUSIVE`, and **INCONCLUSIVE is not a pass**
+
+This is the tool that blocks merges for code quality.
+
+### What replaced what
+
+Earlier versions of this document described a "Home-Grown Evaluation Framework"
+that enforced FIRST and Virtue scores at CI time and was "required on all
+projects". **No such framework was ever built.** The only implementation was a
+parser that read the FIRST/Virtue numbers out of `plan.md` — numbers written by
+the agent that did the work.
+
+`docs/backend/evaluation/EVIDENCE_CONTRACT.md` names that a producer self-check
+and makes it advisory: *"the task owner never commits its own final gate."* The
+prediction gates still run and still report, but as a **planning forecast**, not
+a quality verdict. Merge is gated on evidence.
 
 ---
 
@@ -137,7 +162,7 @@ Rules:
 
 # 3. Pipeline by Environment
 
-| Environment | Home-Grown | DeepEval | Promptfoo | RAGAS | Langfuse |
+| Environment | govkit evidence | DeepEval | Promptfoo | RAGAS | Langfuse |
 |-------------|-----------|----------|-----------|-------|----------|
 | Local dev | optional | enabled | optional | optional | optional |
 | CI | **required** | **required** (if mode: llm) | **required** (if preflight says so) | **required** (if RAG) | disabled |
@@ -151,8 +176,8 @@ Rules:
 Each project configures active adapters via environment variables:
 
 ```bash
-# Home-grown (always on in CI)
-GOVKIT_EVAL_ENABLED=true
+# govkit evidence reads CI artifacts; no env var. Emit JUnit XML (and axe
+# JSON for UI) from your test run and the evidence gate picks them up.
 
 # DeepEval
 DEEPEVAL_API_KEY=...            # Optional — for DeepEval cloud features
@@ -183,7 +208,7 @@ When applying govkit to a new project, review:
 - Whether Promptfoo is needed (required for user-facing LLM features)
 - Whether RAGAS is needed (required for RAG features)
 - Whether Langfuse is configured (required for production LLM features)
-- The home-grown framework is always required — thresholds may be tuned in `eval_criteria.yaml`
+- `govkit evidence` is always required. Which dimensions it can judge depends on what your test run emits; set `--fast-max-seconds` to make per-test duration blocking
 
 ---
 
@@ -191,7 +216,7 @@ When applying govkit to a new project, review:
 
 An ADR must be created if:
 
-- Replacing or removing the home-grown CI gate adapter
+- Replacing or removing the `govkit evidence` CI gate
 - Replacing DeepEval, Promptfoo, RAGAS, or Langfuse with a different tool
 - Introducing a new evaluation tool not listed here
 - Changing evaluation thresholds below the minimums defined in `eval_criteria.md`

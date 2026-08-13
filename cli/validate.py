@@ -414,27 +414,35 @@ def check_plan_eval_prediction(feature_dir: Path) -> tuple[CheckStatus, str]:
     if not averages:
         return CheckStatus.FAIL, f"{_PLAN_MD} evaluation_prediction missing average values"
 
-    below_threshold = []
-    for avg_str in averages:
-        avg = float(avg_str)
-        if avg < 4.0:
-            below_threshold.append(avg_str)
-
-    if below_threshold:
-        return CheckStatus.FAIL, f"{_PLAN_MD} evaluation_prediction average(s) below 4.0: {', '.join(below_threshold)}"
-
+    # Internal contradiction stays blocking: a block whose declared average
+    # disagrees with the scores beneath it is a defective artifact, independent
+    # of whether the numbers are believable.
     inconsistent, low_scores = _prediction_score_problems(block)
     if inconsistent:
         return CheckStatus.FAIL, (
             f"{_PLAN_MD} evaluation_prediction is internally inconsistent — "
             + "; ".join(inconsistent)
         )
+
+    # Threshold judgements are advisory. A FIRST/Virtue score is written by the
+    # agent that did the work — a producer self-check, which
+    # docs/<area>/evaluation/EVIDENCE_CONTRACT.md makes advisory by definition:
+    # "the task owner never commits its own final gate". Blocking merge on it
+    # dressed an unverified claim as a verdict. The forecast is still required
+    # and still reported; `govkit evidence` is what gates on measurement.
+    advisory = []
+    below_threshold = [a for a in averages if float(a) < 4.0]
+    if below_threshold:
+        advisory.append(f"average(s) below 4.0: {', '.join(below_threshold)}")
     if low_scores:
-        return CheckStatus.FAIL, (
-            f"{_PLAN_MD} evaluation_prediction has individual score(s) below 3: "
-            + ", ".join(low_scores)
+        advisory.append(f"individual score(s) below 3: {', '.join(low_scores)}")
+    if advisory:
+        return CheckStatus.WARN, (
+            f"{_PLAN_MD} evaluation_prediction forecast is under the bar "
+            f"({'; '.join(advisory)}) — revise the plan, or record why it is "
+            "acceptable. Merge is gated by `govkit evidence`, not by this forecast."
         )
-    return CheckStatus.PASS, f"{_PLAN_MD} evaluation_prediction averages OK ({', '.join(averages)})"
+    return CheckStatus.PASS, f"{_PLAN_MD} evaluation_prediction forecast OK ({', '.join(averages)})"
 
 
 # A markdown table's delimiter row (`|---|:---:|`). Rows before it are the

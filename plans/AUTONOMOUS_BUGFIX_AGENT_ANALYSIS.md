@@ -101,11 +101,73 @@ Until an approval can be *represented*, "autonomous but governed" has nowhere to
 
 ---
 
-## Open decisions
+## Decisions — all three answered
 
-1. Does a defect lane belong in govkit — a `fix`-shaped artifact set lighter than the five-artifact feature contract — or does the bug-fix agent stay outside the governance model by design?
-2. Should govkit gain a machine-readable approval representation (signed marker, CI-verified provenance) so `Accepted` is something other than a human typing a name into a template?
-3. Should any prediction-only gate become measured? The 4.0 floor is the most-cited element of govkit's value proposition and is currently unfalsifiable.
+### 1. Defect lane — **DECIDED and DELIVERED** (2026-08-13)
+
+govkit owns a lightweight, risk-tiered fix contract. The bug-fix agent may stay
+an external harness, but its workflow does not sit outside governance.
+
+Shipped: `fixes/<id>/fix.yaml` against `governance/schemas/fix_record.schema.json`,
+`govkit fix init`, eligibility checks in `cli/fixes.py`, the diff-aware
+`ci/*/fix-lane-gate.yml`, and `/govkit-fix-record` across all three agents.
+L4+; L3 keeps no artifact model.
+
+The four eligibility conditions and what verifies each are in the README's
+defect lifecycle. Two of them — "restores established behavior" and "introduces
+no new behavior" — remain **declared**, which is decision 2's territory.
+
+### 2. Machine-verifiable approval — **DECIDED, NOT BUILT**
+
+Yes, but as an **approval attestation**, not a name typed into an ADR or a field
+in `.govkit/marker.json`. The marker represents installation and calibration
+state, is repo-global, and has no approval semantics; overloading it would be
+wrong.
+
+The representation must carry: subject identity and exact artifact digest or
+commit SHA; decision and scope; approver identity and authorised role; policy
+version and issuer; timestamp, expiry, conditions, evidence references; and
+verifiable provider provenance or a signature. CI verifies issuer, role, subject
+digest, and freshness. Any relevant change invalidates the approval, so
+`Accepted` becomes a **derived state**, not editable source text.
+
+MVP: an authenticated GitHub/Azure review by an authorised team against the
+current head SHA is sufficient provenance. A signed offline attestation is a
+later profile.
+
+This is what govkit's own `AUTHORITY_AND_APPROVAL_CONTRACT.md` already demands
+of the systems its users build — scoped, evidence-linked, identity-bound,
+revocable — and explicitly forbids satisfying with prompt or chat text.
+
+### 3. Measured evidence over predicted scores — **DECIDED, NOT BUILT**
+
+Keep predictions as **planning forecasts**. Stop calling them quality gates and
+stop using the 4.0 floor as the headline value proposition until it is measured.
+
+Measure what has credible observable evidence: Working (acceptance and
+regression tests pass), Fast (recorded test-duration thresholds), Repeatable
+(reruns and flake detection), Isolated (independent or randomised-order
+execution), Unique/Simple/Brief (duplication, complexity, coupling, scoped-size
+thresholds), Accessibility (actual axe results, not `predicted_axe_violations`),
+and architecture/security from existing boundary and scanner results.
+
+Clear, Easy, Developed and Timely stay advisory unless scored by an independent,
+identified evaluator with evidence — never by the authoring agent.
+
+The precedent already exists in-repo: `docs/data/architecture/ADR/0001-data-features-skip-prediction-gate.md`
+(Accepted) calls the self-predicted 4.0 average "ceremony" and replaces it with
+deterministic CI outcomes. Backend and UI should follow it.
+
+Partially landed already: `check_plan_eval_prediction` now cross-checks the
+declared average against the scores beneath it and enforces the rubric's
+"no individual score below 3", which was never checked. That closes a
+sloppiness gap, **not** the self-attestation one — reconciling two numbers the
+same agent authored is not measurement.
+
+Target position: *govkit requires a planning forecast before implementation and
+measured quality evidence before merge.* Restore "4.0 quality floor" as a
+headline only once evaluations are commit-bound, independently produced,
+calibrated, and enforce both the average and the individual-score floors.
 
 ---
 

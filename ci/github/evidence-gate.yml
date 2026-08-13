@@ -1,0 +1,77 @@
+# evidence-gate.yml
+#
+# PURPOSE: Gate merge on measured quality evidence rather than on scores the
+#          authoring agent predicted for itself.
+#
+# JOBS:
+#   evidence-check — runs your tests, then `govkit evidence` over the artifacts
+#
+# WHY THIS EXISTS:
+#   A FIRST or Virtue score in plan.md is written by the agent that did the
+#   work. docs/<area>/evaluation/EVIDENCE_CONTRACT.md names that a producer
+#   self-check and makes it advisory: "the task owner never commits its own
+#   final gate." eval-gate still checks those numbers, but they are a forecast.
+#   This gate reports what an executed tool observed.
+#
+# THIS GATE FAILS UNTIL YOU CONFIGURE IT. That is deliberate and is the
+#   opposite of every other opt-in gate govkit ships. ci/README.md warns that
+#   tools "report success on an empty analysis, so a misconfigured contract
+#   looks exactly like a clean repo" — a gate that measured nothing has not
+#   passed. Copying this file is an explicit act; wire the step below before
+#   you make it a required check.
+#
+# CONFIGURE THIS: replace the "Run tests and produce evidence" step with your
+#   own test command, emitting:
+#     - JUnit XML  (pytest --junitxml=junit.xml | vitest --reporter=junit | jest --reporters=jest-junit)
+#     - axe JSON   (UI only — write your axe results to axe.json)
+#   Anything you do not emit reports INCONCLUSIVE, which is not a pass.
+#
+# Copy this file to .github/workflows/evidence-gate.yml.
+
+name: Evidence Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  evidence-check:
+    name: Measured quality evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install GovKit
+        run: pip install govkit~=0.18.0
+
+      # CONFIGURE THIS — replace with your own test command.
+      # It must leave JUnit XML (and, for UI, axe JSON) in the workspace.
+      - name: Run tests and produce evidence
+        run: |
+          echo "Not configured: this gate has no test command yet."
+          echo ""
+          echo "Replace this step with your test run, emitting JUnit XML, e.g.:"
+          echo "  pytest --junitxml=junit.xml"
+          echo "  npx vitest run --reporter=junit --outputFile=junit.xml"
+          echo ""
+          echo "govkit evidence will now report every dimension as INCONCLUSIVE"
+          echo "and fail, because a gate that measured nothing has not passed."
+
+      - name: Report measured evidence
+        run: govkit evidence --target .
+
+      - name: Upload evidence artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-evidence
+          path: |
+            junit*.xml
+            axe*.json
+          if-no-files-found: ignore

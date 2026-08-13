@@ -653,7 +653,9 @@ class TestCheckPlanEvalPrediction:
         assert ok is CheckStatus.FAIL
         assert "null" in msg
 
-    def test_below_threshold(self, tmp_path):
+    def test_below_threshold_warns_rather_than_blocks(self, tmp_path):
+        """A self-predicted average is a forecast, not evidence. It is reported
+        and it does not block — `govkit evidence` gates on measurement."""
         write(tmp_path / "plan.md", """\
             # Plan
 
@@ -666,8 +668,9 @@ class TestCheckPlanEvalPrediction:
             ```
         """)
         ok, msg = check_plan_eval_prediction(tmp_path)
-        assert ok is CheckStatus.FAIL
+        assert ok is CheckStatus.WARN
         assert "3.5" in msg
+        assert "forecast" in msg.lower()
 
     def test_unrelated_earlier_yaml_block_is_not_absorbed(self, tmp_path):
         """The block pattern anchored on the *first* ```yaml fence and let `.*?`
@@ -774,7 +777,7 @@ class TestPredictionInternalConsistency:
             ```
         """)
         ok, msg = check_plan_eval_prediction(tmp_path)
-        assert ok is CheckStatus.FAIL
+        assert ok is CheckStatus.WARN, "a forecast below the floor is information, not a blocker"
         assert "below 3" in msg
 
     def test_ui_shape_is_cross_checked(self, tmp_path):

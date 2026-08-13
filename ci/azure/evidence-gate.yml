@@ -1,0 +1,62 @@
+# Azure DevOps mirror of ci/github/evidence-gate.yml.
+#
+# PURPOSE: Gate merge on measured quality evidence rather than on scores the
+#          authoring agent predicted for itself.
+#
+# A FIRST or Virtue score in plan.md is written by the agent that did the work.
+# docs/<area>/evaluation/EVIDENCE_CONTRACT.md names that a producer self-check
+# and makes it advisory: "the task owner never commits its own final gate."
+#
+# THIS GATE FAILS UNTIL YOU CONFIGURE IT — deliberately, and unlike every other
+#   opt-in gate govkit ships. A gate that measured nothing has not passed.
+#
+# CONFIGURE THIS: replace the "Run tests and produce evidence" step with your
+#   own test command, emitting JUnit XML (and, for UI, axe JSON). Anything you
+#   do not emit reports INCONCLUSIVE, which is not a pass.
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Evidence
+    displayName: Measured quality evidence
+    jobs:
+      - job: EvidenceCheck
+        displayName: Measured quality evidence
+        steps:
+          - checkout: self
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.11'
+            displayName: Set up Python
+
+          - script: pip install govkit~=0.18.0
+            displayName: Install GovKit
+
+          # CONFIGURE THIS — replace with your own test command.
+          # It must leave JUnit XML (and, for UI, axe JSON) in the workspace.
+          - script: |
+              echo "Not configured: this gate has no test command yet."
+              echo ""
+              echo "Replace this step with your test run, emitting JUnit XML, e.g.:"
+              echo "  pytest --junitxml=junit.xml"
+              echo "  npx vitest run --reporter=junit --outputFile=junit.xml"
+              echo ""
+              echo "govkit evidence will now report every dimension as INCONCLUSIVE"
+              echo "and fail, because a gate that measured nothing has not passed."
+            displayName: Run tests and produce evidence
+
+          - script: govkit evidence --target .
+            displayName: Report measured evidence
+
+          - publish: $(System.DefaultWorkingDirectory)
+            artifact: quality-evidence
+            condition: always()
+            displayName: Upload evidence artifacts
