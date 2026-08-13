@@ -42,10 +42,15 @@ jobs:
         run: |
           python - <<'EOF'
           import yaml, glob, sys
+          from pathlib import Path
 
           errors = []
           for path in glob.glob("features/*/plan.md"):
-              feature = path.split("/")[1]
+              feature = Path(path).parent.name
+              # Starters ship placeholder predictions by design; cli/features.py
+              # skips them and so must this gate.
+              if feature.startswith("starter_"):
+                  continue
               with open(path) as f:
                   content = f.read()
               # Look for the evaluation_prediction YAML block
