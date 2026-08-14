@@ -206,6 +206,20 @@ def _configured(login: str = "octo-architect") -> dict:
     return {"version": 1, "approvers": [{"login": login, "role": "approver"}]}
 
 
+# `check-jsonschema` is an optional extra — `cli/fixes.py` established it as
+# opt-in, and it is deliberately absent from `[test]`, so CI runs without it.
+# Whether it is installed is a property of the machine, not of the behavior
+# under test, so assertions about findings drop its degradation warning.
+# The three tiers of that degradation are covered directly in
+# TestSchemaValidationTiers, without needing the binary.
+_TOOLING_WARNING = "instance validation skipped"
+
+
+def _findings(target: Path) -> tuple[list[str], list[str]]:
+    issues, warnings = check_approval_policy(target)
+    return issues, [w for w in warnings if _TOOLING_WARNING not in w]
+
+
 class TestDiscovery:
     def test_no_docs_tree_is_silent(self, tmp_path):
         assert discover_adrs(tmp_path) == []
@@ -255,7 +269,7 @@ class TestPolicyChecks:
     def test_silent_when_nothing_is_installed(self, tmp_path):
         """A repo with no ADRs and no policy hears nothing — absence is not a
         finding, the same contract the defect lane carries."""
-        assert check_approval_policy(tmp_path) == ([], [])
+        assert _findings(tmp_path) == ([], [])
 
     def test_adrs_without_a_policy_warn(self, tmp_path):
         _write_adr(tmp_path, "0001-alpha")
@@ -307,23 +321,65 @@ class TestPolicyChecks:
     def test_a_configured_policy_is_silent(self, tmp_path):
         _install_schema(tmp_path)
         _install_policy(tmp_path, _configured())
-        assert check_approval_policy(tmp_path) == ([], [])
+        assert _findings(tmp_path) == ([], [])
 
-    def test_schema_violation_is_an_issue_when_the_schema_is_installed(self, tmp_path):
+
+class TestSchemaValidationTiers:
+    """The three-tier degradation `check_eval_criteria` established: a real
+    failure is an issue, a missing schema or absent validator is a visible
+    warning, and neither is ever a silent pass.
+
+    `check-jsonschema` is an optional extra — `cli/fixes.py` established it as
+    opt-in and it is not in `[test]`, so it is absent on CI and usually present
+    on a developer's machine. Asserting an outcome that depends on which of
+    those you are sitting at is not a test of anything, so the validator is
+    driven directly rather than being required or skipped around.
+    """
+
+    def _invalid_policy(self, tmp_path: Path) -> None:
         _install_schema(tmp_path)
         _install_policy(
             tmp_path,
             {"version": 1, "approvers": [{"login": "octo", "role": "wizard"}]},
         )
+
+    def test_a_reported_violation_becomes_an_issue(self, tmp_path, monkeypatch):
+        import subprocess
+
+        self._invalid_policy(tmp_path)
+        monkeypatch.setattr(
+            "cli.approval.subprocess.run",
+            lambda *a, **k: subprocess.CompletedProcess(
+                a[0], 1, stdout="approvers[0].role: 'wizard' is not one of [...]\n",
+                stderr="",
+            ),
+        )
         issues, _warnings = check_approval_policy(tmp_path)
         assert any("approval_policy.schema.json" in i for i in issues), issues
 
-    def test_missing_schema_reduces_coverage_visibly(self, tmp_path):
-        """Three-tier degradation, as check_eval_criteria established: reduced
-        coverage is a warning, never a silent pass."""
+    def test_an_absent_validator_reduces_coverage_visibly(self, tmp_path, monkeypatch):
+        self._invalid_policy(tmp_path)
+        monkeypatch.setattr(
+            "cli.approval.subprocess.run",
+            lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()),
+        )
+        issues, warnings = check_approval_policy(tmp_path)
+        assert not issues
+        assert any("check-jsonschema" in w for w in warnings), warnings
+
+    def test_a_missing_schema_reduces_coverage_visibly(self, tmp_path):
+        """No monkeypatch needed: the schema file simply is not installed."""
         _install_policy(tmp_path, _configured())
         _issues, warnings = check_approval_policy(tmp_path)
         assert any("no approval_policy schema installed" in w for w in warnings), warnings
+
+    def test_the_real_validator_accepts_the_shipped_policy(self, tmp_path):
+        """Runs whichever tier this machine offers, and proves the plumbing
+        produces no *issue* for a valid policy either way."""
+        _install_schema(tmp_path)
+        _install_policy(tmp_path, _configured())
+        issues, _warnings = check_approval_policy(tmp_path)
+        assert not issues, issues
 
 
 class TestAdrStatusChecks:
@@ -331,7 +387,7 @@ class TestAdrStatusChecks:
         _install_policy(tmp_path, _configured())
         _install_schema(tmp_path)
         _write_adr(tmp_path, "0001-alpha", status="Proposed")
-        assert check_approval_policy(tmp_path) == ([], [])
+        assert _findings(tmp_path) == ([], [])
 
     def test_accepted_without_an_approval_section_warns(self, tmp_path):
         _install_policy(tmp_path, _configured())
@@ -369,7 +425,7 @@ class TestAdrStatusChecks:
             tmp_path, "0001-alpha", heading=heading,
             approval="Approved by @octo-architect in PR #12 at 2f8c1ab.",
         )
-        assert check_approval_policy(tmp_path) == ([], [])
+        assert _findings(tmp_path) == ([], [])
 
     def test_template_boilerplate_is_not_an_approval_record(self, tmp_path):
         """The commonest way to write an ADR is to copy TEMPLATE.md. Whatever
@@ -399,7 +455,7 @@ class TestAdrStatusChecks:
         _install_policy(tmp_path, _configured())
         _install_schema(tmp_path)
         _write_adr(tmp_path, "0001-alpha", area="data", govkit_authored=True)
-        assert check_approval_policy(tmp_path) == ([], [])
+        assert _findings(tmp_path) == ([], [])
 
     def test_an_edited_govkit_adr_is_the_customers_again(self, tmp_path):
         _install_policy(tmp_path, _configured())
