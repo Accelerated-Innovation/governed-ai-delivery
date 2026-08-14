@@ -154,16 +154,22 @@ If the decision changes scope:
 
 ## 10. Approval
 
-`Accepted` in the Status section is a **derived** state. It is true because an
+<!--
+`Accepted` in the Status section is a derived state. It is true because an
 approver named in `governance/approval_policy.yaml` submitted an approving
 review of the commit carrying this decision — nothing written in this section
 makes it true, and the `adr-approval-check` CI gate fails a pull request whose
 ADR claims `Accepted` without that review.
 
-So this section records **which decision authority this ADR needs**, not who
-gave it. Leave no name, date, or signature here as though the decision were
-already made: a reviewer assesses evidence or content, an approver commits the
-decision, and the approval itself lives where it cannot be typed.
+So this section records WHICH DECISION AUTHORITY THIS ADR NEEDS, not who gave
+it. Leave no name, date, or signature below as though the decision were already
+made: a reviewer assesses evidence or content, an approver commits the decision,
+and the approval itself lives where it cannot be typed.
+
+This guidance is a comment so that copying the template does not leave text
+here that reads as an approval record. `govkit validate` strips comments and
+empty labels before deciding whether this section says anything.
+-->
 
 Decision authority required:
 

@@ -117,6 +117,13 @@ def has_approval_record(text: str) -> bool:
     Populated means real content after HTML comments and bare colon-terminated
     labels are stripped. `Approved by:` with nothing after the colon records
     nothing, which is precisely the state this work exists to end.
+
+    Both exclusions are load-bearing, because the commonest way to write an ADR
+    is to copy `TEMPLATE.md`. Anything govkit prints in that section arrives in
+    every ADR built that way, so text that counted would silence this check for
+    exactly the ADRs it exists to look at. The templates keep their guidance in
+    a comment for that reason — the same device `check_nfrs_sections` uses to
+    stop a placeholder reading as a populated section.
     """
     for match in _APPROVAL_SECTION_RE.finditer(text):
         body = _section_body(text, match)

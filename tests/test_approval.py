@@ -371,6 +371,26 @@ class TestAdrStatusChecks:
         )
         assert check_approval_policy(tmp_path) == ([], [])
 
+    def test_template_boilerplate_is_not_an_approval_record(self, tmp_path):
+        """The commonest way to write an ADR is to copy TEMPLATE.md. Whatever
+        govkit prints in its Approval section arrives in every ADR built that
+        way, so if that text counted, the check would go silent for exactly the
+        ADRs it exists to look at."""
+        template = (
+            REPO_ROOT / "docs" / "backend" / "architecture" / "ADR" / "TEMPLATE.md"
+        ).read_text(encoding="utf-8")
+        copied = template.replace(
+            "Proposed | Accepted | Rejected | Superseded", "Accepted", 1,
+        )
+        _install_policy(tmp_path, _configured())
+        _install_schema(tmp_path)
+        path = tmp_path / "docs" / "backend" / "architecture" / "ADR" / "0001-alpha.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(copied, encoding="utf-8")
+
+        _issues, warnings = check_approval_policy(tmp_path)
+        assert any("0001-alpha.md" in w for w in warnings), warnings
+
     def test_a_govkit_authored_unmodified_adr_is_silent(self, tmp_path):
         """govkit ships exactly one real ADR — data's 0001 — with no Approval
         section at all. Requiring a customer's approver to attest a decision
