@@ -185,7 +185,7 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 | `govkit apply` | Install / scaffold governance into your project. Detects your stack, writes the `.govkit` marker. |
 | `govkit calibrate` | Guided, type-aware review to make installed defaults match your repo. UI reviews include brand readiness; `--non-interactive` writes a checklist file and `--only <step>` revisits one decision. |
 | `govkit doctor` | Read-only **governance-fit** checks (rule globs, CI/stack/language/framework fit, stale baselines, extensions, and the Next.js database boundary). Run once you have source code, and in CI. Monorepo-aware. |
-| `govkit validate` | Level-aware compliance check over **features** (artifact existence, Gherkin structure, NFR coverage, eval-criteria schema, prediction thresholds) and **fix records** (schema, eligibility conditions). No-op at L3. |
+| `govkit validate` | Level-aware compliance check over **features** (artifact existence, Gherkin structure, NFR coverage, eval-criteria schema, prediction thresholds), **fix records** (schema, eligibility conditions) and **ADR approval attestation** (the policy is well-formed and names a real approver; ADRs claiming `Accepted` without an approval record). No-op at L3. |
 | `govkit init <feature>` | Scaffold a new feature folder from the appropriate starter (L4+). |
 | `govkit fix init <id>` | Scaffold a defect-lane fix record at `fixes/<id>/fix.yaml` (L4+) — one artifact instead of five, for a change that restores already-established behavior. |
 | `govkit evidence` | Report measured quality evidence from CI artifacts — a verdict per rubric dimension, with unmeasured ones reported as INCONCLUSIVE rather than green. |
@@ -413,6 +413,38 @@ source and creates none passes it untouched. `ci/*/fix-lane-gate.yml` is the
 only gate that can see that, because it is the only one with the diff. It is
 **inactive until you set `SOURCE_PATHS`** in the workflow, so a fresh install
 stays green — see [ci/README.md](ci/README.md).
+
+---
+
+## ADR approval is derived, not typed
+
+The governance rules gate implementation on an ADR being `Accepted`. That was a
+word someone typed into a markdown file, and nothing read it.
+
+`Accepted` is now a **derived state**: true because an approver named in
+`governance/approval_policy.yaml` submitted an approving review of the commit
+carrying the decision. Three things make that real:
+
+- **The policy** — `governance/approval_policy.yaml` names which platform
+  logins hold the Approver role. `AUTHORITY_AND_APPROVAL_CONTRACT.md` is
+  explicit that *a reviewer does not gain approval authority*, so a review only
+  becomes an approval once a policy says that identity may give one. Ships with
+  a `YOUR_APPROVER_LOGIN` sentinel; edit it before the gate can pass.
+- **The gate** — `ci/*/adr-approval-gate.yml` checks every ADR changed in a PR
+  that claims `Accepted`, and **fails closed** if the policy names no approver.
+- **The author** — the `adr-author` skill writes `Proposed` and stops. Without
+  that, the record still says whatever the agent typed and the gate is cleanup
+  after the fact.
+
+`govkit validate` covers what the working tree can see: that the policy is
+well-formed and resolvable, and which ADRs claim `Accepted` with no approval
+record. It warns rather than fails — an ADR merged before you adopted this keeps
+its status, and no upgrade turns it into a merge blocker retroactively.
+
+**govkit verifies; the platform enforces.** Make `adr-approval-check` a required
+status check and add a CODEOWNERS entry for `docs/*/architecture/ADR/`, or the
+proof is advisory. Setup and the honest limits are in
+[ci/README.md](ci/README.md).
 
 ---
 

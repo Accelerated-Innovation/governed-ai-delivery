@@ -1,0 +1,353 @@
+# Azure DevOps mirror of ci/github/adr-approval-gate.yml.
+#
+# PURPOSE: Make an ADR's `Accepted` status a derived state rather than typed
+#          text — true because an authorised approver approved *this decision*
+#          at *this commit*, not because the word is there.
+#
+# validate is a working-tree tool and the working tree holds no reviews, so it
+# can prove the policy is well-formed but never that an approval happened. Only
+# the reviewers API can, and only CI has it.
+#
+# A policy file rather than "any approving vote":
+# AUTHORITY_AND_APPROVAL_CONTRACT.md separates Reviewer ("assesses evidence or
+# content") from Approver ("commits a scoped consequential decision") and states
+# that "a reviewer does not gain approval authority". Accepting any
+# authenticated vote lands on its prohibited pattern "approval by an
+# unauthorized identity".
+#
+# CONFIGURE THIS: edit governance/approval_policy.yaml and replace
+#   YOUR_APPROVER_LOGIN. On Azure DevOps a login is the reviewer's `uniqueName`
+#   — usually their UPN / sign-in address, not a GitHub username. Until you set
+#   it, the gate FAILS CLOSED on any PR that changes an ADR to `Accepted`.
+#   PRs that change no ADR are unaffected, so a fresh install stays green.
+#
+# TWO SETUP STEPS THIS GATE CANNOT DO FOR YOU:
+#
+#   1. Grant the build service read access to pull requests, and leave
+#      "Allow scripts to access the OAuth token" enabled so $(System.AccessToken)
+#      is present. This is the only shipped Azure template that calls a platform
+#      API; without the token the gate fails closed rather than passing blind.
+#
+#   2. Enable the branch policy "Reset code reviewer votes when there are new
+#      changes". Azure DevOps binds a vote to the pull request, not to a commit,
+#      so an approval survives a later push unless that policy is on. The gate
+#      treats an approving vote as approval of $(System.PullRequest.SourceCommitId)
+#      and says so on every run — that statement is only true with the policy
+#      enabled. The GitHub half needs no equivalent: a GitHub review carries the
+#      commit_id it was submitted against.
+#
+# govkit verifies; the platform enforces. Make this a required check under
+# branch policies, or the proof is advisory. See ci/README.md.
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: AdrApproval
+    displayName: ADR approval attestation
+    jobs:
+      - job: AdrApprovalCheck
+        displayName: Authorised approval for Accepted ADRs
+        steps:
+          - checkout: self
+            fetchDepth: 0
+            persistCredentials: true
+
+          # Pinned for the same reason the govkit-invoking gates pin govkit: an
+          # unpinned install makes your merge criteria depend on whatever PyPI
+          # served that morning, while the prose beside it is frozen at install
+          # time. `~=` rather than `==` so a patch release can still fix a build
+          # on a Python this version predates.
+          - script: pip install pyyaml~=6.0.2
+            displayName: Install pyyaml
+
+          - script: |
+              set -e
+              echo "NOTE: Azure DevOps binds a reviewer vote to the pull request,"
+              echo "      not to a commit. This gate reads an approving vote as an"
+              echo "      approval of $(System.PullRequest.SourceCommitId) — true"
+              echo "      ONLY IF the branch policy 'Reset code reviewer votes when"
+              echo "      there are new changes' is enabled. Enable it, or an"
+              echo "      approval here outlives the commit it was given for."
+              curl -sS --fail \
+                -H "Authorization: Bearer $(System.AccessToken)" \
+                "$(System.CollectionUri)$(System.TeamProject)/_apis/git/repositories/$(Build.Repository.Name)/pullRequests/$(System.PullRequest.PullRequestId)/reviewers?api-version=7.1" \
+                -o reviewers.json
+              python - <<'NORMALIZE'
+              import json
+              import os
+
+              # Normalize to the shape the shared checker reads, so the two
+              # platform embeddings stay byte-identical below.
+              # Azure votes: 10 approved, 5 approved with suggestions, 0 no vote,
+              # -5 waiting, -10 rejected. Only an unqualified 10 counts — an
+              # approval with suggestions is not a commitment to the decision.
+              #
+              # This endpoint returns each reviewer's CURRENT vote — one entry
+              # per reviewer, already superseding anything they voted earlier —
+              # so the checker's latest-review collapse is a no-op here and the
+              # ordering fields it reads are constant. On GitHub the reviews API
+              # returns the whole history instead, and those fields do the work.
+              head = os.environ["HEAD_SHA"]
+              with open("reviewers.json", encoding="utf-8") as fh:
+                  data = json.load(fh)
+              with open("reviews.jsonl", "w", encoding="utf-8") as out:
+                  for reviewer in data.get("value") or []:
+                      if reviewer.get("vote") != 10:
+                          continue
+                      login = reviewer.get("uniqueName") or reviewer.get("displayName")
+                      out.write(json.dumps({
+                          "login": login, "state": "APPROVED", "commit_id": head,
+                          "submitted_at": None, "id": 0,
+                      }) + "\n")
+              NORMALIZE
+            env:
+              HEAD_SHA: $(System.PullRequest.SourceCommitId)
+            displayName: Collect approving reviews
+
+          - script: |
+              # Three-dot: what this branch changed relative to the merge base.
+              # Two-dot would also report changes main made since the branch point.
+              # --diff-filter=d drops deletions — a removed ADR has nothing to attest.
+              git diff --name-only --diff-filter=d origin/main...HEAD \
+                -- 'docs/*/architecture/ADR/*.md' | python - <<'EOF'
+              import hashlib
+              import json
+              import os
+              import re
+              import sys
+
+              import yaml
+
+              POLICY = "governance/approval_policy.yaml"
+              SENTINEL = "YOUR_APPROVER_LOGIN"
+              GATE_STATUS = "Accepted"
+              APPROVER_ROLE = "approver"
+              HEADER_START = "<!-- govkit:editable"
+              STATUS_RE = re.compile(r"^## Status\s*\n(.+)$", re.MULTILINE)
+              HASH_RE = re.compile(r"^\s*hash:\s*([0-9a-f]{64})\s*$", re.MULTILINE)
+
+
+              def fail(*lines):
+                  for line in lines:
+                      print(line)
+                  sys.exit(1)
+
+
+              def in_scope(path, prefixes):
+                  return not prefixes or any(path.startswith(p) for p in prefixes)
+
+
+              def norm(login):
+                  """Fold a platform login for comparison.
+
+                  GitHub usernames are case-insensitive and Azure `uniqueName`s are
+                  too; Python string equality is not. Comparing raw strings made a
+                  policy naming `Octo-Architect` reject that same person's review
+                  returned as `octo-architect` — failing closed, but reporting that
+                  no authorised approval existed, which is untrue and leaves a team
+                  nothing to act on. Matching folds; output keeps the original.
+                  """
+                  return login.strip().casefold() if isinstance(login, str) else ""
+
+
+              def strip_header(text):
+                  """Drop a leading govkit:editable header, matching cli/headers.py."""
+                  stripped = text.lstrip()
+                  end = stripped.find("-->")
+                  if not stripped.startswith(HEADER_START) or end == -1:
+                      return text
+                  body = stripped[end + 3:]
+                  for _ in range(2):
+                      if body.startswith("\n"):
+                          body = body[1:]
+                  return body
+
+
+              def govkit_authored(text):
+                  """Is this govkit's own decision, unmodified by the team?
+
+                  Requiring a customer's approver to attest a decision govkit made
+                  for them is incoherent. govkit ships exactly one real ADR — data's
+                  0001 — and it says Accepted with no approval record, so without
+                  this carve-out every data repo would fail its first PR. The
+                  discriminator is the body hash cli/headers.py already writes for
+                  edit-protection; no new mechanism is invented here.
+                  """
+                  stripped = text.lstrip()
+                  end = stripped.find("-->")
+                  if not stripped.startswith(HEADER_START) or end == -1:
+                      return False
+                  match = HASH_RE.search(stripped[:end])
+                  if not match:
+                      # Pre-hash install: govkit wrote it, and whether the team has
+                      # since edited it is undecidable. A false alarm on a file the
+                      # team never authored costs more than a false silence.
+                      return True
+                  digest = hashlib.sha256(strip_header(text).encode("utf-8")).hexdigest()
+                  return digest == match.group(1)
+
+
+              head_sha = os.environ.get("HEAD_SHA", "").strip()
+
+              changed = [ln.strip() for ln in sys.stdin if ln.strip()]
+              changed = [p for p in changed if not p.endswith("TEMPLATE.md")]
+              if not changed:
+                  print("No ADR changed in this PR; nothing for this gate to check.")
+                  sys.exit(0)
+
+              try:
+                  with open(POLICY, encoding="utf-8") as fh:
+                      policy = yaml.safe_load(fh)
+              except FileNotFoundError:
+                  fail(
+                      f"FAIL: {POLICY} is missing.",
+                      "      An ADR cannot be Accepted in a repository that declares",
+                      "      nobody able to accept it. Run `govkit upgrade` to install it.",
+                  )
+              except (OSError, yaml.YAMLError) as exc:
+                  fail(f"FAIL: {POLICY} could not be read: {exc}")
+              if not isinstance(policy, dict):
+                  fail(f"FAIL: {POLICY} is not a YAML mapping.")
+
+              scope = [
+                  p for p in (policy.get("require_approval_for") or []) if isinstance(p, str)
+              ]
+
+              needing = []
+              for path in changed:
+                  if not in_scope(path, scope):
+                      continue
+                  try:
+                      with open(path, encoding="utf-8") as fh:
+                          text = fh.read()
+                  except (OSError, UnicodeDecodeError) as exc:
+                      fail(f"FAIL: {path} could not be read: {exc}")
+                  match = STATUS_RE.search(text)
+                  if not match or match.group(1).strip() != GATE_STATUS:
+                      continue
+                  if govkit_authored(text):
+                      print(f"skipped {path} — govkit-authored and unmodified")
+                      continue
+                  needing.append(path)
+
+              if not needing:
+                  print(f"No changed ADR claims {GATE_STATUS}; nothing to attest.")
+                  sys.exit(0)
+
+              # A reviewer does not gain approval authority, and the shipped
+              # sentinel authorises nobody — both are excluded here rather than
+              # anywhere else, so neither can be mistaken for a configured approver.
+              approvers = {}
+              for entry in policy.get("approvers") or []:
+                  if not isinstance(entry, dict) or entry.get("role") != APPROVER_ROLE:
+                      continue
+                  login = entry.get("login")
+                  key = norm(login)
+                  if not key or key == norm(SENTINEL):
+                      continue
+                  # Keyed by the folded login, carrying the policy's own spelling
+                  # so a human reads the name their team wrote.
+                  approvers[key] = (
+                      login.strip(),
+                      [s for s in (entry.get("scope") or []) if isinstance(s, str)],
+                  )
+
+              if not approvers:
+                  fail(
+                      f"FAIL: {len(needing)} ADR(s) claim {GATE_STATUS} but {POLICY}",
+                      "      names no approver, so this gate fails closed.",
+                      f"      Replace {SENTINEL} with the login(s) that hold approval",
+                      "      authority here. A reviewer does not gain it —",
+                      "      see AUTHORITY_AND_APPROVAL_CONTRACT.md.",
+                      *[f"        - {p}" for p in needing],
+                  )
+
+              if not head_sha:
+                  fail(
+                      "FAIL: no head SHA available, so an approval cannot be bound to",
+                      "      a commit. This gate must run on pull_request.",
+                  )
+
+              try:
+                  with open("reviews.jsonl", encoding="utf-8") as fh:
+                      reviews = [json.loads(ln) for ln in fh if ln.strip()]
+              except (OSError, ValueError) as exc:
+                  fail(f"FAIL: could not read the review list: {exc}")
+
+              # An approval is a reviewer's CURRENT standing, not something they
+              # once said. Two filters, and both are load-bearing:
+              #
+              #   Bound to this commit. A review submitted against an earlier push
+              #   approved a different decision — "approval after the side effect"
+              #   and "reusing stale activation authority" are both prohibited
+              #   patterns in AUTHORITY_AND_APPROVAL_CONTRACT.md.
+              #
+              #   Latest decisive review wins. The API returns every review the PR
+              #   has collected, so counting any historical APPROVED let a reviewer
+              #   who had since asked for changes — with no new push to invalidate
+              #   anything — still satisfy this gate.
+              #
+              # Decisive means APPROVED / CHANGES_REQUESTED / DISMISSED, matching
+              # how the platform itself computes a reviewer's standing. A COMMENTED
+              # review afterwards does not withdraw an approval, and treating it as
+              # though it did would block pull requests GitHub considers approved.
+              DECISIVE = ("APPROVED", "CHANGES_REQUESTED", "DISMISSED")
+
+              standing = {}
+              for r in reviews:
+                  if not isinstance(r, dict) or r.get("commit_id") != head_sha:
+                      continue
+                  if r.get("state") not in DECISIVE:
+                      continue
+                  login = norm(r.get("login"))
+                  if not login:
+                      continue
+                  # submitted_at has second resolution, so two reviews can share
+                  # one; the review id is monotonic and settles the tie. Ordering
+                  # never depends on the order the API paged the reviews out in.
+                  order = (str(r.get("submitted_at") or ""), r.get("id") or 0)
+                  if login not in standing or order > standing[login][0]:
+                      standing[login] = (order, r.get("state"))
+
+              approved_by = {
+                  login for login, (_order, state) in standing.items()
+                  if state == "APPROVED"
+              }
+
+              unattested = []
+              for path in needing:
+                  who = sorted(
+                      approvers[login][0] for login in approved_by & set(approvers)
+                      if in_scope(path, approvers[login][1])
+                  )
+                  if who:
+                      print(f"OK   {path} — approved by {', '.join(who)} at {head_sha[:7]}")
+                  else:
+                      unattested.append(path)
+
+              if unattested:
+                  print("")
+                  for path in unattested:
+                      print(f"FAIL: {path} claims {GATE_STATUS} with no authorised")
+                      print(f"      approval of {head_sha[:7]}.")
+                  print("")
+                  print(f"An ADR is {GATE_STATUS} because an approver accepted it at this")
+                  print("commit. Either:")
+                  print(f"  1. have an approver named in {POLICY} approve this PR")
+                  print("     (a new push invalidates an earlier approval — that is the point)")
+                  print("  2. set the ADR's status back to Proposed until they do")
+                  sys.exit(1)
+
+              print("")
+              print(f"Every changed {GATE_STATUS} ADR carries an authorised approval.")
+              EOF
+            env:
+              HEAD_SHA: $(System.PullRequest.SourceCommitId)
+            displayName: Require an authorised approval for each Accepted ADR

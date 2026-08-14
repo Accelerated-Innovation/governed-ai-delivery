@@ -4181,7 +4181,13 @@ class TestNoUiDimensionInManifests:
         assert "docs/ui/design/" in variant["governed"]
         assert "docs/ui/architecture/react/" not in variant["governed"]
         assert "docs/ui/architecture/angular/" not in variant["governed"]
-        assert variant["level_4"]["shared"] == ["features/starter_ui_nextjs/"]
+        # Isolation is about which *starters* land, so compare the features/
+        # entries rather than the whole list — shared also carries repo-wide
+        # governance every type receives (e.g. governance/approval_policy.yaml).
+        starters = [
+            e for e in variant["level_4"]["shared"] if e.startswith("features/")
+        ]
+        assert starters == ["features/starter_ui_nextjs/"]
         assert "features/ui_task_dashboard/" not in variant["level_4"]["shared"]
         assert "level_5" in variant
 
@@ -4297,6 +4303,7 @@ class TestDataCiContract:
         # per-change artifact model, so neither applies there.
         l4_gates = [] if level == "3" else [
             f"ci/{platform}/fix-lane-gate.yml",
+            f"ci/{platform}/adr-approval-gate.yml",
             f"ci/{platform}/evidence-gate.yml",
         ]
         assert ci_governed == [repo_scope, data_common, *l4_gates]
@@ -4325,6 +4332,7 @@ class TestDataCiContract:
         assert ci_block["level_4"]["by_type"]["data"]["governed"] == [
             *expected,
             f"ci/{platform}/fix-lane-gate.yml",
+            f"ci/{platform}/adr-approval-gate.yml",
             f"ci/{platform}/evidence-gate.yml",
         ]
 
@@ -4448,6 +4456,7 @@ class TestPythonDbtCiGate:
         # per-change artifact model, so neither applies there.
         l4_gates = [] if level == "3" else [
             f"ci/{platform}/fix-lane-gate.yml",
+            f"ci/{platform}/adr-approval-gate.yml",
             f"ci/{platform}/evidence-gate.yml",
         ]
         assert ci_governed == [repo_scope, data_common, dbt_gate, *l4_gates]
@@ -4616,6 +4625,7 @@ class TestDatabricksCiGate:
         # per-change artifact model, so neither applies there.
         l4_gates = [] if level == "3" else [
             f"ci/{platform}/fix-lane-gate.yml",
+            f"ci/{platform}/adr-approval-gate.yml",
             f"ci/{platform}/evidence-gate.yml",
         ]
         assert ci_governed == [repo_scope, data_common, databricks_gate, *l4_gates]

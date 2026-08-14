@@ -104,6 +104,122 @@ def test_skill_points_at_an_adr_template(layer: str, skill: Path):
     )
 
 
+# ---------------------------------------------------------------------------
+# The agent must never write `Accepted`
+# ---------------------------------------------------------------------------
+#
+# This is the payload half of the approval-attestation decision. A CI gate that
+# catches an agent-typed `Accepted` after the fact is cleanup; the record still
+# says whatever the agent wrote. `Accepted` is a derived state — true because an
+# approver named in governance/approval_policy.yaml approved that decision at
+# that commit — so the only status an author can honestly write is `Proposed`.
+#
+# AUTONOMOUS_BUGFIX_AGENT_ANALYSIS.md §2 lists ADR-must-be-Accepted as the only
+# "No. Hard stop." for an autonomous agent, precisely because nothing let a
+# non-human set it. After this, nothing lets a *human* set it by typing either.
+
+STATUS_MENU = "Proposed | Accepted | Rejected | Superseded"
+POLICY_PATH = "governance/approval_policy.yaml"
+GATE_JOB = "adr-approval-check"
+
+
+@pytest.mark.parametrize("layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v))
+def test_skill_does_not_hand_the_agent_the_status_menu(layer: str, skill: Path):
+    """The template offers the vocabulary because a human reads it and picks.
+    Repeating the menu in the skill is what let an agent pick `Accepted`."""
+    assert STATUS_MENU not in skill.read_text(encoding="utf-8"), (
+        f"{_rel(skill)} hands the agent the full status vocabulary, so nothing "
+        f"stops it writing '{GATE_TOKEN}' — the one status it cannot earn"
+    )
+
+
+@pytest.mark.parametrize("layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v))
+def test_skill_tells_the_agent_to_author_proposed(layer: str, skill: Path):
+    assert "Proposed" in skill.read_text(encoding="utf-8"), (
+        f"{_rel(skill)} never names the one status an author may write"
+    )
+
+
+@pytest.mark.parametrize("layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v))
+def test_skill_names_where_approval_authority_lives(layer: str, skill: Path):
+    """An instruction not to write `Accepted` is a rule in prose — the exact
+    prohibited pattern AUTHORITY_AND_APPROVAL_CONTRACT.md names ('permission
+    declarations inside prompt text') if it is not backed by something real. The
+    skill must point at the policy and the gate that enforce it."""
+    text = skill.read_text(encoding="utf-8")
+    assert POLICY_PATH in text, f"{_rel(skill)} does not reference {POLICY_PATH}"
+    assert GATE_JOB in text, f"{_rel(skill)} does not name the {GATE_JOB} gate"
+
+
+# ---------------------------------------------------------------------------
+# The templates' Approval section
+# ---------------------------------------------------------------------------
+#
+# `## Status` and `## Approval` sat ~140 lines apart, unlinked, and Approval was
+# three empty colon-terminated labels bound to no identity, no date and no
+# commit. A name typed on one of those lines is not an approval — it is the
+# prohibited pattern "treating chat acknowledgment ... as approval" written down.
+
+ALL_ADR_TEMPLATES = ADR_TEMPLATES | {
+    "data": REPO_ROOT / "docs" / "data" / "architecture" / "ADR" / "TEMPLATE.md",
+}
+
+# The numbered prefix differs by layer (UI numbers Approval `## 11.`), so match
+# it the way cli/approval.py does rather than by an exact heading.
+APPROVAL_HEADING_RE = re.compile(
+    r"^##\s+(?:\d+\.\s*)?Approval\b.*$", re.MULTILINE | re.IGNORECASE,
+)
+
+
+def _approval_section(layer: str) -> str:
+    text = ALL_ADR_TEMPLATES[layer].read_text(encoding="utf-8")
+    match = APPROVAL_HEADING_RE.search(text)
+    assert match, f"{_rel(ALL_ADR_TEMPLATES[layer])} has no Approval section"
+    nxt = re.search(r"^##\s", text[match.end():], re.MULTILINE)
+    return text[match.end():match.end() + nxt.start()] if nxt else text[match.end():]
+
+
+def test_every_layer_ships_an_adr_template():
+    """Non-vacuous guard for the parametrized tests below."""
+    assert len(ALL_ADR_TEMPLATES) == 3
+    for path in ALL_ADR_TEMPLATES.values():
+        assert path.is_file(), f"missing {_rel(path)}"
+
+
+@pytest.mark.parametrize("layer", sorted(ALL_ADR_TEMPLATES))
+def test_approval_section_offers_no_name_field_to_fill_in(layer: str):
+    """`Approved by:` invites a typed name to stand in for an approval."""
+    section = _approval_section(layer)
+    assert "Approved by:" not in section, (
+        f"{_rel(ALL_ADR_TEMPLATES[layer])} still offers an 'Approved by:' field — "
+        "a name typed there is bound to no identity, no date and no commit"
+    )
+
+
+@pytest.mark.parametrize("layer", sorted(ALL_ADR_TEMPLATES))
+def test_approval_section_says_where_the_approval_actually_comes_from(layer: str):
+    section = _approval_section(layer)
+    for expected in ("governance/approval_policy.yaml", "adr-approval-check"):
+        assert expected in section, (
+            f"{_rel(ALL_ADR_TEMPLATES[layer])} Approval section never mentions "
+            f"{expected}, so a reader cannot tell what makes this ADR Accepted"
+        )
+
+
+@pytest.mark.parametrize("layer", sorted(ALL_ADR_TEMPLATES))
+def test_status_section_is_linked_to_the_approval_it_derives_from(layer: str):
+    """The two sections were ~140 lines apart and unlinked. A reader who sees
+    the vocabulary menu has to be told that one of those words is not theirs."""
+    text = ALL_ADR_TEMPLATES[layer].read_text(encoding="utf-8")
+    status = re.search(r"^## Status\s*\n(.+)$", text, re.MULTILINE)
+    nxt = re.search(r"^##\s", text[status.end():], re.MULTILINE)
+    body = text[status.end():status.end() + nxt.start()]
+    assert "derived" in body.lower(), (
+        f"{_rel(ALL_ADR_TEMPLATES[layer])} Status section does not say that "
+        f"'{GATE_TOKEN}' is derived rather than typed"
+    )
+
+
 @pytest.mark.parametrize("layer", ["backend", "ui"])
 def test_adr_skill_body_parity_across_agents(layer: str):
     """[[feedback_agent_parity]] — the ADR skill must not drift between agents."""

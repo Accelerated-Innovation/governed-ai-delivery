@@ -1,0 +1,62 @@
+# Approval policy — who may accept an Architecture Decision Record.
+#
+# WHY THIS FILE EXISTS
+#   An ADR's `Accepted` status is a *derived* state, not typed text. It is true
+#   because an authorised approver approved that decision at that commit. This
+#   file is what makes the derivation possible: it says which platform
+#   identities hold approval authority in this repository.
+#
+#   AUTHORITY_AND_APPROVAL_CONTRACT.md keeps two roles distinct — a Reviewer
+#   "assesses evidence or content", an Approver "commits a scoped consequential
+#   decision" — and states plainly that "a reviewer does not gain approval
+#   authority". Without this mapping, any authenticated review would count, and
+#   that is the contract's prohibited pattern "approval by an unauthorized
+#   identity".
+#
+# CONFIGURE THIS: replace YOUR_APPROVER_LOGIN with the platform login(s) that
+#   hold approval authority here. The gate is INACTIVE until you do, so a fresh
+#   install stays green. Add one entry per identity.
+#
+#   `login` is the account name (a GitHub username), matched against the
+#   `user.login` of an approving review — not a display name or an email.
+#
+# HOW IT IS ENFORCED
+#   `govkit validate` proves this file is well-formed and reports ADRs claiming
+#   `Accepted` without provenance. It cannot prove an approval happened — the
+#   working tree holds no reviews. The `adr-approval-gate` CI workflow does
+#   that: for each ADR changed in a PR, it requires an approving review whose
+#   `commit_id` is the head SHA and whose `user.login` is an `approver` below.
+#
+#   govkit verifies; the platform enforces. Make the gate a required check
+#   (branch protection + CODEOWNERS) or it is advisory — govkit can prove an
+#   approval happened, only the platform can make the proof mandatory.
+#   See ci/README.md, "ADR approval attestation".
+#
+# Validated against governance/schemas/approval_policy.schema.json.
+
+version: 1
+
+approvers:
+  # Roles come from AUTHORITY_AND_APPROVAL_CONTRACT.md's human-roles table:
+  #   approver              — commits a scoped consequential decision
+  #   reviewer              — assesses evidence or content (CANNOT accept an ADR)
+  #   human-execution-owner — owns active task execution after takeover
+  #   accountable-principal — retains accountability for intent and consequences
+  # Only `approver` can accept an ADR. Declaring the others records the
+  # governance loop in one place without any of them reading as authorisation.
+  - login: YOUR_APPROVER_LOGIN
+    role: approver
+
+    # Optional: repo-relative path prefixes this identity may approve within.
+    # Omit for repository-wide authority. Approval is scoped by the authority
+    # contract, so a security lead who accepts only security ADRs is declarable:
+    #
+    # scope:
+    #   - docs/backend/architecture/ADR/
+
+# Optional: restrict which ADR directories the gate covers. Omitted means every
+# `docs/*/architecture/ADR/` directory, which is where the shipped templates
+# put them.
+#
+# require_approval_for:
+#   - docs/backend/architecture/ADR/

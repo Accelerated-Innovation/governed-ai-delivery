@@ -10,6 +10,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **ADR approval attestation.** An ADR's `Accepted` status is now a derived
+  state rather than typed text. The governance rules gate implementation on it
+  — *"ADRs … must be Accepted before implementation proceeds"* — and nothing in
+  `cli/` or `ci/` had ever read it.
+  - `governance/approval_policy.yaml` (+ its schema) names which platform
+    logins hold the Approver role. `AUTHORITY_AND_APPROVAL_CONTRACT.md`, which
+    govkit ships to govern *its users'* agent systems, states that "a reviewer
+    does not gain approval authority" and lists "approval by an unauthorized
+    identity" among prohibited patterns — so a review becomes an approval only
+    once a policy says that identity may give one. Ships inert, with a
+    `YOUR_APPROVER_LOGIN` sentinel.
+  - `ci/{github,azure}/adr-approval-gate.yml` requires, for every ADR changed
+    in a PR that claims `Accepted`, an approving review from an approver in the
+    policy, bound to the head commit. It **fails closed** when the policy names
+    nobody. The GitHub half carries the payload's first `permissions:` block.
+  - `govkit validate` gains the working-tree half: the policy is well-formed
+    and names a real approver, and ADRs claiming `Accepted` with no approval
+    record are reported. No new command.
 - **Measured evidence.** `govkit evidence` reads what CI produced — the test
   report, axe results — and gives a verdict per rubric dimension. Wired up by
   `ci/{github,azure}/evidence-gate.yml`. Working and Accessibility are gated
@@ -21,6 +39,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **The `adr-author` skill writes `Proposed` and stops.** The backend skill
+  handed the agent the full status vocabulary, so nothing stopped it writing
+  the one status it cannot earn. Both skills now name where approval authority
+  lives and what proves it. All three agents in lockstep.
+- **The ADR templates' Approval section requests a decision rather than
+  recording one.** `## Status` and `## Approval` sat ~140 lines apart, unlinked,
+  and Approval was three empty colon-terminated labels bound to no identity, no
+  date and no commit. `ci/README.md` loses its *"ADR required when preflight
+  flags it | No ADR validation"* gap row, which this closes.
 - **The FIRST/Virtue prediction is now an advisory forecast, not a merge gate.**
   Those scores are written by the agent that did the work; the evidence contract
   makes a producer self-check advisory by definition. A threshold breach now

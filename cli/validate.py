@@ -778,6 +778,38 @@ def _run_fix_checks(target: Path) -> int:
     return 1 if any_fail else 0
 
 
+def _run_approval_checks(target: Path) -> int:
+    """Validate ADR approval attestation. Silent when the repo has neither ADRs
+    nor an approval policy — a repo that never adopted it sees no change.
+
+    A malformed policy is a hard failure: the policy is what turns an
+    authenticated review into an approval, so a broken one means the repo cannot
+    derive `Accepted` at all. Everything else warns. That asymmetry is the
+    migration posture — warn on pre-existing, fail on changed — and only CI can
+    see "changed", so nothing here fails on an ADR.
+    """
+    from .approval import POLICY_REL, check_approval_policy
+
+    issues, warnings = check_approval_policy(target)
+    if not issues and not warnings:
+        # Silence means either nothing to check or everything clean. Say so only
+        # when a policy is actually installed, so untouched repos stay quiet.
+        if not (target / POLICY_REL).is_file():
+            return 0
+        print("\ngovkit validate — ADR approval attestation\n")
+        print(f"  {PASS}  {POLICY_REL.as_posix()}")
+        print()
+        return 0
+
+    print("\ngovkit validate — ADR approval attestation\n")
+    for msg in warnings:
+        print(f"  {WARN}  {msg}")
+    for msg in issues:
+        print(f"  {FAIL}  {msg}")
+    print()
+    return 1 if issues else 0
+
+
 def run_validation(target: Path, level: str | None = None, strict: bool = False) -> int:
     """Run all governance checks on the target project. Returns exit code."""
     if not target.exists():
@@ -807,6 +839,10 @@ def run_validation(target: Path, level: str | None = None, strict: bool = False)
     # fix record rather than only the missing directory.
     fix_exit = _run_fix_checks(target)
 
+    # Same reason as the defect lane: checked before the features/ guard so a
+    # repo mid-setup still hears about a broken approval policy.
+    approval_exit = _run_approval_checks(target)
+
     features_dir = target / "features"
     if not features_dir.exists():
         print(f"Error: no features/ directory found in '{target}'.")
@@ -818,7 +854,7 @@ def run_validation(target: Path, level: str | None = None, strict: bool = False)
 
     if not feature_dirs:
         print("No feature directories found to validate.")
-        return max(ext_exit, fix_exit)
+        return max(ext_exit, fix_exit, approval_exit)
 
     level_labels = {
         "3": "L3 Governed AI Delivery (Foundations)",
@@ -832,4 +868,4 @@ def run_validation(target: Path, level: str | None = None, strict: bool = False)
     failed = len(feature_dirs) - passed
     print(f"{len(feature_dirs)} feature(s) checked, {passed} passed, {failed} failed")
     feature_exit = 0 if failed == 0 else 1
-    return max(feature_exit, ext_exit, fix_exit)
+    return max(feature_exit, ext_exit, fix_exit, approval_exit)

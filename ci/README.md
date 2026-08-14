@@ -43,6 +43,7 @@ Copy the relevant templates for your project type:
 | `ui-nextjs-quality-gate.yml` | — | — | Next.js L4/L5 | — |
 | `ui-nextjs-eval-gate.yml` | — | — | Next.js L4/L5 | — |
 | `fix-lane-gate.yml` (L4+, configure first) | ✓ | ✓ | ✓ | ✓ |
+| `adr-approval-gate.yml` (L4+, configure first) | ✓ | ✓ | ✓ | ✓ |
 | `data-common-gate.yml` | — | — | — | ✓ |
 | `dbt-gate.yml` | — | — | — | `python-dbt` |
 | `databricks-gate.yml` | — | — | — | `databricks-lakehouse` |
@@ -212,6 +213,7 @@ A critical distinction in this governance framework: some checks enforce **actua
 | Code quality metrics | l3-quality-gate | SonarQube duplication and complexity |
 | Governing artifact coverage | fix-lane-gate | Source changed in the PR is accounted for by a fix record or a feature |
 | Fix record correspondence | fix-lane-gate | A fix record's `surface.paths` matches what the diff actually changed, and the diff carries a test |
+| ADR approval attestation | adr-approval-gate | An ADR changed in the PR that claims `Accepted` carries an approving review from an approver in `governance/approval_policy.yaml`, submitted against the head commit |
 | Measured quality evidence | evidence-gate | `govkit evidence` reads the test report and axe results and gives a verdict per rubric dimension. Unmeasured dimensions report INCONCLUSIVE, which is **not** a pass |
 
 #### The fix-lane gate needs configuring before it does anything
@@ -231,6 +233,83 @@ fix record's declarations meet reality: `validate` can prove a record is
 internally consistent, but `surface.paths` and the risk flags are both authored,
 so they can agree with each other while disagreeing with the diff. Only CI has
 the diff.
+
+#### ADR approval attestation
+
+`Accepted` on an ADR used to be a word someone typed. The L4 governance rule
+gates implementation on it — *"ADRs … must be Accepted before implementation
+proceeds"* — and nothing read it. `adr-approval-gate.yml` makes it a **derived
+state**: for every ADR changed in a pull request that claims `Accepted`, it
+requires an approving review whose author holds the Approver role in
+`governance/approval_policy.yaml` and whose review was submitted against the
+head commit.
+
+What counts is an approver's **current standing**, not anything they once said.
+If they approve and then request changes on the same commit, the gate fails —
+no new push is needed to take an approval back. A later `COMMENTED` review does
+*not* withdraw one, matching how the platform itself computes a reviewer's
+state. Logins are matched case-insensitively, so the policy need not reproduce
+the exact casing the platform returns.
+
+**Set it up:**
+
+1. Edit `governance/approval_policy.yaml` and replace `YOUR_APPROVER_LOGIN` with
+   the login(s) that hold approval authority. On GitHub that is the account
+   name; on Azure DevOps it is the reviewer's `uniqueName` (usually their UPN).
+2. Copy `adr-approval-gate.yml` into your workflows and make
+   `adr-approval-check` a **required status check** under branch protection.
+3. Add a CODEOWNERS entry so the review is requested in the first place:
+
+   ```
+   docs/*/architecture/ADR/   @your-org/architects
+   ```
+
+4. Require at least one approving review on the protected branch, and enable
+   *"Dismiss stale pull request approvals when new commits are pushed"* so the
+   platform and the gate agree about what a new push invalidates.
+
+**Why a policy file rather than "any approving review".**
+`AUTHORITY_AND_APPROVAL_CONTRACT.md` separates the Reviewer role ("assesses
+evidence or content") from the Approver role ("commits a scoped consequential
+decision") and states that *a reviewer does not gain approval authority*.
+Treating any authenticated review as an approval would land on that contract's
+prohibited pattern *"approval by an unauthorized identity"*. The policy file is
+what turns a review into an approval — it is the mechanism, not paperwork.
+
+**Honest limits:**
+
+- **govkit verifies; the platform enforces.** This gate can prove an approval
+  happened. Only branch protection can make the proof mandatory. Without it the
+  check is advisory, which is why the CODEOWNERS setup above is part of the
+  work rather than an optional extra.
+- **The gate only sees ADRs changed in the PR.** An `Accepted` ADR merged
+  before you adopted this keeps its status forever. That is the migration
+  posture working as intended — `govkit validate` warns about those so they are
+  visible, and no upgrade turns them into a merge blocker retroactively.
+- **A govkit-authored ADR is skipped.** govkit ships one
+  (`docs/data/architecture/ADR/0001-…`), and requiring your approver to attest a
+  decision govkit made for you would be incoherent. The `govkit:editable` body
+  hash tells govkit's copy from one you have edited; edit it and it becomes
+  yours, approval and all.
+- **Azure binds a vote to the pull request, not to a commit.** A GitHub review
+  carries the `commit_id` it was submitted against; an Azure reviewer vote does
+  not. The Azure template treats an approving vote as approval of
+  `System.PullRequest.SourceCommitId`, which is only true with the branch policy
+  *"Reset code reviewer votes when there are new changes"* enabled. It prints
+  that requirement on every run. Azure also needs the build service to have
+  pull-request read access and `System.AccessToken` available — it is the only
+  shipped Azure template that calls a platform API.
+
+**It fails closed.** Unlike every other opt-in gate, an unconfigured policy does
+not make this one inert: a PR that sets an ADR to `Accepted` fails while
+`governance/approval_policy.yaml` still holds the sentinel. An ADR cannot be
+accepted in a repository that declares nobody able to accept it. A fresh install
+still stays green, because a PR that changes no ADR is untouched.
+
+`govkit validate` covers the half CI cannot: it proves the policy is well-formed
+and names a real approver, and reports ADRs claiming `Accepted` with no approval
+record. It can never prove an approval happened — the working tree holds no
+reviews.
 
 ### Prediction-only (plan.md scores, not actuals)
 
@@ -257,7 +336,6 @@ These governance rules are communicated to agents via CLAUDE.md / copilot-instru
 
 | Rule | Why no CI gate | Recommendation |
 |---|---|---|
-| ADR required when preflight flags it | No ADR validation | Add a job that checks for ADR files when preflight contains "ADR required" |
 | Gherkin scenarios must map to tests | No test coverage gate | Add a job that cross-references `@nfr-*` tags with test files |
 
 ---
@@ -390,3 +468,16 @@ ui-eval-gate.yml    → FIRST prediction check, accessibility prediction, E2E
 | `ANTHROPIC_API_KEY` | eval-gate (LLM eval) | Only if features use `mode: llm` |
 
 If your team doesn't use SonarQube or Snyk, remove or skip those jobs rather than letting them fail.
+
+### Workflow permissions
+
+`adr-approval-gate.yml` is the only shipped workflow that declares a
+`permissions:` block. It reads the pull request's reviews, which the default
+`GITHUB_TOKEN` can do with `pull-requests: read`; declaring the block at all
+drops every other scope to none, so `contents: read` is restated for checkout.
+No secret is required — team-slug lookups would need `read:org` and a PAT, which
+is why the policy names logins rather than teams.
+
+On Azure DevOps the equivalent is `System.AccessToken`: leave *"Allow scripts to
+access the OAuth token"* enabled and give the build service read access to pull
+requests. Without the token the gate fails closed rather than passing blind.
