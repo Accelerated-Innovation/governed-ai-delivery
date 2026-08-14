@@ -56,6 +56,8 @@ def _reapply_stack_overlay(
         detection silently stop reporting.
 
     Runs last, and through `apply_overlay`, so edit-protection still decides:
+    reporting is left to `copy_entry`, which is the only thing that knows
+    whether a given file was written, refused, or skipped.
     a user-edited doc is refused here exactly as it was during the governed
     copy, and `--force` overwrites it with the stack's doc rather than the
     baseline. Silent no-op when the marker records no stack, or names one this
@@ -74,13 +76,10 @@ def _reapply_stack_overlay(
         )
         return
     print(f"\nStack overlay '{overlay.id}' (restored, edit-protected):")
-    copied = apply_overlay(
-        overlay, target, applied_at=prior_applied_at, force=force,
-    )
-    for dest in copied:
-        print(f"  copied  {dest}")
-    if not copied:
-        print("  (nothing to restore)")
+    # No per-file echo here: copy_entry already prints `copied <dest>` for each
+    # file it writes and `refused <dest>` for each it declines, so restating
+    # them announced every restored doc twice.
+    apply_overlay(overlay, target, applied_at=prior_applied_at, force=force)
 
 
 def _validate_stored_options(manifest: dict, stored_options: dict) -> None:

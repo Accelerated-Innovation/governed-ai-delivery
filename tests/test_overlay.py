@@ -263,3 +263,86 @@ class TestApplyOverlay:
         assert "my custom edits" in dest.read_text(encoding="utf-8")
         err = capsys.readouterr().err
         assert "refused" in err
+
+
+class TestCopyReportingIsTruthful:
+    """`apply_overlay` decided "was this copied?" by watching dest's mtime.
+
+    `shutil.copy2` *preserves* the source's mtime, so the only reason the
+    heuristic usually worked is that `prepend_header_to_file` rewrites the file
+    afterwards — and it returns early for anything that is not `.md`. An
+    overlay doc of any other type could be overwritten and reported as
+    untouched, which is the wrong way round for a signal a caller prints.
+
+    Nothing in the codebase consumed the return value until `cmd_upgrade` began
+    restoring stack overlays, which is what made the lie load-bearing.
+    """
+
+    def _overlay(self, tmp_path, src_name: str, body: str):
+        import yaml
+
+        from cli.overlay import load_overlay
+
+        stack = tmp_path / "stacks" / "s"
+        stack.mkdir(parents=True)
+        (stack / src_name).write_text(body, encoding="utf-8")
+        (stack / "overlay.yaml").write_text(
+            yaml.safe_dump({
+                "id": "s", "version": "1.0.0", "display_name": "S",
+                "docs": [{"src": src_name, "dest": f"docs/{src_name}"}],
+            }),
+            encoding="utf-8",
+        )
+        return stack
+
+    def test_an_overwritten_non_markdown_doc_is_reported(self, tmp_path, monkeypatch):
+        """The blind spot: same mtime after a real overwrite."""
+        import os
+
+        from cli.overlay import apply_overlay, load_overlay
+
+        stack = self._overlay(tmp_path, "reference.txt", "NEW\n")
+        monkeypatch.setattr("cli.overlay.STACKS_DIR", tmp_path / "stacks")
+
+        target = tmp_path / "proj"
+        dest = target / "docs" / "reference.txt"
+        dest.parent.mkdir(parents=True)
+        dest.write_text("OLD\n", encoding="utf-8")
+        # Force the exact collision copy2 produces: dest already carries the
+        # source's mtime, so copying cannot change it.
+        src_stat = (stack / "reference.txt").stat()
+        os.utime(dest, (src_stat.st_atime, src_stat.st_mtime))
+
+        copied = apply_overlay(load_overlay("s"), target)
+
+        assert dest.read_text(encoding="utf-8") == "NEW\n", "premise: it was overwritten"
+        assert copied == [dest], (
+            "apply_overlay overwrote the file but reported nothing copied"
+        )
+
+    def test_a_refused_doc_is_not_reported_as_copied(self, tmp_path, monkeypatch):
+        """The other direction must keep working: edit-protection refuses, and
+        the caller must not announce a restore that never happened."""
+        import os
+        from datetime import datetime, timezone
+
+        from cli.headers import format_editable_header
+        from cli.overlay import apply_overlay, load_overlay
+
+        self._overlay(tmp_path, "GUIDE.md", "# fresh\n")
+        monkeypatch.setattr("cli.overlay.STACKS_DIR", tmp_path / "stacks")
+
+        target = tmp_path / "proj"
+        dest = target / "docs" / "GUIDE.md"
+        dest.parent.mkdir(parents=True)
+        dest.write_text(
+            format_editable_header(baseline="s@1.0.0") + "# my edits\n", encoding="utf-8",
+        )
+        edited = datetime(2026, 5, 27, 11, 0, 0, tzinfo=timezone.utc).timestamp()
+        os.utime(dest, (edited, edited))
+        applied_at = datetime(2026, 5, 27, 10, 0, 0, tzinfo=timezone.utc).isoformat()
+
+        copied = apply_overlay(load_overlay("s"), target, applied_at=applied_at)
+
+        assert "my edits" in dest.read_text(encoding="utf-8")
+        assert copied == [], f"refused file reported as copied: {copied}"

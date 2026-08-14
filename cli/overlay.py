@@ -161,7 +161,12 @@ def apply_overlay(
     Edit-protection (A2) is honored: if a target doc is user-edited since
     `applied_at`, the copy is refused unless `force=True`.
 
-    Returns the list of destination paths that were copied.
+    Returns the list of destination paths that were written — taken from
+    `copy_entry`, which knows. This used to watch dest's mtime instead, but
+    `shutil.copy2` preserves the *source's* mtime, so a real overwrite could
+    leave the timestamp untouched and be reported as "not copied". The only
+    reason that mostly held is the header rewrite afterwards, which bumps the
+    mtime — and which returns early for anything that is not `.md`.
     """
     baseline = f"{overlay.id}@{overlay.version}"
     copied: list[Path] = []
@@ -173,15 +178,11 @@ def apply_overlay(
             # bundle. Skip silently so a missing file in one stack doesn't
             # break the whole apply. doctor (PR 4) will surface it.
             continue
-        before = dest.exists() and dest.stat().st_mtime
-        copy_entry(
+        if copy_entry(
             src, dest,
             applied_at=applied_at,
             force=force,
             header_baseline=baseline,
-        )
-        after = dest.exists() and dest.stat().st_mtime
-        # The file was copied if it didn't exist before OR mtime advanced.
-        if not before or (after and after != before):
+        ):
             copied.append(dest)
     return copied

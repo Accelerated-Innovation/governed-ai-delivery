@@ -269,6 +269,35 @@ class TestUpgradePreservesTheStack:
         assert "BASELINE CONTENT" in text
         assert parse_editable_header(text)["baseline"] == "govkit@0.2.0"
 
+    def test_each_restored_file_is_announced_exactly_once(
+        self, bundle, tmp_path, capsys,
+    ):
+        """`copy_entry` already prints `copied <dest>` for every file it writes.
+        Echoing `apply_overlay`'s return value on top of that announced each
+        restored doc twice within the same section.
+
+        Scoped to the stack-overlay section on purpose. The doc is legitimately
+        written twice during an upgrade — once by the governed refresh, then
+        again by the restore — and reporting both is honest, because both
+        happened.
+        """
+        target = _make_target(tmp_path, bundle)
+        capsys.readouterr()  # discard the fixture's own install output
+
+        cmd_upgrade(argparse.Namespace(target=str(target), force=False))
+
+        out = capsys.readouterr().out
+        _before, marker, section = out.partition("Stack overlay ")
+        assert marker, f"no stack-overlay section in output:\n{out}"
+        announced = [
+            ln for ln in section.splitlines()
+            if "copied" in ln and ln.rstrip().endswith("TECH_STACK.md")
+        ]
+        assert len(announced) == 1, (
+            f"TECH_STACK.md announced {len(announced)} times while restoring:\n"
+            + "\n".join(announced)
+        )
+
     def test_an_unknown_stack_is_reported_rather_than_left_silent(
         self, bundle, tmp_path, capsys,
     ):
