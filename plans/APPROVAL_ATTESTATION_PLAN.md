@@ -1,9 +1,9 @@
 # Approval Attestation Plan (Decision 2)
 
-**Status:** Approved, not started
+**Status:** Implemented on `feat/approval-attestation`, all eight increments
 **Scope:** Make an ADR's `Accepted` status a derived state rather than typed text
 **Date:** 2026-08-13
-**Branch:** none yet — start from `main` at `89195a7`
+**Branch:** `feat/approval-attestation`, from `main` at `751b844` (#137)
 
 > The third and last of the three decisions recorded in
 > `plans/AUTONOMOUS_BUGFIX_AGENT_ANALYSIS.md`. Decision 1 (defect lane) shipped in
@@ -222,3 +222,52 @@ warn about the ADR govkit put there.
   insertion with a bracket-matching scanner.
 - `.gitignore` carries an unstaged edit that predates this work and belongs to
   the user. Leave it out of every commit.
+
+---
+
+## What shipped, and where it differed from this plan
+
+All eight increments landed, TDD throughout, one commit each.
+
+**Three decisions the plan left open:**
+
+- **Level.** The policy, schema and gate ship at **L4+**, mirroring the defect
+  lane rather than the L3 ADR template. The plan pointed at both shapes
+  (`l4-backend-api.md:16` for the policy, `_run_extension_checks` — which runs
+  at every level — for the wiring). L4 keeps the attestation model beside the
+  contract that gates on `Accepted` and matches this plan's own `--level 4`
+  verification.
+- **Install category.** `governance/approval_policy.yaml` ships as **`shared`,
+  not `governed`** — the first non-`features/` shared entry in any manifest.
+  Governed contracts are refreshed by `upgrade`, which would overwrite a team's
+  approver list and silently revert the repo to authorising nobody. The schema
+  stays governed. Verified against a real install: the edited list survives even
+  `upgrade --force`.
+- **Gate self-containment.** The gate never invokes govkit, following
+  `tests/test_fix_lane_gate_checks.py`'s argument — a blocking gate must not
+  depend on an unpinned PyPI release, and one delegating to `govkit validate`
+  could be switched off from inside the PR it is reviewing. So the
+  `govkit~=<version>` pin the plan anticipated is not needed, and
+  `tests/test_ci_govkit_dependency.py` does not enrol it. The duplicated status
+  and body-hash logic is held in check by executing both platform embeddings
+  against fixtures and pinning them byte-identical.
+
+**One defect found and fixed during verification.** Increment 7's Approval-section
+prose defeated increment 3's check: the commonest way to write an ADR is to copy
+`TEMPLATE.md`, so that text arrived in every ADR built that way and read as an
+approval record — silencing the check for exactly the ADRs it exists to look at.
+The guidance moved into an HTML comment, the device `check_nfrs_sections`
+already uses for the same reason. The CI gate was never affected; it requires a
+review, not a sentence.
+
+**Azure, as predicted, was the bigger lift.** It is now the only shipped Azure
+template that calls a platform API. Azure binds a reviewer vote to the pull
+request rather than to a commit, so the template requires the *"Reset code
+reviewer votes when there are new changes"* branch policy and prints that
+requirement on every run — the GitHub half needs no equivalent, since a review
+carries the `commit_id` it was submitted against.
+
+**Verification:** 2761 fast + 134 e2e passing; `pytest -k parity` green; the
+three-case sandbox walkthrough above reproduced against the real CLI, including
+the one that matters — a fresh `--type data` install says nothing about
+ADR-0001.
