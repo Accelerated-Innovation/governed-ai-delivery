@@ -8,6 +8,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- **`govkit upgrade` no longer reverts your stack to the bundled baseline**
+  (#132). The six architecture docs that vary by stack are installed from
+  `cli/stacks/<id>/` but live under `docs/<area>/architecture/`, a path every
+  manifest declares as `governed` — and upgrade re-installs governed contracts
+  with `skip_existing=False`. It overwrote each with the stack-agnostic copy
+  and re-stamped the header `baseline: govkit@<version>`. A Go, .NET, JVM or
+  Node team's architecture contracts silently became Python/FastAPI ones.
+  Upgrade now re-applies the marker's stack overlay after the governed refresh,
+  through the same edit-protection path, so a user-edited doc is still refused
+  and `--force` reinstates the stack's doc rather than the baseline.
+
+  The falsified baseline key mattered on its own: `doctor`'s D006 skips
+  `govkit@` baselines, so once every stack doc carried one, stale-overlay
+  detection reported nothing for the life of the repo.
+
+  The issue reported this as the `govkit:editable` guard missing local edits
+  after a "baseline key rename". There is no rename and the guard is sound — a
+  hashed, user-edited doc is correctly refused. `python-fastapi` ships the same
+  content as the baseline, so clobbering it changed the baseline key while
+  leaving the body hash identical, which is what the report observed.
+
 ### Added
 
 - **ADR approval attestation.** An ADR's `Accepted` status is now a derived

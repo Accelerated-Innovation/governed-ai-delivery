@@ -28,6 +28,59 @@ from .install_common import (
 )
 from .manifest import load_manifest, resolve_variant_files
 from .marker import _compare_version, read_govkit_marker, write_govkit_marker
+from .overlay import apply_overlay, load_overlay
+
+
+def _reapply_stack_overlay(
+    target: Path, stored: dict, prior_applied_at: str | None, force: bool,
+) -> None:
+    """Restore the team's stack docs after the governed refresh has run.
+
+    Six architecture docs vary by stack. They ship from `cli/stacks/<id>/` and
+    are installed by `apply_overlay`, but they *live* under
+    `docs/<area>/architecture/` — a path every manifest declares as `governed`.
+    Upgrade re-installs governed contracts with `skip_existing=False`, so
+    without this the stack-agnostic copy lands on top of the team's stack docs
+    and re-stamps the header `baseline: govkit@<version>`.
+
+    `apply` never had the problem: it copies governed paths with
+    `skip_existing=True`, so the overlay it wrote moments earlier survives.
+    Only upgrade overwrites, which is why this runs here and not there.
+
+    Two things were being lost (issue #132):
+      - the content, for every stack but `python-fastapi` — whose docs *are*
+        the baseline, which is why the reporter saw the baseline key change
+        while the body hash stayed identical;
+      - the baseline key, for all of them. `doctor`'s D006 only inspects
+        non-`govkit@` baselines, so a falsified key made stale-overlay
+        detection silently stop reporting.
+
+    Runs last, and through `apply_overlay`, so edit-protection still decides:
+    a user-edited doc is refused here exactly as it was during the governed
+    copy, and `--force` overwrites it with the stack's doc rather than the
+    baseline. Silent no-op when the marker records no stack, or names one this
+    govkit no longer bundles — a missing overlay must not abort an upgrade.
+    """
+    stack_id = (stored.get("stack") or {}).get("id")
+    if not stack_id:
+        return
+    overlay = load_overlay(stack_id)
+    if overlay is None:
+        print(
+            f"\n  warning: marker records stack '{stack_id}', which this govkit "
+            "does not bundle; its architecture docs now hold the stack-agnostic "
+            "baseline. Run `govkit stack list` and re-apply a current stack.",
+            file=sys.stderr,
+        )
+        return
+    print(f"\nStack overlay '{overlay.id}' (restored, edit-protected):")
+    copied = apply_overlay(
+        overlay, target, applied_at=prior_applied_at, force=force,
+    )
+    for dest in copied:
+        print(f"  copied  {dest}")
+    if not copied:
+        print("  (nothing to restore)")
 
 
 def _validate_stored_options(manifest: dict, stored_options: dict) -> None:
@@ -141,6 +194,8 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
     copy_governed_or_shared(
         shared, target, prior_applied_at, args.force, baseline,
     )
+
+    _reapply_stack_overlay(target, stored, prior_applied_at, args.force)
 
     # Upgrade re-installs govkit's own files; it does not re-decide anything the
     # team decided. Carry stack/assumptions/calibration across or they reset to
