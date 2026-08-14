@@ -59,7 +59,12 @@ stages:
             fetchDepth: 0
             persistCredentials: true
 
-          - script: pip install pyyaml
+          # Pinned for the same reason the govkit-invoking gates pin govkit: an
+          # unpinned install makes your merge criteria depend on whatever PyPI
+          # served that morning, while the prose beside it is frozen at install
+          # time. `~=` rather than `==` so a patch release can still fix a build
+          # on a Python this version predates.
+          - script: pip install pyyaml~=6.0.2
             displayName: Install pyyaml
 
           - script: |
@@ -83,6 +88,12 @@ stages:
               # Azure votes: 10 approved, 5 approved with suggestions, 0 no vote,
               # -5 waiting, -10 rejected. Only an unqualified 10 counts — an
               # approval with suggestions is not a commitment to the decision.
+              #
+              # This endpoint returns each reviewer's CURRENT vote — one entry
+              # per reviewer, already superseding anything they voted earlier —
+              # so the checker's latest-review collapse is a no-op here and the
+              # ordering fields it reads are constant. On GitHub the reviews API
+              # returns the whole history instead, and those fields do the work.
               head = os.environ["HEAD_SHA"]
               with open("reviewers.json", encoding="utf-8") as fh:
                   data = json.load(fh)
@@ -93,6 +104,7 @@ stages:
                       login = reviewer.get("uniqueName") or reviewer.get("displayName")
                       out.write(json.dumps({
                           "login": login, "state": "APPROVED", "commit_id": head,
+                          "submitted_at": None, "id": 0,
                       }) + "\n")
               NORMALIZE
             env:
@@ -130,6 +142,19 @@ stages:
 
               def in_scope(path, prefixes):
                   return not prefixes or any(path.startswith(p) for p in prefixes)
+
+
+              def norm(login):
+                  """Fold a platform login for comparison.
+
+                  GitHub usernames are case-insensitive and Azure `uniqueName`s are
+                  too; Python string equality is not. Comparing raw strings made a
+                  policy naming `Octo-Architect` reject that same person's review
+                  returned as `octo-architect` — failing closed, but reporting that
+                  no authorised approval existed, which is untrue and leaves a team
+                  nothing to act on. Matching folds; output keeps the original.
+                  """
+                  return login.strip().casefold() if isinstance(login, str) else ""
 
 
               def strip_header(text):
@@ -224,11 +249,15 @@ stages:
                   if not isinstance(entry, dict) or entry.get("role") != APPROVER_ROLE:
                       continue
                   login = entry.get("login")
-                  if not isinstance(login, str) or not login.strip() or login == SENTINEL:
+                  key = norm(login)
+                  if not key or key == norm(SENTINEL):
                       continue
-                  approvers[login] = [
-                      s for s in (entry.get("scope") or []) if isinstance(s, str)
-                  ]
+                  # Keyed by the folded login, carrying the policy's own spelling
+                  # so a human reads the name their team wrote.
+                  approvers[key] = (
+                      login.strip(),
+                      [s for s in (entry.get("scope") or []) if isinstance(s, str)],
+                  )
 
               if not approvers:
                   fail(
@@ -252,21 +281,51 @@ stages:
               except (OSError, ValueError) as exc:
                   fail(f"FAIL: could not read the review list: {exc}")
 
-              # Bound to this commit. A review submitted against an earlier push
-              # approved a different decision — "approval after the side effect" and
-              # "reusing stale activation authority" are both prohibited patterns.
+              # An approval is a reviewer's CURRENT standing, not something they
+              # once said. Two filters, and both are load-bearing:
+              #
+              #   Bound to this commit. A review submitted against an earlier push
+              #   approved a different decision — "approval after the side effect"
+              #   and "reusing stale activation authority" are both prohibited
+              #   patterns in AUTHORITY_AND_APPROVAL_CONTRACT.md.
+              #
+              #   Latest decisive review wins. The API returns every review the PR
+              #   has collected, so counting any historical APPROVED let a reviewer
+              #   who had since asked for changes — with no new push to invalidate
+              #   anything — still satisfy this gate.
+              #
+              # Decisive means APPROVED / CHANGES_REQUESTED / DISMISSED, matching
+              # how the platform itself computes a reviewer's standing. A COMMENTED
+              # review afterwards does not withdraw an approval, and treating it as
+              # though it did would block pull requests GitHub considers approved.
+              DECISIVE = ("APPROVED", "CHANGES_REQUESTED", "DISMISSED")
+
+              standing = {}
+              for r in reviews:
+                  if not isinstance(r, dict) or r.get("commit_id") != head_sha:
+                      continue
+                  if r.get("state") not in DECISIVE:
+                      continue
+                  login = norm(r.get("login"))
+                  if not login:
+                      continue
+                  # submitted_at has second resolution, so two reviews can share
+                  # one; the review id is monotonic and settles the tie. Ordering
+                  # never depends on the order the API paged the reviews out in.
+                  order = (str(r.get("submitted_at") or ""), r.get("id") or 0)
+                  if login not in standing or order > standing[login][0]:
+                      standing[login] = (order, r.get("state"))
+
               approved_by = {
-                  r.get("login") for r in reviews
-                  if isinstance(r, dict)
-                  and r.get("state") == "APPROVED"
-                  and r.get("commit_id") == head_sha
+                  login for login, (_order, state) in standing.items()
+                  if state == "APPROVED"
               }
 
               unattested = []
               for path in needing:
                   who = sorted(
-                      login for login in approved_by & set(approvers)
-                      if in_scope(path, approvers[login])
+                      approvers[login][0] for login in approved_by & set(approvers)
+                      if in_scope(path, approvers[login][1])
                   )
                   if who:
                       print(f"OK   {path} — approved by {', '.join(who)} at {head_sha[:7]}")

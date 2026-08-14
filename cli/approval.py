@@ -201,22 +201,36 @@ def _validate_against_schema(target: Path) -> tuple[list[str], list[str]]:
     return [], []
 
 
+def normalize_login(value: object) -> str:
+    """Fold a platform login for comparison.
+
+    GitHub usernames are case-insensitive, and so are Azure `uniqueName`s;
+    Python string equality is not. Everything that *matches* a login folds it —
+    here and in the CI gate — while everything a human reads keeps the spelling
+    the policy chose.
+    """
+    return value.strip().casefold() if isinstance(value, str) else ""
+
+
 def resolve_approvers(policy: dict) -> list[str]:
-    """The logins that actually hold approval authority.
+    """The logins that actually hold approval authority, as the policy spells them.
 
     Reviewers are excluded by design, and so is the shipped sentinel: a policy
     nobody has edited authorises nobody. Both exclusions exist so "no findings"
-    can never be mistaken for "attestation is on".
+    can never be mistaken for "attestation is on" — which is why the sentinel is
+    matched folded. A `your_approver_login` that slipped through on casing alone
+    would read as configured while authorising an account that does not exist.
     """
-    return [
-        entry["login"]
-        for entry in policy.get("approvers") or []
-        if isinstance(entry, dict)
-        and entry.get("role") == APPROVER_ROLE
-        and isinstance(entry.get("login"), str)
-        and entry["login"].strip()
-        and entry["login"] != SENTINEL_LOGIN
-    ]
+    sentinel = normalize_login(SENTINEL_LOGIN)
+    resolved = []
+    for entry in policy.get("approvers") or []:
+        if not isinstance(entry, dict) or entry.get("role") != APPROVER_ROLE:
+            continue
+        login = normalize_login(entry.get("login"))
+        if not login or login == sentinel:
+            continue
+        resolved.append(entry["login"].strip())
+    return resolved
 
 
 def _in_scope(rel: str, prefixes: list) -> bool:

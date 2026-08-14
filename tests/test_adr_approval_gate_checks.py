@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 import sys
 import textwrap
@@ -122,8 +123,26 @@ def _run(
     )
 
 
+def _review(
+    login: str = APPROVER,
+    commit: str = HEAD_SHA,
+    state: str = "APPROVED",
+    at: str = "2026-08-14T09:00:00Z",
+    review_id: int = 1,
+) -> dict:
+    """One entry of the normalized review list the gate's shell step writes.
+
+    `submitted_at` and `id` are what let the checker tell a reviewer's *latest*
+    standing from any earlier one they have since changed.
+    """
+    return {
+        "login": login, "state": state, "commit_id": commit,
+        "submitted_at": at, "id": review_id,
+    }
+
+
 def _approval(login: str = APPROVER, commit: str = HEAD_SHA, state: str = "APPROVED"):
-    return {"login": login, "state": state, "commit_id": commit}
+    return _review(login=login, commit=commit, state=state)
 
 
 def test_checker_extraction_is_not_empty():
@@ -348,6 +367,167 @@ class TestGovkitAuthoredAdrs:
         assert result.returncode == 1, result.stdout
 
 
+class TestLatestReviewWins:
+    """An approval is a reviewer's *current* standing, not something they ever
+    said. The reviews API returns every review a PR has collected, so counting
+    any historical `APPROVED` let an approver who had since asked for changes —
+    without a new push to invalidate anything — still satisfy the gate.
+
+    GitHub's own model: a reviewer's standing is their latest `APPROVED`,
+    `CHANGES_REQUESTED` or `DISMISSED`. A `COMMENTED` review afterwards does not
+    withdraw an approval, and treating it as though it did would block pull
+    requests the platform itself considers approved.
+    """
+
+    def _adr_run(self, tmp_path, reviews, **kw):
+        return _run(
+            tmp_path, [ADR_REL], files={ADR_REL: _adr()}, policy=_policy(),
+            reviews=reviews, **kw,
+        )
+
+    def test_changes_requested_after_approving_the_same_commit_revokes_it(
+        self, tmp_path,
+    ):
+        """The bug this class exists for. No new push, so nothing else in the
+        pipeline notices the approver changed their mind."""
+        result = self._adr_run(tmp_path, [
+            _review(state="APPROVED", at="2026-08-14T09:00:00Z", review_id=1),
+            _review(state="CHANGES_REQUESTED", at="2026-08-14T10:00:00Z", review_id=2),
+        ])
+        assert result.returncode == 1, result.stdout
+        assert "no authorised" in result.stdout
+
+    def test_a_later_comment_does_not_withdraw_an_approval(self, tmp_path):
+        """Matching the platform. A blanket 'latest review wins' would fail
+        here, and the PR would be blocked while GitHub shows it approved."""
+        result = self._adr_run(tmp_path, [
+            _review(state="APPROVED", at="2026-08-14T09:00:00Z", review_id=1),
+            _review(state="COMMENTED", at="2026-08-14T10:00:00Z", review_id=2),
+        ])
+        assert result.returncode == 0, result.stdout
+
+    def test_a_dismissed_approval_does_not_count(self, tmp_path):
+        result = self._adr_run(tmp_path, [
+            _review(state="APPROVED", at="2026-08-14T09:00:00Z", review_id=1),
+            _review(state="DISMISSED", at="2026-08-14T10:00:00Z", review_id=2),
+        ])
+        assert result.returncode == 1, result.stdout
+
+    def test_re_approving_after_requesting_changes_passes(self, tmp_path):
+        """The ordering has to work in both directions, or the fix would just
+        trade a false pass for a false block."""
+        result = self._adr_run(tmp_path, [
+            _review(state="CHANGES_REQUESTED", at="2026-08-14T09:00:00Z", review_id=1),
+            _review(state="APPROVED", at="2026-08-14T10:00:00Z", review_id=2),
+        ])
+        assert result.returncode == 0, result.stdout
+
+    def test_changes_requested_on_an_earlier_push_does_not_block_this_one(
+        self, tmp_path,
+    ):
+        """Standing is per-commit. Asking for changes on an old push and
+        approving the fix is the normal shape of a review."""
+        result = self._adr_run(tmp_path, [
+            _review(state="CHANGES_REQUESTED", commit=OLD_SHA,
+                    at="2026-08-14T09:00:00Z", review_id=1),
+            _review(state="APPROVED", at="2026-08-14T10:00:00Z", review_id=2),
+        ])
+        assert result.returncode == 0, result.stdout
+
+    def test_review_id_breaks_a_timestamp_tie(self, tmp_path):
+        """`submitted_at` has second resolution, so two reviews can share one.
+        The id is monotonic and settles it."""
+        result = self._adr_run(tmp_path, [
+            _review(state="APPROVED", at="2026-08-14T09:00:00Z", review_id=1),
+            _review(state="CHANGES_REQUESTED", at="2026-08-14T09:00:00Z", review_id=2),
+        ])
+        assert result.returncode == 1, result.stdout
+
+    def test_order_in_the_file_does_not_decide_it(self, tmp_path):
+        """The same two reviews, written newest-first. Nothing may depend on the
+        order the API happened to page them out in."""
+        result = self._adr_run(tmp_path, [
+            _review(state="CHANGES_REQUESTED", at="2026-08-14T10:00:00Z", review_id=2),
+            _review(state="APPROVED", at="2026-08-14T09:00:00Z", review_id=1),
+        ])
+        assert result.returncode == 1, result.stdout
+
+    def test_one_reviewers_withdrawal_does_not_cancel_anothers_approval(
+        self, tmp_path,
+    ):
+        result = self._adr_run(tmp_path, [
+            _review(state="CHANGES_REQUESTED", login="octo-qa",
+                    at="2026-08-14T10:00:00Z", review_id=2),
+            _review(state="APPROVED", at="2026-08-14T09:00:00Z", review_id=1),
+        ])
+        assert result.returncode == 0, result.stdout
+
+
+class TestLoginCasing:
+    """Platform logins are case-insensitive; Python string equality is not.
+
+    This failed *closed* — a policy naming `Octo-Architect` rejected the same
+    person's review returned as `octo-architect` — so it blocked legitimate
+    approvals rather than admitting bad ones. It is still a defect: the failure
+    message says no authorised approval exists, which is untrue and gives a team
+    nothing to act on.
+    """
+
+    def test_policy_may_spell_the_login_differently_from_the_platform(
+        self, tmp_path,
+    ):
+        result = _run(
+            tmp_path, [ADR_REL], files={ADR_REL: _adr()},
+            policy=_policy([{"login": "Octo-Architect", "role": "approver"}]),
+            reviews=[_review(login="octo-architect")],
+        )
+        assert result.returncode == 0, result.stdout
+
+    def test_the_platform_may_spell_it_differently_from_the_policy(self, tmp_path):
+        result = _run(
+            tmp_path, [ADR_REL], files={ADR_REL: _adr()},
+            policy=_policy([{"login": "octo-architect", "role": "approver"}]),
+            reviews=[_review(login="Octo-Architect")],
+        )
+        assert result.returncode == 0, result.stdout
+
+    def test_surrounding_whitespace_in_the_policy_is_tolerated(self, tmp_path):
+        result = _run(
+            tmp_path, [ADR_REL], files={ADR_REL: _adr()},
+            policy=_policy([{"login": "  octo-architect  ", "role": "approver"}]),
+            reviews=[_review()],
+        )
+        assert result.returncode == 0, result.stdout
+
+    def test_the_sentinel_is_recognised_whatever_its_casing(self, tmp_path):
+        """Otherwise a lower-cased sentinel reads as a configured approver, and
+        the gate would authorise an account that does not exist."""
+        result = _run(
+            tmp_path, [ADR_REL], files={ADR_REL: _adr()},
+            policy=_policy([{"login": "your_approver_login", "role": "approver"}]),
+            reviews=[_review(login="your_approver_login")],
+        )
+        assert result.returncode == 1, result.stdout
+        assert "names no approver" in result.stdout
+
+    def test_output_uses_the_spelling_the_policy_chose(self, tmp_path):
+        """Normalising is for matching, not for what a human reads."""
+        result = _run(
+            tmp_path, [ADR_REL], files={ADR_REL: _adr()},
+            policy=_policy([{"login": "Octo-Architect", "role": "approver"}]),
+            reviews=[_review(login="octo-architect")],
+        )
+        assert "Octo-Architect" in result.stdout, result.stdout
+
+    def test_casing_does_not_let_an_unlisted_identity_in(self, tmp_path):
+        """Non-vacuous guard: normalisation must widen nothing but case."""
+        result = _run(
+            tmp_path, [ADR_REL], files={ADR_REL: _adr()}, policy=_policy(),
+            reviews=[_review(login="octo-architect-2")],
+        )
+        assert result.returncode == 1, result.stdout
+
+
 class TestScopeConfiguration:
     def test_require_approval_for_narrows_what_the_gate_covers(self, tmp_path):
         other = "docs/data/architecture/ADR/0002-marts.md"
@@ -395,6 +575,29 @@ def test_github_gate_declares_least_privilege_permissions():
     contents: read has to be restated for checkout."""
     parsed = yaml.safe_load(GATE_PATHS["github"].read_text(encoding="utf-8"))
     assert parsed["permissions"] == {"contents": "read", "pull-requests": "read"}
+
+
+@pytest.mark.parametrize("platform", sorted(GATE_PATHS))
+def test_the_gate_pins_pyyaml(platform):
+    """Same argument test_ci_govkit_dependency makes for the govkit pin: an
+    unpinned install makes a customer's merge criteria depend on whatever PyPI
+    served that morning, while the payload prose beside it is frozen at install
+    time. `~=` rather than `==` so a patch release can still fix a build on a
+    Python the pinned version predates."""
+    text = GATE_PATHS[platform].read_text(encoding="utf-8")
+    assert re.search(r"pip install\s+pyyaml~=\d+\.\d+\.\d+", text), (
+        f"ci/{platform}/adr-approval-gate.yml installs pyyaml unpinned"
+    )
+
+
+def test_both_gates_pin_pyyaml_to_the_same_version():
+    """The two platforms run byte-identical checker code; they must not run it
+    against different libraries."""
+    pins = {
+        platform: re.findall(r"pip install\s+(pyyaml~=[\d.]+)", path.read_text(encoding="utf-8"))
+        for platform, path in GATE_PATHS.items()
+    }
+    assert pins["github"] == pins["azure"], pins
 
 
 def test_the_gate_job_name_is_the_one_the_docs_tell_teams_to_require():

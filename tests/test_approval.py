@@ -308,6 +308,29 @@ class TestPolicyChecks:
         assert not issues
         assert any("not configured" in w for w in warnings), warnings
 
+    @pytest.mark.parametrize(
+        "login", ["your_approver_login", "Your_Approver_Login", "  YOUR_APPROVER_LOGIN "],
+    )
+    def test_the_sentinel_is_recognised_whatever_its_casing(self, tmp_path, login):
+        """Platform logins are case-insensitive; Python string equality is not.
+        A sentinel that slipped through on casing alone would read as configured
+        while authorising an account that does not exist."""
+        _install_policy(
+            tmp_path, {"version": 1, "approvers": [{"login": login, "role": "approver"}]},
+        )
+        _issues, warnings = check_approval_policy(tmp_path)
+        assert any("not configured" in w for w in warnings), warnings
+
+    def test_a_real_login_is_not_mistaken_for_the_sentinel(self, tmp_path):
+        """Non-vacuous guard: folding must widen nothing but case."""
+        _install_policy(
+            tmp_path,
+            {"version": 1,
+             "approvers": [{"login": "your_approver_login_2", "role": "approver"}]},
+        )
+        _issues, warnings = check_approval_policy(tmp_path)
+        assert not any("not configured" in w for w in warnings), warnings
+
     def test_reviewers_alone_do_not_configure_attestation(self, tmp_path):
         """AUTHORITY_AND_APPROVAL_CONTRACT.md: 'a reviewer does not gain
         approval authority'. A policy of reviewers authorises nobody."""

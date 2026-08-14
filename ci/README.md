@@ -244,6 +244,13 @@ requires an approving review whose author holds the Approver role in
 `governance/approval_policy.yaml` and whose review was submitted against the
 head commit.
 
+What counts is an approver's **current standing**, not anything they once said.
+If they approve and then request changes on the same commit, the gate fails —
+no new push is needed to take an approval back. A later `COMMENTED` review does
+*not* withdraw one, matching how the platform itself computes a reviewer's
+state. Logins are matched case-insensitively, so the policy need not reproduce
+the exact casing the platform returns.
+
 **Set it up:**
 
 1. Edit `governance/approval_policy.yaml` and replace `YOUR_APPROVER_LOGIN` with
