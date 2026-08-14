@@ -125,18 +125,24 @@ def _copy_file(
     src: Path, dest: Path,
     skip_existing: bool, applied_at: str | None, force: bool,
     header_baseline: str | None, header_see: str,
-) -> None:
-    """Copy a single file with edit-protection + header injection applied."""
+) -> bool:
+    """Copy a single file with edit-protection + header injection applied.
+
+    Returns True when the file was written, False when it was skipped or
+    refused, so callers can report what actually happened instead of inferring
+    it. See `copy_entry`.
+    """
     if skip_existing and dest.exists():
         print(f"  skipped {dest}  (already exists)")
-        return
+        return False
     if _copy_entry_should_refuse(dest, applied_at, force):
-        return
+        return False
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dest)
     print(f"  copied  {dest}")
     if header_baseline is not None:
         prepend_header_to_file(dest, baseline=header_baseline, see=header_see)
+    return True
 
 
 def copy_entry(
@@ -148,8 +154,14 @@ def copy_entry(
     header_baseline: str | None = None,
     header_see: str = "GOVKIT_SETUP_REVIEW.md",
     exclude_basenames: set[str] | None = None,
-) -> None:
-    """Copy a file or directory tree.
+) -> bool:
+    """Copy a file or directory tree. Returns True when anything was written.
+
+    The return value is the authoritative answer to "did this land?" — a
+    directory reports True when at least one file under it was written. Callers
+    that report on a copy must use it rather than inferring from the
+    filesystem: `shutil.copy2` preserves the source's mtime, so a real
+    overwrite can leave dest's timestamp unchanged.
 
     Edit-protection: when `applied_at` is supplied, files at `dest` that
     carry a govkit:editable header and were modified after `applied_at` are
@@ -171,11 +183,13 @@ def copy_entry(
         print(f"Error: source path does not exist: {src}")
         sys.exit(1)
     if exclude_basenames and src.name in exclude_basenames and src.is_file():
-        return
+        return False
     if src.is_dir():
         dest.mkdir(parents=True, exist_ok=True)
+        wrote = False
         for item in src.iterdir():
-            copy_entry(
+            # Not `any(...)`: it short-circuits, and every child must be copied.
+            if copy_entry(
                 item, dest / item.name,
                 skip_existing=skip_existing,
                 applied_at=applied_at,
@@ -183,6 +197,9 @@ def copy_entry(
                 header_baseline=header_baseline,
                 header_see=header_see,
                 exclude_basenames=exclude_basenames,
-            )
-        return
-    _copy_file(src, dest, skip_existing, applied_at, force, header_baseline, header_see)
+            ):
+                wrote = True
+        return wrote
+    return _copy_file(
+        src, dest, skip_existing, applied_at, force, header_baseline, header_see,
+    )
