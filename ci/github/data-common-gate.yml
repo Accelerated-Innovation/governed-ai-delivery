@@ -41,7 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          python -m pip install govkit~=0.18.0
+          python -m pip install govkit~=0.19.0
 
       - name: Run GovKit validation
         run: |

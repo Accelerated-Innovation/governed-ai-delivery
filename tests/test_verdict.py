@@ -576,3 +576,70 @@ class TestRegeneratedArtifactsDoNotBreakRestore:
                                  capture_output=True, text=True).stdout.strip()
         assert stashes == "", f"left a stash behind: {stashes}"
         assert "min(" in (repo / "src" / "calc.py").read_text(encoding="utf-8")
+
+
+class TestGovkitAuthoredAdrs:
+    """govkit ships one real ADR — `docs/data/architecture/ADR/0001-…` — and it
+    says `Accepted`, because it is govkit's decision and govkit's approvers
+    made it. It lands in every `--type data` install.
+
+    `cli/approval.py` and both CI gates already carve it out. This one did not,
+    so any run that happened to include a govkit install — the first run after
+    adoption, most obviously — was REJECTED for an ADR the team never wrote.
+    Requiring a customer's approver to attest a decision govkit made for them
+    is incoherent, and telling a human to investigate it is worse.
+    """
+
+    def _govkit_adr(self, repo: Path, *, tamper: bool = False) -> None:
+        from cli.headers import compute_body_hash, format_editable_header
+
+        body = "# ADR-0001: govkit's own decision\n\n## Status\nAccepted\n\n## 1. Context\n\nOurs.\n"
+        digest = compute_body_hash(body)
+        if tamper:
+            body += "\n## 2. Decision\n\nThe team edited this.\n"
+        d = repo / "docs" / "data" / "architecture" / "ADR"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "0001-data-features-skip-prediction-gate.md").write_text(
+            format_editable_header(baseline="0.19.0", body_hash=digest) + body,
+            encoding="utf-8",
+        )
+
+    def test_an_unmodified_govkit_adr_is_not_a_self_acceptance(self, repo):
+        self._govkit_adr(repo)
+        _edit_source(repo)
+        _fix_record(repo)
+        _verdict, _code, gates = _run(repo)
+        assert "adr-not-self-accepted" not in _fail_names(gates), (
+            next(g.detail for g in gates if g.gate == "adr-not-self-accepted")
+        )
+
+    def test_a_fresh_install_alone_is_not_rejected(self, repo):
+        """The shape the release smoke hit: govkit applied, nothing else."""
+        self._govkit_adr(repo)
+        verdict, _code, _gates = _run(repo)
+        assert verdict != REJECTED
+
+    def test_editing_a_govkit_adr_makes_it_the_teams_claim(self, repo):
+        """The carve-out keys on the body hash, so an edited copy is the
+        team's again — including its Accepted status."""
+        self._govkit_adr(repo, tamper=True)
+        _edit_source(repo)
+        _fix_record(repo)
+        _verdict, _code, gates = _run(repo)
+        assert "adr-not-self-accepted" in _fail_names(gates)
+
+    def test_a_hand_written_header_does_not_buy_silence(self, repo):
+        """A forged hash must not let a team-authored ADR claim Accepted."""
+        from cli.headers import format_editable_header
+
+        d = repo / "docs" / "backend" / "architecture" / "ADR"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "0002-ours.md").write_text(
+            format_editable_header(baseline="0.19.0", body_hash="0" * 64)
+            + "# ADR-0002\n\n## Status\nAccepted\n",
+            encoding="utf-8",
+        )
+        _edit_source(repo)
+        _fix_record(repo)
+        _verdict, _code, gates = _run(repo)
+        assert "adr-not-self-accepted" in _fail_names(gates)
