@@ -26,7 +26,7 @@ import shlex
 import sys
 from pathlib import Path
 
-from .verdict import EXIT_CODES, assess
+from .verdict import EXIT_CODES, VerdictError, assess
 
 _LABEL = {"pass": "PASS", "fail": "FAIL", "skip": "----"}
 
@@ -56,13 +56,21 @@ def cmd_verdict(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     command = shlex.split(args.test_command) if args.test_command else None
-    result = assess(
-        target,
-        base=args.base or "",
-        source_roots=roots,
-        test_command=command,
-        run_validate=not args.no_validate,
-    )
+    try:
+        result = assess(
+            target,
+            base=args.base or "",
+            source_roots=roots,
+            test_command=command,
+            run_validate=not args.no_validate,
+        )
+    except VerdictError as exc:
+        # Not one of the four verdicts. A broken setup says nothing about the
+        # agent's work, and reporting it as REFUSED would tell the harness the
+        # run succeeded by declining — so a misconfigured job would look green
+        # forever while never opening a PR.
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     if args.json:
         print(json.dumps({

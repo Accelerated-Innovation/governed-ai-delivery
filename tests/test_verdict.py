@@ -405,3 +405,174 @@ class TestValidateGate:
         _fix_record(repo)
         _verdict, _code, gates = _run(repo, run_validate=False)
         assert "govkit-validate" not in {g.gate for g in gates}
+
+
+# ---------------------------------------------------------------------------
+# Untracked source must be reverted too
+# ---------------------------------------------------------------------------
+
+# Records what the suite could see each time it ran, and stays red/green on it.
+PROBE = [
+    sys.executable, "-c",
+    "import pathlib,sys;"
+    "log=pathlib.Path('probe.log');"
+    "seen=pathlib.Path('src/extra.py').exists();"
+    "log.write_text((log.read_text() if log.exists() else '')+('yes' if seen else 'no')+chr(10));"
+    "sys.exit(0 if seen else 1)",
+]
+
+
+class TestUntrackedSourceIsReverted:
+    """`changed_files` counts untracked paths, so a fix delivered as a NEW file
+    is source like any other. Stashing only tracked changes left it in place,
+    and the "reverted" run then tested a tree that still contained the fix."""
+
+    def _new_file_fix(self, repo: Path) -> None:
+        (repo / "src" / "extra.py").write_text("def helper():\n    return 1\n", encoding="utf-8")
+        _fix_record(repo, paths=["src/extra.py"])
+
+    def test_the_reverted_run_does_not_see_an_untracked_source_file(self, repo):
+        self._new_file_fix(repo)
+        _verdict, _code, gates = _run(repo, test_command=PROBE)
+
+        saw = (repo / "probe.log").read_text(encoding="utf-8").split()
+        assert saw[0] == "yes", "premise: the first run must see the fix"
+        assert saw[1] == "no", (
+            f"the reverted run still saw src/extra.py — it tested a tree that "
+            f"still contained the fix (probe: {saw})"
+        )
+        assert "red-before-green" not in _fail_names(gates)
+
+    def test_an_untracked_fix_is_restored_afterwards(self, repo):
+        """Reverting must be undone whether the file was tracked or not."""
+        self._new_file_fix(repo)
+        _run(repo, test_command=PROBE)
+        assert (repo / "src" / "extra.py").is_file(), "untracked source was not restored"
+
+    def test_a_new_file_that_does_not_reproduce_the_defect_is_rejected(self, repo):
+        """The gate must still be able to say no when the tests pass either way."""
+        self._new_file_fix(repo)
+        verdict, _code, gates = _run(repo, test_command=PASSES)
+        assert verdict == REJECTED
+        assert "red-before-green" in _fail_names(gates)
+
+
+# ---------------------------------------------------------------------------
+# A broken setup is an error, never a verdict about the agent
+# ---------------------------------------------------------------------------
+
+
+class TestSetupErrorsAreNotVerdicts:
+    """`_git` returned stdout even when git failed, so a non-repo produced no
+    changed files and the run classified as REFUSED — exit 2, which tells the
+    harness "the agent declined, this is a success, do not retry". A
+    misconfigured target would report success forever and never open a PR.
+
+    A setup error is not a judgement about the agent's work, so it must not
+    borrow one of the four verdicts.
+    """
+
+    def test_a_directory_that_is_not_a_repo_raises(self, tmp_path):
+        from cli.verdict import VerdictError
+
+        plain = tmp_path / "plain"
+        (plain / "src").mkdir(parents=True)
+        with pytest.raises(VerdictError, match="git"):
+            assess(plain, source_roots=("src/",), run_validate=False)
+
+    def test_an_unresolvable_base_raises(self, repo):
+        from cli.verdict import VerdictError
+
+        with pytest.raises(VerdictError, match="no-such-ref"):
+            assess(repo, base="no-such-ref", source_roots=("src/",), run_validate=False)
+
+    def test_a_valid_base_still_works(self, repo):
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo,
+                              capture_output=True, text=True).stdout.strip()
+        verdict, _code, _gates = _run(repo, base=head)
+        assert verdict == REFUSED
+
+    def test_the_cli_reports_a_non_repo_clearly(self, tmp_path, capsys):
+        from cli.cmd_verdict import cmd_verdict
+
+        plain = tmp_path / "plain"
+        (plain / "src").mkdir(parents=True)
+        with pytest.raises(SystemExit) as exc:
+            cmd_verdict(_cli_args(plain))
+        assert exc.value.code == 1
+        err = capsys.readouterr().err
+        assert "git" in err.lower(), err
+
+    def test_the_cli_reports_an_invalid_base_clearly(self, repo, capsys):
+        from cli.cmd_verdict import cmd_verdict
+
+        with pytest.raises(SystemExit) as exc:
+            cmd_verdict(_cli_args(repo, base="no-such-ref"))
+        assert exc.value.code == 1
+        assert "no-such-ref" in capsys.readouterr().err
+
+
+class TestRestorationIsVerified:
+    """A verdict tool that leaves the fix stashed is worse than none: the
+    harness would commit a tree with the repair missing."""
+
+    def test_a_failed_restore_fails_the_gate(self, repo, monkeypatch):
+        import cli.verdict as vmod
+
+        _edit_source(repo)
+        _fix_record(repo)
+        real = vmod.subprocess.run
+
+        def flaky(cmd, *a, **kw):
+            if cmd[:3] == ["git", "stash", "pop"]:
+                return subprocess.CompletedProcess(cmd, 1, "", "conflict")
+            return real(cmd, *a, **kw)
+
+        monkeypatch.setattr(vmod.subprocess, "run", flaky)
+        _verdict, _code, gates = _run(repo)
+        assert "red-before-green" in _fail_names(gates)
+        detail = next(g.detail for g in gates if g.gate == "red-before-green")
+        assert "restore" in detail.lower(), detail
+
+
+class TestRegeneratedArtifactsDoNotBreakRestore:
+    """Stashing untracked source has a trap: running the suite regenerates
+    build artifacts, and `git stash pop` then refuses to overwrite the files it
+    is trying to restore. `__pycache__` under a source root makes this the
+    default outcome for a Python repo, so the artifacts are excluded from the
+    stash rather than fought with afterwards."""
+
+    # Regenerates a build artifact under the source root on every run, exactly
+    # as pytest does, and stays red/green on the fix.
+    REGENERATES = [
+        sys.executable, "-c",
+        "import pathlib,sys;"
+        "d=pathlib.Path('src/__pycache__');d.mkdir(parents=True,exist_ok=True);"
+        "(d/'calc.pyc').write_bytes(b'x');"
+        "sys.exit(0 if 'min(' in pathlib.Path('src/calc.py').read_text() else 1)",
+    ]
+
+    def test_the_gate_survives_a_suite_that_regenerates_artifacts(self, repo):
+        (repo / "src" / "__pycache__").mkdir()
+        (repo / "src" / "__pycache__" / "calc.pyc").write_bytes(b"stale")
+        _edit_source(repo)
+        _fix_record(repo)
+
+        _verdict, _code, gates = _run(repo, test_command=self.REGENERATES)
+        assert "red-before-green" not in _fail_names(gates), (
+            next(g.detail for g in gates if g.gate == "red-before-green")
+        )
+
+    def test_no_stash_is_left_behind(self, repo):
+        """A leftover stash means the tree a human reviews is not the tree the
+        agent produced."""
+        (repo / "src" / "__pycache__").mkdir()
+        (repo / "src" / "__pycache__" / "calc.pyc").write_bytes(b"stale")
+        _edit_source(repo)
+        _fix_record(repo)
+
+        _run(repo, test_command=self.REGENERATES)
+        stashes = subprocess.run(["git", "stash", "list"], cwd=repo,
+                                 capture_output=True, text=True).stdout.strip()
+        assert stashes == "", f"left a stash behind: {stashes}"
+        assert "min(" in (repo / "src" / "calc.py").read_text(encoding="utf-8")

@@ -92,14 +92,56 @@ class Assessment:
         return iter((self.verdict, self.exit_code, self.gates))
 
 
+class VerdictError(Exception):
+    """The run could not be assessed at all — a broken setup, not a judgement.
+
+    Kept distinct from the four verdicts on purpose. Returning REFUSED for a
+    target that is not a repository would tell the harness "the agent declined,
+    this is a success, do not retry", and a misconfigured job would report
+    success forever while never opening a PR.
+    """
+
+
 def _git(repo: Path, *args: str, raw: bool = False) -> str:
+    """Run git and require it to succeed.
+
+    Swallowing a non-zero exit here is what let a non-repository read as "no
+    files changed". Every caller below treats empty output as a fact about the
+    run, so it has to be a fact about the run.
+    """
     result = subprocess.run(
         ["git", *args], cwd=repo, capture_output=True, text=True, check=False,
     )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip().splitlines()
+        raise VerdictError(
+            f"git {' '.join(args)} failed in {repo}"
+            + (f": {detail[0]}" if detail else "")
+        )
     # `--porcelain` encodes status in the first two columns, so the leading
     # space of the first line is data, not padding. Stripping the whole output
     # silently ate one character off exactly one path per run.
     return result.stdout if raw else result.stdout.strip()
+
+
+def require_assessable(target: Path, base: str) -> None:
+    """Fail loudly before any gate runs, rather than mis-classifying later."""
+    if not target.is_dir():
+        raise VerdictError(f"target directory '{target}' does not exist")
+    try:
+        _git(target, "rev-parse", "--is-inside-work-tree")
+    except VerdictError as exc:
+        raise VerdictError(
+            f"'{target}' is not a git work tree — the verdict is derived from "
+            "the diff, so there is nothing to assess"
+        ) from exc
+    if base:
+        try:
+            _git(target, "rev-parse", "--verify", f"{base}^{{commit}}")
+        except VerdictError as exc:
+            raise VerdictError(
+                f"--base '{base}' does not resolve to a commit in '{target}'"
+            ) from exc
 
 
 def _ignored(rel: str) -> bool:
@@ -223,8 +265,18 @@ def _revert_source(target: Path, roots: tuple[str, ...], base: str):
         if any(line[3:].strip().strip('"').replace("\\", "/").startswith(r) for r in roots)
     ]
     if dirty:
-        pushed = subprocess.run(["git", "stash", "push", "-q", "--", *roots],
-                                cwd=target, capture_output=True, text=True, check=False)
+        # `-u` because a fix delivered as a NEW file is untracked, and
+        # `changed_files` already counts it as source. Without it the
+        # "reverted" run tested a tree that still contained the repair.
+        #
+        # Build artifacts are excluded, and that exclusion is load-bearing:
+        # the reverted run regenerates them, and `git stash pop` then refuses
+        # to overwrite the very files it is restoring. `__pycache__` under a
+        # source root makes that the default outcome for a Python repo.
+        excludes = [f":(exclude)**/{part}/**" for part in IGNORED_PARTS]
+        pushed = subprocess.run(
+            ["git", "stash", "push", "-u", "-q", "--", *roots, *excludes],
+            cwd=target, capture_output=True, text=True, check=False)
         if pushed.returncode != 0:
             return None
         return lambda: subprocess.run(["git", "stash", "pop", "-q"], cwd=target,
@@ -276,7 +328,15 @@ def red_before_green(
     finally:
         # The tree must survive: a verdict tool that damages it is worse than
         # none, and this runs against a repo a human is about to review.
-        undo()
+        restored = undo()
+    if restored is not None and restored.returncode != 0:
+        # Say so instead of reporting on the tests, because the tree now has
+        # the repair stashed away and a harness that committed it would ship
+        # the regression test without the fix.
+        return Gate("fail", "red-before-green",
+                    "could not restore the source after reverting it — the "
+                    "working tree may be missing the fix; recover it with "
+                    "`git stash list` / `git stash pop` before doing anything else")
     if without == 0:
         return Gate("fail", "red-before-green",
                     "tests still pass with the fix reverted — no defect reproduced")
@@ -303,8 +363,13 @@ def assess(
     test_command: list[str] | None = None,
     run_validate: bool = True,
 ) -> Assessment:
-    """Classify one autonomous run. Never raises; never leaves the tree dirty."""
+    """Classify one autonomous run.
+
+    Raises `VerdictError` when the run cannot be assessed at all. Never leaves
+    the working tree altered.
+    """
     target = Path(target)
+    require_assessable(target, base)
     changed = changed_files(target, base)
     records = load_records(target)
     features = (
