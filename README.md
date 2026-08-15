@@ -189,6 +189,7 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 | `govkit init <feature>` | Scaffold a new feature folder from the appropriate starter (L4+). |
 | `govkit fix init <id>` | Scaffold a defect-lane fix record at `fixes/<id>/fix.yaml` (L4+) — one artifact instead of five, for a change that restores already-established behavior. |
 | `govkit evidence` | Report measured quality evidence from CI artifacts — a verdict per rubric dimension, with unmeasured ones reported as INCONCLUSIVE rather than green. |
+| `govkit verdict` | For a harness driving an autonomous agent: decide whether a run may open a PR. Exits `0` FIXED / `1` REJECTED / `2` REFUSED / `3` BLOCKED — a refusal is a success, not a failure. |
 | `govkit stack` | `stack list` shows bundled tech-stack overlays; `stack apply <id>` swaps the stack on an existing install. |
 | `govkit extension` | `extension list` shows bundled extension packs; `extension add <id> --target <path>` copies one into your project's `extensions/<id>/`. |
 | `govkit upgrade` | Refresh the files govkit owns (contracts, CI gates, templates) to a new version without touching the files you own. |
@@ -415,6 +416,36 @@ only gate that can see that, because it is the only one with the diff. It is
 stays green — see [ci/README.md](ci/README.md).
 
 ---
+
+## Driving an autonomous agent against a governed repo
+
+An agent cannot tell you whether its own run succeeded, and neither can its exit
+code: a headless `claude -p` returns success whether it fixed the defect,
+correctly refused it, or stopped at a gate only a human can clear. `govkit
+verdict` derives the answer from the working tree, the diff and the gates —
+the same move `govkit evidence` makes for quality.
+
+```bash
+govkit verdict --target . --source-roots "src/" --test-command "pytest -q"
+```
+
+| Exit | Verdict | What the harness does |
+|---|---|---|
+| `0` | **FIXED** | commit and open the PR |
+| `1` | **REJECTED** | no PR, and no blind retry — a human reads the report |
+| `2` | **REFUSED** | the agent declined and left no trace. **A success** — no PR, no retry |
+| `3` | **BLOCKED** | stopped at a human gate (an ADR, an ambiguous root cause). Escalate |
+
+Two of the gates exist because real runs failed them. **`red-before-green`**
+reverts the source, keeps the new tests, and requires a failure — every agent
+run asserts a red-green cycle in its summary, and this is what checks it.
+**`citation-predates-fix`** rejects a run that edited the source it cites as
+`expectation.source`: recovering a deleted contract and citing it manufactures
+the run's own eligibility, and passes every other gate.
+
+**Treat REFUSED as success.** Coding a refusal as failure is what invites a
+retry loop, and a retry loop against a gate the agent cannot honestly clear is
+the pressure that produces self-certification.
 
 ## ADR approval is derived, not typed
 
