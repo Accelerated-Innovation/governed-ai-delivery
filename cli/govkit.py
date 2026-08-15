@@ -39,6 +39,7 @@ from .cmd_list import register as _register_list
 from .cmd_stack import register as _register_stack
 from .cmd_upgrade import register as _register_upgrade
 from .cmd_validate import register as _register_validate
+from .cmd_verdict import register as _register_verdict
 from .doctor import register as _register_doctor
 from .version import GOVKIT_VERSION
 
@@ -56,6 +57,7 @@ _REGISTRARS = (
     _register_doctor,
     _register_calibrate,
     _register_validate,
+    _register_verdict,
     _register_upgrade,
 )
 

@@ -33,6 +33,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **`govkit verdict`** — for a harness driving an autonomous agent: may this run
+  open a PR? The agent cannot answer that about itself, and neither can its exit
+  code. Across five real headless runs — a clean fix, a correct refusal, a stop
+  at the ADR gate, and two bad outcomes — `claude -p` returned
+  `subtype: success` and exit 0 every time, so the verdict is derived from the
+  working tree, the diff and the gates instead.
+
+  Four outcomes, kept distinct on purpose: `0` FIXED, `1` REJECTED, `2` REFUSED,
+  `3` BLOCKED. **A refusal is a success.** Coding it as failure invites a retry
+  loop, and a retry loop against a gate the agent cannot honestly clear is the
+  pressure that produces self-certification.
+
+  Two gates exist because real runs failed them. `red-before-green` reverts the
+  source, keeps the new tests and requires a failure — every run asserted a
+  red-green cycle in its own summary. `citation-predates-fix` rejects a run that
+  modified the source it cites as `expectation.source`; one agent recovered a
+  contract from git history, restored it, cited it, and passed every govkit gate,
+  because `validate` checks the cited path resolves rather than that it predates
+  the fix.
+
+  govkit supplies the measurement; the harness still makes the decision, per
+  `AUTONOMOUS_BUGFIX_AGENT_ANALYSIS.md` §5.3.
+
+
 - **ADR approval attestation.** An ADR's `Accepted` status is now a derived
   state rather than typed text. The governance rules gate implementation on it
   — *"ADRs … must be Accepted before implementation proceeds"* — and nothing in
