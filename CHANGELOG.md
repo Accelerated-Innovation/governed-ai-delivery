@@ -8,6 +8,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.19.0] — 2026-08-15
+
+Three things a governed repo could previously only assert about itself, it can
+now show: that a defect fix restores established behavior, that a quality score
+was measured rather than predicted, and that an ADR was approved by someone
+entitled to approve it. Plus `govkit verdict`, which asks the same question of
+an autonomous agent's own run.
+
 ### Fixed
 
 - **`govkit upgrade` no longer reverts your stack to the bundled baseline**
@@ -52,6 +60,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   contract from git history, restored it, cited it, and passed every govkit gate,
   because `validate` checks the cited path resolves rather than that it predates
   the fix.
+
+  govkit's own ADRs are carved out of the `Accepted` check, on the same
+  `govkit:editable` body hash `govkit validate` and the CI gate use: govkit
+  ships one that says `Accepted` because it is govkit's decision, and without
+  the carve-out the first run after adoption was rejected for an ADR the team
+  never wrote.
 
   govkit supplies the measurement; the harness still makes the decision, per
   `AUTONOMOUS_BUGFIX_AGENT_ANALYSIS.md` §5.3.

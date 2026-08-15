@@ -50,6 +50,8 @@ from pathlib import Path
 
 import yaml
 
+from .approval import is_govkit_authored
+
 FIXED = "FIXED"
 REJECTED = "REJECTED"
 REFUSED = "REFUSED"
@@ -207,7 +209,15 @@ def accepted_adr(target: Path, changed: list[str]) -> str:
     `Accepted` is a derived state — true because an approver approved that
     decision at that commit. An author may only ever write `Proposed`, so an
     agent that wrote `Accepted` has asserted an approval that did not happen.
-    TEMPLATE.md is excluded: its Status line is the vocabulary menu.
+
+    Two exclusions. TEMPLATE.md, because its Status line is the vocabulary
+    menu rather than a claim. And govkit's own ADRs: it ships one
+    (`docs/data/architecture/ADR/0001-…`) that says `Accepted` because it is
+    govkit's decision, and it lands in every `--type data` install — so any run
+    that happened to include a govkit install, the first one after adoption
+    most obviously, was rejected for an ADR the team never wrote. The
+    discriminator is the `govkit:editable` body hash `cli/approval.py` and both
+    CI gates already use; edit the file and it becomes the team's claim again.
     """
     for rel in changed:
         norm = rel.replace("\\", "/")
@@ -220,8 +230,11 @@ def accepted_adr(target: Path, changed: list[str]) -> str:
         except (OSError, UnicodeDecodeError):
             continue
         match = _STATUS_RE.search(text)
-        if match and match.group(1).strip() == _GATE_STATUS:
-            return norm
+        if not match or match.group(1).strip() != _GATE_STATUS:
+            continue
+        if is_govkit_authored(text):
+            continue
+        return norm
     return ""
 
 
