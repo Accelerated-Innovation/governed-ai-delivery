@@ -162,3 +162,128 @@ class TestExtensionAddSafety:
 
         cmd_extension_add(_add_args("okay-ext", target))
         assert (target / "extensions" / "okay-ext" / "manifest.yaml").exists()
+
+
+class TestExtensionAddSkills:
+    """A pack may declare skills[]; `add` installs each into the applied
+    agent's skills dir. Third-party content is skip-not-clobber: an existing
+    destination survives unless --force, and govkit never installs skills
+    into a target with no applied agent."""
+
+    SKILL_BODY = "---\nname: unit-testing\ndescription: d\n---\nbody v1\n"
+
+    @classmethod
+    def _bundle_skills_pack(cls, packs_dir, manifest_extra=""):
+        pack = packs_dir / "craft-pack"
+        skill = pack / "skills" / "unit-testing"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text(cls.SKILL_BODY, encoding="utf-8")
+        (skill / "references").mkdir()
+        (skill / "references" / "notes.md").write_text("ref", encoding="utf-8")
+        (pack / "manifest.yaml").write_text(
+            "id: craft-pack\nname: Craft Pack\nversion: 0.1.0\n"
+            "extension_type: skills\ncontract_sets: []\n"
+            "skills:\n"
+            "  - path: skills/unit-testing\n"
+            "    install_as: craft-unit-testing\n" + manifest_extra,
+            encoding="utf-8",
+        )
+        return pack
+
+    def _target_with_marker(self, tmp_path, agent="claude-code"):
+        from cli.marker import write_govkit_marker
+
+        target = tmp_path / "proj"
+        target.mkdir()
+        write_govkit_marker(target, agent, "4", {"type": "api", "ci": "github"})
+        return target
+
+    @pytest.mark.parametrize(
+        "agent, skills_dir",
+        [
+            ("claude-code", ".claude/skills"),
+            ("codex", ".agents/skills"),
+            ("copilot", ".github/skills"),
+        ],
+    )
+    def test_installs_skills_into_the_applied_agents_dir(
+        self, tmp_path, monkeypatch, agent, skills_dir
+    ):
+        monkeypatch.setattr(paths, "EXTENSION_PACKS_DIR", tmp_path / "packs")
+        self._bundle_skills_pack(tmp_path / "packs")
+        target = self._target_with_marker(tmp_path, agent)
+
+        cmd_extension_add(_add_args("craft-pack", target))
+
+        installed = target / skills_dir / "craft-unit-testing"
+        assert (installed / "SKILL.md").read_text(encoding="utf-8") == self.SKILL_BODY
+        assert (installed / "references" / "notes.md").is_file()
+
+    def test_existing_skill_dir_is_skipped_not_clobbered(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.setattr(paths, "EXTENSION_PACKS_DIR", tmp_path / "packs")
+        self._bundle_skills_pack(tmp_path / "packs")
+        target = self._target_with_marker(tmp_path)
+        team_copy = target / ".claude" / "skills" / "craft-unit-testing"
+        team_copy.mkdir(parents=True)
+        (team_copy / "SKILL.md").write_text("team-edited", encoding="utf-8")
+
+        cmd_extension_add(_add_args("craft-pack", target))
+
+        assert (team_copy / "SKILL.md").read_text(encoding="utf-8") == "team-edited"
+        assert "skip: .claude/skills/craft-unit-testing/" in capsys.readouterr().out
+
+    def test_force_refreshes_the_skill_dir(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(paths, "EXTENSION_PACKS_DIR", tmp_path / "packs")
+        self._bundle_skills_pack(tmp_path / "packs")
+        target = self._target_with_marker(tmp_path)
+        team_copy = target / ".claude" / "skills" / "craft-unit-testing"
+        team_copy.mkdir(parents=True)
+        (team_copy / "SKILL.md").write_text("team-edited", encoding="utf-8")
+
+        cmd_extension_add(_add_args("craft-pack", target, force=True))
+
+        assert (team_copy / "SKILL.md").read_text(encoding="utf-8") == self.SKILL_BODY
+
+    def test_no_marker_warns_and_installs_pack_but_not_skills(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        monkeypatch.setattr(paths, "EXTENSION_PACKS_DIR", tmp_path / "packs")
+        self._bundle_skills_pack(tmp_path / "packs")
+        target = tmp_path / "proj"
+        target.mkdir()
+
+        cmd_extension_add(_add_args("craft-pack", target))
+
+        out = capsys.readouterr().out
+        assert (target / "extensions" / "craft-pack" / "manifest.yaml").exists()
+        assert not (target / ".claude" / "skills").exists()
+        assert "no applied agent" in out
+
+    def test_traversal_path_and_install_as_are_skipped(self, tmp_path, monkeypatch, capsys):
+        """Validation only reports; the installer itself must refuse to copy
+        from outside the pack or to a name that escapes the skills dir."""
+        monkeypatch.setattr(paths, "EXTENSION_PACKS_DIR", tmp_path / "packs")
+        self._bundle_skills_pack(
+            tmp_path / "packs",
+            manifest_extra=(
+                "  - path: ../../outside\n    install_as: craft-outside\n"
+                "  - path: skills/unit-testing\n    install_as: ../evil\n"
+            ),
+        )
+        outside = tmp_path / "packs" / "outside"
+        outside.mkdir()
+        (outside / "SKILL.md").write_text("outside", encoding="utf-8")
+        target = self._target_with_marker(tmp_path)
+
+        cmd_extension_add(_add_args("craft-pack", target))
+
+        out = capsys.readouterr().out
+        assert (target / ".claude" / "skills" / "craft-unit-testing" / "SKILL.md").is_file()
+        assert not (target / ".claude" / "skills" / "craft-outside").exists()
+        assert not (target / ".claude" / "evil").exists()
+        assert out.count("WARN: skipping") == 2
+
+    def test_pack_without_skills_key_installs_nothing_extra(self, tmp_path, monkeypatch):
+        # control: existing architecture packs are untouched by the skills path
+        cmd_extension_add(_add_args("vision-inference", self._target_with_marker(tmp_path)))
+        assert not (tmp_path / "proj" / ".claude" / "skills").exists()

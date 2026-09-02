@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 
 from . import paths
+from .agent_layout import AGENT_LAYOUTS
 from .extensions import (
     EXTENSIONS_DIR,
     discover_extensions,
@@ -131,6 +132,59 @@ def _print_validation_notes(target: Path, ext_id: str) -> None:
         print(f"  - {issue}")
 
 
+def _install_pack_skills(
+    pack_copy: Path, manifest: dict, target: Path, marker: dict | None, force: bool
+) -> None:
+    """Install the pack's declared skills[] into the applied agent's skills dir.
+
+    Third-party skill dirs are NOT govkit's "files" category (unconditional
+    overwrite): the team may have edited them or installed the same skill
+    another way, and govkit never destroys what it cannot regenerate as its
+    own. An existing destination is skipped unless --force; re-add with
+    --force is the refresh path. The copy source is the target's own pack
+    copy — extensions/<id>/ stays the source of truth.
+    """
+    skills = manifest.get("skills") or []
+    if not skills:
+        return
+    agent = (marker or {}).get("agent")
+    layout = AGENT_LAYOUTS.get(agent)
+    if layout is None or layout.skills_dir is None:
+        print(
+            "  WARN: this pack declares agent skills, but no applied agent was "
+            "found in the target. Run `govkit apply` first, then re-run "
+            "`govkit extension add` with --force to install them."
+        )
+        return
+    skills_root = (target / layout.skills_dir).resolve()
+    for entry in skills:
+        if not isinstance(entry, dict):
+            continue
+        path, install_as = entry.get("path"), entry.get("install_as")
+        # Defense in depth: validation reports these as notes, but nothing
+        # before this point refuses them — never let a bad manifest reach an
+        # rmtree/copytree outside the pack copy or the skills dir.
+        if not isinstance(path, str) or not is_valid_extension_id(install_as):
+            print(f"  WARN: skipping invalid skills entry {entry!r}")
+            continue
+        source = (pack_copy / path).resolve(strict=False)
+        if not source.is_relative_to(pack_copy.resolve()) or not (source / "SKILL.md").is_file():
+            print(f"  WARN: skipping skills entry with unsafe or empty path {path!r}")
+            continue
+        dest = (skills_root / install_as).resolve(strict=False)
+        if not dest.is_relative_to(skills_root):
+            print(f"  WARN: skipping skills entry {install_as!r} (unsafe destination)")
+            continue
+        if dest.exists():
+            if not force:
+                print(f"  skip: {layout.skills_dir}/{install_as}/ exists (use --force to refresh)")
+                continue
+            shutil.rmtree(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(source, dest)
+        print(f"  installed: {layout.skills_dir}/{install_as}/")
+
+
 def cmd_extension_add(args: argparse.Namespace) -> None:
     """Copy a bundled extension pack into <target>/extensions/<id>/.
 
@@ -176,6 +230,8 @@ def cmd_extension_add(args: argparse.Namespace) -> None:
     if marker:
         for warning in _compat_warnings(pack.manifest, marker):
             print(f"  WARN: {warning}")
+
+    _install_pack_skills(dest, pack.manifest, target, marker, args.force)
 
     print(f"Done. Extension '{pack.id}' added to {dest}")
     _print_validation_notes(target, pack.id)
