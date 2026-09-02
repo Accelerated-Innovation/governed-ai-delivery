@@ -88,6 +88,24 @@ def sync(sha: str, upstream_version: str) -> None:
             sys.exit(f"Error: checkout resolved to {head}, not the requested {sha}.")
 
         plugin = clone / UPSTREAM_PLUGIN
+        # Validate the upstream layout BEFORE deleting anything vendored —
+        # a reshaped upstream must fail with the working tree intact, not
+        # half-erased.
+        upstream_skills = [
+            p for p in sorted((plugin / "skills").glob("*")) if (p / "SKILL.md").is_file()
+        ] if (plugin / "skills").is_dir() else []
+        missing = [
+            str(p.relative_to(clone))
+            for p in (plugin / "LICENSE", plugin / "NOTICE")
+            if not p.is_file()
+        ]
+        if not upstream_skills or missing:
+            sys.exit(
+                f"Error: upstream layout at {sha} is not what this script "
+                f"expects ({UPSTREAM_PLUGIN}/skills/*/SKILL.md plus LICENSE and "
+                f"NOTICE; missing: {missing or 'skills'}). Nothing was deleted."
+            )
+
         pack_skills = PACK_DIR / "skills"
         if pack_skills.exists():
             shutil.rmtree(pack_skills)

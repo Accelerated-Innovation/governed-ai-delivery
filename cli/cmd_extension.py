@@ -148,7 +148,12 @@ def _print_validation_notes(target: Path, ext_id: str) -> None:
 
 
 def _install_pack_skills(
-    pack_copy: Path, manifest: dict, target: Path, marker: dict | None, force: bool
+    pack_copy: Path,
+    manifest: dict,
+    target: Path,
+    marker: dict | None,
+    force: bool,
+    previously_declared: set[str] | None = None,
 ) -> None:
     """Install the pack's declared skills[] into the applied agent's skills dir.
 
@@ -158,20 +163,25 @@ def _install_pack_skills(
     own. An existing destination is skipped unless --force; re-add with
     --force is the refresh path. The copy source is the target's own pack
     copy — extensions/<id>/ stays the source of truth.
+
+    `previously_declared` carries the install_as names the replaced pack
+    version declared; names it dropped are reported (never deleted) so a
+    refresh cannot leave a removed skill active in silence.
     """
     skills = manifest.get("skills") or []
-    if not skills:
-        return
     agent = (marker or {}).get("agent")
     layout = AGENT_LAYOUTS.get(agent)
     if layout is None or layout.skills_dir is None:
-        print(
-            "  WARN: this pack declares agent skills, but no applied agent was "
-            "found in the target. Run `govkit apply` first, then re-run "
-            "`govkit extension add` with --force to install them."
-        )
+        if skills:
+            print(
+                "  WARN: this pack declares agent skills, but no applied agent was "
+                "found in the target. Run `govkit apply` first, then re-run "
+                "`govkit extension add` with --force to install them."
+            )
         return
-    skills_root = (target / layout.skills_dir).resolve()
+    skills_base = target / layout.skills_dir
+    skills_root = skills_base.resolve()
+    declared_now: set[str] = set()
     for entry in skills:
         if not isinstance(entry, dict):
             continue
@@ -182,13 +192,23 @@ def _install_pack_skills(
         if not isinstance(path, str) or not is_valid_extension_id(install_as):
             print(f"  WARN: skipping invalid skills entry {entry!r}")
             continue
+        declared_now.add(install_as)
         source = (pack_copy / path).resolve(strict=False)
         if not source.is_relative_to(pack_copy.resolve()) or not (source / "SKILL.md").is_file():
             print(f"  WARN: skipping skills entry with unsafe or empty path {path!r}")
             continue
-        dest = (skills_root / install_as).resolve(strict=False)
-        if not dest.is_relative_to(skills_root):
+        # fs ops use the UNRESOLVED dest: resolving first would follow a
+        # symlink and point rmtree at whatever the link targets. The resolved
+        # form is only the containment check.
+        dest = skills_base / install_as
+        if not dest.resolve(strict=False).is_relative_to(skills_root):
             print(f"  WARN: skipping skills entry {install_as!r} (unsafe destination)")
+            continue
+        if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
+            print(
+                f"  WARN: {layout.skills_dir}/{install_as} exists but is not a "
+                "regular directory — refusing to touch it."
+            )
             continue
         if dest.exists():
             if not force:
@@ -196,8 +216,17 @@ def _install_pack_skills(
                 continue
             shutil.rmtree(dest)
         dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(source, dest)
+        # Same symlink rule as the git fetch: never dereference a pack's
+        # symlink into the project.
+        shutil.copytree(source, dest, ignore=_ignore_git_and_symlinks)
         print(f"  installed: {layout.skills_dir}/{install_as}/")
+    for stale in sorted((previously_declared or set()) - declared_now):
+        if is_valid_extension_id(stale) and (skills_base / stale).exists():
+            print(
+                f"  WARN: {layout.skills_dir}/{stale}/ was installed by the "
+                "previous pack version but is no longer declared — remove it "
+                "manually if it is unwanted."
+            )
 
 
 def _git(cmd: list[str], cwd: Path | None = None) -> str:
@@ -219,9 +248,16 @@ def _fetch_git_pack(url: str, ref: str | None, clone_dir: Path) -> tuple[Extensi
     """Clone `url` (checked out at `ref` when given) and read the govkit
     manifest at its root. Returns the pack plus the resolved commit SHA —
     the pin recorded into the installed copy."""
-    _git(["clone", "--quiet", url, str(clone_dir)])
+    # A value starting with "-" would be parsed by git as an option
+    # (e.g. --upload-pack=<cmd> executes a command); refuse it outright and
+    # terminate option parsing with "--" as a second layer.
+    for label, value in (("--from-git URL", url), ("--ref", ref)):
+        if value is not None and value.startswith("-"):
+            print(f"Error: {label} {value!r} must not start with '-'.", file=sys.stderr)
+            sys.exit(1)
+    _git(["clone", "--quiet", "--", url, str(clone_dir)])
     if ref:
-        _git(["checkout", "--quiet", ref], cwd=clone_dir)
+        _git(["checkout", "--quiet", ref, "--"], cwd=clone_dir)
     sha = _git(["rev-parse", "HEAD"], cwd=clone_dir)
 
     manifest, err = load_manifest(clone_dir / MANIFEST_FILE)
@@ -259,7 +295,11 @@ def _record_git_origin(dest: Path, url: str, sha: str) -> None:
     if manifest is None:  # pragma: no cover — the fetch already loaded it
         print(f"  WARN: could not record origin pin: {err}")
         return
-    origin = dict(manifest.get("origin") or {})
+    raw_origin = manifest.get("origin")
+    # A remote manifest is untrusted input: a non-mapping origin (e.g.
+    # `origin: hostile`) must degrade to an empty block, not crash the add
+    # after the previous pack copy was already replaced.
+    origin = dict(raw_origin) if isinstance(raw_origin, dict) else {}
     origin["upstream_url"] = url
     origin["upstream_ref"] = sha
     origin.setdefault("license", "unknown")
@@ -273,7 +313,6 @@ def _add_pack(
     pack: Extension,
     target: Path,
     force: bool,
-    copy_ignore=None,
     git_origin: tuple[str, str] | None = None,
 ) -> None:
     """Shared tail of `extension add`: copy the pack into the target, warn on
@@ -287,10 +326,20 @@ def _add_pack(
         )
         sys.exit(1)
 
+    previously_declared: set[str] = set()
     if dest.exists():
+        # Remember what the replaced pack version declared, so skills it
+        # dropped can be reported after the refresh (reported, not deleted).
+        old_manifest, _ = load_manifest(dest / MANIFEST_FILE)
+        for entry in (old_manifest or {}).get("skills") or []:
+            if isinstance(entry, dict) and isinstance(entry.get("install_as"), str):
+                previously_declared.add(entry["install_as"])
         shutil.rmtree(dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(pack.root, dest, ignore=copy_ignore)
+    # Never dereference a pack's symlinks into the project — that would copy
+    # arbitrary files from the machine into a committed folder. Applies to
+    # bundled and hand-vendored packs the same as to git fetches.
+    shutil.copytree(pack.root, dest, ignore=_ignore_git_and_symlinks)
 
     print(f"\nAdding extension '{pack.id}' to {target}")
     name = pack.manifest.get("name", pack.id)
@@ -306,7 +355,10 @@ def _add_pack(
         for warning in _compat_warnings(pack.manifest, marker):
             print(f"  WARN: {warning}")
 
-    _install_pack_skills(dest, pack.manifest, target, marker, force)
+    _install_pack_skills(
+        dest, pack.manifest, target, marker, force,
+        previously_declared=previously_declared,
+    )
 
     print(f"Done. Extension '{pack.id}' added to {dest}")
     _print_validation_notes(target, pack.id)
@@ -332,11 +384,7 @@ def cmd_extension_add(args: argparse.Namespace) -> None:
             pack, sha = _fetch_git_pack(
                 from_git, getattr(args, "ref", None), Path(tmp) / "pack"
             )
-            _add_pack(
-                pack, target, args.force,
-                copy_ignore=_ignore_git_and_symlinks,
-                git_origin=(from_git, sha),
-            )
+            _add_pack(pack, target, args.force, git_origin=(from_git, sha))
         return
 
     pack = next((e for e in _bundled_packs() if e.id == args.extension_id), None)
