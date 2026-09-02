@@ -194,3 +194,24 @@ jobs:
           test -f "$tmp/docs/data/architecture/BOUNDARIES.md"       # baseline contracts
           test -f "$tmp/docs/data/architecture/TECH_STACK.md"       # python-dbt overlay
           grep -q "baseline: python-dbt@" "$tmp/docs/data/architecture/TECH_STACK.md"
+
+      - name: Extension list/add resolve from wheel layout
+        # Extension packs ship via the extensions/ -> cli/extension_packs/
+        # force-include; no other wheel-smoke step touches that mapping, so a
+        # broken or dropped include would only fail here. `add` also proves
+        # the skills-carrying path end-to-end from the wheel: the otter-skills
+        # pack lands with its license files and installs its skills into the
+        # applied agent's skills dir.
+        run: |
+          set -euxo pipefail
+          tmp="$(mktemp -d)"
+          /tmp/wheel-smoke-venv/bin/govkit apply --agent claude-code \
+              --target "$tmp" --level 4 --type api --ci github \
+              --stack python-fastapi
+          out="$(/tmp/wheel-smoke-venv/bin/govkit extension list)"
+          echo "$out"
+          echo "$out" | grep -q "otter-skills"
+          /tmp/wheel-smoke-venv/bin/govkit extension add otter-skills --target "$tmp"
+          test -f "$tmp/extensions/otter-skills/LICENSE"
+          test -f "$tmp/extensions/otter-skills/NOTICE"
+          test -f "$tmp/.claude/skills/otter-unit-testing/SKILL.md"
