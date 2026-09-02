@@ -599,5 +599,40 @@ def test_pr_author_reads_recorded_facts_and_stays_honest(skill_path: Path):
         "Proposed",  # ADR status the author may write...
         "Accepted",  # ...and the one it must not
         "Never merge",  # authority ends at opening the PR
+        "default branch",  # never commit to or push it — branch first
+        "Architecture-governed (Level 3)",  # L3 has a truthful lane, not "ungoverned"
     ):
         assert token in text, f"{skill_path.relative_to(REPO_ROOT)} missing {token!r}"
+
+
+@pytest.mark.parametrize("agent", ("claude-code", "codex", "copilot"))
+def test_every_installed_skill_is_govkit_prefixed(agent: str):
+    """Skills install under a `govkit-` prefix so they never collide with the
+    user's own. Copilot's L5 blocks used to whole-tree-copy `skills/backend/`
+    to `.github/skills/`, shipping an unprefixed duplicate of every skill
+    beside the prefixed copy — this pins the prefix contract for every files
+    entry, at every level, so a tree copy cannot come back."""
+    import json
+
+    manifest = json.loads(
+        (REPO_ROOT / "agents" / agent / "manifest.json").read_text(encoding="utf-8")
+    )
+
+    def _files_lists(node):
+        if isinstance(node, dict):
+            if isinstance(node.get("files"), list):
+                yield node["files"]
+            for value in node.values():
+                yield from _files_lists(value)
+        elif isinstance(node, list):
+            for value in node:
+                yield from _files_lists(value)
+
+    offenders = [
+        entry
+        for files in _files_lists(manifest["variants"])
+        for entry in files
+        if entry["src"].startswith("skills/")
+        and not entry["dest"].rstrip("/").rsplit("/", 1)[-1].startswith("govkit-")
+    ]
+    assert not offenders, f"{agent}: unprefixed skill installs: {offenders}"

@@ -26,11 +26,10 @@ Read the branch's diff against the default branch and decide which lane this cha
 
 1. **Feature lane** — the change implements a feature under `features/`. Name the feature folder.
 2. **Fix lane** — the change carries a `fixes/<id>/fix.yaml` restoring established behavior.
-3. **Ungoverned change** — docs, tooling, or configuration that no lane governs. Say so plainly in the PR body rather than dressing it as one.
+3. **Architecture-governed (Level 3)** — the recorded `level` is 3: there is no `features/` workflow, and a source change is governed by the architecture contracts alone. Describe the change against those contracts and skip the artifact links.
+4. **Ungoverned change** — docs, tooling, or configuration that no lane governs. Say so plainly in the PR body rather than dressing it as one.
 
-A source change with no feature folder and no fix record at Level 4+ is a gap, not a fourth lane. Stop and say which artifacts are missing, and point to the planning skills — do not open a PR that launders an ungoverned source change past the gates.
-
-At Level 3 there is no `features/` workflow; describe the change against the architecture contracts instead and skip the artifact links.
+A source change with no feature folder and no fix record at Level 4+ is a gap, not a fifth lane. Stop and say which artifacts are missing, and point to the planning skills — do not open a PR that launders an ungoverned source change past the gates.
 
 ## Preflight before opening
 
@@ -48,7 +47,7 @@ Run what can be run, and record what happened — not what you hope the gates wi
 **Body** carries, in order:
 
 - **Summary** — what changed and why, in the language of the affected behavior
-- **Lane** — feature `<feature_name>`, fix `<id>`, or ungoverned, with one line saying why the lane fits
+- **Lane** — feature `<feature_name>`, fix `<id>`, architecture-governed (Level 3), or ungoverned, with one line saying why the lane fits
 - **Governing artifacts** — repo-relative links to the feature folder or fix record, and to any ADR the change depends on (with its actual status)
 - **Evidence** — what was run and what it reported: the test command and its result, `govkit validate` output at Level 4+, the red-before-green confirmation for a fix
 - **Gates** — the installed CI gates this PR will trigger, so the reviewer knows what the platform checks and what remains theirs to judge
@@ -57,9 +56,10 @@ Claim only what ran. A gate that has not run yet is listed as pending, not passe
 
 ## Open the PR
 
-1. Commit any uncommitted work in increments per the plan — do not combine increments into one commit.
-2. Push the branch.
-3. Open the PR with the platform CLI that matches `options.ci` — `gh pr create` for GitHub, `az repos pr create` for Azure DevOps — using the authored title and body.
-4. If no platform CLI is available, or pushing is not permitted in this environment, stop after authoring: output the branch name, title, and body ready to paste, and say that opening the PR is the remaining step.
+1. Never commit to or push the default branch. If the work sits on it, create a feature branch and move the changes there first — a push to the default branch bypasses the very gates this skill exists to feed.
+2. Confirm the working tree is clean. Increments are reviewed and committed as they land; uncommitted work here means an increment has not had that review. Hand it back to the user to review and commit — do not batch-commit accumulated work into manufactured increment commits.
+3. Push the branch.
+4. Open the PR with the platform CLI that matches `options.ci` — `gh pr create` for GitHub, `az repos pr create` for Azure DevOps — using the authored title and body.
+5. If no platform CLI is available, or pushing is not permitted in this environment, stop after authoring: output the branch name, title, and body ready to paste, and say that opening the PR is the remaining step.
 
 Never merge. Opening the PR is where this skill's authority ends — the gates and the approvers named in the policy own what happens next.
