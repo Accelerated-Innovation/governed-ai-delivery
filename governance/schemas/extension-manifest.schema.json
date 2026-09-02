@@ -14,7 +14,7 @@
     "version": { "type": "string" },
     "description": { "type": "string" },
     "govkit_min_version": { "type": "string" },
-    "extension_type": { "type": "string", "enum": ["architecture"] },
+    "extension_type": { "type": "string", "enum": ["architecture", "skills"] },
     "supported_levels": {
       "type": "array",
       "items": { "type": "integer" }
@@ -63,6 +63,44 @@
             },
             "additionalProperties": false
           }
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "description": "Agent skills this pack carries. `govkit extension add` installs each into the applied agent's skills directory (e.g. .claude/skills/<install_as>/), skipping any destination that already exists unless --force is given.",
+      "items": {
+        "type": "object",
+        "required": ["path", "install_as"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Extension-folder-relative path to a directory containing SKILL.md."
+          },
+          "install_as": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "description": "Directory name under the agent's skills dir. Convention: <pack-prefix>-<skill-name>."
+          }
+        }
+      }
+    },
+    "origin": {
+      "type": "object",
+      "description": "Provenance for vendored third-party content. Records where the pack's content was copied from and under what license, so attribution and re-vendoring stay auditable.",
+      "required": ["upstream_url", "upstream_ref", "license"],
+      "properties": {
+        "upstream_url": { "type": "string" },
+        "upstream_ref": {
+          "type": "string",
+          "description": "Pinned upstream commit SHA the vendored copy was taken from."
+        },
+        "upstream_version": { "type": "string" },
+        "license": { "type": "string" },
+        "license_files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Extension-folder-relative paths to the upstream license/notice files shipped with the pack."
         }
       }
     },

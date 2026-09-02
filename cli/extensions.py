@@ -167,11 +167,12 @@ def _check_id(manifest: dict, ext: Extension) -> list[str]:
 
 
 def _check_safe_file_path(
-    label: str, path: object, base: Path, base_label: str
+    label: str, path: object, base: Path, base_label: str, must_be_dir: bool = False
 ) -> list[str]:
     """Resolve `path` against `base` and verify it is a relative, contained,
-    existing file. Guards against absolute paths and `..` / symlink escape so
-    a malicious or sloppy manifest cannot reach outside the declared root."""
+    existing file (or directory, with `must_be_dir`). Guards against absolute
+    paths and `..` / symlink escape so a malicious or sloppy manifest cannot
+    reach outside the declared root."""
     if not isinstance(path, str):
         return [f"{label} must be a string"]
     # Cross-platform: Path.is_absolute() is host-OS-specific (e.g. "/foo" is
@@ -183,7 +184,10 @@ def _check_safe_file_path(
     candidate = (base / path).resolve(strict=False)
     if not candidate.is_relative_to(base_resolved):
         return [f"{label}: {path!r} resolves outside {base_label}"]
-    if not candidate.is_file():
+    if must_be_dir:
+        if not candidate.is_dir():
+            return [f"{label}: {path!r} does not exist under {base_label} (or is not a directory)"]
+    elif not candidate.is_file():
         return [f"{label}: {path!r} does not exist under {base_label} (or is not a file)"]
     return []
 
@@ -223,6 +227,48 @@ def _check_templates(manifest: dict, ext: Extension) -> list[str]:
         if path is None:
             continue
         issues.extend(_check_path_entry(f"templates[{i}].path", path, ext))
+    return issues
+
+
+def _check_skills(manifest: dict, ext: Extension) -> list[str]:
+    """Validate skills[] — agent skills the pack asks `extension add` to
+    install into the applied agent's skills directory. Each entry needs a
+    contained directory holding a SKILL.md, and an `install_as` name safe to
+    become a folder under the skills dir (same character rules as extension
+    ids — that pattern is the path-escape guard)."""
+    skills = manifest.get("skills")
+    if skills is None:
+        return []
+    if not isinstance(skills, list):
+        return ["skills must be a list"]
+    issues: list[str] = []
+    seen: set[str] = set()
+    for i, entry in enumerate(skills):
+        if not isinstance(entry, dict):
+            issues.append(f"skills[{i}] must be a mapping")
+            continue
+        path = entry.get("path")
+        if path is None:
+            issues.append(f"skills[{i}] missing required field: path")
+        else:
+            path_issues = _check_safe_file_path(
+                f"skills[{i}].path", path, ext.root,
+                f"{EXTENSIONS_DIR}/{ext.id}/", must_be_dir=True,
+            )
+            issues.extend(path_issues)
+            if not path_issues and not (ext.root / path / "SKILL.md").is_file():
+                issues.append(f"skills[{i}].path: {path!r} contains no SKILL.md")
+        install_as = entry.get("install_as")
+        if install_as is None:
+            issues.append(f"skills[{i}] missing required field: install_as")
+        elif not is_valid_extension_id(install_as):
+            issues.append(
+                f"skills[{i}].install_as: {install_as!r} must match ^[a-z0-9][a-z0-9-]*$"
+            )
+        elif install_as in seen:
+            issues.append(f"skills[{i}].install_as: duplicate name {install_as!r}")
+        else:
+            seen.add(install_as)
     return issues
 
 
@@ -375,6 +421,8 @@ def validate_extension(ext: Extension, target: Path) -> list[str]:
       - id format and folder-name match
       - contract_sets[].paths exist under ext.root
       - templates[].path exist under ext.root
+      - skills[] entries name contained SKILL.md directories and safe
+        install_as names
       - implementation_profiles[].path exist under ext.root (product-naming
         profiles; exempt from the neutrality/overlap heuristic by design)
 
@@ -389,6 +437,7 @@ def validate_extension(ext: Extension, target: Path) -> list[str]:
         *_check_id(m, ext),
         *_check_contract_sets(m, ext),
         *_check_templates(m, ext),
+        *_check_skills(m, ext),
         *_check_implementation_profiles(m, ext),
         *_check_relates_to(m, target),
         *_check_undeclared_overlap(m, target),

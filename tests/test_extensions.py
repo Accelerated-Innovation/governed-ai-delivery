@@ -811,3 +811,108 @@ class TestImplementationProfileValidation:
         ext = discover_extensions(tmp_path)[0]
         issues = validate_extension(ext, tmp_path)
         assert not any("overlaps core" in i for i in issues), issues
+
+
+# ---------------------------------------------------------------------------
+# skills[] — packs that carry agent skills
+# ---------------------------------------------------------------------------
+
+SKILLS_MANIFEST = """\
+id: craft-pack
+name: Craft Pack
+version: 0.1.0
+extension_type: skills
+contract_sets: []
+skills:
+  - path: skills/unit-testing
+    install_as: craft-unit-testing
+"""
+
+
+def _write_skills_extension(target: Path, manifest_body: str = SKILLS_MANIFEST) -> Path:
+    ext_dir = _write_extension(target, "craft-pack", manifest_body)
+    skill_dir = ext_dir / "skills" / "unit-testing"
+    skill_dir.mkdir(parents=True, exist_ok=True)
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: unit-testing\ndescription: d\n---\n", encoding="utf-8"
+    )
+    return ext_dir
+
+
+class TestValidateSkills:
+    def _issues(self, target: Path) -> list[str]:
+        ext = discover_extensions(target)[0]
+        return validate_extension(ext, target)
+
+    def test_valid_skills_pack_no_issues(self, tmp_path):
+        _write_skills_extension(tmp_path)
+        assert self._issues(tmp_path) == []
+
+    def test_skills_must_be_a_list(self, tmp_path):
+        body = SKILLS_MANIFEST.replace(
+            "skills:\n  - path: skills/unit-testing\n    install_as: craft-unit-testing",
+            "skills: not-a-list",
+        )
+        _write_skills_extension(tmp_path, body)
+        assert any("skills must be a list" in i for i in self._issues(tmp_path))
+
+    def test_entry_must_be_a_mapping(self, tmp_path):
+        body = SKILLS_MANIFEST.replace(
+            "  - path: skills/unit-testing\n    install_as: craft-unit-testing",
+            "  - just-a-string",
+        )
+        _write_skills_extension(tmp_path, body)
+        assert any("skills[0] must be a mapping" in i for i in self._issues(tmp_path))
+
+    def test_missing_path_reported(self, tmp_path):
+        body = SKILLS_MANIFEST.replace("  - path: skills/unit-testing\n", "  - ")
+        _write_skills_extension(tmp_path, body)
+        assert any("skills[0] missing required field: path" in i for i in self._issues(tmp_path))
+
+    def test_missing_install_as_reported(self, tmp_path):
+        body = SKILLS_MANIFEST.replace("    install_as: craft-unit-testing\n", "")
+        _write_skills_extension(tmp_path, body)
+        assert any(
+            "skills[0] missing required field: install_as" in i for i in self._issues(tmp_path)
+        )
+
+    def test_install_as_traversal_rejected(self, tmp_path):
+        """install_as becomes a folder name under the agent's skills dir — the
+        id pattern is the only thing standing between a manifest and a path
+        escape, exactly as for extension ids."""
+        body = SKILLS_MANIFEST.replace("craft-unit-testing", "../evil")
+        _write_skills_extension(tmp_path, body)
+        assert any("install_as" in i and "../evil" in i for i in self._issues(tmp_path))
+
+    def test_install_as_uppercase_rejected(self, tmp_path):
+        body = SKILLS_MANIFEST.replace("craft-unit-testing", "Craft-Unit-Testing")
+        _write_skills_extension(tmp_path, body)
+        assert any("install_as" in i for i in self._issues(tmp_path))
+
+    def test_path_escaping_pack_reported(self, tmp_path):
+        body = SKILLS_MANIFEST.replace("skills/unit-testing", "../../outside")
+        _write_skills_extension(tmp_path, body)
+        assert any("resolves outside" in i for i in self._issues(tmp_path))
+
+    def test_absolute_path_reported(self, tmp_path):
+        body = SKILLS_MANIFEST.replace("skills/unit-testing", "/abs/skills")
+        _write_skills_extension(tmp_path, body)
+        assert any("must be relative" in i for i in self._issues(tmp_path))
+
+    def test_dir_without_skill_md_reported(self, tmp_path):
+        ext_dir = _write_skills_extension(tmp_path)
+        (ext_dir / "skills" / "unit-testing" / "SKILL.md").unlink()
+        assert any("contains no SKILL.md" in i for i in self._issues(tmp_path))
+
+    def test_duplicate_install_as_reported(self, tmp_path):
+        body = SKILLS_MANIFEST + (
+            "  - path: skills/unit-testing\n    install_as: craft-unit-testing\n"
+        )
+        _write_skills_extension(tmp_path, body)
+        assert any("duplicate name" in i for i in self._issues(tmp_path))
+
+    def test_absent_skills_key_is_fine(self, tmp_path):
+        """All existing packs have no skills key — nothing may start failing."""
+        _write_valid_extension(tmp_path)
+        ext = discover_extensions(tmp_path)[0]
+        assert validate_extension(ext, tmp_path) == []
