@@ -1,0 +1,32 @@
+id: otter-skills
+name: Otter Skills (third-party)
+version: 0.1.6
+description: >-
+  Seven engineering-craft agent skills (unit testing, atomic commits, story
+  splitting, naming, legacy-code safety, refactoring review) vendored from
+  tottinge/otter-skills. Installs into your agent's skills directory as
+  otter-<skill>.
+govkit_min_version: 0.0.0
+extension_type: skills
+contract_sets: []
+origin:
+  upstream_url: https://github.com/tottinge/otter-skills
+  upstream_ref: c9acbd139d182211cbea9b8f6d22a47af15266df
+  upstream_version: 0.1.6
+  license: Apache-2.0
+  license_files: [LICENSE, NOTICE]
+skills:
+  - path: skills/atomic-commit
+    install_as: otter-atomic-commit
+  - path: skills/code-object-naming
+    install_as: otter-code-object-naming
+  - path: skills/legacy-code-safety
+    install_as: otter-legacy-code-safety
+  - path: skills/representation-refactor-review
+    install_as: otter-representation-refactor-review
+  - path: skills/story-splitting-for-delivery
+    install_as: otter-story-splitting-for-delivery
+  - path: skills/unit-testing
+    install_as: otter-unit-testing
+  - path: skills/user-pov-sliced-stories
+    install_as: otter-user-pov-sliced-stories

@@ -27,6 +27,7 @@ def test_extension_packs_dir_exists_and_has_bundled_packs():
     }
     assert {
         "llm-application",
+        "otter-skills",
         "skill-oriented-agent-architecture",
         "vision-inference",
     } <= ids, f"bundled packs missing; found {ids}"
@@ -162,3 +163,414 @@ class TestExtensionAddSafety:
 
         cmd_extension_add(_add_args("okay-ext", target))
         assert (target / "extensions" / "okay-ext" / "manifest.yaml").exists()
+
+
+class TestExtensionAddSkills:
+    """A pack may declare skills[]; `add` installs each into the applied
+    agent's skills dir. Third-party content is skip-not-clobber: an existing
+    destination survives unless --force, and govkit never installs skills
+    into a target with no applied agent."""
+
+    SKILL_BODY = "---\nname: unit-testing\ndescription: d\n---\nbody v1\n"
+
+    @classmethod
+    def _bundle_skills_pack(cls, packs_dir, manifest_extra=""):
+        pack = packs_dir / "craft-pack"
+        skill = pack / "skills" / "unit-testing"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text(cls.SKILL_BODY, encoding="utf-8")
+        (skill / "references").mkdir()
+        (skill / "references" / "notes.md").write_text("ref", encoding="utf-8")
+        (pack / "manifest.yaml").write_text(
+            "id: craft-pack\nname: Craft Pack\nversion: 0.1.0\n"
+            "extension_type: skills\ncontract_sets: []\n"
+            "skills:\n"
+            "  - path: skills/unit-testing\n"
+            "    install_as: craft-unit-testing\n" + manifest_extra,
+            encoding="utf-8",
+        )
+        return pack
+
+    def _target_with_marker(self, tmp_path, agent="claude-code"):
+        from cli.marker import write_govkit_marker
+
+        target = tmp_path / "proj"
+        target.mkdir()
+        write_govkit_marker(target, agent, "4", {"type": "api", "ci": "github"})
+        return target
+
+    @pytest.mark.parametrize(
+        "agent, skills_dir",
+        [
+            ("claude-code", ".claude/skills"),
+            ("codex", ".agents/skills"),
+            ("copilot", ".github/skills"),
+        ],
+    )
+    def test_installs_skills_into_the_applied_agents_dir(
+        self, tmp_path, monkeypatch, agent, skills_dir
+    ):
+        monkeypatch.setattr(paths, "EXTENSION_PACKS_DIR", tmp_path / "packs")
+        self._bundle_skills_pack(tmp_path / "packs")
+        target = self._target_with_marker(tmp_path, agent)
+
+        cmd_extension_add(_add_args("craft-pack", target))
+
+        installed = target / skills_dir / "craft-unit-testing"
+        assert (installed / "SKILL.md").read_text(encoding="utf-8") == self.SKILL_BODY
+        assert (installed / "references" / "notes.md").is_file()
+
+    def test_existing_skill_dir_is_skipped_not_clobbered(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.setattr(paths, "EXTENSION_PACKS_DIR", tmp_path / "packs")
+        self._bundle_skills_pack(tmp_path / "packs")
+        target = self._target_with_marker(tmp_path)
+        team_copy = target / ".claude" / "skills" / "craft-unit-testing"
+        team_copy.mkdir(parents=True)
+        (team_copy / "SKILL.md").write_text("team-edited", encoding="utf-8")
+
+        cmd_extension_add(_add_args("craft-pack", target))
+
+        assert (team_copy / "SKILL.md").read_text(encoding="utf-8") == "team-edited"
+        assert "skip: .claude/skills/craft-unit-testing/" in capsys.readouterr().out
+
+    def test_force_refreshes_the_skill_dir(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(paths, "EXTENSION_PACKS_DIR", tmp_path / "packs")
+        self._bundle_skills_pack(tmp_path / "packs")
+        target = self._target_with_marker(tmp_path)
+        team_copy = target / ".claude" / "skills" / "craft-unit-testing"
+        team_copy.mkdir(parents=True)
+        (team_copy / "SKILL.md").write_text("team-edited", encoding="utf-8")
+
+        cmd_extension_add(_add_args("craft-pack", target, force=True))
+
+        assert (team_copy / "SKILL.md").read_text(encoding="utf-8") == self.SKILL_BODY
+
+    def test_no_marker_warns_and_installs_pack_but_not_skills(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        monkeypatch.setattr(paths, "EXTENSION_PACKS_DIR", tmp_path / "packs")
+        self._bundle_skills_pack(tmp_path / "packs")
+        target = tmp_path / "proj"
+        target.mkdir()
+
+        cmd_extension_add(_add_args("craft-pack", target))
+
+        out = capsys.readouterr().out
+        assert (target / "extensions" / "craft-pack" / "manifest.yaml").exists()
+        assert not (target / ".claude" / "skills").exists()
+        assert "no applied agent" in out
+
+    def test_traversal_path_and_install_as_are_skipped(self, tmp_path, monkeypatch, capsys):
+        """Validation only reports; the installer itself must refuse to copy
+        from outside the pack or to a name that escapes the skills dir."""
+        monkeypatch.setattr(paths, "EXTENSION_PACKS_DIR", tmp_path / "packs")
+        self._bundle_skills_pack(
+            tmp_path / "packs",
+            manifest_extra=(
+                "  - path: ../../outside\n    install_as: craft-outside\n"
+                "  - path: skills/unit-testing\n    install_as: ../evil\n"
+            ),
+        )
+        outside = tmp_path / "packs" / "outside"
+        outside.mkdir()
+        (outside / "SKILL.md").write_text("outside", encoding="utf-8")
+        target = self._target_with_marker(tmp_path)
+
+        cmd_extension_add(_add_args("craft-pack", target))
+
+        out = capsys.readouterr().out
+        assert (target / ".claude" / "skills" / "craft-unit-testing" / "SKILL.md").is_file()
+        assert not (target / ".claude" / "skills" / "craft-outside").exists()
+        assert not (target / ".claude" / "evil").exists()
+        assert out.count("WARN: skipping") == 2
+
+    def test_pack_without_skills_key_installs_nothing_extra(self, tmp_path, monkeypatch):
+        # control: existing architecture packs are untouched by the skills path
+        cmd_extension_add(_add_args("vision-inference", self._target_with_marker(tmp_path)))
+        assert not (tmp_path / "proj" / ".claude" / "skills").exists()
+
+    def test_bundled_otter_skills_pack_installs_all_seven(self, tmp_path):
+        """End-to-end with the real vendored pack: every declared skill lands
+        under the otter- prefix, license and notice travel with the pack."""
+        target = self._target_with_marker(tmp_path)
+        cmd_extension_add(_add_args("otter-skills", target))
+        assert (target / "extensions" / "otter-skills" / "LICENSE").is_file()
+        assert (target / "extensions" / "otter-skills" / "NOTICE").is_file()
+        installed = sorted(p.name for p in (target / ".claude" / "skills").iterdir())
+        assert len(installed) == 7
+        assert all(name.startswith("otter-") for name in installed)
+        assert (target / ".claude" / "skills" / "otter-unit-testing" / "SKILL.md").is_file()
+
+
+class TestExtensionAddFromGit:
+    """`add --from-git <url>` fetches a pack from any git repo whose root
+    carries a govkit manifest.yaml — govkit's only network touch, on this
+    explicit opt-in. The resolved commit is pinned into the installed
+    manifest's origin so the project holds the record."""
+
+    MANIFEST = (
+        "id: remote-pack\nname: Remote Pack\nversion: 1.0.0\n"
+        "extension_type: skills\ncontract_sets: []\n"
+        "skills:\n  - path: skills/unit-testing\n    install_as: remote-unit-testing\n"
+    )
+
+    @staticmethod
+    def _git(repo, *cmd):
+        import subprocess
+
+        return subprocess.run(
+            ["git", "-c", "user.email=t@example.com", "-c", "user.name=t", *cmd],
+            cwd=repo, check=True, capture_output=True, text=True,
+        ).stdout.strip()
+
+    @classmethod
+    def _make_remote(cls, path, manifest=None):
+        """A local git repo standing in for the remote (git clones from paths)."""
+        path.mkdir(parents=True)
+        if manifest is not None:
+            (path / "manifest.yaml").write_text(manifest, encoding="utf-8")
+        skill = path / "skills" / "unit-testing"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text(
+            "---\nname: unit-testing\ndescription: d\n---\nv1\n", encoding="utf-8"
+        )
+        cls._git(path, "init", "--quiet")
+        cls._git(path, "add", "-A")
+        cls._git(path, "commit", "--quiet", "-m", "v1")
+        return cls._git(path, "rev-parse", "HEAD")
+
+    @staticmethod
+    def _from_git_args(url, target, ref=None, force=False):
+        return argparse.Namespace(
+            extension_id=None, from_git=str(url), ref=ref, target=str(target), force=force
+        )
+
+    def _marked_target(self, tmp_path):
+        from cli.marker import write_govkit_marker
+
+        target = tmp_path / "proj"
+        target.mkdir()
+        write_govkit_marker(target, "claude-code", "4", {"type": "api", "ci": "github"})
+        return target
+
+    def test_fetches_installs_and_pins_the_resolved_commit(self, tmp_path):
+        import yaml
+
+        sha = self._make_remote(tmp_path / "remote", self.MANIFEST)
+        target = self._marked_target(tmp_path)
+
+        cmd_extension_add(self._from_git_args(tmp_path / "remote", target))
+
+        installed = target / "extensions" / "remote-pack"
+        assert (installed / "manifest.yaml").is_file()
+        assert not (installed / ".git").exists()
+        origin = yaml.safe_load((installed / "manifest.yaml").read_text(encoding="utf-8"))[
+            "origin"
+        ]
+        assert origin["upstream_ref"] == sha
+        assert origin["upstream_url"] == str(tmp_path / "remote")
+        assert (
+            target / ".claude" / "skills" / "remote-unit-testing" / "SKILL.md"
+        ).is_file()
+
+    def test_ref_pins_an_older_commit(self, tmp_path):
+        import yaml
+
+        remote = tmp_path / "remote"
+        v1 = self._make_remote(remote, self.MANIFEST)
+        (remote / "skills" / "unit-testing" / "SKILL.md").write_text(
+            "---\nname: unit-testing\ndescription: d\n---\nv2\n", encoding="utf-8"
+        )
+        self._git(remote, "add", "-A")
+        self._git(remote, "commit", "--quiet", "-m", "v2")
+        target = self._marked_target(tmp_path)
+
+        cmd_extension_add(self._from_git_args(remote, target, ref=v1))
+
+        installed = target / "extensions" / "remote-pack"
+        origin = yaml.safe_load((installed / "manifest.yaml").read_text(encoding="utf-8"))[
+            "origin"
+        ]
+        assert origin["upstream_ref"] == v1
+        assert "v1" in (
+            target / ".claude" / "skills" / "remote-unit-testing" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+
+    def test_repo_without_manifest_is_refused(self, tmp_path):
+        self._make_remote(tmp_path / "remote", manifest=None)
+        target = self._marked_target(tmp_path)
+        with pytest.raises(SystemExit):
+            cmd_extension_add(self._from_git_args(tmp_path / "remote", target))
+        assert not (target / "extensions").exists()
+
+    def test_symlinks_in_the_repo_are_not_copied(self, tmp_path):
+        """A hostile repo's symlink must not dereference into the pack copy —
+        that would commit files from the maintainer's machine."""
+        secret = tmp_path / "secret.txt"
+        secret.write_text("private", encoding="utf-8")
+        remote = tmp_path / "remote"
+        remote.mkdir()
+        (remote / "manifest.yaml").write_text(self.MANIFEST, encoding="utf-8")
+        skill = remote / "skills" / "unit-testing"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text(
+            "---\nname: unit-testing\ndescription: d\n---\nv1\n", encoding="utf-8"
+        )
+        (remote / "link.txt").symlink_to(secret)
+        self._git(remote, "init", "--quiet")
+        self._git(remote, "add", "-A")
+        self._git(remote, "commit", "--quiet", "-m", "v1")
+        target = self._marked_target(tmp_path)
+
+        cmd_extension_add(self._from_git_args(remote, target))
+
+        assert not (target / "extensions" / "remote-pack" / "link.txt").exists()
+
+    def test_existing_dest_needs_force_and_force_refreshes(self, tmp_path):
+        remote = tmp_path / "remote"
+        self._make_remote(remote, self.MANIFEST)
+        target = self._marked_target(tmp_path)
+        cmd_extension_add(self._from_git_args(remote, target))
+
+        with pytest.raises(SystemExit):
+            cmd_extension_add(self._from_git_args(remote, target))
+        cmd_extension_add(self._from_git_args(remote, target, force=True))
+        assert (target / "extensions" / "remote-pack" / "manifest.yaml").is_file()
+
+    def test_dispatch_requires_exactly_one_source(self, tmp_path):
+        from cli.cmd_extension import _cmd_extension_add_dispatch
+
+        both = argparse.Namespace(
+            extension_id="vision-inference", from_git="url", ref=None,
+            target=str(tmp_path), force=False,
+        )
+        neither = argparse.Namespace(
+            extension_id=None, from_git=None, ref=None, target=str(tmp_path), force=False
+        )
+        ref_alone = argparse.Namespace(
+            extension_id="vision-inference", from_git=None, ref="main",
+            target=str(tmp_path), force=False,
+        )
+        for ns in (both, neither, ref_alone):
+            with pytest.raises(SystemExit):
+                _cmd_extension_add_dispatch(ns)
+
+
+class TestExtensionAddHardening:
+    """Fixes from the PR review: option-injection guards on --from-git,
+    graceful handling of hostile manifests, symlink-safe destinations, and
+    reporting of skills a refreshed pack no longer declares."""
+
+    def test_option_like_url_is_refused_before_any_git_run(self, tmp_path, capsys):
+        args = argparse.Namespace(
+            extension_id=None, from_git="--upload-pack=touch /tmp/pwned",
+            ref=None, target=str(tmp_path), force=False,
+        )
+        with pytest.raises(SystemExit):
+            cmd_extension_add(args)
+        assert "must not start with '-'" in capsys.readouterr().err
+
+    def test_option_like_ref_is_refused(self, tmp_path, capsys):
+        remote = tmp_path / "remote"
+        TestExtensionAddFromGit._make_remote(remote, TestExtensionAddFromGit.MANIFEST)
+        args = argparse.Namespace(
+            extension_id=None, from_git=str(remote), ref="-b",
+            target=str(tmp_path), force=False,
+        )
+        with pytest.raises(SystemExit):
+            cmd_extension_add(args)
+        assert "must not start with '-'" in capsys.readouterr().err
+
+    def test_non_mapping_origin_in_remote_manifest_does_not_crash(self, tmp_path):
+        import yaml
+
+        manifest = TestExtensionAddFromGit.MANIFEST + "origin: hostile\n"
+        sha = TestExtensionAddFromGit._make_remote(tmp_path / "remote", manifest)
+        target = tmp_path / "proj"
+        target.mkdir()
+
+        cmd_extension_add(
+            TestExtensionAddFromGit._from_git_args(tmp_path / "remote", target)
+        )
+
+        installed = yaml.safe_load(
+            (target / "extensions" / "remote-pack" / "manifest.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+        assert installed["origin"]["upstream_ref"] == sha
+
+    def _skills_target(self, tmp_path, monkeypatch, manifest_extra=""):
+        monkeypatch.setattr(paths, "EXTENSION_PACKS_DIR", tmp_path / "packs")
+        TestExtensionAddSkills._bundle_skills_pack(tmp_path / "packs", manifest_extra)
+        from cli.marker import write_govkit_marker
+
+        target = tmp_path / "proj"
+        target.mkdir()
+        write_govkit_marker(target, "claude-code", "4", {"type": "api", "ci": "github"})
+        return target
+
+    def test_symlinked_destination_is_refused_and_target_survives(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        """Resolving before rmtree would delete whatever the link points at."""
+        target = self._skills_target(tmp_path, monkeypatch)
+        shared = target / ".claude" / "skills" / "shared-dir"
+        shared.mkdir(parents=True)
+        (shared / "keep.md").write_text("keep", encoding="utf-8")
+        (target / ".claude" / "skills" / "craft-unit-testing").symlink_to(shared)
+
+        cmd_extension_add(_add_args("craft-pack", target, force=True))
+
+        assert (shared / "keep.md").is_file()
+        assert (target / ".claude" / "skills" / "craft-unit-testing").is_symlink()
+        assert "not a regular directory" in capsys.readouterr().out
+
+    def test_file_destination_is_refused_without_crash(self, tmp_path, monkeypatch, capsys):
+        target = self._skills_target(tmp_path, monkeypatch)
+        (target / ".claude" / "skills").mkdir(parents=True)
+        dest = target / ".claude" / "skills" / "craft-unit-testing"
+        dest.write_text("a file, not a dir", encoding="utf-8")
+
+        cmd_extension_add(_add_args("craft-pack", target, force=True))
+
+        assert dest.read_text(encoding="utf-8") == "a file, not a dir"
+        assert "not a regular directory" in capsys.readouterr().out
+
+    def test_symlink_inside_a_pack_skill_is_not_dereferenced(self, tmp_path, monkeypatch):
+        secret = tmp_path / "secret.txt"
+        secret.write_text("private", encoding="utf-8")
+        target = self._skills_target(tmp_path, monkeypatch)
+        skill_src = tmp_path / "packs" / "craft-pack" / "skills" / "unit-testing"
+        (skill_src / "leak.txt").symlink_to(secret)
+
+        cmd_extension_add(_add_args("craft-pack", target))
+
+        installed = target / ".claude" / "skills" / "craft-unit-testing"
+        assert (installed / "SKILL.md").is_file()
+        assert not (installed / "leak.txt").exists()
+
+    def test_force_refresh_reports_skills_the_new_version_dropped(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        """Report, never delete: a skill the refreshed pack no longer declares
+        stays on disk but must not linger in silence."""
+        target = self._skills_target(
+            tmp_path, monkeypatch,
+            manifest_extra="  - path: skills/unit-testing\n    install_as: craft-extra\n",
+        )
+        cmd_extension_add(_add_args("craft-pack", target))
+        assert (target / ".claude" / "skills" / "craft-extra").is_dir()
+
+        # Upstream drops craft-extra in the next version.
+        (tmp_path / "packs" / "craft-pack" / "manifest.yaml").write_text(
+            "id: craft-pack\nname: Craft Pack\nversion: 0.2.0\n"
+            "extension_type: skills\ncontract_sets: []\n"
+            "skills:\n  - path: skills/unit-testing\n    install_as: craft-unit-testing\n",
+            encoding="utf-8",
+        )
+        cmd_extension_add(_add_args("craft-pack", target, force=True))
+
+        out = capsys.readouterr().out
+        assert (target / ".claude" / "skills" / "craft-extra").is_dir()  # never deleted
+        assert "craft-extra" in out and "no longer declared" in out

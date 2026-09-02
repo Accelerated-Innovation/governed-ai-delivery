@@ -549,6 +549,52 @@ class TestSchemaRelatesTo:
 
 
 # ---------------------------------------------------------------------------
+# Extension manifest schema — skills packs
+# ---------------------------------------------------------------------------
+
+
+class TestSchemaSkillsPack:
+    def _validate(self, manifest: dict) -> list:
+        schema = json.loads(EXT_SCHEMA_PATH.read_text(encoding="utf-8"))
+        return list(Draft202012Validator(schema).iter_errors(manifest))
+
+    def _skills_manifest(self, **overrides) -> dict:
+        m = _minimal_ext_manifest(
+            extension_type="skills",
+            contract_sets=[],
+            skills=[{"path": "skills/unit-testing", "install_as": "craft-unit-testing"}],
+            origin={
+                "upstream_url": "https://example.com/repo",
+                "upstream_ref": "c" * 40,
+                "license": "Apache-2.0",
+            },
+        )
+        m.update(overrides)
+        return m
+
+    def test_schema_accepts_a_skills_pack(self):
+        assert self._validate(self._skills_manifest()) == []
+
+    def test_schema_accepts_extension_type_skills(self):
+        assert self._validate(_minimal_ext_manifest(extension_type="skills")) == []
+
+    def test_schema_rejects_traversal_install_as(self):
+        m = self._skills_manifest()
+        m["skills"][0]["install_as"] = "../evil"
+        assert self._validate(m) != []
+
+    def test_schema_rejects_skill_entry_missing_install_as(self):
+        m = self._skills_manifest()
+        del m["skills"][0]["install_as"]
+        assert self._validate(m) != []
+
+    def test_schema_rejects_origin_missing_ref(self):
+        m = self._skills_manifest()
+        del m["origin"]["upstream_ref"]
+        assert self._validate(m) != []
+
+
+# ---------------------------------------------------------------------------
 # .govkit/marker.json schema (PR 1 / A11)
 # ---------------------------------------------------------------------------
 

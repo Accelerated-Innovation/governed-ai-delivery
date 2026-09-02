@@ -643,6 +643,17 @@ provider-neutral LLM applications, vision inference, and skill-oriented agent
 architecture. Install them when the project needs those constraints; do not add
 them just to make a first adoption look complete.
 
+A pack can also carry agent skills: the bundled `otter-skills` pack installs
+seven third-party software-craft skills (vendored from tottinge/otter-skills
+at a pinned commit) into the applied agent's skills directory as
+`otter-<skill>`, skipping any skill directory that already exists.
+
+Packs need not be bundled. `govkit extension add --from-git <url>` fetches
+one from any git repository carrying a root `manifest.yaml`, pins the
+resolved commit into the installed manifest, and leaves the copy under
+`extensions/<id>/` for your repo to hold — updates arrive as reviewable
+diffs when you re-add with `--force`.
+
 ### Upgrades And Stack Changes
 
 Refresh files GovKit owns while preserving project-owned edits:
@@ -712,7 +723,7 @@ needs to find the underlying files.
 | Worked examples | `features/schema_contract_example/`, `features/ui_task_dashboard/`, `features/example-jwt-unification/` | Example governed feature material. |
 | Stack overlays | `cli/stacks/` | Runtime/framework-specific contract overlays for backend and data project types. |
 | CI gates | `ci/github/`, `ci/azure/` | Type-, level-, stack-, and extension-aware workflow templates. |
-| Extensions | `extensions/` | Optional contract packs for LLM applications, vision inference, and skill-oriented agent architecture. |
+| Extensions | `extensions/` | Optional packs: contracts for LLM applications, vision inference, and skill-oriented agent architecture, plus the third-party otter-skills agent-skills pack. |
 | Tests | `tests/` | Regression coverage for CLI behavior, schema contracts, manifests, templates, stack selection, validation, and CI composition. |
 | Research/planning | `plans/`, `plans/research/` | Design plans, product positioning, page prototypes, and roadmap material. |
 
