@@ -9,22 +9,37 @@ Extension packs ship with the wheel (cli/extension_packs/, force-included from
 the repo's extensions/). `extension add` copies a pack into the target's
 extensions/<id>/ folder, where govkit's existing discovery/validate already
 operates. Mirrors the shape of `cmd_stack` (list + apply over a bundled set).
+
+`extension add --from-git <url>` fetches a pack from a git repository whose
+root carries a govkit manifest.yaml instead of using the bundled set. This is
+the one place govkit touches the network, and only on this explicit opt-in —
+`apply` and everything else stay offline. The fetched copy lands under the
+target's extensions/<id>/ with the resolved commit recorded in
+origin.upstream_ref, so the *project* holds the pin and later re-adds show
+upstream changes as reviewable diffs.
 """
 
 from __future__ import annotations
 
 import argparse
 import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
+
+import yaml
 
 from . import paths
 from .agent_layout import AGENT_LAYOUTS
 from .extensions import (
     EXTENSIONS_DIR,
+    MANIFEST_FILE,
+    Extension,
     discover_extensions,
     discover_in,
     is_valid_extension_id,
+    load_manifest,
     validate_extension,
 )
 from .marker import read_govkit_marker
@@ -185,8 +200,121 @@ def _install_pack_skills(
         print(f"  installed: {layout.skills_dir}/{install_as}/")
 
 
+def _git(cmd: list[str], cwd: Path | None = None) -> str:
+    """Run a git command; exit with the stderr on failure, and with an
+    instruction to install git when the binary is absent."""
+    try:
+        return subprocess.run(
+            ["git", *cmd], cwd=cwd, check=True, capture_output=True, text=True
+        ).stdout.strip()
+    except FileNotFoundError:
+        print("Error: --from-git requires the `git` command on PATH.", file=sys.stderr)
+        sys.exit(1)
+    except subprocess.CalledProcessError as exc:
+        print(f"Error: git {cmd[0]} failed: {exc.stderr.strip()}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _fetch_git_pack(url: str, ref: str | None, clone_dir: Path) -> tuple[Extension, str]:
+    """Clone `url` (checked out at `ref` when given) and read the govkit
+    manifest at its root. Returns the pack plus the resolved commit SHA —
+    the pin recorded into the installed copy."""
+    _git(["clone", "--quiet", url, str(clone_dir)])
+    if ref:
+        _git(["checkout", "--quiet", ref], cwd=clone_dir)
+    sha = _git(["rev-parse", "HEAD"], cwd=clone_dir)
+
+    manifest, err = load_manifest(clone_dir / MANIFEST_FILE)
+    if manifest is None:
+        print(
+            f"Error: {url} does not carry a govkit extension pack — "
+            f"expected {MANIFEST_FILE} at the repository root ({err}).",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    ext_id = manifest.get("id")
+    if not is_valid_extension_id(ext_id):
+        print(
+            f"Error: the fetched manifest's id {ext_id!r} is not a valid "
+            "extension id; refusing to install.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return Extension(id=ext_id, root=clone_dir, manifest=manifest), sha
+
+
+def _ignore_git_and_symlinks(src: str, names: list[str]) -> set[str]:
+    """copytree ignore for fetched repos: drop .git, and drop symlinks —
+    dereferencing a hostile repo's symlink would copy files from the
+    maintainer's machine into a folder that gets committed."""
+    return {n for n in names if n == ".git" or (Path(src) / n).is_symlink()}
+
+
+def _record_git_origin(dest: Path, url: str, sha: str) -> None:
+    """Pin the fetch into the installed manifest's origin block. The project
+    copy is the record — a later re-add shows upstream changes as a diff
+    against exactly this commit."""
+    manifest_path = dest / MANIFEST_FILE
+    manifest, err = load_manifest(manifest_path)
+    if manifest is None:  # pragma: no cover — the fetch already loaded it
+        print(f"  WARN: could not record origin pin: {err}")
+        return
+    origin = dict(manifest.get("origin") or {})
+    origin["upstream_url"] = url
+    origin["upstream_ref"] = sha
+    origin.setdefault("license", "unknown")
+    manifest["origin"] = origin
+    manifest_path.write_text(
+        yaml.safe_dump(manifest, sort_keys=False, allow_unicode=True), encoding="utf-8"
+    )
+
+
+def _add_pack(
+    pack: Extension,
+    target: Path,
+    force: bool,
+    copy_ignore=None,
+    git_origin: tuple[str, str] | None = None,
+) -> None:
+    """Shared tail of `extension add`: copy the pack into the target, warn on
+    marker mismatches, install declared skills, validate in place."""
+    dest = _resolve_dest(target, pack)
+
+    if dest.exists() and not force:
+        print(
+            f"Error: '{dest}' already exists. Re-run with --force to overwrite.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    if dest.exists():
+        shutil.rmtree(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(pack.root, dest, ignore=copy_ignore)
+
+    print(f"\nAdding extension '{pack.id}' to {target}")
+    name = pack.manifest.get("name", pack.id)
+    if name != pack.id:
+        print(f"  {name}")
+    if git_origin is not None:
+        url, sha = git_origin
+        _record_git_origin(dest, url, sha)
+        print(f"  pinned: {url} @ {sha}")
+
+    marker = read_govkit_marker(target)
+    if marker:
+        for warning in _compat_warnings(pack.manifest, marker):
+            print(f"  WARN: {warning}")
+
+    _install_pack_skills(dest, pack.manifest, target, marker, force)
+
+    print(f"Done. Extension '{pack.id}' added to {dest}")
+    _print_validation_notes(target, pack.id)
+
+
 def cmd_extension_add(args: argparse.Namespace) -> None:
-    """Copy a bundled extension pack into <target>/extensions/<id>/.
+    """Copy an extension pack into <target>/extensions/<id>/ — a bundled pack
+    by id, or any git repository carrying a root manifest.yaml via --from-git.
 
     Refuses to clobber an existing folder without --force. After copying,
     validates the pack in place and surfaces any issues as non-fatal notes
@@ -198,6 +326,19 @@ def cmd_extension_add(args: argparse.Namespace) -> None:
         print(f"Error: target directory '{target}' does not exist.", file=sys.stderr)
         sys.exit(1)
 
+    from_git = getattr(args, "from_git", None)
+    if from_git:
+        with tempfile.TemporaryDirectory() as tmp:
+            pack, sha = _fetch_git_pack(
+                from_git, getattr(args, "ref", None), Path(tmp) / "pack"
+            )
+            _add_pack(
+                pack, target, args.force,
+                copy_ignore=_ignore_git_and_symlinks,
+                git_origin=(from_git, sha),
+            )
+        return
+
     pack = next((e for e in _bundled_packs() if e.id == args.extension_id), None)
     if pack is None:
         print(
@@ -206,35 +347,7 @@ def cmd_extension_add(args: argparse.Namespace) -> None:
             file=sys.stderr,
         )
         sys.exit(1)
-
-    dest = _resolve_dest(target, pack)
-
-    if dest.exists() and not args.force:
-        print(
-            f"Error: '{dest}' already exists. Re-run with --force to overwrite.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    if dest.exists():
-        shutil.rmtree(dest)
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(pack.root, dest)
-
-    print(f"\nAdding extension '{pack.id}' to {target}")
-    name = pack.manifest.get("name", pack.id)
-    if name != pack.id:
-        print(f"  {name}")
-
-    marker = read_govkit_marker(target)
-    if marker:
-        for warning in _compat_warnings(pack.manifest, marker):
-            print(f"  WARN: {warning}")
-
-    _install_pack_skills(dest, pack.manifest, target, marker, args.force)
-
-    print(f"Done. Extension '{pack.id}' added to {dest}")
-    _print_validation_notes(target, pack.id)
+    _add_pack(pack, target, args.force)
 
 
 def register(subparsers) -> None:
@@ -249,15 +362,43 @@ def register(subparsers) -> None:
     list_parser.set_defaults(func=cmd_extension_list)
 
     add_parser = ext_sub.add_parser(
-        "add", help="Add a bundled extension pack to a project"
+        "add", help="Add a bundled or remote extension pack to a project"
     )
     add_parser.add_argument(
         "extension_id",
-        help="Extension pack id (e.g. vision-inference). See `govkit extension list`.",
+        nargs="?",
+        help="Bundled extension pack id (e.g. vision-inference). "
+        "See `govkit extension list`. Omit when using --from-git.",
+    )
+    add_parser.add_argument(
+        "--from-git",
+        metavar="URL",
+        help="Fetch the pack from a git repository whose root carries a "
+        "govkit manifest.yaml, instead of the bundled set. The resolved "
+        "commit is recorded in the installed manifest's origin.upstream_ref.",
+    )
+    add_parser.add_argument(
+        "--ref",
+        help="Commit SHA, tag, or branch to check out with --from-git "
+        "(default: the repository's default branch head).",
     )
     add_parser.add_argument("--target", required=True, help=paths.TARGET_HELP)
     add_parser.add_argument(
         "--force", action="store_true",
         help="Overwrite an existing extensions/<id>/ folder",
     )
-    add_parser.set_defaults(func=cmd_extension_add)
+    add_parser.set_defaults(func=_cmd_extension_add_dispatch)
+
+
+def _cmd_extension_add_dispatch(args: argparse.Namespace) -> None:
+    """Argument cross-checks argparse can't express, then the real handler."""
+    if bool(args.extension_id) == bool(args.from_git):
+        print(
+            "Error: give exactly one of a bundled pack id or --from-git <url>.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+    if args.ref and not args.from_git:
+        print("Error: --ref only applies with --from-git.", file=sys.stderr)
+        sys.exit(2)
+    cmd_extension_add(args)

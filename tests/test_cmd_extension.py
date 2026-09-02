@@ -300,3 +300,157 @@ class TestExtensionAddSkills:
         assert len(installed) == 7
         assert all(name.startswith("otter-") for name in installed)
         assert (target / ".claude" / "skills" / "otter-unit-testing" / "SKILL.md").is_file()
+
+
+class TestExtensionAddFromGit:
+    """`add --from-git <url>` fetches a pack from any git repo whose root
+    carries a govkit manifest.yaml — govkit's only network touch, on this
+    explicit opt-in. The resolved commit is pinned into the installed
+    manifest's origin so the project holds the record."""
+
+    MANIFEST = (
+        "id: remote-pack\nname: Remote Pack\nversion: 1.0.0\n"
+        "extension_type: skills\ncontract_sets: []\n"
+        "skills:\n  - path: skills/unit-testing\n    install_as: remote-unit-testing\n"
+    )
+
+    @staticmethod
+    def _git(repo, *cmd):
+        import subprocess
+
+        return subprocess.run(
+            ["git", "-c", "user.email=t@example.com", "-c", "user.name=t", *cmd],
+            cwd=repo, check=True, capture_output=True, text=True,
+        ).stdout.strip()
+
+    @classmethod
+    def _make_remote(cls, path, manifest=None):
+        """A local git repo standing in for the remote (git clones from paths)."""
+        path.mkdir(parents=True)
+        if manifest is not None:
+            (path / "manifest.yaml").write_text(manifest, encoding="utf-8")
+        skill = path / "skills" / "unit-testing"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text(
+            "---\nname: unit-testing\ndescription: d\n---\nv1\n", encoding="utf-8"
+        )
+        cls._git(path, "init", "--quiet")
+        cls._git(path, "add", "-A")
+        cls._git(path, "commit", "--quiet", "-m", "v1")
+        return cls._git(path, "rev-parse", "HEAD")
+
+    @staticmethod
+    def _from_git_args(url, target, ref=None, force=False):
+        return argparse.Namespace(
+            extension_id=None, from_git=str(url), ref=ref, target=str(target), force=force
+        )
+
+    def _marked_target(self, tmp_path):
+        from cli.marker import write_govkit_marker
+
+        target = tmp_path / "proj"
+        target.mkdir()
+        write_govkit_marker(target, "claude-code", "4", {"type": "api", "ci": "github"})
+        return target
+
+    def test_fetches_installs_and_pins_the_resolved_commit(self, tmp_path):
+        import yaml
+
+        sha = self._make_remote(tmp_path / "remote", self.MANIFEST)
+        target = self._marked_target(tmp_path)
+
+        cmd_extension_add(self._from_git_args(tmp_path / "remote", target))
+
+        installed = target / "extensions" / "remote-pack"
+        assert (installed / "manifest.yaml").is_file()
+        assert not (installed / ".git").exists()
+        origin = yaml.safe_load((installed / "manifest.yaml").read_text(encoding="utf-8"))[
+            "origin"
+        ]
+        assert origin["upstream_ref"] == sha
+        assert origin["upstream_url"] == str(tmp_path / "remote")
+        assert (
+            target / ".claude" / "skills" / "remote-unit-testing" / "SKILL.md"
+        ).is_file()
+
+    def test_ref_pins_an_older_commit(self, tmp_path):
+        import yaml
+
+        remote = tmp_path / "remote"
+        v1 = self._make_remote(remote, self.MANIFEST)
+        (remote / "skills" / "unit-testing" / "SKILL.md").write_text(
+            "---\nname: unit-testing\ndescription: d\n---\nv2\n", encoding="utf-8"
+        )
+        self._git(remote, "add", "-A")
+        self._git(remote, "commit", "--quiet", "-m", "v2")
+        target = self._marked_target(tmp_path)
+
+        cmd_extension_add(self._from_git_args(remote, target, ref=v1))
+
+        installed = target / "extensions" / "remote-pack"
+        origin = yaml.safe_load((installed / "manifest.yaml").read_text(encoding="utf-8"))[
+            "origin"
+        ]
+        assert origin["upstream_ref"] == v1
+        assert "v1" in (
+            target / ".claude" / "skills" / "remote-unit-testing" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+
+    def test_repo_without_manifest_is_refused(self, tmp_path):
+        self._make_remote(tmp_path / "remote", manifest=None)
+        target = self._marked_target(tmp_path)
+        with pytest.raises(SystemExit):
+            cmd_extension_add(self._from_git_args(tmp_path / "remote", target))
+        assert not (target / "extensions").exists()
+
+    def test_symlinks_in_the_repo_are_not_copied(self, tmp_path):
+        """A hostile repo's symlink must not dereference into the pack copy —
+        that would commit files from the maintainer's machine."""
+        secret = tmp_path / "secret.txt"
+        secret.write_text("private", encoding="utf-8")
+        remote = tmp_path / "remote"
+        remote.mkdir()
+        (remote / "manifest.yaml").write_text(self.MANIFEST, encoding="utf-8")
+        skill = remote / "skills" / "unit-testing"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text(
+            "---\nname: unit-testing\ndescription: d\n---\nv1\n", encoding="utf-8"
+        )
+        (remote / "link.txt").symlink_to(secret)
+        self._git(remote, "init", "--quiet")
+        self._git(remote, "add", "-A")
+        self._git(remote, "commit", "--quiet", "-m", "v1")
+        target = self._marked_target(tmp_path)
+
+        cmd_extension_add(self._from_git_args(remote, target))
+
+        assert not (target / "extensions" / "remote-pack" / "link.txt").exists()
+
+    def test_existing_dest_needs_force_and_force_refreshes(self, tmp_path):
+        remote = tmp_path / "remote"
+        self._make_remote(remote, self.MANIFEST)
+        target = self._marked_target(tmp_path)
+        cmd_extension_add(self._from_git_args(remote, target))
+
+        with pytest.raises(SystemExit):
+            cmd_extension_add(self._from_git_args(remote, target))
+        cmd_extension_add(self._from_git_args(remote, target, force=True))
+        assert (target / "extensions" / "remote-pack" / "manifest.yaml").is_file()
+
+    def test_dispatch_requires_exactly_one_source(self, tmp_path):
+        from cli.cmd_extension import _cmd_extension_add_dispatch
+
+        both = argparse.Namespace(
+            extension_id="vision-inference", from_git="url", ref=None,
+            target=str(tmp_path), force=False,
+        )
+        neither = argparse.Namespace(
+            extension_id=None, from_git=None, ref=None, target=str(tmp_path), force=False
+        )
+        ref_alone = argparse.Namespace(
+            extension_id="vision-inference", from_git=None, ref="main",
+            target=str(tmp_path), force=False,
+        )
+        for ns in (both, neither, ref_alone):
+            with pytest.raises(SystemExit):
+                _cmd_extension_add_dispatch(ns)
