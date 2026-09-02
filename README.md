@@ -687,7 +687,7 @@ See [`cli/stacks/README.md`](cli/stacks/README.md) for the complete guide, inclu
 
 ## Extensions
 
-Govkit ships **optional extension packs** that layer additional architecture contracts on top of the core kit — currently `llm-application`, `skill-oriented-agent-architecture`, and `vision-inference`. Add one with `govkit extension add`, or drop the folder in by hand; either way the folder under `extensions/<id>/` in your project *is* the install.
+Govkit ships **optional extension packs** that layer additional architecture contracts on top of the core kit — currently `llm-application`, `skill-oriented-agent-architecture`, `vision-inference`, and the third-party `otter-skills`. Add one with `govkit extension add`, or drop the folder in by hand; either way the folder under `extensions/<id>/` in your project *is* the install.
 
 ### How to add an extension
 
@@ -698,9 +698,14 @@ govkit extension list                              # see what's bundled
 govkit extension add llm-application --target .    # provider-neutral LLM contracts
 govkit extension add vision-inference --target .   # copy it into extensions/vision-inference/
 govkit extension add skill-oriented-agent-architecture --target .
+govkit extension add otter-skills --target .       # third-party software-craft skills
 ```
 
 `add` copies the pack into your project's `extensions/<id>/` and validates it in place. It **warns but proceeds** if the pack's `supported_levels` / `supported_project_types` don't match your `.govkit` marker, or if a core contract it `extends` isn't installed yet (e.g. a generative pack's L5 contracts in a non-L5 project). Pass `--force` to overwrite an existing folder.
+
+### Packs that carry agent skills
+
+A pack may declare `skills` in its manifest — agent skill directories that `extension add` installs into the applied agent's skills dir (`.claude/skills/`, `.agents/skills/`, or `.github/skills/`, per your marker). The bundled `otter-skills` pack works this way: seven software-craft skills (unit testing, atomic commits, story splitting, naming, legacy-code safety, refactoring review) vendored from the open-source [tottinge/otter-skills](https://github.com/tottinge/otter-skills) repository at a pinned commit, installing as `otter-<skill>`. A skill directory that already exists is **skipped, never overwritten** — refresh to the bundled version with `--force`. The upstream Apache-2.0 LICENSE and NOTICE travel with the pack; see [extensions/otter-skills/README.md](extensions/otter-skills/README.md) for provenance.
 
 **Or add one by hand** — the folder *is* the install, so you can vendor any extension, including ones not bundled with govkit:
 

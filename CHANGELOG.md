@@ -8,6 +8,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Extension packs can carry agent skills.** A pack manifest may declare
+  `skills` (`{path, install_as}` entries) and an `origin` provenance block;
+  `govkit extension add` installs each declared skill into the applied
+  agent's skills directory, skipping any directory that already exists
+  (`--force` refreshes). Third-party content never clobbers team edits.
+- **`otter-skills` extension pack** — seven software-craft skills (unit
+  testing, atomic commits, story splitting, naming, legacy-code safety,
+  refactoring review) vendored from
+  [tottinge/otter-skills](https://github.com/tottinge/otter-skills) at a
+  pinned commit, Apache-2.0 with upstream LICENSE/NOTICE shipped in the
+  pack. Installs as `otter-<skill>`; refresh via
+  `scripts/sync_otter_skills.py` (dev-time only — installs stay offline).
+
 ## [0.19.0] — 2026-08-15
 
 Three things a governed repo could previously only assert about itself, it can

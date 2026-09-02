@@ -10,6 +10,7 @@ PowerShell scripts that exercise `govkit apply` and `govkit validate` across the
 | `smoke-ui.ps1` | 3 agents × 3 standalone UI shapes × 3 levels (`ui-react`, `ui-angular`, `ui-nextjs`) | `scripts/projects-ui/` |
 | `smoke-dotnet.ps1` | 3 agents × 3 levels (`--type api`, .NET-realistic feature content) | `scripts/projects-dotnet/` |
 | `smoke-inspect.ps1` | Visual inspection helper (no apply/validate) | Reads from `scripts/projects*/` |
+| `sync_otter_skills.py` | Re-vendors the `extensions/otter-skills/` pack from a pinned upstream commit (dev-time only — never runs at install time) | Rewrites `extensions/otter-skills/` in place |
 
 Output dirs and the bootstrapped `.venv/` are gitignored — running the scripts won't dirty your working tree.
 
