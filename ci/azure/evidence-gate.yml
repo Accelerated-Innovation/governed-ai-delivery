@@ -37,7 +37,7 @@ stages:
               versionSpec: '3.11'
             displayName: Set up Python
 
-          - script: pip install govkit~=0.19.0
+          - script: pip install govkit~=0.20.0
             displayName: Install GovKit
 
           # CONFIGURE THIS — replace with your own test command.

@@ -48,7 +48,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install GovKit
-        run: pip install govkit~=0.19.0
+        run: pip install govkit~=0.20.0
 
       # CONFIGURE THIS — replace with your own test command.
       # It must leave JUnit XML (and, for UI, axe JSON) in the workspace.

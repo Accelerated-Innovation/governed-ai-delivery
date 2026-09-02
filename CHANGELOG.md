@@ -8,8 +8,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-09-02
+
+Third-party content enters the kit, on govkit's terms: pinned, attributed,
+opt-in, and never clobbering what a team wrote. Extension packs can now carry
+agent skills, the first such pack vendors Tim Ottinger's otter-skills, a new
+`govkit-pr-author` skill authors governed pull requests for all three agents,
+and `--from-git` lets a project pull a pack straight from its source
+repository with the commit pinned into the project's own copy.
+
 ### Added
 
+- **`govkit-pr-author` skill** (all three agents, every level) — author and
+  open a governed pull request: determine the lane (feature / fix /
+  architecture-governed L3 / ungoverned), link the governing artifacts,
+  report only evidence that actually ran, keep ADR status derived, route by
+  the recorded CI platform, refuse the default branch, and never merge.
 - **Extension packs can carry agent skills.** A pack manifest may declare
   `skills` (`{path, install_as}` entries) and an `origin` provenance block;
   `govkit extension add` installs each declared skill into the applied
