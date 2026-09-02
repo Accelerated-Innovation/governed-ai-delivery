@@ -33,7 +33,8 @@
           { "src": "instructions/data/data-quality.instructions.md", "dest": ".github/instructions/govkit/data-quality.instructions.md" },
           { "src": "instructions/data/pii.instructions.md", "dest": ".github/instructions/govkit/pii.instructions.md" },
           { "src": "instructions/generic/repo-scope-backend.instructions.md", "dest": ".github/instructions/govkit/repo-scope.instructions.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".github/skills/govkit-adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".github/skills/govkit-adr-author/" },
+          { "src": "skills/backend/pr-author/", "dest": ".github/skills/govkit-pr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -70,7 +71,8 @@
           { "src": "instructions/backend/adapters.instructions.md", "dest": ".github/instructions/govkit/adapters.instructions.md" },
           { "src": "instructions/backend/security.instructions.md", "dest": ".github/instructions/govkit/security.instructions.md" },
           { "src": "instructions/generic/repo-scope-backend.instructions.md", "dest": ".github/instructions/govkit/repo-scope.instructions.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".github/skills/govkit-adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".github/skills/govkit-adr-author/" },
+          { "src": "skills/backend/pr-author/", "dest": ".github/skills/govkit-pr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -119,7 +121,8 @@
             { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/govkit-genai-preflight/" },
             { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/govkit-eval-suite-planning/" },
             { "src": "skills/backend/multi-agent-design/", "dest": ".github/skills/govkit-multi-agent-design/" },
-            { "src": "skills/backend/fix-record/", "dest": ".github/skills/govkit-fix-record/" }
+            { "src": "skills/backend/fix-record/", "dest": ".github/skills/govkit-fix-record/" },
+            { "src": "skills/backend/pr-author/", "dest": ".github/skills/govkit-pr-author/" }
           ],
           "shared": [
             "governance/approval_policy.yaml",
@@ -145,7 +148,8 @@
           { "src": "instructions/backend/adapters.instructions.md", "dest": ".github/instructions/govkit/adapters.instructions.md" },
           { "src": "instructions/backend/security.instructions.md", "dest": ".github/instructions/govkit/security.instructions.md" },
           { "src": "instructions/generic/repo-scope-backend.instructions.md", "dest": ".github/instructions/govkit/repo-scope.instructions.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".github/skills/govkit-adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".github/skills/govkit-adr-author/" },
+          { "src": "skills/backend/pr-author/", "dest": ".github/skills/govkit-pr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -193,7 +197,8 @@
             { "src": "skills/backend/genai-preflight/", "dest": ".github/skills/govkit-genai-preflight/" },
             { "src": "skills/backend/eval-suite-planning/", "dest": ".github/skills/govkit-eval-suite-planning/" },
             { "src": "skills/backend/multi-agent-design/", "dest": ".github/skills/govkit-multi-agent-design/" },
-            { "src": "skills/backend/fix-record/", "dest": ".github/skills/govkit-fix-record/" }
+            { "src": "skills/backend/fix-record/", "dest": ".github/skills/govkit-fix-record/" },
+            { "src": "skills/backend/pr-author/", "dest": ".github/skills/govkit-pr-author/" }
           ],
           "shared": [
             "governance/approval_policy.yaml",
@@ -217,7 +222,8 @@
           { "src": "instructions/ui-react/api.instructions.md", "dest": ".github/instructions/govkit/ui-api.instructions.md" },
           { "src": "instructions/ui-react/accessibility.instructions.md", "dest": ".github/instructions/govkit/accessibility.instructions.md" },
           { "src": "instructions/generic/repo-scope-ui.instructions.md", "dest": ".github/instructions/govkit/repo-scope.instructions.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".github/skills/govkit-ui-adr-author/" }
+          { "src": "skills/ui/adr-author/", "dest": ".github/skills/govkit-ui-adr-author/" },
+          { "src": "skills/backend/pr-author/", "dest": ".github/skills/govkit-pr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -265,7 +271,8 @@
             { "src": "skills/ui/spec-planning/", "dest": ".github/skills/govkit-ui-spec-planning/" },
             { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/govkit-ui-architecture-preflight/" },
             { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/govkit-ui-implementation-plan/" },
-            { "src": "skills/backend/fix-record/", "dest": ".github/skills/govkit-fix-record/" }
+            { "src": "skills/backend/fix-record/", "dest": ".github/skills/govkit-fix-record/" },
+            { "src": "skills/backend/pr-author/", "dest": ".github/skills/govkit-pr-author/" }
           ],
           "shared": [
             "governance/approval_policy.yaml",
@@ -293,7 +300,8 @@
           { "src": "instructions/ui-angular/api.instructions.md", "dest": ".github/instructions/govkit/ui-api.instructions.md" },
           { "src": "instructions/ui-angular/accessibility.instructions.md", "dest": ".github/instructions/govkit/accessibility.instructions.md" },
           { "src": "instructions/generic/repo-scope-ui.instructions.md", "dest": ".github/instructions/govkit/repo-scope.instructions.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".github/skills/govkit-ui-adr-author/" }
+          { "src": "skills/ui/adr-author/", "dest": ".github/skills/govkit-ui-adr-author/" },
+          { "src": "skills/backend/pr-author/", "dest": ".github/skills/govkit-pr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -341,7 +349,8 @@
             { "src": "skills/ui/spec-planning/", "dest": ".github/skills/govkit-ui-spec-planning/" },
             { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/govkit-ui-architecture-preflight/" },
             { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/govkit-ui-implementation-plan/" },
-            { "src": "skills/backend/fix-record/", "dest": ".github/skills/govkit-fix-record/" }
+            { "src": "skills/backend/fix-record/", "dest": ".github/skills/govkit-fix-record/" },
+            { "src": "skills/backend/pr-author/", "dest": ".github/skills/govkit-pr-author/" }
           ],
           "shared": [
             "governance/approval_policy.yaml",
@@ -369,7 +378,8 @@
           { "src": "instructions/ui-nextjs/api-boundary.instructions.md", "dest": ".github/instructions/govkit/api-boundary.instructions.md" },
           { "src": "instructions/ui-nextjs/accessibility.instructions.md", "dest": ".github/instructions/govkit/accessibility.instructions.md" },
           { "src": "instructions/generic/repo-scope-ui.instructions.md", "dest": ".github/instructions/govkit/repo-scope.instructions.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".github/skills/govkit-ui-adr-author/" }
+          { "src": "skills/ui/adr-author/", "dest": ".github/skills/govkit-ui-adr-author/" },
+          { "src": "skills/backend/pr-author/", "dest": ".github/skills/govkit-pr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -416,7 +426,8 @@
             { "src": "skills/ui/spec-planning/", "dest": ".github/skills/govkit-ui-spec-planning/" },
             { "src": "skills/ui/architecture-preflight/", "dest": ".github/skills/govkit-ui-architecture-preflight/" },
             { "src": "skills/ui/implementation-plan/", "dest": ".github/skills/govkit-ui-implementation-plan/" },
-            { "src": "skills/backend/fix-record/", "dest": ".github/skills/govkit-fix-record/" }
+            { "src": "skills/backend/fix-record/", "dest": ".github/skills/govkit-fix-record/" },
+            { "src": "skills/backend/pr-author/", "dest": ".github/skills/govkit-pr-author/" }
           ],
           "shared": [
             "governance/approval_policy.yaml",
