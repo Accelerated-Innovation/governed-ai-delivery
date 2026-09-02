@@ -135,7 +135,7 @@ your-project/
 ├── .claude/rules/govkit/        — governance.md + layer rules
 │   └── governance.md, api.md, services.md, ports.md, adapters.md, security.md, repo-scope.md
 ├── .claude/skills/              — govkit skills, all govkit- prefixed
-│   └── govkit-architecture-preflight/, govkit-spec-planning/, govkit-implementation-plan/, govkit-adr-author/
+│   └── govkit-architecture-preflight/, govkit-spec-planning/, govkit-implementation-plan/, govkit-adr-author/, govkit-pr-author/
 ├── docs/backend/
 │   ├── architecture/   — ARCH_CONTRACT, API_CONVENTIONS, TECH_STACK, etc.
 │   └── evaluation/     — eval_criteria.md, scoring rubrics
@@ -155,7 +155,7 @@ your-project/
 │   ├── governance-src.md     — UI layer rules, path-scoped to src/** (Claude Code)
 │   └── repo-scope.md, test-first.md (L4+), spec-compliance.md (L4+)
 ├── .claude/skills/
-│   └── govkit-ui-architecture-preflight/, govkit-ui-spec-planning/, govkit-ui-implementation-plan/, govkit-ui-adr-author/
+│   └── govkit-ui-architecture-preflight/, govkit-ui-spec-planning/, govkit-ui-implementation-plan/, govkit-ui-adr-author/, govkit-pr-author/
 ├── docs/ui/
 │   ├── architecture/   — shared contracts plus react|angular|nextjs subdirs
 │   ├── design/         — editable BRAND.md visual-direction contract
@@ -336,7 +336,9 @@ Work through the plan one increment at a time. For each increment:
 
 ### Step 8: Push and merge
 
-Open a PR. CI gates automatically run:
+Open a PR — or ask the agent to author and open it with `/govkit-pr-author`,
+which writes a PR body carrying the lane, the governing artifacts, and the
+evidence of what was actually run. CI gates automatically run:
 
 - Schema validation of `eval_criteria.yaml`
 - FIRST and 7 Virtue prediction completeness
@@ -357,6 +359,7 @@ The lifecycle is identical across agents; only the invocation syntax differs.
 | Author ADR | `/govkit-adr-author my_feature` | `/govkit-adr-author` | `$govkit-adr-author my_feature` |
 | Spec planning | `/govkit-spec-planning my_feature` | `/govkit-spec-planning` | `$govkit-spec-planning my_feature` |
 | Implementation plan | `/govkit-implementation-plan my_feature` | `/govkit-implementation-plan` | `$govkit-implementation-plan my_feature` |
+| Author and open the PR | `/govkit-pr-author` | `/govkit-pr-author` | `$govkit-pr-author` |
 
 Copilot infers the feature from context rather than taking it as an argument; Codex invokes skills with a `$` prefix.
 

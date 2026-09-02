@@ -33,7 +33,8 @@
           { "src": "rules/backend/adapters.md", "dest": ".claude/rules/govkit/adapters.md" },
           { "src": "rules/backend/security.md", "dest": ".claude/rules/govkit/security.md" },
           { "src": "rules/generic/repo-scope-backend.md", "dest": ".claude/rules/govkit/repo-scope.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".claude/skills/govkit-adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".claude/skills/govkit-adr-author/" },
+          { "src": "skills/backend/pr-author/", "dest": ".claude/skills/govkit-pr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -89,7 +90,8 @@
             { "src": "skills/backend/genai-preflight/", "dest": ".claude/skills/govkit-genai-preflight/" },
             { "src": "skills/backend/eval-suite-planning/", "dest": ".claude/skills/govkit-eval-suite-planning/" },
             { "src": "skills/backend/multi-agent-design/", "dest": ".claude/skills/govkit-multi-agent-design/" },
-            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" },
+            { "src": "skills/backend/pr-author/", "dest": ".claude/skills/govkit-pr-author/" }
           ],
           "shared": [
             "governance/approval_policy.yaml",
@@ -115,7 +117,8 @@
           { "src": "rules/backend/adapters.md", "dest": ".claude/rules/govkit/adapters.md" },
           { "src": "rules/backend/security.md", "dest": ".claude/rules/govkit/security.md" },
           { "src": "rules/generic/repo-scope-backend.md", "dest": ".claude/rules/govkit/repo-scope.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".claude/skills/govkit-adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".claude/skills/govkit-adr-author/" },
+          { "src": "skills/backend/pr-author/", "dest": ".claude/skills/govkit-pr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -170,7 +173,8 @@
             { "src": "skills/backend/genai-preflight/", "dest": ".claude/skills/govkit-genai-preflight/" },
             { "src": "skills/backend/eval-suite-planning/", "dest": ".claude/skills/govkit-eval-suite-planning/" },
             { "src": "skills/backend/multi-agent-design/", "dest": ".claude/skills/govkit-multi-agent-design/" },
-            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" },
+            { "src": "skills/backend/pr-author/", "dest": ".claude/skills/govkit-pr-author/" }
           ],
           "shared": [
             "governance/approval_policy.yaml",
@@ -191,7 +195,8 @@
           { "src": "claude-md/ui-react.md", "dest": ".claude/rules/govkit/governance.md" },
           { "src": "claude-md/src-ui-react.md", "dest": ".claude/rules/govkit/governance-src.md" },
           { "src": "rules/generic/repo-scope-ui.md", "dest": ".claude/rules/govkit/repo-scope.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".claude/skills/govkit-ui-adr-author/" }
+          { "src": "skills/ui/adr-author/", "dest": ".claude/skills/govkit-ui-adr-author/" },
+          { "src": "skills/backend/pr-author/", "dest": ".claude/skills/govkit-pr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -236,7 +241,8 @@
             { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/govkit-ui-spec-planning/" },
             { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/govkit-ui-architecture-preflight/" },
             { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" },
-            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" },
+            { "src": "skills/backend/pr-author/", "dest": ".claude/skills/govkit-pr-author/" }
           ],
           "shared": [
             "governance/approval_policy.yaml",
@@ -261,7 +267,8 @@
           { "src": "claude-md/ui-angular.md", "dest": ".claude/rules/govkit/governance.md" },
           { "src": "claude-md/src-ui-angular.md", "dest": ".claude/rules/govkit/governance-src.md" },
           { "src": "rules/generic/repo-scope-ui.md", "dest": ".claude/rules/govkit/repo-scope.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".claude/skills/govkit-ui-adr-author/" }
+          { "src": "skills/ui/adr-author/", "dest": ".claude/skills/govkit-ui-adr-author/" },
+          { "src": "skills/backend/pr-author/", "dest": ".claude/skills/govkit-pr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -306,7 +313,8 @@
             { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/govkit-ui-spec-planning/" },
             { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/govkit-ui-architecture-preflight/" },
             { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" },
-            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" },
+            { "src": "skills/backend/pr-author/", "dest": ".claude/skills/govkit-pr-author/" }
           ],
           "shared": [
             "governance/approval_policy.yaml",
@@ -331,7 +339,8 @@
           { "src": "claude-md/ui-nextjs.md", "dest": ".claude/rules/govkit/governance.md" },
           { "src": "claude-md/src-ui-nextjs.md", "dest": ".claude/rules/govkit/governance-src.md" },
           { "src": "rules/generic/repo-scope-ui.md", "dest": ".claude/rules/govkit/repo-scope.md" },
-          { "src": "skills/ui/adr-author/", "dest": ".claude/skills/govkit-ui-adr-author/" }
+          { "src": "skills/ui/adr-author/", "dest": ".claude/skills/govkit-ui-adr-author/" },
+          { "src": "skills/backend/pr-author/", "dest": ".claude/skills/govkit-pr-author/" }
         ],
         "shared": [],
         "governed": [
@@ -375,7 +384,8 @@
             { "src": "skills/ui/spec-planning/", "dest": ".claude/skills/govkit-ui-spec-planning/" },
             { "src": "skills/ui/architecture-preflight/", "dest": ".claude/skills/govkit-ui-architecture-preflight/" },
             { "src": "skills/ui/implementation-plan/", "dest": ".claude/skills/govkit-ui-implementation-plan/" },
-            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" }
+            { "src": "skills/backend/fix-record/", "dest": ".claude/skills/govkit-fix-record/" },
+            { "src": "skills/backend/pr-author/", "dest": ".claude/skills/govkit-pr-author/" }
           ],
           "shared": [
             "governance/approval_policy.yaml",
@@ -403,7 +413,8 @@
           { "src": "rules/data/data-quality.md", "dest": ".claude/rules/govkit/data-quality.md" },
           { "src": "rules/data/pii.md", "dest": ".claude/rules/govkit/pii.md" },
           { "src": "rules/generic/repo-scope-backend.md", "dest": ".claude/rules/govkit/repo-scope.md" },
-          { "src": "skills/backend/adr-author/", "dest": ".claude/skills/govkit-adr-author/" }
+          { "src": "skills/backend/adr-author/", "dest": ".claude/skills/govkit-adr-author/" },
+          { "src": "skills/backend/pr-author/", "dest": ".claude/skills/govkit-pr-author/" }
         ],
         "shared": [],
         "governed": [
