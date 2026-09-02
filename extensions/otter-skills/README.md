@@ -47,6 +47,19 @@ There is no `extension remove` command yet; removal is manual:
 rm -r extensions/otter-skills .claude/skills/otter-*   # adjust the skills dir per agent
 ```
 
+## Tracking upstream directly
+
+The bundled copy updates only when govkit re-vendors and releases. If the
+upstream repository gains a govkit `manifest.yaml` at its root, you can skip
+the bundled copy entirely and pull from source — pinned into your own repo:
+
+```bash
+govkit extension add --from-git https://github.com/tottinge/otter-skills --target .
+```
+
+Re-running with `--force` pulls upstream changes as a reviewable diff in your
+project.
+
 ## Re-vendoring (govkit maintainers)
 
 `scripts/sync_otter_skills.py` refreshes this pack from a new upstream commit;

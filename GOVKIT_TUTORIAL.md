@@ -648,6 +648,12 @@ seven third-party software-craft skills (vendored from tottinge/otter-skills
 at a pinned commit) into the applied agent's skills directory as
 `otter-<skill>`, skipping any skill directory that already exists.
 
+Packs need not be bundled. `govkit extension add --from-git <url>` fetches
+one from any git repository carrying a root `manifest.yaml`, pins the
+resolved commit into the installed manifest, and leaves the copy under
+`extensions/<id>/` for your repo to hold — updates arrive as reviewable
+diffs when you re-add with `--force`.
+
 ### Upgrades And Stack Changes
 
 Refresh files GovKit owns while preserving project-owned edits:

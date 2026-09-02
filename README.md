@@ -703,6 +703,15 @@ govkit extension add otter-skills --target .       # third-party software-craft 
 
 `add` copies the pack into your project's `extensions/<id>/` and validates it in place. It **warns but proceeds** if the pack's `supported_levels` / `supported_project_types` don't match your `.govkit` marker, or if a core contract it `extends` isn't installed yet (e.g. a generative pack's L5 contracts in a non-L5 project). Pass `--force` to overwrite an existing folder.
 
+**Or fetch a pack from any git repository** whose root carries a govkit `manifest.yaml`:
+
+```bash
+govkit extension add --from-git https://github.com/someone/their-pack --target .
+govkit extension add --from-git https://github.com/someone/their-pack --ref <sha> --target .
+```
+
+This is govkit's only network access, and only on this explicit opt-in — `apply` and the bundled packs stay offline. The resolved commit is recorded in the installed manifest's `origin.upstream_ref`, and the fetched copy under `extensions/<id>/` is what you commit — so your project holds the pin, teammates and CI never re-fetch, and pulling upstream updates later (`--from-git ... --force`) lands as an ordinary reviewable diff in your repo.
+
 ### Packs that carry agent skills
 
 A pack may declare `skills` in its manifest — agent skill directories that `extension add` installs into the applied agent's skills dir (`.claude/skills/`, `.agents/skills/`, or `.github/skills/`, per your marker). The bundled `otter-skills` pack works this way: seven software-craft skills (unit testing, atomic commits, story splitting, naming, legacy-code safety, refactoring review) vendored from the open-source [tottinge/otter-skills](https://github.com/tottinge/otter-skills) repository at a pinned commit, installing as `otter-<skill>`. A skill directory that already exists is **skipped, never overwritten** — refresh to the bundled version with `--force`. The upstream Apache-2.0 LICENSE and NOTICE travel with the pack; see [extensions/otter-skills/README.md](extensions/otter-skills/README.md) for provenance.

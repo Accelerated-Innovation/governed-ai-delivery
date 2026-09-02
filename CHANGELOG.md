@@ -15,6 +15,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   `govkit extension add` installs each declared skill into the applied
   agent's skills directory, skipping any directory that already exists
   (`--force` refreshes). Third-party content never clobbers team edits.
+- **`extension add --from-git <url> [--ref <sha>]`** — fetch an extension
+  pack from any git repository whose root carries a govkit `manifest.yaml`.
+  govkit's only network touch, on this explicit opt-in; the resolved commit
+  is pinned into the installed manifest's `origin.upstream_ref`, so the
+  committed project copy is the record and upstream updates arrive as
+  reviewable diffs on re-add.
 - **`otter-skills` extension pack** — seven software-craft skills (unit
   testing, atomic commits, story splitting, naming, legacy-code safety,
   refactoring review) vendored from
