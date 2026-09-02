@@ -15,6 +15,8 @@ govkit calibrate
 
 Install govkit, apply it to your project, then calibrate the defaults to match your repo. From there the governance workflow your team follows is what keeps the agent aligned — every feature, every time.
 
+New to govkit? The [GovKit Introductory Tutorial](GOVKIT_TUTORIAL.md) walks through the concepts, workflows, and adoption paths end to end.
+
 > govkit works with any project language — Python, C#, Java, Go, TypeScript, or anything else. It copies Markdown specs, YAML configs, and Gherkin feature files into your project directory. Python is a dev-machine tool requirement only; it is not added as a project dependency.
 
 <!-- TODO: Add terminal recording of `govkit apply --agent claude-code --target .` here using asciinema (https://asciinema.org) or VHS (https://github.com/charmbracelet/vhs) -->
