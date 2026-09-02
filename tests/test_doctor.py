@@ -1179,6 +1179,24 @@ class TestMonorepoDiscovery:
         findings = run_doctor(tmp_path)
         assert not any(f.id in ("D013", "D014") for f in findings)
 
+    def test_bundled_otter_skills_pack_is_doctor_clean(self, tmp_path):
+        """A target that added the vendored skills pack must stay clean:
+        no D013/D014 from its manifest, no D015 from its installed skills
+        (third-party content carries no {{...}} tokens by contract)."""
+        import argparse
+
+        from cli.cmd_extension import cmd_extension_add
+        from cli.doctor import run_doctor
+
+        _write_marker(tmp_path)
+        cmd_extension_add(
+            argparse.Namespace(extension_id="otter-skills", target=str(tmp_path), force=False)
+        )
+        findings = run_doctor(tmp_path)
+        assert not any(f.id in ("D013", "D014", "D015") for f in findings), [
+            (f.id, f.message) for f in findings if f.id in ("D013", "D014", "D015")
+        ]
+
 
     def test_cmd_doctor_runs_against_all_discovered_targets(self, tmp_path, monkeypatch, capsys):
         """When --target omitted and cwd has multiple markers, doctor runs

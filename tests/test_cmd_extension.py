@@ -27,6 +27,7 @@ def test_extension_packs_dir_exists_and_has_bundled_packs():
     }
     assert {
         "llm-application",
+        "otter-skills",
         "skill-oriented-agent-architecture",
         "vision-inference",
     } <= ids, f"bundled packs missing; found {ids}"
@@ -287,3 +288,15 @@ class TestExtensionAddSkills:
         # control: existing architecture packs are untouched by the skills path
         cmd_extension_add(_add_args("vision-inference", self._target_with_marker(tmp_path)))
         assert not (tmp_path / "proj" / ".claude" / "skills").exists()
+
+    def test_bundled_otter_skills_pack_installs_all_seven(self, tmp_path):
+        """End-to-end with the real vendored pack: every declared skill lands
+        under the otter- prefix, license and notice travel with the pack."""
+        target = self._target_with_marker(tmp_path)
+        cmd_extension_add(_add_args("otter-skills", target))
+        assert (target / "extensions" / "otter-skills" / "LICENSE").is_file()
+        assert (target / "extensions" / "otter-skills" / "NOTICE").is_file()
+        installed = sorted(p.name for p in (target / ".claude" / "skills").iterdir())
+        assert len(installed) == 7
+        assert all(name.startswith("otter-") for name in installed)
+        assert (target / ".claude" / "skills" / "otter-unit-testing" / "SKILL.md").is_file()

@@ -1,0 +1,21 @@
+otter-skills
+Copyright 2026 Tim Ottinger
+
+This product includes ideas distilled from publicly available writings and
+teaching by the following people. Their inclusion here is attribution, not a
+claim that they endorse this project or license its original source material:
+
+- Tim Ottinger: progressive admission, microtesting, the Eight Code Virtues,
+  naming, and related software-craft practices published through Agile Otter
+  and Industrial Logic.
+- Industrial Logic: Clean Start, Save Your Game, structure-shy tests, and its
+  body of software-craft teaching and practice.
+- Kent Beck: test-driven development, test lists, Tidy First?, and incremental
+  design practices.
+- Michael Feathers: legacy-code change mechanics, seams, and characterization.
+- Martin Fowler: the refactoring vocabulary and catalog.
+- Emily Bache and Llewellyn Falco: approval-testing and legacy-code practices.
+- GeePaw Hill: microtest rhythm and incremental switchover.
+
+Specific source links and narrower contribution notes are retained with the
+skills that use them.
