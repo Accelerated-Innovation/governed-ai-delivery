@@ -54,7 +54,7 @@ stages:
               script: |
                 set -euo pipefail
                 python -m pip install --upgrade pip
-                python -m pip install govkit~=0.19.0
+                python -m pip install govkit~=0.20.0
 
           - task: Bash@3
             displayName: Run GovKit validation
