@@ -30,7 +30,7 @@ def _extract_section(text: str, start_heading: str) -> str:
     # find next ## heading after the section start (search past the heading itself)
     search_from = start + len(start_heading)
     end = text.find("\n## ", search_from)
-    section = text[start:] if end == -1 else text[start:end + 1]
+    section = text[start:] if end == -1 else text[start : end + 1]
     # Strip trailing horizontal-rule separators (UI files use `---` between sections; backend does not)
     lines = section.rstrip().splitlines()
     while lines and lines[-1].strip() == "---":
@@ -38,7 +38,11 @@ def _extract_section(text: str, start_heading: str) -> str:
     return "\n".join(lines).rstrip()
 
 
-@pytest.mark.parametrize("skill_path", SKILL_PATHS, ids=lambda p: f"{p.parent.parent.parent.parent.name}/{p.parent.parent.name}")
+@pytest.mark.parametrize(
+    "skill_path",
+    SKILL_PATHS,
+    ids=lambda p: f"{p.parent.parent.parent.parent.name}/{p.parent.parent.name}",
+)
 def test_section_25_present(skill_path: Path):
     text = skill_path.read_text(encoding="utf-8")
     assert SECTION_HEADING in text, (
@@ -46,18 +50,22 @@ def test_section_25_present(skill_path: Path):
     )
 
 
-@pytest.mark.parametrize("skill_path", SKILL_PATHS, ids=lambda p: f"{p.parent.parent.parent.parent.name}/{p.parent.parent.name}")
+@pytest.mark.parametrize(
+    "skill_path",
+    SKILL_PATHS,
+    ids=lambda p: f"{p.parent.parent.parent.parent.name}/{p.parent.parent.name}",
+)
 def test_section_25_mentions_required_concepts(skill_path: Path):
     text = skill_path.read_text(encoding="utf-8")
     section = _extract_section(text, SECTION_HEADING)
     required_phrases = [
-        "extensions/*/manifest.yaml",   # discovery scan
-        "applies_to",                   # applicability check
+        "extensions/*/manifest.yaml",  # discovery scan
+        "applies_to",  # applicability check
         "capabilities",
-        "relates_to",                   # conflict-resolution model
+        "relates_to",  # conflict-resolution model
         "extends",
         "supersedes",
-        "ADR",                          # escalation
+        "ADR",  # escalation
     ]
     missing = [p for p in required_phrases if p not in section]
     assert not missing, (
@@ -110,7 +118,9 @@ SPEC_PLANNING_DATA_HEADING = "### Data projects"
 
 
 @pytest.mark.parametrize(
-    "skill_path", BACKEND_PREFLIGHT_PATHS, ids=lambda p: p.parent.parent.parent.parent.name,
+    "skill_path",
+    BACKEND_PREFLIGHT_PATHS,
+    ids=lambda p: p.parent.parent.parent.parent.name,
 )
 def test_preflight_has_data_impact_block(skill_path: Path):
     """Data installs receive the backend preflight source; it must carry the
@@ -128,14 +138,14 @@ def test_data_impact_block_parity_across_agents():
         for p in BACKEND_PREFLIGHT_PATHS
     }
     canonical = sections[BACKEND_PREFLIGHT_PATHS[0]]
-    mismatches = [
-        str(p.relative_to(REPO_ROOT)) for p, s in sections.items() if s != canonical
-    ]
+    mismatches = [str(p.relative_to(REPO_ROOT)) for p, s in sections.items() if s != canonical]
     assert not mismatches, f"Data Impact block must be identical: {mismatches}"
 
 
 @pytest.mark.parametrize(
-    "skill_path", BACKEND_SPEC_PLANNING_PATHS, ids=lambda p: p.parent.parent.parent.parent.name,
+    "skill_path",
+    BACKEND_SPEC_PLANNING_PATHS,
+    ids=lambda p: p.parent.parent.parent.parent.name,
 )
 def test_spec_planning_has_data_projects_note(skill_path: Path):
     """spec-planning must tell data projects which NFR categories to tag and
@@ -153,9 +163,7 @@ def test_spec_planning_data_note_parity_across_agents():
         for p in BACKEND_SPEC_PLANNING_PATHS
     }
     canonical = sections[BACKEND_SPEC_PLANNING_PATHS[0]]
-    mismatches = [
-        str(p.relative_to(REPO_ROOT)) for p, s in sections.items() if s != canonical
-    ]
+    mismatches = [str(p.relative_to(REPO_ROOT)) for p, s in sections.items() if s != canonical]
     assert not mismatches, f"Data projects note must be identical: {mismatches}"
 
 
@@ -163,15 +171,20 @@ def test_starter_data_preflight_mirrors_skill_sections():
     """The worked example must be exactly what the shipped skill produces:
     every data-impact section the skill prescribes appears in the starter,
     and the starter uses the skill's report section set."""
-    starter = (
-        REPO_ROOT / "features" / "starter_data" / "architecture_preflight.md"
-    ).read_text(encoding="utf-8")
+    starter = (REPO_ROOT / "features" / "starter_data" / "architecture_preflight.md").read_text(
+        encoding="utf-8"
+    )
     for heading in DATA_IMPACT_SUBSECTIONS:
         assert heading in starter, heading
     for heading in (
-        "## 1. Summary", "## 2. Standards Check", "## 2.6 Extension Discovery",
-        "## 3. Boundary Analysis", "## 3.5 Repository Scope Analysis",
-        "## 3.7 Data Impact", "## 4. ADR Decision", "## 5. Tests Required",
+        "## 1. Summary",
+        "## 2. Standards Check",
+        "## 2.6 Extension Discovery",
+        "## 3. Boundary Analysis",
+        "## 3.5 Repository Scope Analysis",
+        "## 3.7 Data Impact",
+        "## 4. ADR Decision",
+        "## 5. Tests Required",
         "## 6. Risks & Unknowns",
     ):
         assert heading in starter, heading
@@ -185,7 +198,8 @@ UI_SKILLS = [
 
 
 @pytest.mark.parametrize(
-    "skill_path", UI_SKILLS,
+    "skill_path",
+    UI_SKILLS,
     ids=lambda p: f"{p.parents[3].name}/{p.parent.name}",
 )
 def test_ui_skills_enforce_nextjs_boundary_and_design(skill_path: Path):
@@ -206,24 +220,21 @@ def test_ui_skills_cover_prototype_references(skill_path: Path):
     prototypes) alongside screenshots/mockups, as advisory references
     whose code is never imported into src/."""
     text = skill_path.read_text(encoding="utf-8")
-    assert "prototype" in text.lower(), (
-        f"{skill_path.parent.name} must cover prototype references"
-    )
+    assert "prototype" in text.lower(), f"{skill_path.parent.name} must cover prototype references"
 
 
 @pytest.mark.parametrize(
-    "skill", ("adr-author", "architecture-preflight", "spec-planning", "implementation-plan"),
+    "skill",
+    ("adr-author", "architecture-preflight", "spec-planning", "implementation-plan"),
 )
 def test_ui_nextjs_skill_content_parity(skill: str):
     texts = [
-        (
-            REPO_ROOT / "agents" / agent / "skills" / "ui" / skill / "SKILL.md"
-        ).read_text(encoding="utf-8")
+        (REPO_ROOT / "agents" / agent / "skills" / "ui" / skill / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
         for agent in ("claude-code", "codex", "copilot")
     ]
-    assert all(text == texts[0] for text in texts[1:]), (
-        f"{skill} drifted across agents"
-    )
+    assert all(text == texts[0] for text in texts[1:]), f"{skill} drifted across agents"
 
 
 # ---------------------------------------------------------------------------
@@ -269,10 +280,10 @@ def test_multi_service_section_tells_the_agent_to_ask(skill_path: Path):
     The answer is to ask, not to guess and not to plan across all of them."""
     section = _extract_section(skill_path.read_text(encoding="utf-8"), SERVICES_HEADING)
     required = [
-        "architecture.services",   # the field to read
+        "architecture.services",  # the field to read
         "architecture.source_root",  # the single-service fallback
-        "root",                    # each service carries one
-        "ask",                     # the required behaviour when ambiguous
+        "root",  # each service carries one
+        "ask",  # the required behaviour when ambiguous
     ]
     missing = [p for p in required if p not in section]
     assert not missing, (
@@ -283,7 +294,8 @@ def test_multi_service_section_tells_the_agent_to_ask(skill_path: Path):
 @pytest.mark.parametrize("skill_path", PLANNING_SKILL_PATHS, ids=_planning_id)
 def test_multi_service_section_forbids_guessing(skill_path: Path):
     section = _extract_section(
-        skill_path.read_text(encoding="utf-8"), SERVICES_HEADING,
+        skill_path.read_text(encoding="utf-8"),
+        SERVICES_HEADING,
     ).lower()
     assert "do not guess" in section
     assert "do not plan across" in section
@@ -306,13 +318,10 @@ def test_multi_service_section_parity_across_agents():
         _planning_id(p): _extract_section(p.read_text(encoding="utf-8"), SERVICES_HEADING)
         for p in PLANNING_SKILL_PATHS
     }
-    assert all(sections.values()), (
-        f"empty section in: {[k for k, v in sections.items() if not v]}"
-    )
+    assert all(sections.values()), f"empty section in: {[k for k, v in sections.items() if not v]}"
     distinct = set(sections.values())
-    assert len(distinct) == 1, (
-        "multi-service section differs across agents:\n"
-        + "\n".join(f"--- {k} ---\n{v}" for k, v in sections.items())
+    assert len(distinct) == 1, "multi-service section differs across agents:\n" + "\n".join(
+        f"--- {k} ---\n{v}" for k, v in sections.items()
     )
 
 
@@ -324,7 +333,9 @@ def test_ui_planning_skills_do_not_gain_the_section():
         for agent in ("claude-code", "codex", "copilot")
         for skill in ("spec-planning", "implementation-plan")
     ]
-    present = [p for p in ui_paths if p.is_file() and SERVICES_HEADING in p.read_text(encoding="utf-8")]
+    present = [
+        p for p in ui_paths if p.is_file() and SERVICES_HEADING in p.read_text(encoding="utf-8")
+    ]
     assert not present, f"UI skills carry the multi-service section: {present}"
 
 
@@ -388,9 +399,7 @@ def test_planning_skill_reads_the_recorded_architecture(skill_path: Path):
     may not have."""
     text = skill_path.read_text(encoding="utf-8")
     for token in (".govkit/skill_context.yaml", "architecture.layers"):
-        assert token in text, (
-            f"{skill_path.relative_to(REPO_ROOT)} never references {token}"
-        )
+        assert token in text, f"{skill_path.relative_to(REPO_ROOT)} never references {token}"
 
 
 @pytest.mark.parametrize("skill_path", PLANNING_SKILL_PATHS, ids=_planning_id)
@@ -400,10 +409,12 @@ def test_planning_skill_asserts_no_architecture_style(skill_path: Path):
     `Infrastructure/`; one it reads as `dbt-layered` gets `models/staging/`.
     Telling either agent to produce `ports/inbound/` names folders that do
     not exist."""
-    offenders = sorted({
-        m.group(0).lower()
-        for m in _STYLE_ASSERTION_RE.finditer(_prose(skill_path.read_text(encoding="utf-8")))
-    })
+    offenders = sorted(
+        {
+            m.group(0).lower()
+            for m in _STYLE_ASSERTION_RE.finditer(_prose(skill_path.read_text(encoding="utf-8")))
+        }
+    )
     assert not offenders, (
         f"{skill_path.relative_to(REPO_ROOT)} asserts an architecture style "
         f"instead of reading the detected one: {offenders}. Read "
@@ -445,7 +456,8 @@ _STYLE_MATCHER_CASES = [
 
 
 @pytest.mark.parametrize(
-    "text, should_match", _STYLE_MATCHER_CASES,
+    "text, should_match",
+    _STYLE_MATCHER_CASES,
     ids=[f"{'catch' if m else 'allow'}:{t[:38].strip()}" for t, m in _STYLE_MATCHER_CASES],
 )
 def test_the_style_matcher_catches_the_defect_and_nothing_else(text, should_match):
@@ -482,8 +494,9 @@ def test_architecture_guidance_parity_across_agents():
     for skill in ("spec-planning", "implementation-plan"):
         refs = {}
         for agent in ("claude-code", "codex", "copilot"):
-            text = (REPO_ROOT / "agents" / agent / "skills" / "backend" / skill
-                    / "SKILL.md").read_text(encoding="utf-8")
+            text = (
+                REPO_ROOT / "agents" / agent / "skills" / "backend" / skill / "SKILL.md"
+            ).read_text(encoding="utf-8")
             refs[agent] = (
                 "architecture.layers" in text,
                 bool(_STYLE_ASSERTION_RE.search(_prose(text))),
@@ -521,3 +534,105 @@ def test_parity_doc_skill_count_matches_reality():
     )
     assert stated_total == per_agent == backend + ui
     assert stated_files == len(skill_files)
+
+
+# ---------------------------------------------------------------------------
+# PR author — a governed PR carries its lane, artifacts, and evidence
+# ---------------------------------------------------------------------------
+
+PR_AUTHOR_PATHS = [
+    REPO_ROOT / "agents" / agent / "skills" / "backend" / "pr-author" / "SKILL.md"
+    for agent in ("claude-code", "codex", "copilot")
+]
+
+PR_AUTHOR_DEST_PREFIX = {
+    "claude-code": ".claude/skills/",
+    "codex": ".agents/skills/",
+    "copilot": ".github/skills/",
+}
+
+
+def test_pr_author_ships_for_all_three_agents():
+    missing = [p for p in PR_AUTHOR_PATHS if not p.is_file()]
+    assert not missing, f"pr-author skill not found: {missing}"
+
+
+def test_pr_author_content_parity_across_agents():
+    """Byte-identical whole files, per [[feedback_agent_parity]] — pr-author
+    has no layer-specific variants, so nothing may drift."""
+    texts = [p.read_text(encoding="utf-8") for p in PR_AUTHOR_PATHS]
+    assert all(t == texts[0] for t in texts[1:]), "pr-author drifted across agents"
+
+
+@pytest.mark.parametrize("agent", ("claude-code", "codex", "copilot"))
+def test_pr_author_installs_at_every_level(agent: str):
+    """The skill rides the base files list of every project type (all levels
+    get it, like adr-author) and is re-listed in every level_5 replace list —
+    replace mode drops anything not re-declared."""
+    import json
+
+    manifest = json.loads(
+        (REPO_ROOT / "agents" / agent / "manifest.json").read_text(encoding="utf-8")
+    )
+    entry_dest = PR_AUTHOR_DEST_PREFIX[agent] + "govkit-pr-author/"
+    for type_name, block in manifest["variants"]["type"].items():
+        base_dests = {f["dest"] for f in block["files"]}
+        assert entry_dest in base_dests, f"{agent}/{type_name}: missing from base files"
+        if "level_5" in block:
+            l5_dests = {f["dest"] for f in block["level_5"]["files"]}
+            assert entry_dest in l5_dests, f"{agent}/{type_name}: missing from level_5 replace list"
+
+
+@pytest.mark.parametrize(
+    "skill_path",
+    PR_AUTHOR_PATHS,
+    ids=lambda p: p.parents[3].name,
+)
+def test_pr_author_reads_recorded_facts_and_stays_honest(skill_path: Path):
+    """The skill must read the recorded install (marker), route by CI platform,
+    keep ADR status derived rather than typed, and stop short of merging."""
+    text = skill_path.read_text(encoding="utf-8")
+    for token in (
+        ".govkit/marker.json",  # read the recorded level/type/ci, don't assume
+        "gh pr create",  # GitHub route
+        "az repos pr create",  # Azure DevOps route
+        "Proposed",  # ADR status the author may write...
+        "Accepted",  # ...and the one it must not
+        "Never merge",  # authority ends at opening the PR
+        "default branch",  # never commit to or push it — branch first
+        "Architecture-governed (Level 3)",  # L3 has a truthful lane, not "ungoverned"
+    ):
+        assert token in text, f"{skill_path.relative_to(REPO_ROOT)} missing {token!r}"
+
+
+@pytest.mark.parametrize("agent", ("claude-code", "codex", "copilot"))
+def test_every_installed_skill_is_govkit_prefixed(agent: str):
+    """Skills install under a `govkit-` prefix so they never collide with the
+    user's own. Copilot's L5 blocks used to whole-tree-copy `skills/backend/`
+    to `.github/skills/`, shipping an unprefixed duplicate of every skill
+    beside the prefixed copy — this pins the prefix contract for every files
+    entry, at every level, so a tree copy cannot come back."""
+    import json
+
+    manifest = json.loads(
+        (REPO_ROOT / "agents" / agent / "manifest.json").read_text(encoding="utf-8")
+    )
+
+    def _files_lists(node):
+        if isinstance(node, dict):
+            if isinstance(node.get("files"), list):
+                yield node["files"]
+            for value in node.values():
+                yield from _files_lists(value)
+        elif isinstance(node, list):
+            for value in node:
+                yield from _files_lists(value)
+
+    offenders = [
+        entry
+        for files in _files_lists(manifest["variants"])
+        for entry in files
+        if entry["src"].startswith("skills/")
+        and not entry["dest"].rstrip("/").rsplit("/", 1)[-1].startswith("govkit-")
+    ]
+    assert not offenders, f"{agent}: unprefixed skill installs: {offenders}"
