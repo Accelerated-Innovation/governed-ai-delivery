@@ -158,6 +158,42 @@ jobs:
             echo "$out" | grep -q "$expected" || { echo "MISSING: $expected"; exit 1; }
           done
 
+      - name: Behavioral-baseline contract resolves from the wheel layout
+        # The baseline schema and its conformance fixtures are a *shared*
+        # contract: govkit-plugins and the Opportunity Engine conform against
+        # these exact bytes and must not need a checkout of this repo beside
+        # theirs. That only holds if governance/ actually ships at
+        # cli/governance/ in the wheel, which an editable install cannot prove
+        # because it reads the source tree either way.
+        #
+        # Runs from /tmp deliberately: at the repo root `import cli` would
+        # resolve to the source directory and test nothing about the wheel.
+        run: |
+          set -euxo pipefail
+          cd /tmp
+          /tmp/wheel-smoke-venv/bin/python -c '
+          import json, sys
+          from cli import paths, baseline
+
+          fixtures = paths.GOVERNANCE_DIR / "fixtures" / "behavioral-baseline"
+          schema = paths.GOVERNANCE_DIR / "schemas" / "behavioral_baseline.schema.json"
+          valid = fixtures / "valid" / "support-response.baseline.json"
+
+          for required in (schema, valid):
+              if not required.is_file():
+                  sys.exit("MISSING FROM WHEEL: %s" % required)
+
+          golden = (fixtures / "valid" / "support-response.digest").read_text().strip()
+          digest = baseline.compute_digest(json.loads(valid.read_text(encoding="utf-8")))
+          if digest != golden:
+              sys.exit("DIGEST MISMATCH from wheel: %s != %s" % (digest, golden))
+
+          invalid = list((fixtures / "invalid").glob("*.json"))
+          if not invalid:
+              sys.exit("MISSING FROM WHEEL: conformance fixtures under invalid/")
+          print("baseline contract OK from wheel: %s, %d invalid fixtures" % (digest, len(invalid)))
+          '
+
       - name: Apply against a fresh tmp dir from the wheel install
         # End-to-end: the wheel-installed `govkit apply` writes the marker,
         # the stack overlay docs, the editable header, and the skill_context.

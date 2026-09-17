@@ -36,5 +36,12 @@ EXTENSION_PACKS_DIR = (
     else _HERE.parent / "extensions"
 )
 
+# Bundled governance assets — schemas and the conformance fixtures that ship
+# with them. Same dev/wheel duality as AGENTS_DIR: the wheel force-includes
+# governance/ at cli/governance/, so resolving through REPO_ROOT covers both.
+# Consumers of a published contract must not need a checkout of this repo
+# beside theirs, which is why the fixtures ship rather than living in tests/.
+GOVERNANCE_DIR = REPO_ROOT / "governance"
+
 FEATURES_PREFIX = "features/"
 TARGET_HELP = "Path to the target project root"
