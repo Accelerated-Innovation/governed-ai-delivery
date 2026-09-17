@@ -60,6 +60,12 @@
       "id_source": "tag",
       "content_digest": "sha256:ab92efbe3e0196bfd6af255a08c7310f120d710234f3e38573c5fcd6b0e7efea",
       "note": "A recovery path, selected deliberately: it cannot be deferred as an exception case because the Rule it serves is in scope."
+    },
+    {
+      "ref": "support-app/response-approval#nfr:some-other-nfr",
+      "kind": "nfr",
+      "id_source": "tag",
+      "content_digest": "sha256:53f7119e727955bc5b6ce799ce438dc61f838cd19a0a3f33931e8b797d18c626"
     }
   ],
   "constraints": [
@@ -123,7 +129,5 @@
       "Test structure and framework choices that verify the selected scenarios."
     ],
     "notes": "Anything that changes observable behavior, an expected outcome, release inclusion, a constraint, or agent tool authority is outside discretion and routes to a decision."
-  },
-  "approved": true,
-  "approved_by": "someone"
+  }
 }

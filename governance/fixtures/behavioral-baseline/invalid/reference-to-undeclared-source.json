@@ -11,13 +11,15 @@
       "source_key": "support-app",
       "repository": "https://example.invalid/acme/support-app",
       "revision": "1f0c9a6d3b5e27184c0a9f2d6b8e4713a5c9d0f2",
-      "path": "features"
+      "path": "features",
+      "kind": "repository"
     },
     {
       "source_key": "shared-ui",
       "repository": "https://example.invalid/acme/shared-ui",
       "revision": "9b2d4e6f8a0c1357e9f1a3b5c7d9e1f3a5b7c9d1",
-      "path": "features"
+      "path": "features",
+      "kind": "repository"
     }
   ],
   "selected_behavior": [
@@ -63,7 +65,7 @@
       "ref": "other-app/response-approval#scenario:orphan-reference",
       "kind": "scenario",
       "id_source": "tag",
-      "content_digest": "sha256:88f6811ab5d8fc6d3177f9b7609ae0fcebfda187e5046b62d38bb539e88b74d7"
+      "content_digest": "sha256:c329d3d7bea480b18f8bd590d9e78416d21167de0a50eae22c5d96ed4b44850d"
     }
   ],
   "constraints": [

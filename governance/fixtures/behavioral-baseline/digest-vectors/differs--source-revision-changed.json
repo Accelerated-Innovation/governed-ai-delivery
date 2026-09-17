@@ -11,13 +11,15 @@
       "source_key": "support-app",
       "repository": "https://example.invalid/acme/support-app",
       "revision": "2a1b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d",
-      "path": "features"
+      "path": "features",
+      "kind": "repository"
     },
     {
       "source_key": "shared-ui",
       "repository": "https://example.invalid/acme/shared-ui",
       "revision": "9b2d4e6f8a0c1357e9f1a3b5c7d9e1f3a5b7c9d1",
-      "path": "features"
+      "path": "features",
+      "kind": "repository"
     }
   ],
   "selected_behavior": [

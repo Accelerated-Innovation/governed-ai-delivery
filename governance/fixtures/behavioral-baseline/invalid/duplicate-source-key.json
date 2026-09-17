@@ -20,6 +20,13 @@
       "revision": "9b2d4e6f8a0c1357e9f1a3b5c7d9e1f3a5b7c9d1",
       "path": "features",
       "kind": "repository"
+    },
+    {
+      "source_key": "support-app",
+      "repository": "https://example.invalid/acme/support-app",
+      "revision": "0000000000000000000000000000000000000000",
+      "path": "features",
+      "kind": "repository"
     }
   ],
   "selected_behavior": [
@@ -123,7 +130,5 @@
       "Test structure and framework choices that verify the selected scenarios."
     ],
     "notes": "Anything that changes observable behavior, an expected outcome, release inclusion, a constraint, or agent tool authority is outside discretion and routes to a decision."
-  },
-  "approved": true,
-  "approved_by": "someone"
+  }
 }

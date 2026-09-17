@@ -30,11 +30,14 @@ import pytest
 jsonschema = pytest.importorskip("jsonschema")
 from jsonschema import Draft202012Validator  # noqa: E402
 
-from cli import baseline  # noqa: E402
+from cli import baseline, paths  # noqa: E402
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-SCHEMA_PATH = REPO_ROOT / "governance" / "schemas" / "behavioral_baseline.schema.json"
-FIXTURES = REPO_ROOT / "governance" / "fixtures" / "behavioral-baseline"
+# Resolved through the bundled-asset anchor rather than this file's location,
+# so the suite exercises the same lookup a consumer performs — and so pointing
+# govkit at a different bundle points the tests there too. A test that reads
+# the checkout while the code reads the bundle proves nothing about the bundle.
+SCHEMA_PATH = paths.GOVERNANCE_DIR / "schemas" / "behavioral_baseline.schema.json"
+FIXTURES = paths.GOVERNANCE_DIR / "fixtures" / "behavioral-baseline"
 VALID_BASELINE = FIXTURES / "valid" / "support-response.baseline.json"
 GOLDEN_DIGEST = FIXTURES / "valid" / "support-response.digest"
 
@@ -128,6 +131,9 @@ def test_excluded_prototype_behavior_is_recorded_as_a_decision_not_an_omission()
         ("mutable-source-revision.json", "'main' is a moving pointer, not a revision"),
         ("asserts-its-own-approval.json", "no caller may assert approval in a manifest"),
         ("unqualified-reference.json", "an unqualified ref cannot resolve across features"),
+        ("moving-tag-as-repository-revision.json", "a git tag can be moved; a commit SHA cannot"),
+        ("source-path-escapes-repository.json", "resolution must stay inside the bound revision"),
+        ("constraint-listed-as-selected-behavior.json", "a constraint is not scope"),
     ],
 )
 def test_schema_rejects(fixture: str, because: str):
@@ -151,6 +157,9 @@ def test_schema_rejects(fixture: str, because: str):
         ("duplicate-reference.json", "One element, one entry"),
         ("kind-disagrees-with-ref.json", "must agree"),
         ("blocking-unresolved-question.json", "blocks commitment"),
+        ("duplicate-source-key.json", "duplicate source_key"),
+        ("duplicate-exclusion.json", "duplicate reference"),
+        ("exclusion-from-undeclared-source.json", "records nothing"),
     ],
 )
 def test_cross_field_check_rejects(fixture: str, expected_phrase: str):
@@ -270,11 +279,104 @@ def test_canonicalization_does_not_mutate_its_input():
 # ---------------------------------------------------------------------------
 
 
-def test_schema_and_fixtures_resolve_through_paths_not_a_hardcoded_repo_root():
-    """Consumers must not need a sibling checkout. The bundled-asset anchor is
-    what makes the same lookup work from an editable install and from the
-    wheel, where governance/ ships as cli/governance/."""
-    from cli import paths
+def test_schema_and_fixtures_resolve_through_the_bundled_asset_anchor():
+    """Consumers must not need a sibling checkout. The anchor is what makes the
+    same lookup work from an editable install and from the wheel, where
+    governance/ ships as cli/governance/."""
+    assert SCHEMA_PATH.is_file()
+    assert (FIXTURES / "valid").is_dir()
+    assert SCHEMA_PATH.is_relative_to(paths.GOVERNANCE_DIR)
 
-    assert (paths.GOVERNANCE_DIR / "schemas" / "behavioral_baseline.schema.json").is_file()
-    assert (paths.GOVERNANCE_DIR / "fixtures" / "behavioral-baseline" / "valid").is_dir()
+
+def test_a_moving_git_tag_cannot_be_a_repository_revision():
+    """`v1.2.3` is immutable for a published package and movable for a
+    repository. Accepting it for both would let approved content change
+    without the baseline changing — the one thing the revision binding
+    exists to prevent."""
+    doc = _load(VALID_BASELINE)
+    doc["sources"][0]["revision"] = "v1.2.3"
+
+    assert _schema_errors(doc), "a repository source accepted a movable tag"
+
+    as_package = _load(VALID_BASELINE)
+    as_package["sources"][0]["kind"] = "package"
+    as_package["sources"][0]["revision"] = "v1.2.3"
+
+    assert _schema_errors(as_package) == []
+
+
+@pytest.mark.parametrize(
+    "escape",
+    ["../outside", "/etc/passwd", "..\\..\\other", "features/../../x", "C:/win", "./here"],
+)
+def test_source_path_cannot_leave_the_bound_revision(escape: str):
+    """Resolution outside the source would read content the digest was never
+    taken against, so the immutable binding would be immutable in name only."""
+    doc = _load(VALID_BASELINE)
+    doc["sources"][0]["path"] = escape
+
+    schema_errors = _schema_errors(doc)
+    issues, _ = baseline.validate_baseline(doc)
+
+    assert schema_errors or any("leaves the source tree" in i for i in issues)
+
+
+def test_whole_number_written_as_a_float_digests_identically():
+    """`1` and `1.0` are the same number and both satisfy `type: integer`,
+    but they serialize differently. Two producers spelling a whole number
+    differently must not disagree on the digest."""
+    as_int = _load(VALID_BASELINE)
+    as_float = _load(VALID_BASELINE)
+    as_float["version"] = 1.0
+
+    assert baseline.check_version(as_float) == []
+    assert baseline.compute_digest(as_float) == baseline.compute_digest(as_int)
+
+
+def test_booleans_are_not_normalized_into_numbers():
+    """`bool` subclasses `int` in Python, so the whole-number rule has to skip
+    it or `true` would canonicalize to `1`."""
+    doc = _load(VALID_BASELINE)
+    doc["unresolved_questions"] = [{"question": "open", "blocks_commitment": False}]
+
+    assert b'"blocks_commitment":false' in baseline.canonical_bytes(doc)
+
+
+def test_duplicate_source_key_is_rejected_even_with_different_revisions():
+    """Two declarations of one key make every reference through it ambiguous:
+    a consumer cannot tell which revision the approved content came from."""
+    doc = _load(VALID_BASELINE)
+    shadow = json.loads(json.dumps(doc["sources"][0]))
+    shadow["revision"] = "0" * 40
+    doc["sources"].append(shadow)
+
+    issues, _ = baseline.validate_baseline(doc)
+
+    assert any("duplicate source_key" in i for i in issues)
+
+
+def test_behavior_cannot_hide_in_constraints_and_constraints_cannot_claim_scope():
+    """The two fields mean different things. Behavior recorded as a constraint
+    is invisible to every scope check, which is how a Rule quietly stops being
+    part of what anyone verifies."""
+    nfr_as_scope = _load(VALID_BASELINE)
+    nfr_as_scope["selected_behavior"].append(
+        {
+            "ref": "support-app/response-approval#nfr:another-nfr",
+            "kind": "nfr",
+            "id_source": "tag",
+            "content_digest": "sha256:" + "0" * 64,
+        }
+    )
+    scenario_as_constraint = _load(VALID_BASELINE)
+    scenario_as_constraint["constraints"].append(
+        {
+            "ref": "support-app/response-approval#scenario:another-scenario",
+            "kind": "scenario",
+            "id_source": "tag",
+            "content_digest": "sha256:" + "0" * 64,
+        }
+    )
+
+    assert _schema_errors(nfr_as_scope)
+    assert _schema_errors(scenario_as_constraint)

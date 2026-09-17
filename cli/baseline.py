@@ -68,6 +68,14 @@ _REF_KINDS: frozenset[str] = frozenset(
     {"rule", "scenario", "nfr", "evaluation", "design", "agent-authority"}
 )
 
+# Which kinds each field may carry. Scope is behavior; constraints are the
+# properties that behavior must hold to. Mixing them would let a Rule be
+# recorded where no scope check looks for it.
+_FIELD_KINDS: dict[str, frozenset[str]] = {
+    "selected_behavior": frozenset({"rule", "scenario"}),
+    "constraints": frozenset({"nfr", "evaluation", "design", "agent-authority"}),
+}
+
 
 def _normalize(value: Any) -> Any:
     """Recursively put a decoded JSON value into canonical form.
@@ -75,6 +83,9 @@ def _normalize(value: Any) -> Any:
     Three normalizations, each covering a way two honest copies of the same
     baseline can differ on disk:
 
+    - **Whole numbers → int.** `1` and `1.0` are the same number and both pass
+      `"type": "integer"`, but they serialize differently. Booleans are
+      excluded explicitly because `bool` subclasses `int`.
     - **Strings → Unicode NFC.** A macOS checkout can hand you NFD where Linux
       hands you NFC for the same characters. Without this, the same baseline
       digests differently on two developers' machines, which is exactly the
@@ -88,6 +99,17 @@ def _normalize(value: Any) -> Any:
     Numbers and booleans pass through. `advisory` is dropped by the caller,
     not here, because it is only non-normative at the top level.
     """
+    if isinstance(value, bool):
+        # Before the int branch: bool subclasses int in Python, and True must
+        # stay `true`, never `1`.
+        return value
+    if isinstance(value, float) and value.is_integer():
+        # `1` and `1.0` are the same number and both satisfy JSON Schema's
+        # `"type": "integer"`, but json.dumps writes them as "1" and "1.0".
+        # Without this, two baselines that differ only in how a producer
+        # spelled a whole number digest differently — the exact cross-consumer
+        # disagreement the digest exists to rule out.
+        return int(value)
     if isinstance(value, str):
         return unicodedata.normalize("NFC", value)
     if isinstance(value, dict):
@@ -179,6 +201,54 @@ def check_version(baseline: dict) -> list[str]:
     ]
 
 
+def check_sources(baseline: dict) -> list[str]:
+    """Source declarations must be unambiguous and must stay inside themselves.
+
+    Two checks the schema cannot make. It can require each field's shape, but
+    it cannot see that two entries claim the same `source_key`, and while it
+    can pattern-match a path it cannot explain *why* a traversal was refused.
+    """
+    issues: list[str] = []
+    seen: set[str] = set()
+
+    for source in baseline.get("sources", []) or []:
+        if not isinstance(source, dict):
+            continue
+        key = source.get("source_key", "")
+
+        if key in seen:
+            issues.append(
+                f"sources: duplicate source_key {key!r}. Two declarations of one key make "
+                f"every reference through it ambiguous — a consumer cannot tell which "
+                f"revision the approved content came from."
+            )
+        seen.add(key)
+
+        path = source.get("path")
+        if isinstance(path, str) and _escapes_source(path):
+            issues.append(
+                f"sources: source {key!r} has path {path!r}, which leaves the source tree. "
+                f"Resolution outside the bound revision would read content the digest was "
+                f"never taken against."
+            )
+
+    return issues
+
+
+def _escapes_source(path: str) -> bool:
+    """True when `path` is not a plain relative prefix inside the source.
+
+    Rejects absolute paths, Windows separators and drive letters, and any `.`
+    or `..` segment. Checked here as well as in the schema so the refusal
+    carries a reason rather than a pattern mismatch.
+    """
+    if not path or path.startswith("/") or "\\" in path:
+        return True
+    if len(path) > 1 and path[1] == ":":
+        return True
+    return any(segment in ("", ".", "..") for segment in path.split("/"))
+
+
 def check_references(baseline: dict) -> tuple[list[str], list[str]]:
     """Reference integrity and identity rules. Returns `(issues, warnings)`.
 
@@ -205,6 +275,14 @@ def check_references(baseline: dict) -> tuple[list[str], list[str]]:
             )
 
         kind = _ref_kind(ref)
+        allowed = _FIELD_KINDS[field]
+        if entry.get("kind") not in allowed:
+            issues.append(
+                f"{field}: {ref!r} is declared as {entry.get('kind')!r}, which belongs in "
+                f"{'constraints' if field == 'selected_behavior' else 'selected_behavior'}. "
+                f"{field} carries {' or '.join(sorted(allowed))}. Behavior recorded as a "
+                f"constraint is invisible to every scope check."
+            )
         if kind is not None and entry.get("kind") != kind:
             issues.append(
                 f"{field}: reference {ref!r} is a {kind!r} but is declared as "
@@ -227,21 +305,32 @@ def check_references(baseline: dict) -> tuple[list[str], list[str]]:
         else:
             seen[ref] = field
 
+    excluded_refs: set[str] = set()
     for excluded in baseline.get("exclusions", []) or []:
         if not isinstance(excluded, dict):
             continue
         ref = excluded.get("ref", "")
+
         if ref in seen:
             issues.append(
                 f"Reference {ref!r} is both selected in {seen[ref]} and listed as an "
                 f"exclusion. It is either in scope or out of it, not both."
             )
+
+        if ref in excluded_refs:
+            issues.append(
+                f"exclusions: duplicate reference {ref!r}. Canonicalization treats every "
+                f"array as a set, so a repeated exclusion is silently collapsed — record it "
+                f"once."
+            )
+        excluded_refs.add(ref)
+
         source = _ref_source(ref)
-        if source and source not in declared:
-            warnings.append(
-                f"exclusions: reference {ref!r} names undeclared source {source!r}. "
-                f"Excluded behavior need not resolve, but an unresolvable exclusion is "
-                f"usually a typo."
+        if source not in declared:
+            issues.append(
+                f"exclusions: reference {ref!r} names source {source!r}, which is not "
+                f"declared in `sources`. An exclusion is a record of what was considered "
+                f"and refused; one that cannot be resolved records nothing."
             )
 
     return issues, warnings
@@ -280,5 +369,6 @@ def validate_baseline(baseline: dict) -> tuple[list[str], list[str]]:
         return version_issues, []
 
     issues, warnings = check_references(baseline)
+    issues.extend(check_sources(baseline))
     issues.extend(check_commitment_readiness(baseline))
     return issues, warnings

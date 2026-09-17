@@ -59,15 +59,18 @@ digest = "sha256:" + hex( SHA-256( canonical_bytes(baseline) ) )
 `canonical_bytes` is produced by, in order:
 
 1. **Drop the non-normative keys.** Exactly one today: `advisory`.
-2. **Normalize every string to Unicode NFC.** A macOS checkout can hand over NFD where Linux hands
+2. **Fold whole numbers written as floats to integers.** `1` and `1.0` are the same number and
+   both satisfy `"type": "integer"`, but they serialize as `1` and `1.0`. Booleans are excluded
+   explicitly, because `bool` subclasses `int` in Python and `true` must never become `1`.
+3. **Normalize every string to Unicode NFC.** A macOS checkout can hand over NFD where Linux hands
    over NFC for the same characters; without this the same baseline digests differently on two
    machines, which is precisely the cross-consumer disagreement a digest exists to rule out.
-3. **Sort every array** by each element's own canonical JSON serialization. Every array in a
+4. **Sort every array** by each element's own canonical JSON serialization. Every array in a
    baseline is a *set* — the order someone listed two scenarios in is not part of what was
    approved.
-4. **Serialize** as JSON with keys sorted by Unicode code point, separators `,` and `:` with no
+5. **Serialize** as JSON with keys sorted by Unicode code point, separators `,` and `:` with no
    whitespace, and non-ASCII emitted literally (not `\u`-escaped).
-5. **Encode** UTF-8.
+6. **Encode** UTF-8.
 
 Reference implementation: `cli/baseline.py` (`canonical_form`, `canonical_bytes`,
 `compute_digest`). `canonical_bytes` is exposed deliberately — a digest mismatch tells you two
@@ -79,6 +82,7 @@ implementations disagree, but not where, and the bytes do.
 |---|---|
 | Re-indenting, reordering keys, reordering arrays, line endings, trailing whitespace | **unchanged** — formatting is not behavior |
 | NFC/NFD composition of the same characters | **unchanged** |
+| A whole number written `1` versus `1.0` | **unchanged** |
 | Adding or revising anything under `advisory` | **unchanged** — advisory material is non-normative by definition |
 | A selected scenario's content digest (its steps, Examples rows, Background, Rule text, inherited tags) | **changed** |
 | A source revision | **changed** |
@@ -95,6 +99,29 @@ Digest equality proves the **approved specification** is unchanged. It proves no
 code. Implementation can drift from an unchanged spec, and untraceable behavior can be added
 under a digest that still matches. Traceability, scenario-based verification and review remain
 necessary; a matching digest is never offered as evidence of conformance.
+
+---
+
+## 3A. Sources: what counts as immutable
+
+Every source declares a `kind`, and the kind decides which revision forms are acceptable. The
+distinction is not cosmetic:
+
+| `kind` | `revision` must be | Why |
+|---|---|---|
+| `repository` | a 40- or 64-character hex commit SHA | A git tag such as `v1.2.3` **can be moved**. Accepting one would let approved content change without the baseline or its digest changing — precisely what the binding exists to prevent. |
+| `package` | a released version (`1.2.3`, `v1.2.3-rc.1`) | Immutable by the registry's own contract. |
+
+`main`, a branch name, or a tag on a repository source is rejected.
+
+`sources[].path` is an optional repository-relative prefix. Every segment must begin with an
+alphanumeric or underscore, which rejects absolute paths, `.` and `..` segments, Windows
+backslash separators and drive letters. Resolution outside the bound revision would read content
+the digest was never taken against, leaving the "immutable" binding immutable in name only. This
+is enforced twice — by pattern in the schema, and by a cross-field check whose message says why.
+
+`source_key` must be unique. Two declarations of one key make every reference through it
+ambiguous: a consumer cannot tell which revision the approved content came from.
 
 ---
 
@@ -159,13 +186,17 @@ closure of anything selected.
 
 | Field | Role | Digest |
 |---|---|---|
-| `selected_behavior` | Normative. The authoritative scope. | in |
-| `constraints` | Normative. NFRs, evaluations, design requirements, runtime agent authority. Relaxing one is a scope change. | in |
+| `selected_behavior` | Normative. The authoritative scope. Carries **`rule` and `scenario` only** — scope is behavior. | in |
+| `constraints` | Normative. Carries **`nfr`, `evaluation`, `design`, `agent-authority` only**. Relaxing one is a scope change. | in |
 | `exclusions` | Normative. A positive statement that something was considered and not committed. | in |
 | `evidence` | Normative reference. Bodies live where they were recorded; `contradicting` evidence is recorded, not hidden. | in |
 | `implementation_discretion` | Normative. What may be decided without a new product decision. | in |
 | `unresolved_questions` | Normative. `blocks_commitment: true` means not ready for a decision. | in |
 | `advisory` | **Non-normative.** Prototypes, design explorations, generated reports, AI analyses. | **out** |
+
+The two behavior fields carry disjoint kinds deliberately. A Rule recorded as a constraint is
+invisible to every scope check — which is how behavior quietly stops being part of what anyone
+verifies — and a constraint recorded as scope inverts the same mistake.
 
 **A prototype listed in `advisory` contributes no requirement.** If behavior it demonstrates
 should be committed, it must appear in `selected_behavior` — which is a decision someone makes,
@@ -191,11 +222,16 @@ a path relative to a source tree.
 | `digest-vectors/differs--*.json` | digest differs from the golden vector |
 | `invalid/*.json` | rejected — see the table below for which mechanism catches each |
 
-Six of the invalid fixtures fail the **schema**; seven are schema-valid and fail a **cross-field
-check**, because they are relationships between fields rather than field shapes: unsupported
-version, reference to an undeclared source, derived identifier, the same ref both selected and
-excluded, a duplicate reference, a declared `kind` disagreeing with its ref, and a blocking
-unresolved question.
+Nine of the nineteen invalid fixtures fail the **schema**: missing opportunity reference, no
+sources, no selected behavior, a mutable revision, a moving git tag on a repository source, a
+source path escaping the repository, a self-asserted approval, an unqualified reference, and a
+constraint listed as selected behavior.
+
+The other ten are schema-valid and fail a **cross-field check**, because they are relationships
+between fields rather than field shapes: unsupported version, a reference to an undeclared
+source, a derived identifier, the same ref both selected and excluded, a duplicate reference, a
+declared `kind` disagreeing with its ref, a blocking unresolved question, a duplicate
+`source_key`, a duplicate exclusion, and an exclusion naming an undeclared source.
 
 **Do not "fix" a baseline to make it pass.** A validator is read-only: it never rewrites a spec,
 adds a missing identifier during enforcement, or silently upgrades a manifest. One that repairs

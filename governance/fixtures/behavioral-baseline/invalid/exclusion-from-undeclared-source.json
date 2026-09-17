@@ -113,6 +113,10 @@
     {
       "ref": "support-app/response-approval#scenario:bulk-approve-queue",
       "reason": "Attractive, and unnecessary for the first complete journey. Deferred without promise of a queue position."
+    },
+    {
+      "ref": "typo-app/response-approval#scenario:x",
+      "reason": "mistyped source key"
     }
   ],
   "implementation_discretion": {
@@ -123,7 +127,5 @@
       "Test structure and framework choices that verify the selected scenarios."
     ],
     "notes": "Anything that changes observable behavior, an expected outcome, release inclusion, a constraint, or agent tool authority is outside discretion and routes to a decision."
-  },
-  "approved": true,
-  "approved_by": "someone"
+  }
 }

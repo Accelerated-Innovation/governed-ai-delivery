@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 1.0,
   "commitment_key": "support-response-approval",
   "opportunity": {
     "opportunity_ref": "PDG-OPP-4471",
@@ -123,7 +123,5 @@
       "Test structure and framework choices that verify the selected scenarios."
     ],
     "notes": "Anything that changes observable behavior, an expected outcome, release inclusion, a constraint, or agent tool authority is outside discretion and routes to a decision."
-  },
-  "approved": true,
-  "approved_by": "someone"
+  }
 }
