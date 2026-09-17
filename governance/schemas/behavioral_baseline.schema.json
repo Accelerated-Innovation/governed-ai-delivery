@@ -1,0 +1,417 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:governed-ai-delivery:schemas:behavioral_baseline",
+  "title": "Behavioral Baseline Schema",
+  "description": "Schema for commitments/<commitment-key>/baseline.json — the portable record of exactly which behavior a product commitment approved, bound to immutable source revisions. It is the artifact a validator diffs a working tree against and the artifact whose digest an authoritative decision binds.\n\nWHAT THIS FILE IS NOT: it is not an approval. Nothing in this schema can assert that a commitment is approved, and no property means 'approved' — authority lives in the decision service and is read from it, never from a manifest field. `additionalProperties: false` throughout is part of that: a caller cannot bolt on `approved: true` and have it survive validation. A baseline that validates is a well-formed *proposal* of scope; whether it currently authorizes work is a different question with a different answer source.\n\nArea-agnostic — a baseline has the same shape whether the project is api, cli, ui or data — so this lives in governance/schemas/ rather than governance/<area>/schemas/, as approval_policy.schema.json does.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "commitment_key",
+    "opportunity",
+    "sources",
+    "selected_behavior"
+  ],
+  "properties": {
+    "version": {
+      "description": "Baseline format version. An integer, as approval_policy.yaml does it. Consumers hold an explicit list of supported versions and reject anything else with a named error rather than a schema-shaped one, so an unsupported version reads as 'this tool is too old for this baseline' instead of a wall of validation noise.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "commitment_key": {
+      "description": "Stable slug identifying this commitment. Matches the directory name under commitments/. Never reused for a different commitment: a replacement baseline gets its own key and references the one it replaces through the decision service, not by overwriting it.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "opportunity": {
+      "description": "What this commitment is for, by reference. The business case is NOT copied here — it lives in the PDG and is referenced. Copying it would create a second editable copy of something that already has an owner.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "opportunity_ref",
+        "outcome"
+      ],
+      "properties": {
+        "opportunity_ref": {
+          "description": "Opaque identifier of the opportunity in the Product Definition Graph. Required: a baseline with no opportunity is a spec with no reason to exist, and the validator fails it rather than treating scope as self-justifying.",
+          "type": "string",
+          "minLength": 1
+        },
+        "decision_thread_ref": {
+          "description": "Opaque identifier of the decision thread carrying the accountable decision, when one exists. Absent during preparation — a draft baseline has no thread yet, and inventing one would fabricate provenance.",
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome": {
+          "description": "The intended outcome this behavior is committed to produce, in one sentence. Prose, and deliberately not a metric: the measurable outcome contract lives in the PDG.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "sources": {
+      "description": "The immutable source revisions this baseline resolves against. Every qualified reference in the document names one of these by its source_key, so a reference can always be resolved to an exact revision of an exact repository. A baseline whose references outrun its sources is unresolvable and fails validation.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_key",
+          "kind",
+          "repository",
+          "revision"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "repository"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "revision": {
+                  "description": "A 40- or 64-character hex commit SHA. Nothing else is immutable in a repository.",
+                  "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "package"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "revision": {
+                  "description": "A released package version. Immutable by the registry's own contract.",
+                  "pattern": "^v?[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "source_key": {
+            "description": "The short name used as the first segment of every qualified reference into this source. Unique within the baseline.",
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]*$",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "kind": {
+            "description": "Whether this source is a repository at a commit or a published package at a version. The distinction is not cosmetic: it decides which revision forms are immutable. A git tag like `v1.2.3` CAN be moved, so it is not an acceptable revision for a repository — only a commit SHA is. For a published package, the version is the immutable identity.",
+            "type": "string",
+            "enum": [
+              "repository",
+              "package"
+            ]
+          },
+          "repository": {
+            "description": "Repository or package identity — a URL, or a package name for a published artifact. Identity only; nothing fetches it during validation.",
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "description": "An IMMUTABLE revision, in the form required by `kind`. A branch or tag name on a repository is rejected: 'main' and 'v1.2.3' are moving pointers, not revisions, and binding approval to a moving pointer means the approved content can change without the baseline changing.",
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "description": "Optional repository-relative prefix the feature keys resolve under (e.g. 'features'). Must stay inside the source: every segment starts with an alphanumeric or underscore, which rejects absolute paths, '.' and '..' segments, and Windows backslash separators. Resolution outside the bound revision would leave the immutable tree the digest was taken against.",
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*(?:/[A-Za-z0-9_][A-Za-z0-9_.-]*)*$",
+            "maxLength": 500
+          }
+        }
+      }
+    },
+    "selected_behavior": {
+      "description": "The Rules and scenarios this commitment approves — the authoritative scope. Only what is listed here is in scope. A scenario that happens to live in the same file and is not listed is NOT approved, which is what stops an unselected future option from riding along because it shares a file with a selected one.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/selectedBehaviorRef"
+      }
+    },
+    "constraints": {
+      "description": "Applicable design requirements, NFRs, model evaluations and runtime agent authority — normative, and part of what approval binds. Relaxing one of these is a scope change, not an implementation detail. A Rule or scenario does NOT belong here: behavior is scope, and recording it as a constraint would hide it from every scope check.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/constraintRef"
+      }
+    },
+    "evidence": {
+      "description": "References to the evidence that supported this decision. References only: evidence bodies live where they were recorded.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "role"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "description": "Whether this evidence supported the decision or argued against it. Recording contradicting evidence is deliberate — a decision thread that only keeps its supporting evidence is a sales deck.",
+            "type": "string",
+            "enum": [
+              "supporting",
+              "contradicting"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "exclusions": {
+      "description": "Behavior deliberately left out, each with the reason. An exclusion is a positive statement that something was considered and not committed — which is what makes 'we never decided that' distinguishable from 'we decided against it' six months later. A ref cannot be both selected and excluded.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "reason"
+        ],
+        "properties": {
+          "ref": {
+            "$ref": "#/$defs/qualifiedRef"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "implementation_discretion": {
+      "description": "What implementers may decide without a new product decision. Anything not covered here that changes observable behavior, an expected outcome, release inclusion, a constraint or agent authority is a scope change and routes to a decision.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowed": {
+          "description": "Explicit statements of permitted discretion, e.g. 'choice of persistence adapter', 'internal error types'.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "unresolved_questions": {
+      "description": "Open questions recorded honestly at preparation time. A question with blocks_commitment true means this baseline is NOT ready for a commitment decision — the validator reports it as blocking. Recording an unknown is always correct; inventing an answer to clear the list is the failure this field exists to prevent.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "question",
+          "blocks_commitment"
+        ],
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1
+          },
+          "blocks_commitment": {
+            "description": "True when the answer could change included behavior, an expected outcome, or a constraint. An internal implementation choice inside declared discretion does not block.",
+            "type": "boolean"
+          },
+          "owner_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "advisory": {
+      "description": "Explicitly NON-NORMATIVE references: prototype screenshots, AI analyses, generated reports, design explorations. This is the one key excluded from the digest, so advisory material can be added or revised without touching what approval bound. A prototype listed here contributes NO requirement — if behavior it shows should be committed, it must appear in selected_behavior, which is a decision, not an inference.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "kind"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "prototype",
+              "design-exploration",
+              "generated-report",
+              "ai-analysis",
+              "other"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "qualifiedRef": {
+      "description": "A cross-feature reference: <source-key>/<feature-key>#<kind>:<slug>. The source-key segment is what makes two features with the same local slug in different repositories resolve distinctly. Slugs are lowercase kebab-case, matching the @rule:/@scenario: tag convention in govkit-plugins' spec-identifiers.md.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*/[A-Za-z0-9_][A-Za-z0-9._-]*#(?:rule|scenario|nfr|evaluation|design|agent-authority):[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 500
+    },
+    "contentDigest": {
+      "description": "SHA-256 over the canonical form of the referenced element's full dependency closure — for a scenario: its steps, its Examples rows, its tables and docstrings, the Backgrounds that reach it, its Rule's text, and its inherited tags. Capturing the closure is what makes a changed Background or a changed Examples row change this value; capturing only the scenario body would let inherited context change underneath an approval silently.",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "behaviorRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "kind",
+        "id_source",
+        "content_digest"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/qualifiedRef"
+        },
+        "kind": {
+          "description": "What sort of element this is. Must agree with the kind segment of `ref`.",
+          "type": "string",
+          "enum": [
+            "rule",
+            "scenario",
+            "nfr",
+            "evaluation",
+            "design",
+            "agent-authority"
+          ]
+        },
+        "id_source": {
+          "description": "Where the identifier came from. `tag` means an author wrote @rule:/@scenario: in the Gherkin. `derived` means a tool slugified it from the element's name, which is stable only as long as the name is — so a derived identifier is readable but CANNOT be approved into a new baseline, and the validator rejects it. Migration is one tag line per element.",
+          "type": "string",
+          "enum": [
+            "tag",
+            "derived"
+          ]
+        },
+        "content_digest": {
+          "$ref": "#/$defs/contentDigest"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "selectedBehaviorRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "kind",
+        "id_source",
+        "content_digest"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/qualifiedRef"
+        },
+        "kind": {
+          "description": "`rule` or `scenario`. Must agree with the kind segment of `ref`.",
+          "type": "string",
+          "enum": [
+            "rule",
+            "scenario"
+          ]
+        },
+        "id_source": {
+          "description": "Where the identifier came from. `tag` means an author wrote @rule:/@scenario: in the Gherkin. `derived` means a tool slugified it from the element's name, which is stable only as long as the name is — so a derived identifier is readable but CANNOT be approved into a new baseline, and the validator rejects it. Migration is one tag line per element.",
+          "type": "string",
+          "enum": [
+            "tag",
+            "derived"
+          ]
+        },
+        "content_digest": {
+          "$ref": "#/$defs/contentDigest"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "description": "A Rule or scenario in the approved scope. Only these two kinds: scope is behavior."
+    },
+    "constraintRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "kind",
+        "id_source",
+        "content_digest"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/qualifiedRef"
+        },
+        "kind": {
+          "description": "A constraint kind. Must agree with the kind segment of `ref`.",
+          "type": "string",
+          "enum": [
+            "nfr",
+            "evaluation",
+            "design",
+            "agent-authority"
+          ]
+        },
+        "id_source": {
+          "description": "Where the identifier came from. `tag` means an author wrote @rule:/@scenario: in the Gherkin. `derived` means a tool slugified it from the element's name, which is stable only as long as the name is — so a derived identifier is readable but CANNOT be approved into a new baseline, and the validator rejects it. Migration is one tag line per element.",
+          "type": "string",
+          "enum": [
+            "tag",
+            "derived"
+          ]
+        },
+        "content_digest": {
+          "$ref": "#/$defs/contentDigest"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "description": "An NFR, model evaluation, design requirement or runtime agent-authority boundary that the commitment binds."
+    }
+  }
+}

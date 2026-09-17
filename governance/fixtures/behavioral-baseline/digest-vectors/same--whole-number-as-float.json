@@ -1,0 +1,127 @@
+{
+  "version": 1.0,
+  "commitment_key": "support-response-approval",
+  "opportunity": {
+    "opportunity_ref": "PDG-OPP-4471",
+    "decision_thread_ref": "PDG-THREAD-4471-a",
+    "outcome": "A support representative can answer a customer with an evidence-backed response they have explicitly approved, without a draft ever leaving the product unapproved."
+  },
+  "sources": [
+    {
+      "source_key": "support-app",
+      "repository": "https://example.invalid/acme/support-app",
+      "revision": "1f0c9a6d3b5e27184c0a9f2d6b8e4713a5c9d0f2",
+      "path": "features",
+      "kind": "repository"
+    },
+    {
+      "source_key": "shared-ui",
+      "repository": "https://example.invalid/acme/shared-ui",
+      "revision": "9b2d4e6f8a0c1357e9f1a3b5c7d9e1f3a5b7c9d1",
+      "path": "features",
+      "kind": "repository"
+    }
+  ],
+  "selected_behavior": [
+    {
+      "ref": "support-app/response-approval#rule:only-approved-current-version-may-send",
+      "kind": "rule",
+      "id_source": "tag",
+      "content_digest": "sha256:2d6d1130122fe81a38c290f397656b5dd519be17949ba834d0e53ad9c3f0ed2d",
+      "note": "The primary Rule. Every scenario below illustrates it; none of them replaces it."
+    },
+    {
+      "ref": "support-app/response-approval#scenario:unapproved-response-blocked",
+      "kind": "scenario",
+      "id_source": "tag",
+      "content_digest": "sha256:64db827db81e2dd8737deb85cf2a7ef3f7b4f0c8c789159543fe0d9430bc4ff5"
+    },
+    {
+      "ref": "support-app/response-approval#scenario:unauthorized-approver-rejected",
+      "kind": "scenario",
+      "id_source": "tag",
+      "content_digest": "sha256:61335f4a9386fdbc35d96512ed960279308fb7234f4b3d0caf9119f50b89696f"
+    },
+    {
+      "ref": "support-app/response-approval#scenario:editing-invalidates-prior-approval",
+      "kind": "scenario",
+      "id_source": "tag",
+      "content_digest": "sha256:498780ca126ffc98f5364f0aed0336d01de92fc872e046b0cec18415f4c60bd2"
+    },
+    {
+      "ref": "support-app/evidence-retrieval#scenario:insufficient-evidence-routes-to-person",
+      "kind": "scenario",
+      "id_source": "tag",
+      "content_digest": "sha256:d3ef8523b164b98db0e9780e990eb93bf70f5db3b8058fcf895e7492dcc3304f"
+    },
+    {
+      "ref": "support-app/response-approval#scenario:failed-sending-shows-recoverable-state",
+      "kind": "scenario",
+      "id_source": "tag",
+      "content_digest": "sha256:ab92efbe3e0196bfd6af255a08c7310f120d710234f3e38573c5fcd6b0e7efea",
+      "note": "A recovery path, selected deliberately: it cannot be deferred as an exception case because the Rule it serves is in scope."
+    }
+  ],
+  "constraints": [
+    {
+      "ref": "support-app/response-approval#nfr:approval-audit-retention",
+      "kind": "nfr",
+      "id_source": "tag",
+      "content_digest": "sha256:f59de98e9c9251abe83ac99e8d73c6138646fb69599af44dcf72621694d17428"
+    },
+    {
+      "ref": "support-app/evidence-retrieval#agent-authority:retrieval-agent-read-only",
+      "kind": "agent-authority",
+      "id_source": "tag",
+      "content_digest": "sha256:37236aa1e1e36d0e8e72a33b17895fbc0b7c7d5878339a4772bc0811eacf64fa",
+      "note": "The retrieval agent reads evidence and cannot send. Changing this is a scope change, not a configuration change."
+    },
+    {
+      "ref": "support-app/evidence-retrieval#evaluation:evidence-sufficiency-threshold",
+      "kind": "evaluation",
+      "id_source": "tag",
+      "content_digest": "sha256:435c4ed729fe130e8d34b23147dd9c594200fb3ac44b3496c55a40217a463a6b"
+    },
+    {
+      "ref": "shared-ui/response-composer#design:approval-state-visible-before-send",
+      "kind": "design",
+      "id_source": "tag",
+      "content_digest": "sha256:3d8830799e2552d4a0c27f0f86a6b4daae29d4bdb6dc0705ad3201aa78b9f9f5"
+    }
+  ],
+  "evidence": [
+    {
+      "ref": "PDG-EV-2201",
+      "role": "supporting",
+      "note": "Interview set: representatives describe re-reading drafts they had already sent."
+    },
+    {
+      "ref": "PDG-EV-2208",
+      "role": "supporting"
+    },
+    {
+      "ref": "PDG-EV-2213",
+      "role": "contradicting",
+      "note": "One team reports approval friction on high-volume queues. Recorded, not resolved by this commitment."
+    }
+  ],
+  "exclusions": [
+    {
+      "ref": "support-app/response-approval#scenario:automatic-send-on-high-confidence",
+      "reason": "The prototype sent automatically above a confidence threshold. That behavior is NOT committed. It stays uncommitted until it is decided on its own evidence — a prototype demonstrating something is not a decision to build it."
+    },
+    {
+      "ref": "support-app/response-approval#scenario:bulk-approve-queue",
+      "reason": "Attractive, and unnecessary for the first complete journey. Deferred without promise of a queue position."
+    }
+  ],
+  "implementation_discretion": {
+    "allowed": [
+      "Choice of persistence adapter and schema for the approval record.",
+      "Internal error types, log format and retry mechanics where no NFR pins them.",
+      "Component decomposition and naming in the composer UI, provided the approval state stays visible before send.",
+      "Test structure and framework choices that verify the selected scenarios."
+    ],
+    "notes": "Anything that changes observable behavior, an expected outcome, release inclusion, a constraint, or agent tool authority is outside discretion and routes to a decision."
+  }
+}

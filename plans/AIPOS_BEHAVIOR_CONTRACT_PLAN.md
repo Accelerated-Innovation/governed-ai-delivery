@@ -34,7 +34,7 @@ boundary real in a target project.
 
 | Increment | Deliverable | Layer |
 |---|---|---|
-| 01 | `governance/schemas/behavioral_baseline.schema.json`, the digest rule, golden vectors, valid/invalid fixtures | payload + tests |
+| 01 | **Done.** `governance/schemas/behavioral_baseline.schema.json` + contract spec, `cli/baseline.py` (canonical form, digest, cross-field checks), conformance fixtures, `tests/test_behavioral_baseline.py` | payload + installer + tests |
 | 10 | Local baseline/reference validation and the structured difference report; `validate`/`doctor` integration | installer |
 | 11 | A bounded engine-status client: exact decision id, baseline digest, opportunity/scope binding, current revision | installer |
 | 12 | `agents/{claude-code,codex,copilot}` instructions to load the baseline before planning and to route scope change to a decision | payload, three agents in lockstep |
@@ -118,5 +118,18 @@ reported as passed.
 
 ## Status
 
-Nothing in this file is implemented. No schema, validator, client, agent change, or CI gate
-exists yet. No approval, release, or publication is authorized by writing it.
+**Increment 01 is implemented.** Contract version **1** is defined and shipping:
+
+- `governance/schemas/behavioral_baseline.schema.json` and
+  `governance/schemas/BEHAVIORAL_BASELINE_CONTRACT.md` (the normative digest and resolution
+  rules, for consumers in any language).
+- `cli/baseline.py` — canonical form, `sha256:` digest, and the cross-field checks a schema
+  cannot express. Read-only; it never repairs its input.
+- `governance/fixtures/behavioral-baseline/` — the support-response worked example, its golden
+  digest, six `same--`/`differs--` digest vectors, and 13 invalid fixtures.
+- `cli/paths.GOVERNANCE_DIR` — the bundled-asset anchor, so consumers resolve the contract from
+  an installed wheel rather than a sibling checkout. Verified against a real wheel in a clean
+  venv, and guarded in CI by a new `wheel-smoke` step.
+
+Increments 10–13 and 15 remain unimplemented. No validator command is registered yet, no default
+installation changed, and no approval, release, or publication is authorized by any of this.
