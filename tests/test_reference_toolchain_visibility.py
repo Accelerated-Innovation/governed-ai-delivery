@@ -42,8 +42,11 @@ def test_a_genuinely_absent_toolchain_still_reports_as_absent():
     """The positive control. A resolver that returned something regardless
     would silence the honest case too — the one where an adopter really has
     not installed the extras."""
+    # `scheme_dirs=()` as well as an absent interpreter dir: the resolver
+    # consults sysconfig by default and would otherwise find this very venv's
+    # copy, which is the right behaviour and the wrong fixture.
     resolved, reason = reference.resolve_lint_imports(
-        interpreter_dir="/nonexistent", search_path=""
+        interpreter_dir="/nonexistent", search_path="", scheme_dirs=()
     )
 
     assert resolved is None
@@ -55,12 +58,50 @@ def test_the_reason_distinguishes_not_installed_from_not_on_path():
     said "not installed" for both, which sends someone to reinstall a package
     they already have."""
     absent = reference.resolve_lint_imports(
-        interpreter_dir="/nonexistent", search_path="", importable=False
+        interpreter_dir="/nonexistent", search_path="", scheme_dirs=(), importable=False
     )[1]
     installed_but_hidden = reference.resolve_lint_imports(
-        interpreter_dir="/nonexistent", search_path="", importable=True
+        interpreter_dir="/nonexistent", search_path="", scheme_dirs=(), importable=True
     )[1]
 
     assert "not installed" in absent
     assert "not installed" not in installed_but_hidden
     assert "PATH" in installed_but_hidden
+
+
+# --- review of PR #161 -------------------------------------------------------
+
+def test_a_windows_scripts_subdirectory_is_searched(tmp_path):
+    """A non-virtualenv Windows interpreter lives at `...\\Python312\\python.exe`
+    while its console scripts install to `...\\Python312\\Scripts\\`. Only a
+    venv puts them side by side.
+
+    Getting this wrong is worse than the bug this PR fixes: the guard below
+    carries no skip mark, so an unresolvable-but-installed toolchain turns a
+    working installation into a red suite rather than a silent skip.
+    """
+    scripts = tmp_path / "Scripts"
+    scripts.mkdir()
+    launcher = scripts / "lint-imports.exe"
+    launcher.write_text("")
+    launcher.chmod(0o755)
+
+    resolved, reason = reference.resolve_lint_imports(
+        interpreter_dir=str(tmp_path), search_path=""
+    )
+
+    assert resolved == str(launcher), reason
+
+
+def test_the_install_scheme_is_consulted_before_giving_up(tmp_path):
+    """`pip install --user` and other schemes put scripts somewhere sysconfig
+    knows about and `sys.executable` does not."""
+    script = tmp_path / "lint-imports"
+    script.write_text("")
+    script.chmod(0o755)
+
+    resolved, _ = reference.resolve_lint_imports(
+        interpreter_dir="/nonexistent", search_path="", scheme_dirs=(str(tmp_path),)
+    )
+
+    assert resolved == str(script)
