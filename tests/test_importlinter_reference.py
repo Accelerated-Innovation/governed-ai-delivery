@@ -16,10 +16,12 @@ Marked `e2e` — they shell out to `lint-imports` and are excluded from the
 fast loop.
 """
 
+import importlib.util
 import os
 import re
 import shutil
 import subprocess
+import sys
 import textwrap
 from pathlib import Path
 
@@ -30,14 +32,55 @@ REFERENCE = REPO_ROOT / "governance" / "backend" / "importlinter-reference.toml"
 
 LAYERS = ("api", "ports", "services", "models", "adapters", "common")
 
-_LINT_IMPORTS = shutil.which("lint-imports")
+def resolve_lint_imports(
+    interpreter_dir: str | None = None,
+    search_path: str | None = None,
+    importable: bool | None = None,
+) -> tuple[str | None, str]:
+    """The `lint-imports` console script, and why it is missing if it is.
+
+    `shutil.which` alone was wrong here, and quietly. import-linter is a
+    **declared test dependency**, so the package is present whenever the
+    extras are installed — but `python -m pytest` does not put the
+    interpreter's own `bin` directory on `PATH`, so the script was invisible
+    and every test in this module skipped claiming a missing install.
+
+    The interpreter's directory is searched first for that reason: it is where
+    the script actually is when the extras are installed, whatever `PATH`
+    happens to say.
+
+    The two failure reasons are kept apart because they need different fixes.
+    "Not installed" sends an adopter to `pip install`; "installed but not on
+    PATH" sends them somewhere else entirely, and telling the second person
+    the first thing wastes their time reinstalling what they have.
+
+    The arguments exist so the failure paths can be tested without
+    uninstalling anything.
+    """
+    directory = Path(interpreter_dir) if interpreter_dir is not None else Path(sys.executable).parent
+    for name in ("lint-imports", "lint-imports.exe"):
+        candidate = directory / name
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate), ""
+
+    found = shutil.which("lint-imports", path=search_path) if search_path is not None else shutil.which("lint-imports")
+    if found:
+        return found, ""
+
+    present = importlib.util.find_spec("importlinter") is not None if importable is None else importable
+    if not present:
+        return None, "import-linter not installed (pip install -e '.[test]')"
+    return None, (
+        f"import-linter is importable but its lint-imports script is neither beside "
+        f"{sys.executable} nor on PATH"
+    )
+
+
+_LINT_IMPORTS, _WHY_NOT = resolve_lint_imports()
 
 pytestmark = [
     pytest.mark.e2e,
-    pytest.mark.skipif(
-        _LINT_IMPORTS is None,
-        reason="import-linter not installed (pip install -e '.[test]')",
-    ),
+    pytest.mark.skipif(_LINT_IMPORTS is None, reason=_WHY_NOT),
 ]
 
 
