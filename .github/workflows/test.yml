@@ -7,7 +7,21 @@ on:
     branches: [main]
 
 jobs:
-  pytest:
+  # Two tiers, because the Python matrix and the toolchain setup were paying
+  # for each other. Every leg installed Node, Go, go-arch-lint, .NET and Java
+  # — about 50 seconds, `go install go-arch-lint` alone being 31 — and did it
+  # twice, for tests whose behaviour does not vary by Python version at all.
+  #
+  # fast: both interpreters, no toolchains. 3.11 is the floor `requires-python`
+  #       promises, and without a job on it nothing enforces the promise — a
+  #       3.12-only construct would ship in a package claiming 3.11 support.
+  # e2e:  one interpreter, every toolchain, paid once. These tests exercise
+  #       Go, .NET, Java and Node behaviour through the shipped configs.
+  #
+  # The tiers are complements (`-m "not e2e"` and `-m e2e`), so nothing can
+  # fall between them. As of this change: 3001 fast + 101 e2e = 3102.
+  fast:
+    name: pytest (fast)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -20,6 +34,27 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[test]"
+
+      - name: Run pytest (fast tier)
+        run: pytest -m "not e2e"
+
+  e2e:
+    name: pytest (e2e + toolchains)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # 3.12 only. These tests assert the behaviour of the shipped
+      # import-linter, dependency-cruiser, go-arch-lint, ArchUnit and
+      # ArchUnitNET configs, none of which changes with the interpreter.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
           cache: pip
 
       # tests/test_dependency_cruiser_reference.py runs the real
@@ -81,8 +116,61 @@ jobs:
           test -x "$(go env GOPATH)/bin/go-arch-lint"
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
-      - name: Run pytest
-        run: pytest
+      - name: Run pytest (e2e tier)
+        # `-rs` prints a reason for every skip, which the guard below reads.
+        #
+        # `set -o pipefail` is load-bearing, not housekeeping. GitHub's default
+        # shell is `bash -e {0}` — no pipefail — so a bare `pytest | tee` takes
+        # *tee's* exit status and a failing test reports green. In a step whose
+        # whole purpose is catching silent passes, that was the silent pass.
+        run: |
+          set -euo pipefail
+          pytest -m e2e --no-header -q -rs | tee /tmp/e2e.txt
+
+      - name: Assert the e2e tier ran, and skipped nothing for a missing tool
+        # Two failures this catches, both of which report green otherwise.
+        #
+        # An empty tier: rename the marker or mistype the selection and pytest
+        # exits 0 having run nothing. That is the silent-skip problem the
+        # toolchain assertion above guards against, one level up.
+        #
+        # A toolchain skip: the setup steps can succeed while a test's own
+        # probe still fails to see the tool — which is precisely what happened
+        # with `lint-imports`, where the console script was installed and
+        # invisible, and eleven tests skipped claiming it was missing.
+        #
+        # An allowlist, not a blocklist of reasons. A first version matched
+        # the text "not installed" — and missed the reason added in #161 for
+        # the installed-but-invisible case, which reads "neither beside ... nor
+        # on PATH". Enumerating the ways a skip can phrase itself is a losing
+        # game: every new probe invents new wording, and the guard fails open.
+        #
+        # So every skip fails the build except the ones listed below, which
+        # are permanent and have nothing to do with tooling. A new legitimate
+        # skip needs a deliberate line here, which is the right friction for
+        # removing coverage from the only tests that prove the shipped configs
+        # work.
+        run: |
+          set -euo pipefail
+          grep -Eq '[0-9]+ passed' /tmp/e2e.txt
+          passed="$(grep -Eo '[0-9]+ passed' /tmp/e2e.txt | head -1 | cut -d' ' -f1)"
+          echo "e2e passed: $passed"
+          if [ "$passed" -lt 50 ]; then
+            echo "e2e tier ran only $passed tests; it should run ~100. A marker or" >&2
+            echo "selection change has emptied it." >&2
+            exit 1
+          fi
+          # Permanent, non-toolchain skips. Anything else is a gap.
+          unexpected="$(grep -E '^SKIPPED' /tmp/e2e.txt \
+            | grep -v 'codex uses nested AGENTS.md' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "An e2e test skipped that is not on the permanent allowlist." >&2
+            echo "Every toolchain was asserted present above, so this is a" >&2
+            echo "silent gap in the only tests proving the shipped configs" >&2
+            echo "work — not a pass:" >&2
+            echo "$unexpected" >&2
+            exit 1
+          fi
 
       - name: Self-doctor smoke test (apply + doctor on a fresh tmp dir)
         # PR 4: confirms the apply → doctor flow works end-to-end against a
@@ -123,7 +211,7 @@ jobs:
     # asset bundling (e.g. a missing force-include for cli/stacks/). This job
     # catches packaging regressions that editable installs hide.
     runs-on: ubuntu-latest
-    needs: pytest
+    needs: [fast, e2e]
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
