@@ -36,9 +36,21 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Baseline validation parses Gherkin with the Cucumber team's own parser.
+# Optional rather than a runtime dependency: the installer's whole runtime
+# surface is pyyaml, and only `govkit validate --baseline` needs this. It is
+# not a soft dependency in behaviour — cli/spec_closure.py raises
+# ParserUnavailable rather than falling back to a shallow parse, which would
+# mis-compute the closure and answer confidently with the wrong verdict.
+baseline = [
+    "gherkin-official>=32,<40",
+]
 test = [
     "pytest>=8.0",
     "jsonschema>=4.0",
+    # The baseline tests parse real Gherkin; without this they do not skip,
+    # they raise ParserUnavailable and turn CI red on a clean checkout.
+    "gherkin-official>=32,<40",
     # tests/test_importlinter_reference.py runs the real linter against the
     # contract govkit ships, so it cannot drift from BOUNDARIES.md.
     "import-linter>=2.0",

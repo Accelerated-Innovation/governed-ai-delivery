@@ -175,14 +175,21 @@ def _payload(step: dict[str, Any]) -> str:
     """
     doc = step.get("docString")
     if doc:
-        return "doc:" + (doc.get("content") or "")
+        # The media type is part of the payload: the same bytes marked json
+        # and marked yaml are read differently by whatever consumes them.
+        return "doc:" + json.dumps(
+            [doc.get("mediaType") or "", doc.get("content") or ""], ensure_ascii=False
+        )
     table = step.get("dataTable")
     if table:
+        # JSON-encoded, not pipe-joined. A cell containing a literal pipe
+        # serialized exactly like two cells, so `| a|b | c |` and `| a | b | c |`
+        # — materially different step inputs — shared a digest.
         rows = [
-            "|".join((c.get("value") or "").strip() for c in (r.get("cells") or ()))
+            [(c.get("value") or "").strip() for c in (r.get("cells") or ())]
             for r in (table.get("rows") or ())
         ]
-        return "table:" + "\n".join(rows)
+        return "table:" + json.dumps(rows, ensure_ascii=False)
     return ""
 
 
@@ -229,22 +236,45 @@ def _backgrounds(doc: dict[str, Any], rule: dict[str, Any] | None) -> list[tuple
 
 
 def _examples(node: dict[str, Any]) -> list[tuple[str, ...]]:
-    """Rows as a **set**, compared sorted.
+    """Rows as a **set** — deduplicated, then sorted.
 
     A reorder changes neither the input domain the contract covers nor whether
-    any implementation passes. Adding or removing a row does, and still
-    registers.
+    any implementation passes. Adding or removing a *distinct* row does, and
+    still registers. A duplicate row runs the scenario twice on identical
+    inputs and covers nothing new, so sorting without deduplicating made an
+    unchanged input domain read as a semantic change.
+
+    A block's own tags travel with its rows: Gherkin allows tagging an
+    `Examples` block, and such a tag can bind those generated cases to a gate.
+    Discarding them let a gate change pass with an unchanged digest.
     """
-    rows = []
+    rows = set()
     for block in node.get("examples") or ():
+        block_tags = tuple(sorted(
+            (t.get("name") or "").strip() for t in (block.get("tags") or ()) if t.get("name")
+        ))
         header = tuple(
             (c.get("value") or "").strip()
             for c in ((block.get("tableHeader") or {}).get("cells") or ())
         )
         for row in block.get("tableBody") or ():
             values = tuple((c.get("value") or "").strip() for c in (row.get("cells") or ()))
-            rows.append(header + ("=",) + values)
+            rows.add(block_tags + ("@",) + header + ("=",) + values)
     return sorted(rows)
+
+
+def _empty_example_blocks(node: dict[str, Any]) -> list[str]:
+    """Header-only blocks, checked per block rather than in aggregate.
+
+    An outline with one populated block and one header-only block has a
+    non-empty aggregate, so the empty block sailed straight through the
+    refusal it was supposed to trip.
+    """
+    empty = []
+    for index, block in enumerate(node.get("examples") or (), start=1):
+        if not (block.get("tableBody") or ()):
+            empty.append((block.get("name") or "").strip() or f"#{index}")
+    return empty
 
 
 def _inherited_tags(doc: dict[str, Any], element: Element) -> list[str]:
@@ -273,6 +303,8 @@ def closure(doc: dict[str, Any], element: Element) -> Closure:
     keyword = (node.get("keyword") or "").strip()
     if keyword in _OUTLINE_KEYWORDS and not _examples(node):
         problems.append(f"scenario:{element.slug} is an outline with no Examples rows")
+    for name in _empty_example_blocks(node):
+        problems.append(f"scenario:{element.slug} has an Examples block with no rows ({name})")
     if element.kind == "rule" and not (node.get("children") or ()):
         problems.append(f"rule:{element.slug} has no body")
 

@@ -157,3 +157,37 @@ def test_an_actor_change_additionally_voids_the_upstream_evidence_question():
 
 def test_nothing_is_voided_when_nothing_changed():
     assert spec_diff.voided_by([]) == []
+
+
+def test_an_actor_change_in_a_when_is_flagged_for_upstream_review():
+    """The actor matcher ran over When and Then clauses and the flag only
+    considered Given. Changing who performs the action alters the
+    authorization surface exactly as changing who is signed in does."""
+    edited = FEATURE.replace(
+        "When the representative sends it", "When the administrator sends it"
+    )
+
+    differences = spec_diff.classify(closure_of(FEATURE), closure_of(edited))
+
+    assert any(d.actor_shaped for d in differences), [d.role for d in differences]
+    assert "consequence_class" in spec_diff.voided_by(differences)
+
+
+def test_an_actor_change_in_a_then_is_flagged_for_upstream_review():
+    """Who receives the outcome is an affected party too."""
+    edited = FEATURE.replace(
+        "Then the send is refused", "Then the administrator is notified"
+    )
+
+    differences = spec_diff.classify(closure_of(FEATURE), closure_of(edited))
+
+    assert "consequence_class" in spec_diff.voided_by(differences)
+
+
+def test_an_ordinary_when_change_is_not_flagged_as_an_actor_change():
+    """The positive control for the widened matcher."""
+    edited = FEATURE.replace(
+        "When the representative sends it", "When the representative schedules it"
+    )
+
+    assert not any(d.actor_shaped for d in spec_diff.classify(closure_of(FEATURE), closure_of(edited)))

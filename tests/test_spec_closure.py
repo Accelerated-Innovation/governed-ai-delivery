@@ -195,3 +195,113 @@ def test_an_element_with_no_authored_tag_does_not_resolve():
     doc = spec_closure.parse_feature(untagged)
 
     assert spec_closure.resolve(doc, "scenario", "unapproved-blocked") is None
+
+
+# --- review of PR #160 -------------------------------------------------------
+
+def test_the_parser_is_a_declared_dependency():
+    """`parse_feature` refuses without gherkin-official, and CI installs only
+    the declared extras — so an undeclared parser turns every test in this
+    module red on a clean checkout. It was undeclared."""
+    import pathlib
+    import tomllib
+
+    config = tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))
+    extras = config["project"]["optional-dependencies"]
+    declared = " ".join(extras.get("test", []) + extras.get("baseline", []))
+
+    assert "gherkin-official" in declared
+
+
+def test_table_cells_cannot_be_confused_by_their_separator():
+    """`a|b` in one cell and `a`,`b` in two cells are different step inputs.
+    Joining cells with a bare pipe made them serialize identically, so two
+    materially different tables shared a digest."""
+    # An *escaped* pipe is a literal inside one cell; an unescaped one is a
+    # separator. So the colliding pair is two cells `a|b`,`c` against three
+    # cells `a`,`b`,`c` — a first version of this test used the unescaped
+    # form, which the parser simply reads as three cells either way.
+    two_cells = FEATURE.replace(
+        "      Then the send is refused",
+        "      Then the send is refused\n        | a\\|b | c |",
+    )
+    three_cells = FEATURE.replace(
+        "      Then the send is refused",
+        "      Then the send is refused\n        | a | b | c |",
+    )
+
+    assert digest_of(two_cells) != digest_of(three_cells)
+
+
+def test_a_docstring_media_type_is_part_of_the_payload():
+    """The same bytes marked json and marked yaml are read differently by
+    whatever consumes them."""
+    as_json = FEATURE.replace(
+        "      Then the send is refused",
+        '      Then the body is:\n        """json\n        a: 1\n        """',
+    )
+    as_yaml = as_json.replace('"""json', '"""yaml')
+
+    assert digest_of(as_json) != digest_of(as_yaml)
+
+
+def test_a_duplicate_examples_row_is_not_a_change():
+    """Rows compare as a set — the documented semantics — and a duplicate row
+    runs the scenario twice on identical inputs, covering nothing new. Sorting
+    without deduplicating made an unchanged input domain read as semantic."""
+    outline = FEATURE.replace(
+        """    Scenario: An unapproved response cannot be sent
+      Given a drafted response""",
+        """    Scenario Outline: An unapproved response cannot be sent
+      Given a <state> response""",
+    ) + """
+      Examples:
+        | state   |
+        | drafted |
+"""
+    duplicated = outline + "        | drafted |\n"
+
+    assert digest_of(duplicated) == digest_of(outline)
+
+
+def test_a_header_only_examples_block_is_a_structural_problem():
+    """Checked per block, not in aggregate: an outline with one populated
+    block and one header-only block has a non-empty aggregate, so the empty
+    block sailed through the refusal it was supposed to trip."""
+    outline = FEATURE.replace(
+        """    Scenario: An unapproved response cannot be sent
+      Given a drafted response""",
+        """    Scenario Outline: An unapproved response cannot be sent
+      Given a <state> response""",
+    ) + """
+      Examples: populated
+        | state   |
+        | drafted |
+
+      Examples: empty
+        | state   |
+"""
+
+    problems = spec_closure.structural_problems(closure_of(outline))
+
+    assert any("Examples" in p for p in problems), problems
+
+
+def test_a_tag_on_an_examples_block_is_part_of_the_closure():
+    """Gherkin allows tags on an Examples block, and one can bind those
+    generated cases to a gate. Discarding them let a gate change pass with an
+    unchanged digest."""
+    outline = FEATURE.replace(
+        """    Scenario: An unapproved response cannot be sent
+      Given a drafted response""",
+        """    Scenario Outline: An unapproved response cannot be sent
+      Given a <state> response""",
+    ) + """
+      @slow
+      Examples:
+        | state   |
+        | drafted |
+"""
+    retagged = outline.replace("      @slow", "      @v2")
+
+    assert digest_of(outline) != digest_of(retagged)

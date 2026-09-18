@@ -73,7 +73,11 @@ def classify(old: Closure, new: Closure) -> list[Difference]:
     for role, label in ((_THEN, "then"), (_WHEN, "when"), (_GIVEN, "given")):
         if before[role] == after[role]:
             continue
-        actor_shaped = label == "given" and _actors(before[role]) != _actors(after[role])
+        # Every clause, not only Given. Who *performs* an action and who
+        # *receives* an outcome are both affected parties, and either change
+        # alters the authorization surface — the flag considered only the
+        # precondition while the matcher already scanned all three.
+        actor_shaped = _actors(before[role]) != _actors(after[role])
         differences.append(
             Difference(
                 role=label,
