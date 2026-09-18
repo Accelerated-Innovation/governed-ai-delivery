@@ -118,7 +118,14 @@ jobs:
 
       - name: Run pytest (e2e tier)
         # `-rs` prints a reason for every skip, which the guard below reads.
-        run: pytest -m e2e --no-header -q -rs | tee /tmp/e2e.txt
+        #
+        # `set -o pipefail` is load-bearing, not housekeeping. GitHub's default
+        # shell is `bash -e {0}` — no pipefail — so a bare `pytest | tee` takes
+        # *tee's* exit status and a failing test reports green. In a step whose
+        # whole purpose is catching silent passes, that was the silent pass.
+        run: |
+          set -euo pipefail
+          pytest -m e2e --no-header -q -rs | tee /tmp/e2e.txt
 
       - name: Assert the e2e tier ran, and skipped nothing for a missing tool
         # Two failures this catches, both of which report green otherwise.
@@ -132,10 +139,17 @@ jobs:
         # with `lint-imports`, where the console script was installed and
         # invisible, and eleven tests skipped claiming it was missing.
         #
-        # Not "zero skips". One e2e skip is permanent and has nothing to do
-        # with tooling ("codex uses nested AGENTS.md, no glob frontmatter to
-        # check"), so demanding zero would fail every build for a correct
-        # reason. The guard matches the shape these probes actually report.
+        # An allowlist, not a blocklist of reasons. A first version matched
+        # the text "not installed" — and missed the reason added in #161 for
+        # the installed-but-invisible case, which reads "neither beside ... nor
+        # on PATH". Enumerating the ways a skip can phrase itself is a losing
+        # game: every new probe invents new wording, and the guard fails open.
+        #
+        # So every skip fails the build except the ones listed below, which
+        # are permanent and have nothing to do with tooling. A new legitimate
+        # skip needs a deliberate line here, which is the right friction for
+        # removing coverage from the only tests that prove the shipped configs
+        # work.
         run: |
           set -euo pipefail
           grep -Eq '[0-9]+ passed' /tmp/e2e.txt
@@ -146,11 +160,15 @@ jobs:
             echo "selection change has emptied it." >&2
             exit 1
           fi
-          if grep -E '^SKIPPED' /tmp/e2e.txt | grep -Eiq 'not installed'; then
-            echo "A toolchain-backed test skipped although every toolchain was" >&2
-            echo "asserted present. These are the only tests proving the shipped" >&2
-            echo "configs work, so a skip here is a silent gap, not a pass:" >&2
-            grep -E '^SKIPPED' /tmp/e2e.txt | grep -Ei 'not installed' >&2
+          # Permanent, non-toolchain skips. Anything else is a gap.
+          unexpected="$(grep -E '^SKIPPED' /tmp/e2e.txt \
+            | grep -v 'codex uses nested AGENTS.md' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "An e2e test skipped that is not on the permanent allowlist." >&2
+            echo "Every toolchain was asserted present above, so this is a" >&2
+            echo "silent gap in the only tests proving the shipped configs" >&2
+            echo "work — not a pass:" >&2
+            echo "$unexpected" >&2
             exit 1
           fi
 
