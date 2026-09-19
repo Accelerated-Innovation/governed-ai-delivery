@@ -293,3 +293,17 @@ def test_the_other_two_agents_need_no_pointer_because_of_where_it_lands(agent):
                 f"{dirname(rule['dest'])} but governance loads from "
                 f"{dirname(governance['dest'])}"
             )
+
+
+def test_the_rule_covers_a_baseline_that_spans_more_than_one_repository(rule):
+    """`--source <source_key>=<path>` is required once a baseline lists more
+    than one source, and defaults to `--target` only for a single one. A
+    cross-repository baseline checked with the two-argument form does not
+    fail loudly with a better command — every source is simply missing a
+    checkout, and the result is refusals rather than a verdict on the
+    contract.
+    """
+    text = rule.read_text(encoding="utf-8")
+
+    assert "--source" in text
+    assert "source_key" in text

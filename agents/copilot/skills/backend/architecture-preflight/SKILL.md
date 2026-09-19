@@ -9,6 +9,40 @@ You are preparing to plan and implement a feature. Determine the feature name fr
 
 Before generating any code or detailed plan, produce an Architecture Preflight Report.
 
+## Behavior contract (skip unless this project has one)
+
+Read `authority` in `.govkit/skill_context.yaml` before anything else. If
+`source` is `none` — the default, and where most projects are — **skip this
+section entirely**: nothing in it applies, and you should not mention it.
+
+If `source` is `pdg`, this feature's behavior is a **versioned commitment**.
+An approved baseline binds its Rules and scenarios to an exact revision, and
+what somebody approved is that revision — not the working tree in front of
+you, and not your reading of it. The governing rule is the one govkit
+installed as `behavior-contract`; it is already loaded, and it is binding.
+
+Before relying on anything in the feature folder:
+
+- Run the `validate-baseline` and `verify-authority` checks exactly as that
+  rule specifies them. Both need `--target` and `--baseline`, and
+  `verify-authority` also needs `--commitment` — omit it and the answer is
+  *not authorized* about the pointer you did not supply, which says nothing
+  about your work.
+- **Check `sources` in the baseline first.** More than one entry means the
+  contract spans repositories and every one of them needs its own
+  `--source <source_key>=<path>` checkout. Without them you get refusals
+  about missing sources, which are not a verdict on the contract.
+- **Drift means stop.** The spec in front of you is not the one that was
+  approved, and everything you plan from it inherits that.
+- **Unverified is not permission.** An unreachable graph, or an unset
+  `GOVKIT_PDG_URL`, leaves the question unanswered rather than answered yes.
+
+Then change nothing that is committed. A scope change, an exclusion you
+inferred, a behavior nobody asked for, or a relaxed threshold is a decision
+for a person: name the scenario in conflict and wait. You may still refactor,
+and this plan may still evolve, as long as every committed scenario keeps
+passing.
+
 ## 1. Summary
 
 - What is the feature or change?
