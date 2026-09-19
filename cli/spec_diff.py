@@ -89,6 +89,17 @@ def classify(old: Closure, new: Closure) -> list[Difference]:
             )
         )
 
+    if [s[:2] for s in old.steps] != [s[:2] for s in new.steps] and not differences:
+        # Grouping by role answers *which* clause moved, and cannot see a
+        # clause moving *past* another. Gherkin executes in written order, so
+        # a When before its Given is a different execution sequence — an
+        # implementation can behave differently, which is the materiality
+        # test's own tell.
+        differences.append(
+            Difference(role="sequence", detail="the step sequence differs while each "
+                                               "clause group is unchanged")
+        )
+
     if old.examples != new.examples:
         # Rows compare as a set, so a reorder never reaches here. Added or
         # removed rows change the input domain the contract covers, which also

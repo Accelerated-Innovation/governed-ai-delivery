@@ -248,3 +248,151 @@ def test_the_check_leaves_the_working_tree_exactly_as_it_found_it(source):
         for p in repo.rglob("*.feature")
     ))
     assert before == after
+
+
+# --- review of PR #163 -------------------------------------------------------
+
+def test_a_tampered_recorded_digest_is_caught(source):
+    """`content_digest` exists to be tamper evidence — the module docstring
+    says so — and nothing compared it. A baseline whose recorded digest was
+    altered reported clean whenever the revision and the working tree agreed,
+    which is precisely the "manifest edited to hide an altered scenario" the
+    brief names."""
+    repo, revision = source
+    baseline = baseline_for(revision)
+    baseline["selected_behavior"][0]["content_digest"] = "sha256:" + "0" * 64
+
+    report = baseline_check.check(baseline, {"support-app": repo})
+
+    assert report.ok is False
+    assert any("digest" in r.lower() for r in report.refusals), report.refusals
+
+
+def test_a_matching_recorded_digest_is_accepted(source):
+    """The positive control. A comparison that rejected everything would pass
+    the test above and block every honest baseline."""
+    repo, revision = source
+    baseline = baseline_for(revision)
+    approved = baseline_check.approved_digest(baseline, baseline["selected_behavior"][0],
+                                              {"support-app": repo})
+    baseline["selected_behavior"][0]["content_digest"] = approved
+
+    report = baseline_check.check(baseline, {"support-app": repo})
+
+    assert report.ok is True, report.refusals
+
+
+def test_a_baseline_that_fails_its_own_schema_is_refused(source):
+    """increment 01 built `validate_baseline` and this never called it, so a
+    document with no sources and no selection exited zero — reporting success
+    for a baseline with no approved scope at all."""
+    repo, revision = source
+    empty = {"version": 1, "commitment_key": "k", "sources": [], "selected_behavior": []}
+
+    report = baseline_check.check(empty, {"support-app": repo})
+
+    assert report.ok is False
+    assert report.refusals
+
+
+def test_a_symlinked_feature_file_cannot_escape_the_source(source, tmp_path):
+    """Containment was checked on the directory and not on the file chosen
+    inside it, so a `.feature` symlink could make the current closure come
+    from outside the source while the approved side loaded from the same
+    lexical path in git."""
+    repo, revision = source
+    outside = tmp_path / "elsewhere.feature"
+    outside.write_text(FEATURE.replace("Then the send is refused", "Then anything at all"),
+                       encoding="utf-8")
+    directory = repo / "features" / "sneaky"
+    directory.mkdir()
+    (directory / "a.feature").symlink_to(outside)
+
+    baseline = baseline_for(revision)
+    baseline["selected_behavior"][0]["ref"] = "support-app/sneaky#scenario:unapproved-blocked"
+
+    report = baseline_check.check(baseline, {"support-app": repo})
+
+    assert report.ok is False
+    assert any("outside" in r.lower() for r in report.refusals), report.refusals
+
+
+def test_a_package_source_is_refused_with_its_own_reason(source):
+    """`git show` cannot read a released package, and saying "revision not
+    reachable" sends the reader to look for a commit that was never supposed
+    to exist."""
+    repo, revision = source
+    baseline = baseline_for(revision)
+    baseline["sources"][0].update({"kind": "package", "revision": "1.2.3"})
+
+    report = baseline_check.check(baseline, {"support-app": repo})
+
+    assert report.ok is False
+    assert any("package" in r.lower() for r in report.refusals), report.refusals
+
+
+def test_a_changed_constraint_is_reported(source):
+    """`constraints` carry the approved NFR, evaluation, design and
+    agent-authority obligations. Iterating only `selected_behavior` meant a
+    changed constraint reported clean — approved scope disappearing quietly,
+    which is the thing this checker exists to prevent."""
+    repo, revision = source
+    path = repo / "features" / "response-approval.feature"
+    path.write_text(path.read_text(encoding="utf-8") + """
+  @nfr:response-under-two-seconds
+  Rule: A response is produced within two seconds
+    Example: it is fast
+      Given a drafted response
+      Then it is produced within two seconds
+""", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "with the constraint")
+    revision = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
+                              check=True, capture_output=True, text=True).stdout.strip()
+
+    baseline = baseline_for(revision)
+    baseline["constraints"] = [{
+        "ref": "support-app/response-approval#nfr:response-under-two-seconds",
+        "kind": "nfr",
+        "id_source": "tag",
+    }]
+    edit(repo, "within two seconds", "within ten seconds")
+
+    report = baseline_check.check(baseline, {"support-app": repo})
+
+    assert report.ok is False
+    assert any("nfr:response-under-two-seconds" in d.ref for d in report.differences), \
+        (report.differences, report.refusals)
+
+
+def test_reordering_steps_across_roles_is_a_change(source):
+    """`classify` groups steps by role, so a When moving before a Given left
+    every group equal. Gherkin executes in written order, so an
+    implementation can behave differently — the materiality test's own tell."""
+    repo, revision = source
+    edit(
+        repo,
+        "      Given a drafted response\n      When the representative sends it\n",
+        "      When the representative sends it\n      Given a drafted response\n",
+    )
+
+    report = baseline_check.check(baseline_for(revision), {"support-app": repo})
+
+    assert report.ok is False, "a reordered step sequence reported clean"
+
+
+def test_a_missing_parser_refuses_rather_than_crashing(source, monkeypatch):
+    """The module promises a refusal rather than a shallow parse. It raised
+    ParserUnavailable through an uncaught path instead, so a standard install
+    got a traceback where the contract said controlled non-zero."""
+    repo, revision = source
+
+    def unavailable(_text):
+        raise baseline_check.spec_closure.ParserUnavailable("gherkin-official is not installed")
+
+    monkeypatch.setattr(baseline_check.spec_closure, "parse_feature", unavailable)
+
+    report = baseline_check.check(baseline_for(revision), {"support-app": repo})
+
+    assert report.ok is False
+    assert any("gherkin" in r.lower() for r in report.refusals), report.refusals

@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from cli import spec_closure, spec_diff
+from cli.baseline import validate_baseline
 
 SUPPORTED_VERSIONS = (1,)
 
@@ -81,9 +82,15 @@ def _feature_file(root: Path, source_path: str, feature_key: str) -> Path | None
         if resolved.is_file():
             return resolved
         if resolved.is_dir():
-            features = sorted(resolved.glob("*.feature"))
-            if features:
-                return features[0]
+            for feature in sorted(resolved.glob("*.feature")):
+                # Resolved *again*, because the directory being inside the
+                # source says nothing about a symlink within it. Without this
+                # the current closure could come from outside the source while
+                # the approved side loaded from the same lexical path in git.
+                inner = feature.resolve()
+                if not inner.is_relative_to(base):
+                    return None
+                return inner
     return base / f"{feature_key}.feature"  # for the "missing" message
 
 
@@ -102,6 +109,11 @@ def _at_revision(root: Path, revision: str, relative: str) -> str | None:
 def _closure(text: str, kind: str, slug: str) -> tuple[spec_closure.Closure | None, str | None]:
     try:
         doc = spec_closure.parse_feature(text)
+    except spec_closure.ParserUnavailable as missing:
+        # The module promises a refusal rather than a shallow parse. Letting
+        # this escape gave a standard install a traceback where the contract
+        # said controlled non-zero.
+        return None, str(missing)
     except spec_closure.SpecParseError as broken:
         return None, f"does not parse: {broken}"
     try:
@@ -114,6 +126,102 @@ def _closure(text: str, kind: str, slug: str) -> tuple[spec_closure.Closure | No
             f"disappear by deleting a tag — the reference simply stops resolving."
         )
     return spec_closure.closure(doc, element), None
+
+
+def approved_digest(baseline: dict, entry: dict, roots: dict[str, Path]) -> str | None:
+    """The digest of an entry's closure at the revision the baseline pins.
+
+    Exposed so a baseline can be issued with digests that mean something,
+    rather than hand-authored ones that mean nothing — which is what the
+    fixtures carried before this existed.
+    """
+    resolved = _resolve_entry(baseline, entry, roots)
+    return None if resolved.closure_then is None else spec_closure.content_digest(
+        resolved.closure_then
+    )
+
+
+@dataclass
+class _Resolved:
+    closure_then: spec_closure.Closure | None = None
+    closure_now: spec_closure.Closure | None = None
+    refusals: list[str] = field(default_factory=list)
+
+
+def _resolve_entry(baseline: dict, entry: dict, roots: dict[str, Path]) -> _Resolved:
+    """Both sides of one reference, or the reasons neither could be had."""
+    out = _Resolved()
+    ref = entry.get("ref", "")
+    match = _REF.match(ref)
+    if match is None:
+        out.refusals.append(f"{ref}: not a qualified reference")
+        return out
+    source_key, feature_key = match["source"], match["feature"]
+    kind, slug = match["kind"], match["slug"]
+
+    sources = {s.get("source_key"): s for s in baseline.get("sources") or ()}
+    source = sources.get(source_key)
+    if source is None:
+        out.refusals.append(
+            f"{ref}: names source {source_key!r}, which the baseline does not declare"
+        )
+        return out
+
+    if (source.get("kind") or "repository") != "repository":
+        # `git show` cannot read a released package, and answering "revision
+        # not reachable" would send the reader hunting for a commit that was
+        # never meant to exist.
+        out.refusals.append(
+            f"{ref}: source {source_key!r} is a {source.get('kind')} source, and this "
+            f"checker reads approved content from a repository revision. A package "
+            f"source needs its own resolution and does not have one yet."
+        )
+        return out
+
+    root = roots.get(source_key)
+    if root is None:
+        out.refusals.append(
+            f"{ref}: no local checkout supplied for source {source_key!r}, so the "
+            f"approved revision cannot be read"
+        )
+        return out
+
+    path = _feature_file(Path(root), source.get("path") or "", feature_key)
+    if path is None:
+        out.refusals.append(
+            f"{ref}: feature key resolves outside its source — traversal refused"
+        )
+        return out
+    if not path.is_file():
+        out.refusals.append(f"{ref}: {path.name} is not present in the working tree")
+        return out
+
+    now, problem = _closure(path.read_text(encoding="utf-8"), kind, slug)
+    if problem:
+        out.refusals.append(f"{ref}: {problem}")
+        return out
+    assert now is not None
+    structural = spec_closure.structural_problems(now)
+    if structural:
+        out.refusals.extend(f"{ref}: {p}" for p in structural)
+        return out
+    out.closure_now = now
+
+    relative = str(path.relative_to(Path(root).resolve()))
+    approved_text = _at_revision(Path(root), source.get("revision", ""), relative)
+    if approved_text is None:
+        out.refusals.append(
+            f"{ref}: the approved revision {source.get('revision', '')[:12]}… is not "
+            f"reachable in this checkout, so nothing can be compared against it"
+        )
+        return out
+
+    then, problem = _closure(approved_text, kind, slug)
+    if problem:
+        out.refusals.append(f"{ref}: at the approved revision, {problem}")
+        return out
+    out.closure_then = then
+    return out
 
 
 def check(baseline: dict, roots: dict[str, Path]) -> Report:
@@ -134,71 +242,59 @@ def check(baseline: dict, roots: dict[str, Path]) -> Report:
         )
         return report
 
-    sources = {s.get("source_key"): s for s in baseline.get("sources") or ()}
+    # Increment 01 built this and nothing called it, so a document with no
+    # sources and no selection exited zero — success reported for a baseline
+    # with no approved scope at all. Moving revisions and duplicate source
+    # declarations went the same way.
+    errors, _warnings = validate_baseline(baseline)
+    if errors:
+        report.refusals.extend(f"baseline is not valid: {e}" for e in errors)
+        return report
 
-    for entry in baseline.get("selected_behavior") or ():
+    # Constraints are approved scope too. Iterating only selected_behavior
+    # meant a changed NFR, evaluation, design or agent-authority obligation
+    # reported clean.
+    entries = list(baseline.get("selected_behavior") or ())
+    entries += list(baseline.get("constraints") or ())
+    if not entries:
+        # "Nothing to check" must not report as "nothing wrong". A baseline
+        # with no approved scope exited zero, which is the most confident
+        # possible way to say nothing at all.
+        #
+        # `validate_baseline` does not catch this: the emptiness rule lives in
+        # the JSON Schema, and jsonschema is a test dependency rather than a
+        # runtime one. So the refusal belongs here too.
+        report.refusals.append(
+            "the baseline selects no behavior and declares no constraints, so there is "
+            "no approved scope to check against"
+        )
+        return report
+
+    for entry in entries:
         ref = entry.get("ref", "")
-        match = _REF.match(ref)
-        if match is None:
-            report.refusals.append(f"{ref}: not a qualified reference")
+        resolved = _resolve_entry(baseline, entry, roots)
+        if resolved.refusals:
+            report.refusals.extend(resolved.refusals)
             continue
-        source_key, feature_key = match["source"], match["feature"]
-        kind, slug = match["kind"], match["slug"]
+        assert resolved.closure_then is not None and resolved.closure_now is not None
 
-        source = sources.get(source_key)
-        if source is None:
-            report.refusals.append(
-                f"{ref}: names source {source_key!r}, which the baseline does not declare"
-            )
-            continue
+        recorded = entry.get("content_digest")
+        if recorded:
+            # What the digest is *for*. Comparing it against the closure at
+            # the pinned revision is what makes a manifest edited to hide an
+            # altered scenario detectable — the module said so and did not do
+            # it, so a tampered digest reported clean whenever the revision
+            # and the working tree agreed.
+            actual = spec_closure.content_digest(resolved.closure_then)
+            if actual != recorded:
+                report.refusals.append(
+                    f"{ref}: the recorded content_digest does not match the closure at "
+                    f"the approved revision. The baseline's own record of what it covers "
+                    f"cannot be trusted."
+                )
+                continue
 
-        root = roots.get(source_key)
-        if root is None:
-            report.refusals.append(
-                f"{ref}: no local checkout supplied for source {source_key!r}, so the "
-                f"approved revision cannot be read"
-            )
-            continue
-
-        path = _feature_file(Path(root), source.get("path") or "", feature_key)
-        if path is None:
-            report.refusals.append(
-                f"{ref}: feature key resolves outside its source — traversal refused"
-            )
-            continue
-        if not path.is_file():
-            report.refusals.append(f"{ref}: {path.name} is not present in the working tree")
-            continue
-
-        now, problem = _closure(path.read_text(encoding="utf-8"), kind, slug)
-        if problem:
-            report.refusals.append(f"{ref}: {problem}")
-            continue
-        assert now is not None
-        structural = spec_closure.structural_problems(now)
-        if structural:
-            # Not a difference. An emptied element hashes stably, so reporting
-            # it as "changed" invites someone to re-approve a scenario that
-            # now asserts nothing.
-            report.refusals.extend(f"{ref}: {p}" for p in structural)
-            continue
-
-        relative = str(path.relative_to(Path(root).resolve()))
-        approved_text = _at_revision(Path(root), source.get("revision", ""), relative)
-        if approved_text is None:
-            report.refusals.append(
-                f"{ref}: the approved revision {source.get('revision', '')[:12]}… is not "
-                f"reachable in this checkout, so nothing can be compared against it"
-            )
-            continue
-
-        then, problem = _closure(approved_text, kind, slug)
-        if problem:
-            report.refusals.append(f"{ref}: at the approved revision, {problem}")
-            continue
-        assert then is not None
-
-        for difference in spec_diff.classify(then, now):
+        for difference in spec_diff.classify(resolved.closure_then, resolved.closure_now):
             report.differences.append(
                 RefDifference(
                     ref=ref,

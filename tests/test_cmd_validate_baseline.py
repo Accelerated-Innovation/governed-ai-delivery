@@ -13,7 +13,7 @@ import subprocess
 
 import pytest
 
-from cli import cmd_validate
+from cli import cmd_validate_baseline
 
 FEATURE = """\
 Feature: Response approval
@@ -62,17 +62,17 @@ def project(tmp_path):
     return repo, baseline
 
 
-def run(target, baseline) -> tuple[int, str]:
+def run(target, baseline, sources=None) -> tuple[int, str]:
     import argparse
     import contextlib
     import io
 
-    args = argparse.Namespace(target=str(target), baseline=str(baseline))
+    args = argparse.Namespace(target=str(target), baseline=str(baseline), source=sources or [])
     out = io.StringIO()
     code = 0
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
         try:
-            cmd_validate.cmd_validate_baseline(args)
+            cmd_validate_baseline.cmd_validate_baseline(args)
         except SystemExit as exit_:
             code = exit_.code or 0
     return code, out.getvalue()
@@ -145,3 +145,59 @@ def test_a_missing_baseline_file_is_refused_clearly(project, tmp_path):
 
     assert code != 0
     assert "baseline" in output.lower()
+
+
+# --- review of PR #163 -------------------------------------------------------
+
+def test_each_source_can_be_given_its_own_checkout(project, tmp_path):
+    """Mapping every declared source to the single `--target` inspected later
+    sources inside the first repository — false refusals, or a clean result
+    against unrelated content wherever paths and revisions happened to
+    overlap."""
+    repo, baseline_path = project
+    baseline = json.loads(baseline_path.read_text())
+    baseline["sources"].append({
+        "source_key": "other",
+        "repository": "https://example.invalid/other",
+        "revision": "0" * 40,
+        "path": "features",
+        "kind": "repository",
+    })
+    baseline["selected_behavior"].append({
+        "ref": "other/elsewhere#scenario:something",
+        "kind": "scenario",
+        "id_source": "tag",
+    })
+    baseline_path.write_text(json.dumps(baseline), encoding="utf-8")
+
+    code, output = run(repo, baseline_path, sources=[f"app={repo}"])
+
+    # `other` has no checkout, so it is refused by name rather than silently
+    # inspected inside `app`.
+    assert code != 0
+    assert "other" in output
+
+
+def test_the_command_lives_in_its_own_module():
+    """One command, one module with its own registrar — the convention every
+    other `govkit` subcommand follows. Sharing `cmd_validate`'s registrar
+    meant neither command's registration could change without touching the
+    other's."""
+    from cli import cmd_validate_baseline as module
+
+    assert hasattr(module, "register")
+    assert hasattr(module, "cmd_validate_baseline")
+
+
+def test_the_subcommand_is_registered_on_the_real_parser():
+    """The module existing is not the same as the CLI exposing it."""
+    import argparse
+
+    from cli import govkit
+
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="command")
+    for register in govkit._REGISTRARS:
+        register(subparsers)
+
+    assert "validate-baseline" in subparsers.choices
