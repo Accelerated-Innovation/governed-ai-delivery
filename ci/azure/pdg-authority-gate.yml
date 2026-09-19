@@ -116,6 +116,11 @@
 #   happens before review. Both controls are needed and neither is
 #   sufficient; see the exposure note above.
 #
+#   One thing Azure gets right for free: branch policies are configured in
+#   the project and are not committed to the repository, so a pull request
+#   cannot weaken the policy that governs it. The GitHub form has to close
+#   that hole by hand, with a CODEOWNERS entry covering CODEOWNERS itself.
+#
 # THE WINDOW THIS GATE CANNOT CLOSE:
 #   The check proves authority *when it runs*. Merge happens later, and an
 #   approval can be invalidated in between — a green build then says

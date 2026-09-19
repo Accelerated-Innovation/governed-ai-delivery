@@ -378,3 +378,39 @@ def test_the_ci_readme_explains_what_the_gate_cannot_defend():
     readme = pathlib.Path("ci/README.md").read_text(encoding="utf-8")
 
     assert "cannot protect the file that defines it" in readme
+
+
+def test_the_codeowners_entry_covers_codeowners_itself():
+    """Otherwise the protection is one pull request deep.
+
+    CODEOWNERS lives in the repository, so it is editable by the pull
+    requests it governs. A contributor removes their own entry in one pull
+    request — which, without a self-reference, needs no owner review — and
+    changes the gate freely in the next. Every path CODEOWNERS protects is
+    only as protected as CODEOWNERS is.
+    """
+    section = _section(GITHUB)
+
+    assert "CODEOWNERS" in section
+    assert "/.github/CODEOWNERS" in section
+
+
+def test_the_azure_note_does_not_inherit_a_problem_it_does_not_have():
+    """Azure branch policies are configured in the project, not committed to
+    the repository, so there is no self-reference hole to close. Copying
+    GitHub's warning across would describe a risk that does not exist there
+    — and a template that cries wolf gets skimmed."""
+    section = _section(AZURE).lower()
+
+    assert "not" in section and "repository" in section
+
+
+def test_the_readme_carries_the_stale_window_and_both_host_settings():
+    """An adopter who configures from the central README and never opens the
+    template would otherwise be told how to stop the gate being edited, and
+    never told that a green build goes stale."""
+    readme = pathlib.Path("ci/README.md").read_text(encoding="utf-8").lower()
+
+    assert "invalidat" in readme
+    assert "up to date" in readme
+    assert "expir" in readme

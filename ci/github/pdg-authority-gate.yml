@@ -89,13 +89,21 @@
 #   effect on everyone afterwards, once merged.
 #
 #   Use the host's own path-scoped review requirement, not a second gate:
-#   add a CODEOWNERS entry naming an approver for
+#   add CODEOWNERS entries naming an approver for
 #
-#     ci/github/pdg-authority-gate.yml
-#     .govkit/marker.json
+#     /ci/github/pdg-authority-gate.yml   @your-approver
+#     /.govkit/marker.json                @your-approver
+#     /.github/CODEOWNERS                 @your-approver
 #
-#   and turn on "Require review from Code Owners" in branch protection. A
-#   review-reading gate could do the same thing, and would be one more
+#   and turn on "Require review from Code Owners" in branch protection.
+#
+#   THE THIRD LINE IS NOT OPTIONAL. CODEOWNERS lives in the repository, so
+#   it is editable by the pull requests it governs. Without an entry for
+#   itself the protection is one pull request deep: remove your own entry
+#   in the first, change the gate freely in the second. Every path
+#   CODEOWNERS protects is only as protected as CODEOWNERS is.
+#
+#   A review-reading gate could do the same job, and would be one more
 #   thing that can drift from the policy it enforces.
 #
 # THE WINDOW THIS GATE CANNOT CLOSE:

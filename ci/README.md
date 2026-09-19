@@ -218,6 +218,33 @@ A critical distinction in this governance framework: some checks enforce **actua
 | ADR approval attestation | adr-approval-gate | An ADR changed in the PR that claims `Accepted` carries an approving review from an approver in `governance/approval_policy.yaml`, submitted against the head commit |
 | Measured quality evidence | evidence-gate | `govkit evidence` reads the test report and axe results and gives a verdict per rubric dimension. Unmeasured dimensions report INCONCLUSIVE, which is **not** a pass |
 
+#### A green authority check goes stale
+
+The gate proves authority **when it runs**. Merge happens later, and an
+approval invalidated in between leaves a green tick asserting something that
+stopped being true — an earlier green build must not authorize indefinitely.
+
+Neither provider closes this, both have a partial answer, and **both are off
+by default**:
+
+- **GitHub** — require branches to be *up to date before merging*. Every move
+  of the base branch re-runs the gate, so an active repository's window is
+  minutes. A quiet one's is however long the pull request sits.
+- **Azure** — set the build-validation policy to **expire**, after N hours or
+  when the target branch updates. Azure then refuses to count a stale green
+  build. This is the one place Azure does better: GitHub has no per-check
+  expiry.
+
+A merge queue would close it properly by re-running on the merge candidate,
+and the GitHub template deliberately does **not** use one: `merge_group` runs
+the workflow definition from the queue ref, which contains the pull request's
+own commits, handing the credential back to the branch being gated.
+
+What remains, in both: an invalidation inside the window lands the change. The
+next pull request touching that repository fails, because every commitment is
+checked on every run — **detected, not prevented**. It is not a substitute for
+invalidating a commitment before work on it is in flight.
+
 #### What the gate cannot defend, and what must
 
 Three things switch the PDG authority gate off. It catches two: deleting a
@@ -234,7 +261,11 @@ source branch and the edit takes effect immediately.
 Use the host's path-scoped review requirement rather than a second
 review-reading gate — CODEOWNERS on GitHub, automatically included required
 reviewers on Azure — naming an approver for the gate file and
-`.govkit/marker.json`. A gate that read reviews could do the same job and
+`.govkit/marker.json`. **On GitHub, include `/.github/CODEOWNERS` itself**:
+it lives in the repository, so without an entry for itself the protection is
+one pull request deep — remove your entry in the first, change the gate in the
+second. Azure does not have that hole, because its branch policies are
+configured in the project rather than committed to the repository. A gate that read reviews could do the same job and
 would be one more thing that can drift from the policy it enforces.
 
 #### What a commitment package looks like
