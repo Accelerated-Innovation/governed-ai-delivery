@@ -163,6 +163,12 @@ def _add_commitment(target, key="support-response-approval"):
             "ref": "app/f#scenario:s", "kind": "scenario", "id_source": "tag",
         }],
     }), encoding="utf-8")
+    # The pointer naming the decision the PDG adjudicates. Without it the
+    # package is an unapproved proposal and the credential path is never
+    # reached — which is right, and not what these tests are about.
+    (package / "commitment.json").write_text(
+        json.dumps({"commitment_id": f"cmt-{key}"}), encoding="utf-8"
+    )
 
 
 def test_the_command_is_registered_on_the_real_cli():

@@ -76,6 +76,24 @@
 #   runs. The endpoint and the credential travel together, from the secret
 #   store.
 #
+# THE COMMITMENT PACKAGE, AND THE POINTER THE GATE NEEDS:
+#   Each package is a directory under `commitments/`, and it takes two files:
+#
+#     commitments/<key>/baseline.json     what behavior was approved, bound
+#                                         to immutable source revisions
+#     commitments/<key>/commitment.json   {"commitment_id": "..."} — the id
+#                                         the decision service assigned when
+#                                         it recorded the approval
+#
+#   The pointer is a separate file on purpose. `baseline.json` is digested,
+#   and the digest is what the approval binds — so writing the returned id
+#   into the baseline would change the digest and break the binding to the
+#   very baseline that id was issued for.
+#
+#   A package with no pointer names no decision, so it is reported NOT
+#   AUTHORIZED rather than skipped: a baseline is a well-formed proposal
+#   until something authorizes it.
+#
 # WHY `--base-ref`:
 #   Discovery reads the tree the pull request proposes, which is exactly what
 #   the pull request controls. Deleting `commitments/foo/` removes foo from

@@ -218,6 +218,29 @@ A critical distinction in this governance framework: some checks enforce **actua
 | ADR approval attestation | adr-approval-gate | An ADR changed in the PR that claims `Accepted` carries an approving review from an approver in `governance/approval_policy.yaml`, submitted against the head commit |
 | Measured quality evidence | evidence-gate | `govkit evidence` reads the test report and axe results and gives a verdict per rubric dimension. Unmeasured dimensions report INCONCLUSIVE, which is **not** a pass |
 
+#### What a commitment package looks like
+
+The gate discovers packages under `commitments/`, and each one takes **two**
+files:
+
+```
+commitments/<key>/baseline.json     what behavior was approved, bound to
+                                    immutable source revisions
+commitments/<key>/commitment.json   {"commitment_id": "..."} — the id the
+                                    decision service assigned
+```
+
+The pointer is deliberately a separate file. `baseline.json` is digested and
+the digest is what the approval binds, so writing the returned id into the
+baseline would change the digest and break the binding to the very baseline
+that id was issued for.
+
+A package with no `commitment.json` names no decision and is reported **not
+authorized** rather than skipped — a baseline is a well-formed proposal until
+something authorizes it. If a gate reports a package you believe is approved
+as unauthorized, check that the pointer exists and holds the id the decision
+service returned.
+
 #### The PDG authority gate holds a credential, so who can edit it matters
 
 The gate runs with a PDG token. On GitHub it is wired as `pull_request_target`,
