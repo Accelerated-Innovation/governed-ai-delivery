@@ -37,7 +37,7 @@ A populated NFR category is one where all fields have been filled (no TBD entrie
 
 If a category in `nfrs.md` is not applicable, it must be explicitly marked `N/A` — not left blank or TBD.
 
-For the full tag reference including scenario type tags and governance tags, see `GHERKIN_TAGS.md`.
+For the full tag reference — scenario type tags, governance tags and the `@rule:` / `@scenario:` **identity tags** a behavior contract requires — see `GHERKIN_TAGS.md`.
 
 ---
 

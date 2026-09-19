@@ -47,6 +47,40 @@ These tags trigger specific CI checks or governance workflows. They apply at Lev
 
 ---
 
+## Identity Tags
+
+Stable identifiers for a `Rule:` and for a scenario. Outside every other vocabulary here —
+they never affect CI routing, coverage checks or filtering.
+
+| Tag | On | Purpose |
+|-----|----|---------|
+| `@rule:<slug>` | a `Rule:` | Stable identity for the business decision |
+| `@scenario:<slug>` | a scenario or `Scenario Outline` | Stable identity for the behavior |
+
+Slugs are lowercase kebab-case: `@rule:only-approved-may-send`,
+`@scenario:unapproved-blocked`.
+
+**Why they exist.** Everything that points at a scenario — an `eval_criteria.yaml`
+`rule_link`, an NFR row, readiness evidence, a test name — points at a *name* unless an
+identifier exists. Rename the scenario and every reference silently means something else,
+or nothing. An identifier survives rewording; a name does not.
+
+**When they stop being optional.** If your project commits to behavior through a decision
+service, they are **required**. A behavioral baseline binds the exact Rules and scenarios
+an approval covers, and it refuses a *derived* identifier — one a tool slugified from an
+element's name — precisely because that slug changes when the name does. **Readable is not
+approvable.**
+
+The practical consequence: an element with no authored tag cannot be part of a commitment
+at all. `govkit inspect-package` reports it as needing an identity rather than inventing
+one, and no later tooling recovers it. Adding them is one line per element and is best done
+before an approval, not after.
+
+If your project has no decision service, they remain a recommendation — a derived
+identifier is stable only as long as the name is.
+
+---
+
 ## Tag Combinations
 
 Tags can be combined on a single scenario:
