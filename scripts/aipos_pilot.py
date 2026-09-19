@@ -107,6 +107,14 @@ class Pilot:
 
     def api(self, method: str, path: str, body: dict | None = None,
             token: str | None = None) -> tuple[int, dict]:
+        # The govkit client refuses a non-https endpoint before sending a
+        # credential, and this harness sends the same credentials to the
+        # same service. It had no such check — the rule was in the product
+        # and not in the tool that exercises it.
+        if not self.base_url.lower().startswith("https://"):
+            raise SystemExit(
+                f"refusing to send an approval token to {self.base_url!r}: https required"
+            )
         data = json.dumps(body).encode() if body is not None else None
         request = urllib.request.Request(
             f"{self.base_url}{path}", method=method, data=data,
@@ -143,10 +151,27 @@ class Pilot:
 
     # --- workspace --------------------------------------------------------
 
+    #: Written into the workspace so a re-run can tell its own scratch
+    #: directory from a path somebody mistyped.
+    MARKER = ".aipos-pilot-workspace"
+
     def build_workspace(self) -> str:
         if self.workspace.exists():
+            # `rmtree` on whatever was passed is one shell-variable slip
+            # away from deleting a project. A directory is only ours to
+            # delete if we made it.
+            if not (self.workspace / self.MARKER).is_file():
+                raise SystemExit(
+                    f"{self.workspace} exists and is not a pilot workspace "
+                    f"(no {self.MARKER}). Refusing to delete it — pass a path that "
+                    "does not exist, or one a previous run created."
+                )
             shutil.rmtree(self.workspace)
         (self.workspace / "features" / "response-approval").mkdir(parents=True)
+        (self.workspace / self.MARKER).write_text(
+            "Disposable workspace created by scripts/aipos_pilot.py. Safe to delete.\n",
+            encoding="utf-8",
+        )
         (self.workspace / ".govkit").mkdir()
         (self.workspace / "features" / "response-approval" / "acceptance.feature").write_text(
             FEATURE_A, encoding="utf-8"
@@ -277,6 +302,13 @@ class Pilot:
             f"POST /v1/commitments -> {code}, id={commitment_a or body}",
         )
         if not commitment_a:
+            # Every remaining case still belongs in the matrix. Returning
+            # here produced one FAIL, zero NOT RUN, and silence about
+            # nineteen advertised cases — a report that looks like a short
+            # run rather than a broken one.
+            for case in self._remaining_after_approval():
+                self.skip(*case, why="not reached: the initial approval did not succeed")
+            self.not_run()
             return 1
 
         # 2. An identity without approval authority is refused. `admin` is the
@@ -367,11 +399,19 @@ class Pilot:
                            url="https://localhost:9/")
         advisory = self.govkit("verify-contract", "--target", str(self.workspace),
                                "--require-authority", url="https://localhost:9/")
+        advisory_text = (advisory.stdout + advisory.stderr).lower()
+        # Advisory always exits zero, so the exit code proves nothing here.
+        # What matters is the verdict: an outage must read as unverified and
+        # must not read as a rejection.
         self.record(
             "Decision service unavailable",
             "enforced does not pass; advisory continues, visibly unverified",
-            dead.returncode != 0 and advisory.returncode == 0,
-            f"enforced exit {dead.returncode}, advisory exit {advisory.returncode}",
+            dead.returncode != 0
+            and advisory.returncode == 0
+            and ("unverified" in advisory_text or "could not" in advisory_text)
+            and "not authorized" not in advisory_text,
+            f"enforced exit {dead.returncode}; advisory exit {advisory.returncode} "
+            f"saying {'unverified' if 'unverified' in advisory_text else advisory_text[:60]!r}",
         )
 
         # 9. Invalidation blocks a previously passing build.
@@ -430,6 +470,39 @@ class Pilot:
         self.not_run()
         return 0 if all(c.status == "PASS" for c in self.cases if c.status != "NOT RUN") else 1
 
+    @staticmethod
+    def _remaining_after_approval() -> list:
+        """Executable cases that come after the first approval.
+
+        Listed so an early exit still reports them. Kept beside `run` on
+        purpose: if a case is added there and not here, the matrix quietly
+        shrinks on the failure path — which is the path where a complete
+        report matters most.
+        """
+        return [
+            ("Approval caller lacks product authority",
+             "rejected; administrator does not inherit approval"),
+            ("Approved but unconfirmed",
+             "does not authorize work; success is positively confirmed"),
+            ("Implementation satisfies A",
+             "drift and current authority are both checked; gate passes"),
+            ("A baseline points at someone else's commitment",
+             "refused; the binding is compared, not just the status"),
+            ("AI adds auto-send behaviour", "changed scope cannot proceed under A"),
+            ("Background wording changes",
+             "inherited context is part of the closure, so it is detected"),
+            ("Decision service unavailable",
+             "enforced does not pass; advisory continues, visibly unverified"),
+            ("A is invalidated after a successful build",
+             "a fresh check blocks; stale green is not perpetual authorization"),
+            ("Baseline B replaces A; execution readiness returns",
+             "new approval; the gate passes again"),
+            ("A's original decision and invalidation remain readable",
+             "history is append-only and survives replacement"),
+            ("Tracker unavailable or absent",
+             "the commitment works without any tracker"),
+        ]
+
     def not_run(self) -> None:
         """Cases this harness cannot execute, and why — never reported as passes."""
         self.skip(
@@ -487,16 +560,28 @@ def main(argv: list | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--base-url", required=True,
                     help="https:// endpoint of the decision service")
-    ap.add_argument("--token", required=True, help="a token holding product approval authority")
-    ap.add_argument("--admin-token", required=True,
-                    help="an administrator token, to show it cannot approve")
+    # Read from the environment, not from argv: a token on a command line
+    # is in the shell history and in every `ps` listing on the machine.
+    ap.add_argument("--token-env", default="AIPOS_PILOT_TOKEN",
+                    help="env var holding a token with product approval authority")
+    ap.add_argument("--admin-token-env", default="AIPOS_PILOT_ADMIN_TOKEN",
+                    help="env var holding an administrator token, to show it cannot approve")
     ap.add_argument("--workspace", required=True, type=Path,
                     help="disposable workspace; deleted and recreated")
     ap.add_argument("--out", type=Path, help="write the result matrix as JSON")
     a = ap.parse_args(argv)
 
+    token = os.environ.get(a.token_env, "")
+    admin_token = os.environ.get(a.admin_token_env, "")
+    missing = [name for name, value in ((a.token_env, token),
+                                        (a.admin_token_env, admin_token)) if not value]
+    if missing:
+        print(f"  set {' and '.join(missing)} — the pilot reads credentials from the "
+              "environment so they stay out of shell history and `ps`", file=sys.stderr)
+        return 2
+
     pilot = Pilot(workspace=a.workspace.resolve(), base_url=a.base_url.rstrip("/"),
-                  token=a.token, admin_token=a.admin_token)
+                  token=token, admin_token=admin_token)
     status = pilot.run()
 
     ran = [c for c in pilot.cases if c.status != "NOT RUN"]
