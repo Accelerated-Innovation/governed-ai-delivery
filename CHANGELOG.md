@@ -8,6 +8,68 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.21.0] — 2026-09-19
+
+Behavior becomes a versioned commitment rather than a description. A feature's
+Gherkin can now be bound to an exact source revision, checked for drift
+locally by anyone, and — for teams running a Product Definition Graph —
+checked at merge for whether that commitment is *still* authorized.
+
+**Nothing here is on by default.** A project with no PDG is unaffected: the
+new `authority` block is absent, `verify-authority` reports *not applicable*,
+and `validate-baseline` works entirely offline with no engine of any kind.
+
+### Added
+
+- **Behavioral baseline contract v1** — a portable JSON document binding the
+  exact Rules and scenarios of a feature to an immutable source revision via a
+  canonical digest, with qualified references of the form
+  `<source-key>/<feature-key>#<kind>:<slug>`. A baseline may not assert its
+  own approval; approval lives elsewhere, which is what makes a forged local
+  file useless.
+- **`govkit validate-baseline`** — check a working tree against the revision a
+  baseline was approved at. Purely local, no network. Refuses an empty scope,
+  package sources, a symlink escaping the target, and any digest mismatch,
+  and reports which reference drifted rather than a single pass/fail.
+- **Gherkin closure digest and change classification** — the digest covers the
+  *effective* steps after Background inheritance, so a change to a Background
+  is a change to every scenario under it. Edits are classified by the
+  materiality test — whether a passing implementation could now fail — into
+  cosmetic (no action), clarifying (readiness re-run) and semantic (refinement
+  and a reissued Development Token). Reordering `Examples` rows, `And`/`But`
+  continuations and keyword case are *not* material; a change of actor,
+  condition, outcome or step sequence is.
+- **`govkit verify-authority`** — ask a Product Definition Graph whether the
+  commitment a baseline names still authorizes work. **Opt-in**, with four
+  outcomes rather than two: no PDG configured, authorized, not authorized, and
+  *could not determine* — because reporting a network failure as a rejection
+  tells someone their approval is bad when their connection is bad. No
+  caching: an invalidation is precisely what a cache would hide. The client is
+  stdlib `urllib`, read-only by construction, and requires `https` before a
+  credential is sent.
+- **`.govkit/marker.json` `authority` block** — `source` is `none` or `pdg`,
+  and **absent means `none`**, so every existing install keeps working
+  untouched. It survives a marker rewrite, so an upgrade cannot silently
+  disable a gate.
+- **`pdg-authority-gate.yml`** (GitHub Actions and Azure DevOps) — the
+  enforced check at merge, where branch protection makes it a real chokepoint
+  and where it can still see an authorization withdrawn *after* the work
+  began. On GitHub it runs as `pull_request_target` so its own definition
+  comes from the protected base branch rather than from the branch it is
+  gating; it reads the checked-out tree and executes nothing from it. Azure
+  has no equivalent, and the template says so rather than implying parity.
+  **Install only if you have a PDG.**
+- **`govkit doctor` reports the authority mode** as context, not a finding.
+  The risk is not having no PDG — that is the default and it is fine — it is
+  a project whose owners believe it verifies and silently does not.
+
+### Fixed
+
+- `govkit doctor` no longer aborts on a `.govkit/marker.json` that parses but
+  is not shaped like a marker (for example `"authority": "pdg"` written as a
+  string). That line prints before the findings, so the crash cost the entire
+  report.
+
 ## [0.20.0] — 2026-09-02
 
 Third-party content enters the kit, on govkit's terms: pinned, attributed,
