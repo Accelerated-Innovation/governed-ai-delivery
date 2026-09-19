@@ -22,12 +22,25 @@
 #   same command without `--enforce` and it reports "authorization unverified"
 #   without blocking anyone.
 #
-# WHY THIS GATE AND NOT `govkit validate-baseline`:
-#   validate-baseline is a working-tree tool. It proves the spec still says
-#   what was approved, entirely locally, and every adopter gets it whether or
-#   not they have a PDG. It cannot prove the approval is still current,
-#   because nothing local can — an invalidation lives in the PDG and nowhere
-#   else. Run both: they answer different questions.
+# WHAT IT CHECKS:
+#   `govkit verify-contract` asks both questions about EVERY commitment in
+#   the repository — `commitments/<key>/baseline.json`, the layout the
+#   baseline schema defines — rather than one path a variable points at:
+#
+#     drift      does the working tree still say what was approved? Local,
+#                deterministic, no network.
+#     authority  does the PDG still say that approval authorizes work?
+#                Remote, current, and the only one that can see an
+#                invalidation.
+#
+#   Neither substitutes for the other, and checking every package is what
+#   makes a code change whose contract files were untouched still subject to
+#   the gate. A pull request author's declaration that a change is internal
+#   is not evidence.
+#
+#   It is the same command GitHub runs, with the same flags. That is what
+#   makes "equivalent outcomes for the same cases" a fact rather than a hope
+#   about two shell snippets.
 #
 # WHY `--require-authority`:
 #   Without it the gate reads its own applicability out of the tree it is
@@ -80,12 +93,21 @@
 #   runs. The endpoint and the credential travel together, from the secret
 #   store.
 #
+# WHY `--base-ref`:
+#   Discovery reads the tree the pull request proposes, which is exactly what
+#   the pull request controls. Deleting `commitments/foo/` removes foo from
+#   the gate, and while any other package survives, "at least one commitment"
+#   is still satisfied. With the base ref the check sees the deletion and
+#   refuses it unless the PDG says that commitment no longer authorizes work
+#   — retirement by invalidation, not by `rm`.
+#
 # CONFIGURE THIS:
-#   1. Set repository secrets GOVKIT_PDG_URL and GOVKIT_PDG_TOKEN. The token
-#      must be READ-ONLY: installing a checker must not confer authority to
-#      make an approval.
-#   2. Set BASELINE and COMMITMENT below for your commitment package.
-#   3. Add `pdg-authority` to your branch protection required checks.
+#   1. Define GOVKIT_PDG_URL and GOVKIT_PDG_TOKEN in the linked variable
+#      group, marking the token secret. It must be READ-ONLY: installing a
+#      checker must not confer authority to make an approval.
+#   2. Nothing else. Commitments are discovered, not configured — a path in a
+#      required check is a path somebody has to remember to update.
+#   3. Add this pipeline as a build-validation policy on your target branch.
 #
 #   Until GOVKIT_PDG_URL is set this job FAILS CLOSED on every pull request.
 #   That is deliberate: a gate that passes because it was never configured is
@@ -113,13 +135,13 @@ pool:
 variables:
   # CONFIGURE THIS — link the variable group holding the two PDG secrets.
   - group: govkit-pdg
-  # CONFIGURE THIS — the commitment package this repository implements.
-  - name: BASELINE
-    value: commitments/CHANGE_ME/baseline.json
-  - name: COMMITMENT
-    value: CHANGE_ME
 
 steps:
+  # The base branch has to be in the clone for --base-ref to resolve.
+  - checkout: self
+    fetchDepth: 0
+    persistCredentials: false
+
   - task: UsePythonVersion@0
     inputs:
       versionSpec: "3.12"
@@ -129,13 +151,16 @@ steps:
 
   - script: |
       set -euo pipefail
-      govkit verify-authority \
+      govkit verify-contract \
         --target . \
-        --baseline "$BASELINE" \
-        --commitment "$COMMITMENT" \
+        --base-ref "$BASE_REF" \
         --require-authority \
         --enforce
-    displayName: Verify the PDG currently authorizes this baseline
+    displayName: Verify every commitment is undrifted and currently authorized
     env:
       GOVKIT_PDG_URL: $(GOVKIT_PDG_URL)
       GOVKIT_PDG_TOKEN: $(GOVKIT_PDG_TOKEN)
+      # origin/ prefixed: the checkout has the remote-tracking ref, not a
+      # local branch of that name, and an unresolvable ref now fails the
+      # gate rather than silently skipping the removal check.
+      BASE_REF: origin/$(System.PullRequest.TargetBranchName)
