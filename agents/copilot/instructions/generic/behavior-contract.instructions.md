@@ -30,19 +30,41 @@ Two things follow, and they are the whole rule:
 
 ## Before planning or implementing
 
-1. **Load the approved baseline** named in the feature's commitment package,
-   and plan from it rather than from the feature folder alone.
-2. **Check the working tree against it** — `govkit validate-baseline`. This is
-   local and needs no network. If it reports drift, **stop**: the spec in
-   front of you is not the spec that was approved, and everything you would
-   plan from it inherits that.
-3. **Check that the approval is still current** — `govkit verify-authority`,
-   in its advisory form. Run it again after any change to the feature's
-   Gherkin. An approval can be withdrawn while work is in progress, and the
-   answer you got on Monday is not the answer today.
+**1. Load the approved baseline** named in the feature's commitment package,
+and plan from it rather than from the feature folder alone. Both commands
+below need its path; neither has a default.
 
-Report an unreachable graph as *unverified*. It is not a rejection, and it is
-not permission.
+**2. Check the working tree against it.** Local, no network:
+
+```
+govkit validate-baseline --target . --baseline <path to the approved baseline>
+```
+
+If it reports drift, **stop**: the spec in front of you is not the spec that
+was approved, and everything you would plan from it inherits that.
+
+**3. Check that the approval is still current:**
+
+```
+govkit verify-authority --target . --baseline <same path> --commitment <id>
+```
+
+Run it again after any change to the feature's Gherkin — an approval can be
+withdrawn while work is in progress, and the answer you got on Monday is not
+the answer today.
+
+Three things about that command, each of which will otherwise mislead you:
+
+- **`<id>` is the commitment id from the commitment package**, and it is not
+  optional in practice. Leave it out and the answer is **not authorized** —
+  which is true of the pointer you did not supply, and says nothing about
+  your work. Do not read your own omission as a rejection.
+- **The endpoint comes from `GOVKIT_PDG_URL` in the environment**, never from
+  the repository, and the credential from `GOVKIT_PDG_TOKEN`. If the variable
+  is unset the command says so and exits zero without a verdict: that is an
+  unconfigured check, not an approval.
+- **Report an unreachable graph as *unverified*.** It is not a rejection and
+  it is not permission.
 
 CI runs the enforcing form of that same check at merge, with a credential you
 do not have and should not be given. Your copy is there to tell you early, not

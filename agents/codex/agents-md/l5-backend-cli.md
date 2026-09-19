@@ -117,3 +117,15 @@ Layer-specific rules load automatically via nested `AGENTS.md` files at each sco
 Architecture decisions belong to the Architect. Exceptions require an ADR and explicit approval. Codex follows standards — it does not invent them.
 
 Multi-agent ADR triggers: adding/removing/rerouting agent-topology nodes, material system prompt changes, runtime state schema changes.
+
+---
+
+## Behavior Contract (only if this project has one)
+
+Read `authority` in `.govkit/skill_context.yaml`. If `source` is `pdg`, the
+rule at `.agents/rules/behavior-contract.md` is **binding**: this project's behavior is a versioned
+commitment, you cannot change what is committed, and you cannot approve a
+change to it — a conflict stops and goes to a person.
+
+If `source` is `none` — the default, and where most projects are — that rule
+**does not apply**, and you should not mention it.

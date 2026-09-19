@@ -178,3 +178,118 @@ def test_apply_installs_the_rule_into_a_real_project(tmp_path):
     cmd_apply(Args())
 
     assert (tmp_path / ".claude/rules/govkit/behavior-contract.md").is_file()
+
+
+# ---------------------------------------------------------------------------
+# Installed is not loaded, and named is not runnable
+# ---------------------------------------------------------------------------
+
+
+def test_codex_points_at_the_rule_from_a_file_it_actually_loads():
+    """Codex discovers instructions only through `AGENTS.md`, root or nested.
+    A file dropped at `.agents/rules/behavior-contract.md` with nothing
+    pointing at it is installed and never read — which looks exactly like
+    being enforced. The existing rules are reachable because the AGENTS.md
+    files name them; this one has to be too.
+
+    Driven off the manifest rather than a filename convention, so a new
+    project type cannot ship the rule with no pointer to it.
+    """
+    import json
+
+    manifest = json.loads(MANIFESTS["codex"].read_text(encoding="utf-8"))
+    checked = 0
+
+    for type_name, levels in manifest["variants"]["type"].items():
+        for level_name, block in levels.items():
+            if not isinstance(block, dict):
+                continue
+            files = [e for e in block.get("files", []) if isinstance(e, dict)]
+            if not any("behavior-contract" in e.get("src", "") for e in files):
+                continue
+            roots = [
+                e["src"] for e in files
+                if e.get("dest") == "AGENTS.md" and "agents-md" in e.get("src", "")
+            ]
+            assert roots, f"{type_name}/{level_name} installs the rule with no root AGENTS.md"
+            for src in roots:
+                text = (REPO / "agents/codex" / src).read_text(encoding="utf-8")
+                assert "behavior-contract" in text, (
+                    f"{src} does not point codex at the rule it installs "
+                    f"({type_name}/{level_name})"
+                )
+                checked += 1
+
+    assert checked == 11, f"expected every L4/L5 variant covered, saw {checked}"
+
+
+def test_the_rule_shows_each_command_with_the_arguments_it_requires(rule):
+    """Both commands take `--target` and `--baseline`, and neither has a
+    default. A rule that names a command bare reads as runnable and exits in
+    argument parsing — the mandatory pre-planning step then checks nothing.
+    """
+    text = rule.read_text(encoding="utf-8")
+
+    for line in text.splitlines():
+        stripped = line.strip().lstrip("`$ ")
+        if stripped.startswith("govkit validate-baseline") or stripped.startswith(
+            "govkit verify-authority"
+        ):
+            assert "--target" in line, line
+            assert "--baseline" in line, line
+
+
+def test_the_rule_supplies_the_commitment_id(rule):
+    """`--commitment` is optional to argparse and load-bearing to the answer:
+    without it `verify()` returns **not authorized** — a true statement about
+    a missing pointer that reads as a verdict about the work. An agent
+    following the rule literally would stop for the wrong reason."""
+    text = rule.read_text(encoding="utf-8")
+
+    assert "--commitment" in text
+    assert "not authorized" in text.lower()
+
+
+def test_the_rule_says_where_the_endpoint_comes_from(rule):
+    """Without `GOVKIT_PDG_URL` the advisory check reports that it cannot ask
+    and exits zero. That is the right behavior and the wrong thing to leave
+    unexplained: an agent reading "no verdict" needs to know whether it is
+    looking at an outage or an unset variable."""
+    assert "GOVKIT_PDG_URL" in rule.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("agent", ["claude-code", "copilot"])
+def test_the_other_two_agents_need_no_pointer_because_of_where_it_lands(agent):
+    """The codex pointer is an asymmetry, and this is why it is not an
+    oversight.
+
+    Claude Code and Copilot auto-load a directory; codex auto-loads only
+    `AGENTS.md`. For those two the rule lands in the very directory their
+    level-specific governance rule already occupies, so it is loaded by the
+    same mechanism and a cross-reference would add nothing. Asserting it
+    keeps that from silently ceasing to be true.
+    """
+    import json
+    from posixpath import dirname
+
+    manifest = json.loads(MANIFESTS[agent].read_text(encoding="utf-8"))
+
+    for type_name, levels in manifest["variants"]["type"].items():
+        for level_name, block in levels.items():
+            if not isinstance(block, dict):
+                continue
+            files = [e for e in block.get("files", []) if isinstance(e, dict)]
+            rule = next((e for e in files if "behavior-contract" in e.get("src", "")), None)
+            if rule is None:
+                continue
+            governance = next(
+                (e for e in files if e.get("dest", "").endswith(("govkit/governance.md",
+                                                                 "govkit/governance.instructions.md"))),
+                None,
+            )
+            assert governance, f"{agent} {type_name}/{level_name} has no governance rule"
+            assert dirname(rule["dest"]) == dirname(governance["dest"]), (
+                f"{agent} {type_name}/{level_name}: the rule lands in "
+                f"{dirname(rule['dest'])} but governance loads from "
+                f"{dirname(governance['dest'])}"
+            )

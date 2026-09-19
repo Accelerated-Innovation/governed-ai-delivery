@@ -192,3 +192,15 @@ Architecture decisions belong to the Architect. Exceptions require an ADR and ex
 - Commit message references the increment: `feat(<feature>): increment N — <name>`
 - Do not combine multiple increments into a single commit
 - If an increment exceeds ~300 lines of production code, split it before committing
+
+---
+
+## Behavior Contract (only if this project has one)
+
+Read `authority` in `.govkit/skill_context.yaml`. If `source` is `pdg`, the
+rule at `.agents/rules/behavior-contract.md` is **binding**: this project's behavior is a versioned
+commitment, you cannot change what is committed, and you cannot approve a
+change to it — a conflict stops and goes to a person.
+
+If `source` is `none` — the default, and where most projects are — that rule
+**does not apply**, and you should not mention it.
