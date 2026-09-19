@@ -8,6 +8,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.21.1] — 2026-09-19
+
+### Fixed
+
+- **The installed Gherkin reference now documents the identifiers a behavior
+  contract requires.** `GHERKIN_TAGS.md` and `GHERKIN_CONVENTIONS.md` are copied
+  into every target project, and for most projects they are the only Gherkin
+  guidance that arrives — yet neither mentioned `@rule:` or `@scenario:`. A team
+  following them exactly authored none, and `govkit validate-baseline` then
+  refuses the package: a *derived* identifier, slugified from an element's name,
+  changes when the name does and cannot bind an approval. **The behavior contract
+  released in 0.21.0 was unreachable for anyone who followed the shipped
+  conventions.**
+
+  The rule was documented — in the govkit-plugins marketplace plugin, which a
+  team may never install. Documented on one side of a distribution boundary and
+  enforced on the other.
+
+  **Existing projects need `govkit upgrade`** to receive the corrected file; it
+  installs as a governed contract, so a project that edited it keeps its own
+  version.
+
 ## [0.21.0] — 2026-09-19
 
 Behavior becomes a versioned commitment rather than a description. A feature's
