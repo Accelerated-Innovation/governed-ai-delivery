@@ -120,6 +120,28 @@ def fetcher(project, *, authorizes=True):
     return fetch
 
 
+def remembering_fetcher(project, *, authorizes):
+    """A PDG that still answers about a commitment the tree no longer has.
+
+    Which is the whole point of the removal check: the graph outlives the
+    file, so the answer cannot be read out of the working tree. Snapshotted
+    up front, because the file is about to be deleted.
+    """
+    remembered = {
+        package.name: authorizing(
+            json.loads((package / "baseline.json").read_text(encoding="utf-8"))
+        )
+        for package in (project / "commitments").iterdir()
+        if (package / "baseline.json").is_file()
+    }
+
+    def fetch(commitment_id: str) -> dict:
+        status = dict(remembered[commitment_id])
+        status["authorizes_work"] = authorizes
+        return status
+    return fetch
+
+
 # --- discovery ---------------------------------------------------------------
 
 
@@ -290,3 +312,193 @@ def test_success_exits_zero_either_way(project):
 
     assert contract_gate.exit_status(report, enforced=True) == 0
     assert contract_gate.exit_status(report, enforced=False) == 0
+
+
+# --- a contract that spans repositories --------------------------------------
+
+
+def _two_source_commitment(repo, key, revision):
+    package = repo / "commitments" / key
+    package.mkdir(parents=True, exist_ok=True)
+    (package / "baseline.json").write_text(json.dumps({
+        "version": 1,
+        "commitment_key": key,
+        "opportunity": {"opportunity_ref": f"OPP-{key}", "outcome": "x"},
+        "sources": [
+            {"source_key": "support-app", "repository": "https://example.invalid/a",
+             "revision": revision, "path": "features", "kind": "repository"},
+            {"source_key": "billing-app", "repository": "https://example.invalid/b",
+             "revision": revision, "path": "features", "kind": "repository"},
+        ],
+        "selected_behavior": [{
+            "ref": "support-app/response-approval#scenario:unapproved-blocked",
+            "kind": "scenario", "id_source": "tag",
+        }],
+    }), encoding="utf-8")
+
+
+def test_a_contract_spanning_repositories_is_checkable_when_checkouts_are_given(project):
+    """`--target` stands in for a single source and only a single source. A
+    schema-valid multi-source baseline with no way to supply the other
+    checkouts could never pass an enforced gate — the gate would be
+    rejecting valid contracts for want of an argument."""
+    revision = subprocess.run(
+        ["git", "-C", str(project), "rev-parse", "HEAD"],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
+    _two_source_commitment(project, "cross-repo", revision)
+
+    report = contract_gate.run(
+        project,
+        fetch=fetcher(project),
+        roots={"support-app": project, "billing-app": project},
+    )
+
+    cross = next(p for p in report.packages if p.key == "cross-repo")
+    assert cross.drift is not None
+    assert cross.drift.ok
+
+
+def test_a_missing_checkout_is_refused_rather_than_skipped(project):
+    """The honest answer is "I could not look", never "no differences"."""
+    revision = subprocess.run(
+        ["git", "-C", str(project), "rev-parse", "HEAD"],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
+    _two_source_commitment(project, "cross-repo", revision)
+
+    report = contract_gate.run(project, fetch=fetcher(project))
+
+    cross = next(p for p in report.packages if p.key == "cross-repo")
+    assert not cross.drift.ok
+    assert cross.drift.refusals
+
+
+def test_a_single_source_baseline_still_needs_no_argument(project):
+    """The common case stays a two-argument command."""
+    report = contract_gate.run(project, fetch=fetcher(project))
+
+    assert report.ok
+
+
+# --- a commitment cannot be removed from enforcement by deleting a file ------
+
+
+def test_deleting_a_commitment_that_still_authorizes_is_refused(project):
+    """`discover` reads the tree the pull request proposes, so a pull request
+    that deletes `commitments/foo/` removes foo from the gate entirely — and
+    while any other package remains, `require_commitments` is satisfied and
+    the gate goes green. Enforcement you can switch off by deleting a file is
+    not enforcement.
+    """
+    _git(project, "add", "-A")
+    _git(project, "commit", "-m", "commitment on the base branch")
+    base = subprocess.run(
+        ["git", "-C", str(project), "rev-parse", "HEAD"],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
+    fetch = remembering_fetcher(project, authorizes=True)
+    (project / "commitments" / "support-response-approval" / "baseline.json").unlink()
+
+    report = contract_gate.run(project, fetch=fetch, base_ref=base)
+
+    assert not report.ok
+    assert any("support-response-approval" in p for p in report.problems)
+
+
+def test_a_commitment_the_pdg_no_longer_authorizes_may_be_removed(project):
+    """Retirement has a designed path: invalidate it in the graph, then the
+    file can go. Refusing that too would make the repository a place
+    commitments accumulate forever."""
+    _git(project, "add", "-A")
+    _git(project, "commit", "-m", "commitment on the base branch")
+    base = subprocess.run(
+        ["git", "-C", str(project), "rev-parse", "HEAD"],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
+    fetch = remembering_fetcher(project, authorizes=False)
+    (project / "commitments" / "support-response-approval" / "baseline.json").unlink()
+
+    report = contract_gate.run(project, fetch=fetch, base_ref=base)
+
+    assert report.ok
+
+
+def test_a_removal_the_pdg_cannot_be_asked_about_is_refused(project):
+    """Fail closed. An outage during a deletion is the one moment where
+    guessing costs the most."""
+    from cli.authority_check import PdgUnreachable
+
+    _git(project, "add", "-A")
+    _git(project, "commit", "-m", "commitment on the base branch")
+    base = subprocess.run(
+        ["git", "-C", str(project), "rev-parse", "HEAD"],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
+    (project / "commitments" / "support-response-approval" / "baseline.json").unlink()
+
+    def unreachable(commitment_id):
+        raise PdgUnreachable("connection refused")
+
+    report = contract_gate.run(project, fetch=unreachable, base_ref=base)
+
+    assert not report.ok
+
+
+def test_without_a_base_reference_nothing_is_claimed_about_removals(project):
+    """Run locally there is no base to compare against, and inventing one
+    would make the advisory check disagree with the gate."""
+    report = contract_gate.run(project, fetch=fetcher(project))
+
+    assert report.ok
+
+
+# --- one bad package must not take the run down ------------------------------
+
+
+def test_a_structurally_invalid_baseline_is_contained(project):
+    """`_load` accepts any JSON object, and the drift checker assumes shapes
+    below that. An entry that is a string rather than an object raised out of
+    the whole run, so one malformed file meant every later package went
+    unchecked and unreported."""
+    _add_commitment(project, "aaa-broken", "HEAD")
+    path = project / "commitments" / "aaa-broken" / "baseline.json"
+    broken = json.loads(path.read_text(encoding="utf-8"))
+    broken["selected_behavior"] = ["not-an-object"]
+    path.write_text(json.dumps(broken), encoding="utf-8")
+
+    report = contract_gate.run(project, fetch=fetcher(project))
+
+    assert [p.key for p in report.packages] == ["aaa-broken", "support-response-approval"]
+    assert not report.packages[0].ok
+    assert report.packages[1].drift is not None, "the healthy package was still checked"
+    assert not report.ok
+
+
+# --- a missing commitment is an answer ---------------------------------------
+
+
+def test_a_commitment_the_pdg_has_never_heard_of_is_not_authorized(project):
+    """404 is an answer: the PDG looked and found nothing. Reporting it as
+    an outage turns a definite absence into a maybe, and increment 11 made
+    that distinction the substance of the feature."""
+    def absent(commitment_id: str) -> dict:
+        raise contract_gate.NoSuchCommitment(commitment_id)
+
+    report = contract_gate.run(project, fetch=absent)
+
+    assert report.packages[0].authorized is False
+    assert "no commitment" in report.packages[0].authority_detail.lower()
+
+
+def test_a_base_reference_that_cannot_be_read_is_refused_not_ignored(project):
+    """The removal check is the one that stops a deletion switching off
+    enforcement, so its own failure mode matters. Returning "nothing was
+    removed" for a ref the clone does not have would disable the check
+    silently — a shallow clone, a renamed branch, a typo in the pipeline,
+    and the protection is gone with a green tick.
+    """
+    report = contract_gate.run(project, fetch=fetcher(project), base_ref="no-such-ref")
+
+    assert not report.ok
+    assert any("no-such-ref" in p for p in report.problems)

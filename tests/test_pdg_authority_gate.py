@@ -177,3 +177,55 @@ def test_both_templates_say_what_happens_to_a_fork_pull_request(path):
     outage and wrong for a fork: it makes every external contribution
     unmergeable, and the maintainer cannot tell the two apart from the log."""
     assert "fork" in path.read_text(encoding="utf-8").lower()
+
+
+# ---------------------------------------------------------------------------
+# One command, both providers — increment 13A
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("path", [GITHUB, AZURE])
+def test_the_gate_checks_every_commitment_not_one_configured_path(path):
+    """`verify-authority` answers about one baseline a variable points at.
+    A repository with four commitments gated one of them, and local drift
+    was never checked at all — authority is about the approval, and the
+    working tree can say something else entirely.
+    """
+    body = path.read_text(encoding="utf-8")
+
+    assert "govkit verify-contract" in body
+
+
+@pytest.mark.parametrize("path", [GITHUB, AZURE])
+def test_no_placeholder_survives_in_a_shipped_gate(path):
+    """`CHANGE_ME` in a required check is a gate that fails for everyone who
+    installs it or, worse, points at whatever path somebody typed once.
+    Discovery replaces it: `commitments/<key>/baseline.json` is the layout
+    the baseline schema already defines."""
+    body = path.read_text(encoding="utf-8")
+
+    assert "CHANGE_ME" not in body
+
+
+@pytest.mark.parametrize("path", [GITHUB, AZURE])
+def test_the_gate_tells_the_checker_what_it_is_merging_into(path):
+    """Without a base ref a pull request removes a commitment from
+    enforcement by deleting its file. The provider knows the target branch;
+    passing it is what lets the check notice the deletion."""
+    body = path.read_text(encoding="utf-8")
+
+    assert "--base-ref" in body
+
+
+def test_both_providers_pass_the_same_flags():
+    """The acceptance criterion is equivalent outcomes for the same cases.
+    Two hand-wired shells cannot be compared; two invocations of one command
+    can, so the flags are compared directly."""
+    import re
+
+    def flags(path):
+        body = path.read_text(encoding="utf-8")
+        start = body.index("govkit verify-contract")
+        return set(re.findall(r"--[a-z-]+", body[start:start + 400]))
+
+    assert flags(GITHUB) == flags(AZURE)

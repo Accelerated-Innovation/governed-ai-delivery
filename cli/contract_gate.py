@@ -33,6 +33,7 @@ four.
 from __future__ import annotations
 
 import json
+import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -42,6 +43,21 @@ from .authority_check import Outcome, PdgUnreachable, verify
 
 COMMITMENTS_DIR = "commitments"
 BASELINE_FILE = "baseline.json"
+
+
+class NoSuchCommitment(RuntimeError):
+    """The PDG looked and found nothing.
+
+    Deliberately **not** a `PdgUnreachable`. An earlier version subclassed it
+    so a caller that forgot to translate would degrade safely, and the effect
+    was to lose the distinction increment 11 exists to make: a 404 is a
+    definite answer about this commitment, and laundering it into "the graph
+    could not be reached" turns an absence into a maybe.
+    """
+
+    def __init__(self, commitment_id: str) -> None:
+        super().__init__(f"the PDG has no commitment {commitment_id!r}")
+        self.commitment_id = commitment_id
 
 
 @dataclass
@@ -91,11 +107,61 @@ def discover(target: Path) -> list[Path]:
     if not root.is_dir():
         return []
     return sorted(
-        (package / BASELINE_FILE
-         for package in root.iterdir()
-         if package.is_dir() and (package / BASELINE_FILE).is_file()),
+        (
+            package / BASELINE_FILE
+            for package in root.iterdir()
+            if package.is_dir() and (package / BASELINE_FILE).is_file()
+        ),
         key=lambda p: p.parent.name,
     )
+
+
+class BaseRefUnreadable(RuntimeError):
+    """The base revision could not be listed, so removals cannot be judged."""
+
+
+def discover_at(target: Path, ref: str) -> list[str]:
+    """The commitment keys that exist at `ref`, read from git rather than disk.
+
+    Needed because `discover` reads the tree the pull request *proposes*, and
+    that is exactly what the pull request controls. Deleting
+    `commitments/foo/` removes foo from the gate entirely, and while any
+    other package survives, a check for "at least one commitment" is
+    satisfied. Enforcement you can switch off by deleting a file is not
+    enforcement.
+    """
+    try:
+        listing = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(target),
+                "ls-tree",
+                "-r",
+                "--name-only",
+                ref,
+                "--",
+                f"{COMMITMENTS_DIR}/",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError) as unreadable:
+        # Not a repository, or a ref this checkout does not have — a shallow
+        # clone, a renamed branch, a typo in the pipeline. Returning "nothing
+        # was removed" would disable the one check that stops a deletion
+        # switching off enforcement, and it would do it silently, with a
+        # green tick. So it is raised and the caller fails closed.
+        raise BaseRefUnreadable(
+            f"could not list {COMMITMENTS_DIR}/ at {ref!r}: {unreadable}"
+        ) from unreadable
+    keys = set()
+    for line in listing.splitlines():
+        parts = line.strip().split("/")
+        if len(parts) == 3 and parts[0] == COMMITMENTS_DIR and parts[2] == BASELINE_FILE:
+            keys.add(parts[1])
+    return sorted(keys)
 
 
 def _load(path: Path) -> tuple[dict | None, str | None]:
@@ -110,20 +176,32 @@ def _load(path: Path) -> tuple[dict | None, str | None]:
     return data, None
 
 
-def _roots_for(baseline: dict, target: Path) -> dict[str, Path]:
+def _roots_for(baseline: dict, target: Path, supplied: dict[str, Path]) -> dict[str, Path]:
     """Where each declared source is checked out.
 
-    A single-source baseline is the repository being gated. Anything more
-    needs a checkout per source and the gate cannot invent one — those come
-    back as refusals from `baseline_check`, which is the honest answer: not
-    "no differences", but "I could not look".
+    A single-source baseline is the repository being gated, so the common
+    case needs no argument. Anything more needs a checkout per source, and
+    those are supplied by the caller — the gate cannot invent one, and a
+    source it cannot reach comes back as a refusal from `baseline_check`,
+    which is the honest answer: not "no differences", but "I could not look".
+
+    Supplying checkouts is what makes a cross-repository contract checkable
+    at all. Without it every schema-valid multi-source baseline failed an
+    enforced gate for want of an argument, which is the gate rejecting valid
+    contracts rather than catching bad ones.
     """
     sources = baseline.get("sources")
-    if isinstance(sources, list) and len(sources) == 1:
-        key = sources[0].get("source_key") if isinstance(sources[0], dict) else None
-        if isinstance(key, str) and key:
-            return {key: target}
-    return {}
+    if not isinstance(sources, list) or not sources:
+        return {}
+    keys = [
+        source.get("source_key")
+        for source in sources
+        if isinstance(source, dict) and isinstance(source.get("source_key"), str)
+    ]
+    roots = {key: supplied[key] for key in keys if key in supplied}
+    if len(keys) == 1 and keys[0] not in roots:
+        roots[keys[0]] = target
+    return roots
 
 
 def run(
@@ -132,6 +210,7 @@ def run(
     fetch: Callable[[str], dict],
     require_commitments: bool = False,
     roots: dict[str, Path] | None = None,
+    base_ref: str | None = None,
 ) -> GateReport:
     """Check every commitment package in `target`.
 
@@ -140,8 +219,13 @@ def run(
     revision — are testable without a server.
     """
     target = Path(target)
+    supplied = roots or {}
     report = GateReport()
     baselines = discover(target)
+    present = {path.parent.name for path in baselines}
+
+    if base_ref:
+        _check_removals(target, base_ref, present, fetch, report)
 
     if not baselines:
         if require_commitments:
@@ -167,10 +251,30 @@ def run(
             result.authority_detail = "not checked: the baseline could not be read"
             continue
 
-        result.drift = baseline_check.check(baseline, roots or _roots_for(baseline, target))
+        # Contained per package. `_load` accepts any JSON object and the
+        # checks below assume shapes under it, so one structurally invalid
+        # baseline used to raise out of the whole run — every later package
+        # then went unchecked *and unreported*, which at a gate is the worst
+        # of both: no answer, and no sign that an answer is missing.
+        try:
+            result.drift = baseline_check.check(baseline, _roots_for(baseline, target, supplied))
+        except Exception as broken:  # noqa: BLE001 - one bad file must not end the run
+            result.error = f"the baseline could not be checked: {broken}"
+            result.authority_detail = "not checked: the baseline could not be checked"
+            continue
 
         commitment_id = baseline.get("commitment_key")
-        outcome = verify(baseline, commitment_id=commitment_id, fetch=fetch)
+        try:
+            outcome = verify(baseline, commitment_id=commitment_id, fetch=fetch)
+        except NoSuchCommitment as absent:
+            result.authorized = False
+            result.authority_detail = str(absent)
+            continue
+        except Exception as broken:  # noqa: BLE001 - same reasoning as above
+            result.authorized = None
+            result.authority_detail = f"authority could not be established: {broken}"
+            continue
+
         result.authority_detail = outcome.detail
         if outcome.outcome is Outcome.AUTHORIZED:
             result.authorized = True
@@ -180,6 +284,53 @@ def run(
             result.authorized = None
 
     return report
+
+
+def _check_removals(
+    target: Path,
+    base_ref: str,
+    present: set[str],
+    fetch: Callable[[str], dict],
+    report: GateReport,
+) -> None:
+    """Refuse a deletion the PDG has not been told about.
+
+    Retirement has a designed path — invalidate the commitment in the graph,
+    and then the file may go. Refusing every removal would make the
+    repository a place commitments accumulate forever; allowing every removal
+    makes the gate optional. So the graph decides, and an outage during a
+    deletion fails closed, because that is the moment guessing costs most.
+    """
+    try:
+        at_base = discover_at(target, base_ref)
+    except BaseRefUnreadable as unreadable:
+        report.problems.append(
+            f"{unreadable}. The gate cannot tell whether a commitment was "
+            f"removed, so it refuses rather than assuming none was."
+        )
+        return
+
+    for key in at_base:
+        if key in present:
+            continue
+        try:
+            status = fetch(key)
+        except NoSuchCommitment:
+            # The graph never knew about it either. Nothing is being removed
+            # from enforcement that was ever under it.
+            continue
+        except Exception as unreachable:  # noqa: BLE001 - fail closed
+            report.problems.append(
+                f"{key} was removed from {COMMITMENTS_DIR}/ and the PDG could not be "
+                f"asked whether it still authorizes work: {unreachable}"
+            )
+            continue
+        if status.get("authorizes_work") is not False:
+            report.problems.append(
+                f"{key} was removed from {COMMITMENTS_DIR}/ but still authorizes work. "
+                "Invalidate the commitment in the PDG first; deleting the file "
+                "removes it from this gate without removing the commitment."
+            )
 
 
 def exit_status(report: GateReport, *, enforced: bool) -> int:
@@ -195,10 +346,13 @@ def exit_status(report: GateReport, *, enforced: bool) -> int:
 
 
 __all__ = [
+    "BaseRefUnreadable",
     "GateReport",
+    "NoSuchCommitment",
     "PackageResult",
     "PdgUnreachable",
     "discover",
+    "discover_at",
     "exit_status",
     "run",
 ]

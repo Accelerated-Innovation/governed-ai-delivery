@@ -176,3 +176,66 @@ def test_the_command_is_registered_on_the_real_cli():
     args = parser.parse_args(["verify-contract", "--target", ".", "--enforce"])
 
     assert args.enforce is True
+
+
+def test_a_non_https_endpoint_is_a_configuration_error_not_a_traceback(
+    marked, monkeypatch, capsys
+):
+    """The client refuses to send a credential over plain http, and that
+    refusal arrives as a `ValueError` from inside the fetch. Unhandled it
+    became a traceback — which in a pipeline reads as govkit crashing rather
+    than the endpoint being wrong, and exit code 1 would have sent someone
+    to look at the change instead of the configuration."""
+    monkeypatch.setenv("GOVKIT_PDG_URL", "http://pdg.invalid")
+    monkeypatch.setenv("GOVKIT_PDG_TOKEN", "read-only")
+    target = marked("pdg")
+    _add_commitment(target)
+
+    code = run(Args(target, enforce=True, require_authority=True))
+
+    assert code == 2
+    assert "https" in capsys.readouterr().err.lower()
+
+
+def test_checkouts_for_a_cross_repository_contract_can_be_supplied(marked):
+    """`--source key=path`, the same spelling `validate-baseline` uses.
+    Without it a multi-source contract cannot pass an enforced gate at all."""
+    import argparse
+
+    from cli.cmd_verify_contract import register
+
+    parser = argparse.ArgumentParser()
+    register(parser.add_subparsers(dest="command"))
+    args = parser.parse_args([
+        "verify-contract", "--target", ".",
+        "--source", "support-app=/tmp/a", "--source", "billing-app=/tmp/b",
+    ])
+
+    assert args.source == ["support-app=/tmp/a", "billing-app=/tmp/b"]
+
+
+def test_a_malformed_source_mapping_is_rejected_before_anything_runs(
+    marked, monkeypatch, capsys
+):
+    """`--source support-app` with no path is a pipeline typo. Guessing that
+    it means the target would silently check the wrong tree."""
+    monkeypatch.setenv("GOVKIT_PDG_URL", "https://pdg.invalid")
+    monkeypatch.setenv("GOVKIT_PDG_TOKEN", "read-only")
+    target = marked("pdg")
+
+    args = Args(target, enforce=True)
+    args.source = ["support-app"]
+
+    assert run(args) == 2
+    assert "--source" in capsys.readouterr().err
+
+
+def test_the_base_reference_is_optional_and_off_by_default(marked):
+    import argparse
+
+    from cli.cmd_verify_contract import register
+
+    parser = argparse.ArgumentParser()
+    register(parser.add_subparsers(dest="command"))
+
+    assert parser.parse_args(["verify-contract", "--target", "."]).base_ref is None

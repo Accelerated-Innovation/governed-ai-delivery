@@ -22,12 +22,21 @@
 #   same command without `--enforce` and it reports "authorization unverified"
 #   without blocking anyone.
 #
-# WHY THIS GATE AND NOT `govkit validate-baseline`:
-#   validate-baseline is a working-tree tool. It proves the spec still says
-#   what was approved, entirely locally, and every adopter gets it whether or
-#   not they have a PDG. It cannot prove the approval is still current,
-#   because nothing local can — an invalidation lives in the PDG and nowhere
-#   else. Run both: they answer different questions.
+# WHAT IT CHECKS:
+#   `govkit verify-contract` asks both questions about EVERY commitment in
+#   the repository — `commitments/<key>/baseline.json`, the layout the
+#   baseline schema defines — rather than one path a variable points at:
+#
+#     drift      does the working tree still say what was approved? Local,
+#                deterministic, no network.
+#     authority  does the PDG still say that approval authorizes work?
+#                Remote, current, and the only one that can see an
+#                invalidation.
+#
+#   Neither substitutes for the other, and checking every package is what
+#   makes a code change whose contract files were untouched still subject to
+#   the gate. A pull request author's declaration that a change is internal
+#   is not evidence.
 #
 # WHY `--require-authority`:
 #   Without it the gate reads its own applicability out of the tree it is
@@ -67,11 +76,20 @@
 #   runs. The endpoint and the credential travel together, from the secret
 #   store.
 #
+# WHY `--base-ref`:
+#   Discovery reads the tree the pull request proposes, which is exactly what
+#   the pull request controls. Deleting `commitments/foo/` removes foo from
+#   the gate, and while any other package survives, "at least one commitment"
+#   is still satisfied. With the base ref the check sees the deletion and
+#   refuses it unless the PDG says that commitment no longer authorizes work
+#   — retirement by invalidation, not by `rm`.
+#
 # CONFIGURE THIS:
 #   1. Set repository secrets GOVKIT_PDG_URL and GOVKIT_PDG_TOKEN. The token
 #      must be READ-ONLY: installing a checker must not confer authority to
 #      make an approval.
-#   2. Set BASELINE and COMMITMENT below for your commitment package.
+#   2. Nothing else. Commitments are discovered, not configured — a path in a
+#      required check is a path somebody has to remember to update.
 #   3. Add `pdg-authority` to your branch protection required checks.
 #   4. This file must be on the base branch to run at all — that is what
 #      `pull_request_target` means, and it is the property being relied on.
@@ -98,10 +116,6 @@ jobs:
   pdg-authority:
     name: pdg-authority
     runs-on: ubuntu-latest
-    env:
-      # CONFIGURE THIS — the commitment package this repository implements.
-      BASELINE: commitments/CHANGE_ME/baseline.json
-      COMMITMENT: CHANGE_ME
     steps:
       # The merge ref, because the baseline being gated is the one the pull
       # request proposes — `pull_request_target` checks out the base by
@@ -112,6 +126,8 @@ jobs:
         with:
           ref: refs/pull/${{ github.event.pull_request.number }}/merge
           persist-credentials: false
+          # The base branch has to be in the clone for --base-ref to resolve.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -120,15 +136,15 @@ jobs:
       - name: Install govkit
         run: pip install govkit~=0.21.0
 
-      - name: Verify the PDG currently authorizes this baseline
+      - name: Verify every commitment is undrifted and currently authorized
         env:
           GOVKIT_PDG_URL: ${{ secrets.GOVKIT_PDG_URL }}
           GOVKIT_PDG_TOKEN: ${{ secrets.GOVKIT_PDG_TOKEN }}
+          BASE_REF: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
-          govkit verify-authority \
+          govkit verify-contract \
             --target . \
-            --baseline "$BASELINE" \
-            --commitment "$COMMITMENT" \
+            --base-ref "$BASE_REF" \
             --require-authority \
             --enforce

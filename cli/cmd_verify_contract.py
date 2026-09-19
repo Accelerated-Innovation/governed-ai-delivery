@@ -42,22 +42,28 @@ def _fetch_via(base_url: str, token: str):
         if status is None:
             # The PDG looked and found nothing — a definite answer about
             # this commitment, not a failure to ask.
-            raise _NoSuchCommitment(commitment_id)
+            raise contract_gate.NoSuchCommitment(commitment_id)
         return status
+
     return fetch
 
 
-class _NoSuchCommitment(PdgUnreachable):
-    """Raised where `fetch` must answer, translated by the caller below.
+def _checkouts(args: argparse.Namespace) -> dict[str, Path]:
+    """`--source key=path`, repeatable — the spelling `validate-baseline` uses.
 
-    Subclasses `PdgUnreachable` so a caller that forgets to translate it
-    degrades to *undetermined* rather than crashing the gate — the safe
-    direction when enforced, since undetermined fails closed.
+    A baseline may span independent repositories, and a multi-source contract
+    with no way to supply the other checkouts cannot pass an enforced gate at
+    all. A mapping with no path is a pipeline typo: refused, rather than
+    guessed at, because guessing means silently checking the wrong tree.
     """
-
-    def __init__(self, commitment_id: str) -> None:
-        super().__init__(f"the PDG has no commitment {commitment_id!r}")
-        self.commitment_id = commitment_id
+    roots: dict[str, Path] = {}
+    for pair in getattr(args, "source", None) or ():
+        key, _, where = pair.partition("=")
+        if not key or not where:
+            print(f"--source expects key=path, got {pair!r}", file=sys.stderr)
+            sys.exit(2)
+        roots[key] = Path(where).resolve()
+    return roots
 
 
 def cmd_verify_contract(args: argparse.Namespace) -> None:
@@ -68,8 +74,10 @@ def cmd_verify_contract(args: argparse.Namespace) -> None:
     try:
         authority = _authority(target)
     except MarkerUnreadable as unreadable:
-        print(f"cannot determine this project's authority configuration: {unreadable}",
-              file=sys.stderr)
+        print(
+            f"cannot determine this project's authority configuration: {unreadable}",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     if (authority.get("source") or "none") != "pdg":
@@ -88,7 +96,20 @@ def cmd_verify_contract(args: argparse.Namespace) -> None:
         )
         sys.exit(0)
 
+    roots = _checkouts(args)
+
     base_url = os.environ.get(URL_ENV)
+    if base_url and not base_url.lower().startswith("https://"):
+        # The client refuses to send a credential over plain http, and that
+        # refusal arrives from inside the fetch. Unhandled it is a traceback,
+        # which in a pipeline reads as govkit crashing rather than the
+        # endpoint being wrong — and exit 1 would send someone to look at the
+        # change instead of the configuration.
+        print(
+            f"{URL_ENV} must be an https:// endpoint; a credential is not sent over plain http",
+            file=sys.stderr,
+        )
+        sys.exit(2)
     if not base_url:
         print(
             f"set {URL_ENV} to the PDG endpoint. It is deliberately not read from "
@@ -111,7 +132,13 @@ def cmd_verify_contract(args: argparse.Namespace) -> None:
                 f"no verification credential: set {TOKEN_ENV} to a read-only PDG token"
             )
 
-    report = contract_gate.run(target, fetch=fetch, require_commitments=require)
+    report = contract_gate.run(
+        target,
+        fetch=fetch,
+        require_commitments=require,
+        roots=roots,
+        base_ref=getattr(args, "base_ref", None),
+    )
     _report(report, enforced=enforced)
     sys.exit(contract_gate.exit_status(report, enforced=enforced))
 
@@ -150,12 +177,34 @@ def register(subparsers) -> None:
         help="Check every commitment in this repository for drift and current authority",
     )
     p.add_argument("--target", required=True, help=paths.TARGET_HELP)
-    p.add_argument("--require-authority", action="store_true",
-                   help="Fail if this project is not configured to verify against a "
-                        "PDG, or declares no commitments. For a protected boundary, "
-                        "so a change to the repository cannot disable the gate.")
-    p.add_argument("--enforce", action="store_true",
-                   help="Fail closed: exit non-zero unless every commitment is "
-                        "undrifted and currently authorized. For the protected "
-                        "boundary; omit for advisory local checks.")
+    p.add_argument(
+        "--source",
+        action="append",
+        metavar="KEY=PATH",
+        help="Checkout for a declared source, repeatable. Required "
+        "when a baseline spans more than one source; a "
+        "single-source baseline defaults to --target.",
+    )
+    p.add_argument(
+        "--base-ref",
+        default=None,
+        metavar="REF",
+        help="Git ref this change is proposed against. Supplying it "
+        "lets the gate refuse a commitment deleted from the "
+        "tree while the PDG still says it authorizes work.",
+    )
+    p.add_argument(
+        "--require-authority",
+        action="store_true",
+        help="Fail if this project is not configured to verify against a "
+        "PDG, or declares no commitments. For a protected boundary, "
+        "so a change to the repository cannot disable the gate.",
+    )
+    p.add_argument(
+        "--enforce",
+        action="store_true",
+        help="Fail closed: exit non-zero unless every commitment is "
+        "undrifted and currently authorized. For the protected "
+        "boundary; omit for advisory local checks.",
+    )
     p.set_defaults(func=cmd_verify_contract)
