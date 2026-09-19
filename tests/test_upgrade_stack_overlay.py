@@ -141,7 +141,7 @@ def _make_repo(tmp_path: Path) -> Path:
 def _make_target(tmp_path: Path, repo: Path) -> Path:
     """A target as `apply --stack test-stack` would leave it: the overlay's doc
     installed, carrying the overlay's own baseline header."""
-    from cli.overlay import apply_overlay, load_overlay
+    from cli.overlay import load_overlay, apply_overlay
 
     target = tmp_path / "project"
     target.mkdir()

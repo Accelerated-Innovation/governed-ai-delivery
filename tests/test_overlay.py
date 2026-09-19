@@ -281,6 +281,7 @@ class TestCopyReportingIsTruthful:
     def _overlay(self, tmp_path, src_name: str, body: str):
         import yaml
 
+        from cli.overlay import load_overlay
 
         stack = tmp_path / "stacks" / "s"
         stack.mkdir(parents=True)
