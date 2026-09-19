@@ -60,6 +60,32 @@ and `validate-baseline` works entirely offline with no engine of any kind.
   has no equivalent, and the template says so rather than implying parity.
   **Install only if you have a PDG.**
 - **`govkit doctor` reports the authority mode** as context, not a finding.
+- **`govkit verify-contract`** — the command a CI gate runs. Checks **every**
+  commitment in the repository (`commitments/<key>/baseline.json`) for both
+  local drift and current authority, rather than one path a variable points
+  at, so a code change whose contract files were untouched is still gated. Both
+  provider templates call it with identical flags, which is what makes their
+  outcomes equivalent rather than merely similar. `--base-ref` lets it refuse a
+  commitment deleted from the tree while the decision service still says it
+  authorizes work — retirement is invalidation, not `rm`.
+- **`commitments/<key>/commitment.json`** — the id the decision service
+  assigned, recorded beside the baseline and deliberately outside it. The
+  baseline is digested, so writing the returned id into it would break the
+  binding to the very baseline that id was issued for.
+- **`govkit inspect-package`** — draft a baseline from an existing feature
+  package. It is **incapable of producing an approval**: the draft omits
+  `opportunity`, which the schema requires and which is a decision rather than
+  a fact about the repository, so it does not validate and cannot be
+  authorized even if pointed at a live commitment. Elements with no authored
+  `@rule:`/`@scenario:` tag are flagged rather than converted, because a
+  derived identifier changes when a name does and a baseline refuses it.
+- **A behavior-contract rule for all three agents**, installed at L4 and L5 and
+  **inert unless `authority.source` is `pdg`** — so existing adoption at any
+  level is not retroactively reinterpreted. It refuses inferred exclusions,
+  behavior nobody asked for, relaxed thresholds and self-widened tool
+  authority; keeps refactoring explicitly legal; separates execution
+  permission from product approval; and routes a conflict to a person. The six
+  planning skills carry the same precondition where it is acted on.
   The risk is not having no PDG — that is the default and it is fine — it is
   a project whose owners believe it verifies and silently does not.
 
@@ -69,6 +95,26 @@ and `validate-baseline` works entirely offline with no engine of any kind.
   is not shaped like a marker (for example `"authority": "pdg"` written as a
   string). That line prints before the findings, so the crash cost the entire
   report.
+
+### Known limits
+
+Stated because the release is the first thing an adopter reads, and each of
+these is a thing the gate does **not** do:
+
+- **An earlier green check cannot authorize indefinitely, and nothing here
+  closes that window.** The check proves authority when it runs; merge happens
+  later. GitHub's "require branches to be up to date" and Azure's
+  build-validation expiration narrow it, and both are off by default. An
+  invalidation inside the window lands the change and the *next* pull request
+  fails — detected, not prevented.
+- **A check cannot protect the file that defines it.** Use CODEOWNERS (including
+  an entry for CODEOWNERS itself) or Azure required reviewers on the gate and
+  the marker.
+- **Azure cannot be given the guarantee GitHub has**: it builds pull-request
+  validation from the source branch, so an edited pipeline runs with the
+  credential during validation.
+- **A PDG must be served over TLS.** The client refuses to send a credential to
+  a non-https endpoint, and no localhost exception exists.
 
 ## [0.20.0] — 2026-09-02
 
