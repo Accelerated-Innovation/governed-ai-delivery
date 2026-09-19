@@ -44,6 +44,7 @@ from .cmd_verdict import register as _register_verdict
 from .cmd_verify_authority import register as _register_verify_authority
 from .cmd_verify_contract import register as _register_verify_contract
 from .doctor import register as _register_doctor
+from .inspect_package import register as _register_inspect_package
 from .version import GOVKIT_VERSION
 
 # Subcommand registrars. Each command module owns its argparse surface and
@@ -63,6 +64,7 @@ _REGISTRARS = (
     _register_validate_baseline,
     _register_verify_authority,
     _register_verify_contract,
+    _register_inspect_package,
     _register_verdict,
     _register_upgrade,
 )
