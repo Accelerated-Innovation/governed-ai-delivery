@@ -1,0 +1,141 @@
+# pdg-authority-gate.yml
+#
+# PURPOSE: Refuse to merge behavior the PDG does not currently authorize.
+#
+# JOBS:
+#   pdg-authority — ask the PDG whether the commitment this baseline names
+#                   still authorizes work, and fail closed if it does not or
+#                   if the answer cannot be obtained
+#
+# WHY MERGE AND NOT THE START OF WORK:
+#   Four placements were weighed. The start of work is the earliest and the
+#   cheapest — and it is not enforceable: there is no chokepoint at the moment
+#   someone starts typing, and an agent or a person can simply proceed. A PDG
+#   outage there would also stop all new work rather than one merge.
+#
+#   Merge is a real chokepoint, through branch protection. An outage pauses
+#   merges while everything else continues. And it is the only placement that
+#   sees an invalidation which happened *after* the work began: authority
+#   checked on Monday and withdrawn on Wednesday passes a Monday check forever.
+#
+#   The advisory half still exists and belongs at the start of work — run the
+#   same command without `--enforce` and it reports "authorization unverified"
+#   without blocking anyone.
+#
+# WHY THIS GATE AND NOT `govkit validate-baseline`:
+#   validate-baseline is a working-tree tool. It proves the spec still says
+#   what was approved, entirely locally, and every adopter gets it whether or
+#   not they have a PDG. It cannot prove the approval is still current,
+#   because nothing local can — an invalidation lives in the PDG and nowhere
+#   else. Run both: they answer different questions.
+#
+# WHY `--require-authority`:
+#   Without it the gate reads its own applicability out of the tree it is
+#   gating. A pull request that removes `authority.source` from
+#   `.govkit/marker.json` would turn the check into "not applicable" and exit
+#   zero. This flag makes the *workflow* assert the expectation, so disabling
+#   the gate means editing the gate.
+#
+# WHO CONTROLS THIS DEFINITION — READ BEFORE ADDING THE SECRET:
+#   Azure DevOps builds pull-request validation from the YAML that is in
+#   the **source branch**. There is no `pull_request_target` equivalent, so
+#   anyone who can
+#   push a branch can edit this file and read GOVKIT_PDG_TOKEN out of the
+#   run — deleting the flags below, or adding a step that posts it elsewhere.
+#   Build-validation policy names the pipeline, not the revision of its YAML,
+#   and required reviewers do not help: validation runs before review.
+#
+#   The GitHub form of this gate closes that hole. This one cannot, and the
+#   remaining controls are organizational rather than in this file:
+#
+#     - Treat everyone with Contribute permission as trusted with the token.
+#       That is the actual threat model; it is not weakened by anything here.
+#     - Use a DEDICATED READ-ONLY credential for this gate, scoped to
+#       authority reads and nothing else, and rotate it independently.
+#     - Keep "Make secrets available to builds of forks" OFF (the default).
+#     - Review changes to this file as you would a change to branch policy,
+#       because that is what it is.
+#
+#   This note is not a fix and is not offered as one. It is here so no
+#   adopter believes their token is protected the way the GitHub gate's is.
+#
+#   THE RULE THAT LIMITS THE DAMAGE: this job reads the checked-out tree and
+#   executes nothing from it. One pinned install from PyPI, one govkit
+#   invocation. Do not add an editable install, a requirements file, a build
+#   script or a task runner. A test enforces this.
+#
+# FORK PULL REQUESTS:
+#   Azure withholds secret variables from fork builds, and an enforced check
+#   with no credential fails closed — correctly for an outage, wrongly for a
+#   fork, and the log cannot tell a maintainer which happened. Do not turn
+#   fork secrets on to fix that; it hands the token to anyone who can open a
+#   pull request. Either keep this gate off the required list for
+#   fork-originated pull requests, or land external contributions by
+#   re-pushing them to a branch in the repository, where the gate applies.
+#
+# WHY THE ENDPOINT IS A SECRET AND NOT A REPOSITORY SETTING:
+#   An endpoint read from the working tree, paired with a credential from the
+#   environment, is a token-exfiltration primitive: a pull request points at
+#   an attacker-controlled host and collects the bearer token when this job
+#   runs. The endpoint and the credential travel together, from the secret
+#   store.
+#
+# CONFIGURE THIS:
+#   1. Set repository secrets GOVKIT_PDG_URL and GOVKIT_PDG_TOKEN. The token
+#      must be READ-ONLY: installing a checker must not confer authority to
+#      make an approval.
+#   2. Set BASELINE and COMMITMENT below for your commitment package.
+#   3. Add `pdg-authority` to your branch protection required checks.
+#
+#   Until GOVKIT_PDG_URL is set this job FAILS CLOSED on every pull request.
+#   That is deliberate: a gate that passes because it was never configured is
+#   indistinguishable from one that passed because the behavior was approved.
+#
+# NOT APPLICABLE IF YOU HAVE NO PDG:
+#   GovKit is open source and most projects using it have no PDG at all. Do
+#   not install this gate; `.govkit/marker.json` leaves `authority` absent and
+#   `govkit validate-baseline` remains fully useful on its own.
+
+# AZURE FORM: variable groups supply the secrets. Link a group that defines
+# GOVKIT_PDG_URL and GOVKIT_PDG_TOKEN, and mark the token secret so it is not
+# echoed into the log.
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  # CONFIGURE THIS — link the variable group holding the two PDG secrets.
+  - group: govkit-pdg
+  # CONFIGURE THIS — the commitment package this repository implements.
+  - name: BASELINE
+    value: commitments/CHANGE_ME/baseline.json
+  - name: COMMITMENT
+    value: CHANGE_ME
+
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "3.12"
+
+  - script: pip install govkit~=0.20.0
+    displayName: Install govkit
+
+  - script: |
+      set -euo pipefail
+      govkit verify-authority \
+        --target . \
+        --baseline "$BASELINE" \
+        --commitment "$COMMITMENT" \
+        --require-authority \
+        --enforce
+    displayName: Verify the PDG currently authorizes this baseline
+    env:
+      GOVKIT_PDG_URL: $(GOVKIT_PDG_URL)
+      GOVKIT_PDG_TOKEN: $(GOVKIT_PDG_TOKEN)
