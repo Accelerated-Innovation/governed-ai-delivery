@@ -633,3 +633,51 @@ def test_a_removal_is_judged_by_the_pointer_too(project):
 
     assert asked == ["cmt-removed"], "the removal check must use the recorded id"
     assert not report.ok
+
+
+def test_a_pointer_that_is_not_valid_utf8_is_refused_not_a_crash(project):
+    """`git show` was asked for decoded text, and a blob that is not UTF-8
+    raises `UnicodeDecodeError` — a subclass of `ValueError` but not of the
+    errors being caught, so it aborted the whole run during the removal
+    check instead of producing the unreadable-pointer refusal the code
+    promises three lines above."""
+    (project / "commitments" / "support-response-approval" / "commitment.json").write_bytes(
+        b'{"commitment_id": "\xff\xfe not utf-8"}'
+    )
+    _git(project, "add", "-A")
+    _git(project, "commit", "-m", "commitment on the base branch")
+    base = subprocess.run(
+        ["git", "-C", str(project), "rev-parse", "HEAD"],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
+
+    import shutil
+    shutil.rmtree(project / "commitments" / "support-response-approval")
+
+    report = contract_gate.run(project, fetch=fetcher(project), base_ref=base)
+
+    assert not report.ok
+    assert any("support-response-approval" in p for p in report.problems)
+
+
+def test_a_package_that_never_named_a_decision_may_be_deleted(project):
+    """Why the removal check skips a package with no pointer at the base,
+    rather than failing closed on it.
+
+    Under this gate a package with no pointer has no commitment id, so
+    `verify` reports it NOT AUTHORIZED — it was failing the gate on every
+    pull request before anyone deleted it. Removing it therefore takes
+    nothing out of enforcement, and refusing the deletion would mean an
+    unapprovable proposal could never be withdrawn.
+
+    This test exists so that reasoning is checked rather than asserted: if
+    a pointerless package ever becomes authorizable, it fails and the
+    removal path has to be revisited.
+    """
+    (project / "commitments" / "support-response-approval" / "commitment.json").unlink()
+
+    before_deletion = contract_gate.run(project, fetch=fetcher(project))
+    assert before_deletion.packages[0].authorized is False, (
+        "a pointerless package must not be authorizable, or deleting one "
+        "could remove something live from enforcement"
+    )

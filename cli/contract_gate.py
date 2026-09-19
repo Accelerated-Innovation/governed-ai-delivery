@@ -390,15 +390,21 @@ def _check_removals(
 def _pointer_at(target: Path, ref: str, key: str) -> tuple[str | None, str | None]:
     """The pointer as it stood at `ref`, since the package is gone from disk."""
     try:
+        # Bytes, not text. Asked for decoded output, a blob that is not UTF-8
+        # raises inside subprocess itself — before any of the handling below
+        # — and took the whole run down during the removal check, which is
+        # the one path where a crash and a pass are hard to tell apart.
         blob = subprocess.run(
             ["git", "-C", str(target), "show",
              f"{ref}:{COMMITMENTS_DIR}/{key}/{POINTER_FILE}"],
-            check=True, capture_output=True, text=True,
+            check=True, capture_output=True,
         ).stdout
     except (OSError, subprocess.CalledProcessError):
         return None, None
     try:
-        data = json.loads(blob)
+        data = json.loads(blob.decode("utf-8"))
+    except UnicodeDecodeError as undecodable:
+        return None, f"{POINTER_FILE} is not valid UTF-8: {undecodable}"
     except ValueError as malformed:
         return None, f"{POINTER_FILE} is not valid JSON: {malformed}"
     if not isinstance(data, dict):

@@ -229,3 +229,22 @@ def test_both_providers_pass_the_same_flags():
         return set(re.findall(r"--[a-z-]+", body[start:start + 400]))
 
     assert flags(GITHUB) == flags(AZURE)
+
+
+@pytest.mark.parametrize("path", [GITHUB, AZURE])
+def test_the_gate_documents_the_pointer_it_requires(path):
+    """The gate reads `commitments/<key>/commitment.json` for the id the
+    decision service assigned. A template that documents only
+    `baseline.json` sends adopters to build a package the gate will report
+    as unauthorized — and the failure looks like a withdrawn approval
+    rather than a missing file."""
+    body = path.read_text(encoding="utf-8")
+
+    assert "commitment.json" in body
+
+
+def test_the_ci_readme_documents_the_package_layout():
+    readme = pathlib.Path("ci/README.md").read_text(encoding="utf-8")
+
+    assert "commitment.json" in readme
+    assert "baseline.json" in readme
