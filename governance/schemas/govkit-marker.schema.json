@@ -1,9 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "GovKit Marker Schema",
-  "description": "Schema for .govkit/marker.json — written by govkit apply / upgrade / stack apply / calibrate. Introduced in PR 1 (Governance Accelerator). The legacy single-file .govkit marker has the same payload shape but lives at .govkit (file) instead of .govkit/marker.json; it is migrated to the directory layout on first read.",
+  "description": "Schema for .govkit/marker.json \u2014 written by govkit apply / upgrade / stack apply / calibrate. Introduced in PR 1 (Governance Accelerator). The legacy single-file .govkit marker has the same payload shape but lives at .govkit (file) instead of .govkit/marker.json; it is migrated to the directory layout on first read.",
   "type": "object",
-  "required": ["version", "level", "agent", "options", "applied_at"],
+  "required": [
+    "version",
+    "level",
+    "agent",
+    "options",
+    "applied_at"
+  ],
   "additionalProperties": false,
   "properties": {
     "version": {
@@ -12,7 +18,11 @@
     },
     "level": {
       "type": "string",
-      "enum": ["3", "4", "5"],
+      "enum": [
+        "3",
+        "4",
+        "5"
+      ],
       "description": "Maturity level: 3=Foundations, 4=Spec-Driven Add-On, 5=GenAI Operations."
     },
     "agent": {
@@ -23,16 +33,29 @@
     "options": {
       "type": "object",
       "description": "Variant options resolved during apply. `type` and `ci` are required for variant-based manifests; `stack` (PR 2) is enumerated by `govkit stack list`.",
-      "required": ["type", "ci"],
+      "required": [
+        "type",
+        "ci"
+      ],
       "additionalProperties": false,
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["api", "cli", "ui-react", "ui-angular", "ui-nextjs", "data"]
+          "enum": [
+            "api",
+            "cli",
+            "ui-react",
+            "ui-angular",
+            "ui-nextjs",
+            "data"
+          ]
         },
         "ci": {
           "type": "string",
-          "enum": ["github", "azure"]
+          "enum": [
+            "github",
+            "azure"
+          ]
         },
         "stack": {
           "type": "string",
@@ -44,20 +67,38 @@
     "applied_at": {
       "type": "string",
       "format": "date-time",
-      "description": "ISO 8601 timestamp when the marker was last written. Used by edit-protection (A2) — files modified after this timestamp that carry a govkit:editable header are not overwritten without --force."
+      "description": "ISO 8601 timestamp when the marker was last written. Used by edit-protection (A2) \u2014 files modified after this timestamp that carry a govkit:editable header are not overwritten without --force."
     },
     "stack": {
       "oneOf": [
-        {"type": "null"},
+        {
+          "type": "null"
+        },
         {
           "type": "object",
-          "required": ["id", "version", "display_name", "applied_at"],
+          "required": [
+            "id",
+            "version",
+            "display_name",
+            "applied_at"
+          ],
           "additionalProperties": false,
           "properties": {
-            "id": {"type": "string", "minLength": 1},
-            "version": {"type": "string", "minLength": 1},
-            "display_name": {"type": "string"},
-            "applied_at": {"type": "string", "format": "date-time"}
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "display_name": {
+              "type": "string"
+            },
+            "applied_at": {
+              "type": "string",
+              "format": "date-time"
+            }
           }
         }
       ],
@@ -66,30 +107,73 @@
     "assumptions": {
       "type": "array",
       "description": "Load-bearing assumptions made by apply / stack apply / detectors. Populated by PR 3.",
-      "items": {"$ref": "#/$defs/assumption"}
+      "items": {
+        "$ref": "#/$defs/assumption"
+      }
     },
     "calibration": {
       "type": "object",
-      "description": "Calibration state — when the team last walked the review checklist and what they decided. Populated by PR 5.",
-      "required": ["completed_at", "decisions"],
+      "description": "Calibration state \u2014 when the team last walked the review checklist and what they decided. Populated by PR 5.",
+      "required": [
+        "completed_at",
+        "decisions"
+      ],
       "additionalProperties": false,
       "properties": {
         "completed_at": {
-          "oneOf": [{"type": "null"}, {"type": "string", "format": "date-time"}]
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
         },
         "decisions": {
           "type": "array",
-          "items": {"type": "object"}
+          "items": {
+            "type": "object"
+          }
         }
       }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Whether this project verifies its baselines against a PDG. Absent means it does not, which is the default and the state most projects using GovKit are in \u2014 `govkit verify-authority` then reports not applicable rather than failing. The endpoint and credential are deliberately NOT recorded here: an endpoint read from the repository, paired with a credential from the environment, would let a pull request collect the token.",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "none",
+            "pdg"
+          ],
+          "description": "Where authority comes from. `pdg` enables verification."
+        },
+        "contract_version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The PDG status-contract version this project expects."
+        }
+      },
+      "required": [
+        "source"
+      ]
     }
   },
   "$defs": {
     "assumption": {
       "type": "object",
       "required": [
-        "id", "value", "source", "confidence",
-        "evidence", "files_affected", "review_required"
+        "id",
+        "value",
+        "source",
+        "confidence",
+        "evidence",
+        "files_affected",
+        "review_required"
       ],
       "additionalProperties": false,
       "properties": {
@@ -97,32 +181,72 @@
           "type": "string",
           "description": "Dotted assumption id, e.g. 'stack.language', 'architecture.style', 'extension.<id>.<capability>'."
         },
-        "value": {"type": "string"},
+        "value": {
+          "type": "string"
+        },
         "source": {
           "type": "string",
-          "enum": ["flag", "default", "detected", "prompted", "extension"]
+          "enum": [
+            "flag",
+            "default",
+            "detected",
+            "prompted",
+            "extension"
+          ]
         },
         "confidence": {
           "type": "string",
-          "enum": ["high", "medium", "low"]
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
         },
         "evidence": {
           "type": "array",
-          "items": {"type": "string"}
+          "items": {
+            "type": "string"
+          }
         },
         "files_affected": {
           "type": "array",
-          "items": {"type": "string"}
+          "items": {
+            "type": "string"
+          }
         },
-        "review_required": {"type": "boolean"},
+        "review_required": {
+          "type": "boolean"
+        },
         "warning_message": {
-          "oneOf": [{"type": "null"}, {"type": "string"}]
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "calibrated_at": {
-          "oneOf": [{"type": "null"}, {"type": "string", "format": "date-time"}]
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
         },
         "calibrated_against_overlay_version": {
-          "oneOf": [{"type": "null"}, {"type": "string"}]
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
         }
       }
     }

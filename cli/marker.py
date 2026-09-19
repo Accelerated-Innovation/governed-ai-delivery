@@ -288,6 +288,29 @@ def _migrate_legacy_marker_to_directory(target: Path, marker_node: Path, data: d
         return
 
 
+#: Fields a rewrite must not drop. Deliberately a short, explicit list
+#: rather than "merge whatever was there": the marker is rebuilt on purpose,
+#: so that stale keys from an older layout do not survive forever. `authority`
+#: is here because losing it disables a gate rather than merely losing a
+#: preference.
+_PRESERVED_ON_REWRITE = ("authority",)
+
+
+def _preserved_fields(marker_path: Path) -> dict:
+    """Read the fields a rewrite must carry forward.
+
+    A marker that cannot be read preserves nothing, which is right: this runs
+    during `apply` on a project that may have no marker at all.
+    """
+    if not marker_path.is_file():
+        return {}
+    try:
+        existing = json.loads(marker_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return {k: existing[k] for k in _PRESERVED_ON_REWRITE if k in existing}
+
+
 def write_govkit_marker(
     target: Path,
     agent: str,
@@ -316,6 +339,13 @@ def write_govkit_marker(
     `_post_install_finalize` instead of re-reading + re-parsing it from disk.
     """
     marker_dir = target / MARKER_DIRNAME
+    # Carried across the rewrite. This function rebuilds the marker from known
+    # fields, so anything it does not name is dropped — and `authority` going
+    # missing turns an enforced PDG gate off. An upgrade silently disabling a
+    # security gate is the worst version of that, because nothing about
+    # running an upgrade suggests you have turned something off.
+    preserved = _preserved_fields(marker_dir / MARKER_FILENAME)
+
     # Replace any legacy single-file marker.
     if marker_dir.is_file():
         marker_dir.unlink()
@@ -334,6 +364,7 @@ def write_govkit_marker(
             "decisions": [],
         },
     }
+    data.update(preserved)
     (marker_dir / MARKER_FILENAME).write_text(
         json.dumps(data, indent=2) + "\n", encoding="utf-8"
     )

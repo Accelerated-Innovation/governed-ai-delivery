@@ -39,6 +39,24 @@ from .authority_check import Outcome, PdgUnreachable, Result, exit_status, verif
 
 TOKEN_ENV = "GOVKIT_PDG_TOKEN"
 
+#: The endpoint comes from the environment, never from the repository.
+#:
+#: A base URL read from the working tree, paired with a credential from the
+#: environment, is a token-exfiltration primitive: a pull request points at an
+#: attacker-controlled HTTPS endpoint and collects the bearer token the moment
+#: the protected check runs. The endpoint and the credential travel together,
+#: from the same place, and the marker records only *that* a project verifies.
+URL_ENV = "GOVKIT_PDG_URL"
+
+
+class MarkerUnreadable(RuntimeError):
+    """The marker exists and could not be read.
+
+    Distinct from absent, because defaulting a broken marker to `none` is
+    fail-open: corrupt the file in a pull request and an enforced gate
+    reports not-applicable.
+    """ 
+
 
 def _authority(target: Path) -> dict:
     """The project's authority configuration, defaulting to none.
@@ -52,16 +70,34 @@ def _authority(target: Path) -> dict:
         return {"source": "none"}
     try:
         data = json.loads(marker.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {"source": "none"}
+    except (OSError, ValueError) as unreadable:
+        raise MarkerUnreadable(f"{marker} could not be read: {unreadable}") from unreadable
     return data.get("authority") or {"source": "none"}
 
 
 def cmd_verify_authority(args: argparse.Namespace) -> None:
     target = Path(args.target).resolve()
-    authority = _authority(target)
+    require = bool(getattr(args, "require_authority", False))
+    try:
+        authority = _authority(target)
+    except MarkerUnreadable as unreadable:
+        print(f"cannot determine this project's authority configuration: {unreadable}",
+              file=sys.stderr)
+        sys.exit(2)
 
     if (authority.get("source") or "none") != "pdg":
+        if require:
+            # The caller asserted this project is expected to verify. Without
+            # that assertion the gate reads its own configuration out of the
+            # tree it is gating, and a pull request disables it by editing one
+            # field.
+            print(
+                "expected this project to verify against a PDG "
+                "(--require-authority), but .govkit/marker.json does not set "
+                "authority.source = pdg",
+                file=sys.stderr,
+            )
+            sys.exit(1)
         print(
             "not applicable: this project does not verify against a PDG "
             "(.govkit/marker.json has no authority.source = pdg).\n"
@@ -74,11 +110,20 @@ def cmd_verify_authority(args: argparse.Namespace) -> None:
     if not baseline_path.is_file():
         print(f"baseline file not found: {baseline_path}", file=sys.stderr)
         sys.exit(2)
-    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+    try:
+        baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as unreadable:
+        print(f"baseline file could not be read: {unreadable}", file=sys.stderr)
+        sys.exit(2)
 
-    base_url = authority.get("base_url")
+    base_url = os.environ.get(URL_ENV)
     if not base_url:
-        print("authority.source is pdg but no base_url is configured", file=sys.stderr)
+        print(
+            f"set {URL_ENV} to the PDG endpoint. It is deliberately not read from "
+            f"the repository: an endpoint from the working tree plus a credential "
+            f"from the environment would let a pull request collect the token.",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     token = os.environ.get(TOKEN_ENV)
@@ -147,6 +192,11 @@ def register(subparsers) -> None:
     )
     p.add_argument("--target", required=True, help=paths.TARGET_HELP)
     p.add_argument("--baseline", required=True, help="Path to the baseline JSON")
+    p.add_argument(
+        "--require-authority", action="store_true",
+        help="Fail if this project is not configured to verify against a PDG. For a "
+             "protected boundary, so a change to the marker cannot disable the gate.",
+    )
     p.add_argument("--commitment", default=None,
                    help="The commitment id the PDG recorded for this baseline")
     p.add_argument(

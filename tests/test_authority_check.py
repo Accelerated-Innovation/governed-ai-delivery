@@ -42,11 +42,19 @@ BASELINE = {
 
 
 def engine_says(**overrides):
-    """What `GET /v1/commitments/{id}` answers, per increment 08B."""
+    """What `GET /v1/commitments/{id}` answers, per increment 08B.
+
+    `baseline_digest` is the digest of the whole baseline artifact, because
+    that is what the PDG binds. A first version of these fixtures used a
+    constant on both sides, which made comparing against the *wrong* digest
+    look correct.
+    """
+    from cli.baseline import compute_digest
+
     data = {
         "commitment_id": "cmt-1",
         "opportunity_ref": "PDG-OPP-4471",
-        "baseline_digest": DIGEST,
+        "baseline_digest": compute_digest(BASELINE),
         "source_scope": "support-app",
         "source_revision": "1f0c9a6d3b5e27184c0a9f2d6b8e4713a5c9d0f2",
         "consequence_class": "standard",
@@ -192,3 +200,35 @@ def test_only_an_enforced_check_fails_closed(outcome, enforced, expected):
     on *both* rejection and inability to determine, because a gate that
     passes when the PDG is unreachable is not a gate."""
     assert authority_check.exit_status(outcome, enforced=enforced) == expected
+
+
+# --- review of PR #164 -------------------------------------------------------
+
+def test_authorizes_work_must_be_a_real_boolean():
+    """Generic truthiness let a type-invalid `"false"` — a non-empty string —
+    reach the authorized result and exit an enforced gate zero."""
+    result = check(engine_says(authorizes_work="false"))
+
+    assert result.outcome is not Outcome.AUTHORIZED
+
+
+def test_a_baseline_with_no_binding_to_compare_is_not_authorized():
+    """Absent fields were skipped as nothing to compare, so a near-empty
+    document plus any real commitment id passed."""
+    result = check(baseline={"version": 1, "commitment_key": "k"})
+
+    assert result.outcome is not Outcome.AUTHORIZED
+
+
+def test_the_digest_compared_is_the_baseline_document_digest():
+    """The PDG binds the digest of the whole baseline artifact, computed by
+    `cli.baseline.compute_digest`. Comparing it against per-element
+    `content_digest` values would reject every valid approval — and the
+    original tests hid that by feeding one constant into both sides."""
+    from cli.baseline import compute_digest
+
+    baseline = {**BASELINE}
+    result = check(engine_says(baseline_digest=compute_digest(baseline)),
+                   baseline=baseline)
+
+    assert result.outcome is Outcome.AUTHORIZED, result.detail

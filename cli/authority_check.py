@@ -31,6 +31,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 
+from cli.baseline import compute_digest
+
 SUPPORTED_CONTRACT_VERSIONS = (1,)
 
 
@@ -57,23 +59,35 @@ def _binding_mismatch(baseline: dict, status: dict) -> str | None:
     report is which part disagrees: a wrong revision is a replay, a wrong
     opportunity is a pointer to someone else's decision, and they lead
     somewhere different.
+
+    **A field that is absent is a mismatch, not a match.** Treating missing
+    values as nothing-to-compare meant a near-empty document plus any real
+    commitment id passed as authorized — an incomplete baseline borrowing
+    someone else's approval.
     """
     sources = baseline.get("sources") or []
     expected_opportunity = (baseline.get("opportunity") or {}).get("opportunity_ref")
-    digests = {
-        entry.get("content_digest")
-        for entry in (baseline.get("selected_behavior") or ())
-        if entry.get("content_digest")
-    }
 
-    if expected_opportunity and status.get("opportunity_ref") != expected_opportunity:
+    if not expected_opportunity or not sources:
+        return (
+            "this baseline does not declare the opportunity and sources a commitment "
+            "binds, so there is nothing to verify it against"
+        )
+
+    if status.get("opportunity_ref") != expected_opportunity:
         return (
             f"the commitment binds opportunity {status.get('opportunity_ref')!r}, "
             f"and this baseline is for {expected_opportunity!r}"
         )
-    if digests and status.get("baseline_digest") not in digests:
+    # The digest of the *whole baseline artifact*, which is what the PDG
+    # binds — `compute_digest`, not a per-element `content_digest`. Comparing
+    # against the element digests rejected every valid approval, and the first
+    # tests hid it by feeding one constant into both sides.
+    expected_digest = compute_digest(baseline)
+    if status.get("baseline_digest") != expected_digest:
         return (
-            "the commitment binds a different baseline digest than this baseline records"
+            "the commitment binds a different baseline digest than this baseline "
+            "computes"
         )
     for source in sources:
         if status.get("source_scope") == source.get("source_key"):
@@ -136,7 +150,9 @@ def verify(
     if mismatch:
         return Result(Outcome.NOT_AUTHORIZED, mismatch)
 
-    if not status.get("authorizes_work"):
+    if status.get("authorizes_work") is not True:
+        # Identity, not truthiness. A type-invalid `"false"` is a non-empty
+        # string, and generic truthiness let it exit an enforced gate zero.
         return Result(
             Outcome.NOT_AUTHORIZED,
             f"the commitment does not currently authorize work "

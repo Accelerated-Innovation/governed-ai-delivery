@@ -50,7 +50,8 @@ def enable_pdg(project, **extra):
 
 
 def run(project, enforce=False, commitment=None, monkeypatch=None, status=None,
-        unreachable=None, token="s3cret-value"):
+        unreachable=None, token="s3cret-value", require_authority=False,
+        url="https://pdg.example.internal"):
     if monkeypatch is not None:
         # A credential by default: most cases are about the *answer*, and
         # leaving it unset would make every one of them fail as "undetermined,
@@ -59,6 +60,11 @@ def run(project, enforce=False, commitment=None, monkeypatch=None, status=None,
             monkeypatch.delenv(cmd_verify_authority.TOKEN_ENV, raising=False)
         else:
             monkeypatch.setenv(cmd_verify_authority.TOKEN_ENV, token)
+        # The endpoint comes from the environment, never the repository.
+        if url is None:
+            monkeypatch.delenv(cmd_verify_authority.URL_ENV, raising=False)
+        else:
+            monkeypatch.setenv(cmd_verify_authority.URL_ENV, url)
         from cli import authority_check
 
         def fake(_base, cid, **_kw):
@@ -69,7 +75,7 @@ def run(project, enforce=False, commitment=None, monkeypatch=None, status=None,
 
     args = argparse.Namespace(
         target=str(project), baseline=str(project / "baseline.json"),
-        enforce=enforce, commitment=commitment,
+        enforce=enforce, commitment=commitment, require_authority=require_authority,
     )
     out = io.StringIO()
     code = 0
@@ -114,9 +120,14 @@ def test_no_pdg_is_distinguishable_from_an_unreachable_pdg(project, monkeypatch)
 
 # --- with a PDG configured ----------------------------------------------------
 
-def _authorizing():
+def _authorizing(project=None):
+    from cli.baseline import compute_digest
+
+    digest = DIGEST
+    if project is not None:
+        digest = compute_digest(json.loads((project / "baseline.json").read_text()))
     return {"commitment_id": "cmt-1", "opportunity_ref": "PDG-OPP-4471",
-            "baseline_digest": DIGEST, "source_scope": "app",
+            "baseline_digest": digest, "source_scope": "app",
             "source_revision": "1" * 40, "consequence_class": "standard",
             "status": "authorizing", "authorizes_work": True, "reason": None,
             "schema_version": 1}
@@ -126,14 +137,14 @@ def test_a_current_approval_passes_the_enforced_gate(project, monkeypatch):
     enable_pdg(project)
 
     code, output = run(project, enforce=True, commitment="cmt-1",
-                       monkeypatch=monkeypatch, status=_authorizing())
+                       monkeypatch=monkeypatch, status=_authorizing(project))
 
     assert code == 0, output
 
 
 def test_an_invalidated_approval_fails_the_enforced_gate(project, monkeypatch):
     enable_pdg(project)
-    invalidated = {**_authorizing(), "authorizes_work": False,
+    invalidated = {**_authorizing(project), "authorizes_work": False,
                    "status": "invalidated", "reason": "COMMITMENT_INVALIDATED"}
 
     code, output = run(project, enforce=True, commitment="cmt-1",
@@ -171,7 +182,7 @@ def test_the_token_comes_from_the_environment_and_is_never_printed(project, monk
     enable_pdg(project)
 
     _code, output = run(project, enforce=True, commitment="cmt-1",
-                        monkeypatch=monkeypatch, status=_authorizing(),
+                        monkeypatch=monkeypatch, status=_authorizing(project),
                         token="s3cret-value")
 
     assert "s3cret-value" not in output
@@ -188,3 +199,89 @@ def test_a_missing_token_is_undetermined_rather_than_unauthorized(project, monke
     assert code == 1
     assert "token" in output.lower() or "credential" in output.lower()
     assert "not authorized" not in output.lower()
+
+
+# --- review of PR #164 -------------------------------------------------------
+
+def test_the_endpoint_never_comes_from_the_repository(project, monkeypatch):
+    """A base URL read from the working tree, paired with a credential from
+    the environment, is a token-exfiltration primitive: a pull request points
+    at an attacker's HTTPS endpoint and collects the bearer token the moment
+    the protected check runs.
+
+    The endpoint and the credential now travel together, from the
+    environment. The marker records only *that* a project verifies.
+    """
+    enable_pdg(project, base_url="https://attacker.example.invalid")
+    seen = {}
+
+    def fake(base, cid, **_kw):
+        seen["base"] = base
+        return _authorizing()
+
+    monkeypatch.setattr(cmd_verify_authority.pdg_client, "fetch_status", fake)
+    monkeypatch.setenv(cmd_verify_authority.TOKEN_ENV, "s3cret")
+    monkeypatch.setenv(cmd_verify_authority.URL_ENV, "https://pdg.example.internal")
+
+    args = argparse.Namespace(target=str(project), baseline=str(project / "baseline.json"),
+                              enforce=True, commitment="cmt-1", require_authority=False)
+    with contextlib.suppress(SystemExit), contextlib.redirect_stdout(io.StringIO()):
+        cmd_verify_authority.cmd_verify_authority(args)
+
+    assert seen["base"] == "https://pdg.example.internal"
+    assert "attacker" not in seen["base"]
+
+
+def test_an_enforced_check_can_require_the_project_to_be_pdg_enabled(project, monkeypatch):
+    """Otherwise a pull request disables the gate by editing the field the
+    gate reads. CI asserts the expectation; the repository supplies only the
+    detail."""
+    code, output = run(project, enforce=True, monkeypatch=monkeypatch,
+                       require_authority=True)
+
+    assert code == 1
+    assert "expected" in output.lower() or "require" in output.lower()
+
+
+def test_an_unparsable_marker_does_not_silently_disable_the_check(project, monkeypatch):
+    """Defaulting a broken marker to `none` is fail-open: corrupt the file in
+    a pull request and the enforced gate reports not-applicable."""
+    (project / ".govkit" / "marker.json").write_text("{ not json", encoding="utf-8")
+
+    code, output = run(project, enforce=True, monkeypatch=monkeypatch,
+                       require_authority=True)
+
+    assert code != 0
+    assert "marker" in output.lower()
+
+
+def test_a_baseline_missing_its_binding_cannot_borrow_an_approval(project, monkeypatch):
+    """Absent fields were treated as nothing to compare, so a near-empty
+    document plus any real commitment id passed as authorized."""
+    enable_pdg(project)
+    (project / "baseline.json").write_text(json.dumps({"version": 1, "commitment_key": "k"}),
+                                           encoding="utf-8")
+
+    code, output = run(project, enforce=True, commitment="cmt-1",
+                       monkeypatch=monkeypatch, status=_authorizing(project))
+
+    assert code == 1
+    # "authorized:" is a substring of "not authorized:", so assert the
+    # verdict rather than the absence of a word.
+    assert output.lower().startswith("not authorized") or "not authorized" in output.lower()
+    assert "nothing to verify it against" in output
+
+
+def test_broken_baseline_json_is_a_controlled_failure(project, monkeypatch):
+    enable_pdg(project)
+    # Built before the file is corrupted: `_authorizing(project)` reads it,
+    # so composing the fixture afterwards fails in the helper rather than in
+    # the command under test.
+    status = _authorizing(project)
+    (project / "baseline.json").write_text("{ not json", encoding="utf-8")
+
+    code, output = run(project, enforce=True, commitment="cmt-1",
+                       monkeypatch=monkeypatch, status=status)
+
+    assert code == 2
+    assert "Traceback" not in output
