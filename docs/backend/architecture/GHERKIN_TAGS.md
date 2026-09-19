@@ -67,8 +67,9 @@ or nothing. An identifier survives rewording; a name does not.
 
 **When they stop being optional.** If your project commits to behavior through a decision
 service, they are **required**. A behavioral baseline binds the exact Rules and scenarios
-an approval covers, and it refuses a *derived* identifier — one a tool slugified from an
-element's name — precisely because that slug changes when the name does. **Readable is not
+an approval covers, and `govkit validate-baseline` refuses a *derived* identifier — one a
+tool slugified from an element's name — precisely because that slug changes when the name
+does. **Readable is not
 approvable.**
 
 The practical consequence: an element with no authored tag cannot be part of a commitment

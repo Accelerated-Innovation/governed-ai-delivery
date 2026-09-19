@@ -6,7 +6,8 @@ guidance that ever arrives.
 
 Until now neither mentioned `@rule:` or `@scenario:` — the identifiers a
 behavioral baseline requires and whose absence it refuses (`id_source:
-derived` is rejected by `behavioral_baseline.schema.json`). A team following
+derived` is rejected by `validate_baseline` — note the schema *permits* it,
+because the field has to be able to express it). A team following
 the installed conventions exactly authored none of them, and the entire
 behavior contract was unreachable to them: `inspect-package` flags every
 element and a baseline can bind nothing.
@@ -64,12 +65,65 @@ def test_the_conventions_point_at_them():
     assert "identity" in CONVENTIONS.read_text(encoding="utf-8").lower()
 
 
-def test_the_schema_still_refuses_derived_identifiers():
-    """The reason the documentation above has to exist. If this ever stops
-    being true, the guidance is overstated and should be softened rather
-    than left to frighten people."""
-    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
-    id_source = schema["$defs"]["behaviorRef"]["properties"]["id_source"]
+def test_a_derived_identifier_is_actually_refused():
+    """The reason the documentation above has to exist — asserted by
+    running the check, not by reading the schema for a word.
 
-    assert "derived" in json.dumps(id_source).lower()
-    assert "content_digest" in schema["$defs"]["behaviorRef"]["required"]
+    The first version of this test searched the schema JSON for
+    `"derived"` and passed. It would have passed whatever the behaviour
+    was, because **the schema deliberately permits `derived`**: it is a
+    value of the `id_source` enum, and has to be, or the field could not
+    express a derived identity at all.
+
+    The refusal is in `validate_baseline` — the cross-field checker — and
+    that is where it has to be tested. Two layers, two jobs; asserting
+    against the wrong one is how a guarantee quietly stops holding.
+    """
+    from cli.baseline import validate_baseline
+
+    baseline = {
+        "version": 1,
+        "commitment_key": "k",
+        "opportunity": {"opportunity_ref": "O", "outcome": "x"},
+        "sources": [{"source_key": "a", "repository": "r", "revision": "0" * 40,
+                     "path": "f", "kind": "repository"}],
+        "selected_behavior": [{"ref": "a/f#rule:r", "kind": "rule",
+                               "id_source": "derived",
+                               "content_digest": "sha256:" + "0" * 64}],
+    }
+
+    errors, _ = validate_baseline(baseline)
+
+    assert any("derived" in error for error in errors), errors
+
+
+def test_the_same_baseline_with_an_authored_identifier_passes():
+    """The other half. A refusal test that never sees the accepting case
+    cannot distinguish "refuses derived" from "refuses everything"."""
+    from cli.baseline import validate_baseline
+
+    baseline = {
+        "version": 1,
+        "commitment_key": "k",
+        "opportunity": {"opportunity_ref": "O", "outcome": "x"},
+        "sources": [{"source_key": "a", "repository": "r", "revision": "0" * 40,
+                     "path": "f", "kind": "repository"}],
+        "selected_behavior": [{"ref": "a/f#rule:r", "kind": "rule",
+                               "id_source": "tag",
+                               "content_digest": "sha256:" + "0" * 64}],
+    }
+
+    errors, _ = validate_baseline(baseline)
+
+    assert not errors, errors
+
+
+def test_the_schema_permits_derived_because_the_field_must_express_it():
+    """Recorded so nobody "fixes" the schema to match the prose. The enum
+    carries both values; the *decision* not to accept one is made a layer
+    up."""
+    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+
+    assert schema["$defs"]["behaviorRef"]["properties"]["id_source"]["enum"] == [
+        "tag", "derived",
+    ]
