@@ -35,6 +35,7 @@ from .cmd_evidence import register as _register_evidence
 from .cmd_extension import register as _register_extension
 from .cmd_fix import register as _register_fix
 from .cmd_init import register as _register_init
+from .cmd_inspect_package import register as _register_inspect_package
 from .cmd_list import register as _register_list
 from .cmd_stack import register as _register_stack
 from .cmd_upgrade import register as _register_upgrade
@@ -63,6 +64,7 @@ _REGISTRARS = (
     _register_validate_baseline,
     _register_verify_authority,
     _register_verify_contract,
+    _register_inspect_package,
     _register_verdict,
     _register_upgrade,
 )
