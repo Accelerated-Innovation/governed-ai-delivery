@@ -151,10 +151,18 @@ def resolve(doc: dict[str, Any], kind: str, slug: str) -> Element | None:
 
     Raises `AmbiguousReference` when two carry it — see that exception.
     """
+    # `rule` and `scenario` name a Gherkin element; `nfr`, `evaluation`,
+    # `design` and `agent-authority` are obligations *tagged onto* one, and
+    # there is no Gherkin node of those kinds. Constraining the node type for
+    # them made every constraint reference unresolvable — reported as approved
+    # behaviour having disappeared, when it had simply never been looked for
+    # in the right place.
+    structural = kind in {"rule", "scenario"}
     matches = [
         Element(kind=kind, slug=slug, node=node, rule=rule)
         for node_kind, node, rule in _walk(doc)
-        if node_kind == kind and (kind, slug) in _authored(node.get("tags"))
+        if (node_kind == kind if structural else True)
+        and (kind, slug) in _authored(node.get("tags"))
     ]
     if len(matches) > 1:
         raise AmbiguousReference(
