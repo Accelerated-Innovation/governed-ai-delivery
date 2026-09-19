@@ -96,11 +96,32 @@ def test_the_precondition_names_the_rule_without_hard_coding_a_path(agent, area,
         assert path not in text, f"{agent} skill hard-codes {owner}'s rule path"
 
 
+@pytest.mark.parametrize(
+    "flag",
+    ["--target", "--baseline", "--commitment", "--source"],
+)
 @pytest.mark.parametrize("agent,area,skill", CASES)
-def test_the_commands_carry_the_arguments_they_require(agent, area, skill):
-    """Same defect the rule was reviewed for: both commands require
-    `--target` and `--baseline`, and neither has a default, so a bare
-    invocation exits in argument parsing and checks nothing."""
+def test_the_block_names_every_argument_the_checks_depend_on(agent, area, skill, flag):
+    """Asserted on the prose, not on command lines.
+
+    An earlier version of this test only inspected lines *starting with* a
+    full `govkit` invocation — and the block deliberately has none, because
+    it defers the exact command to the rule. So the loop ran zero
+    assertions and every piece of this guidance could have been deleted
+    with the suite still green.
+
+    Each flag is load-bearing in a different way: `--target` and
+    `--baseline` are required and undefaulted; `--commitment` is optional to
+    argparse and decides the answer; `--source` is what a baseline spanning
+    more than one repository cannot be checked without.
+    """
+    assert flag in _skill(agent, area, skill).read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("agent,area,skill", CASES)
+def test_no_bare_invocation_creeps_in_later(agent, area, skill):
+    """The block should show no runnable command at all — but if someone
+    later pastes one in, it must carry the arguments that make it work."""
     for line in _skill(agent, area, skill).read_text(encoding="utf-8").splitlines():
         stripped = line.strip().lstrip("`$ ")
         if stripped.startswith(("govkit validate-baseline", "govkit verify-authority")):

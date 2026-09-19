@@ -36,6 +36,20 @@ below need its path; neither has a default.
 govkit validate-baseline --target . --baseline <path to the approved baseline>
 ```
 
+**If the baseline lists more than one entry under `sources`, that form
+refuses.** A cross-repository baseline needs a checkout for each one, named
+by its `source_key`, and the flag repeats:
+
+```
+govkit validate-baseline --target . --baseline <path> \
+  --source <source_key>=<path to that checkout> \
+  --source <source_key>=<path to that checkout>
+```
+
+`--target` stands in for a single source and only for a single source. Read
+`sources` in the baseline before assuming the short form applies — the
+refusals you get otherwise are about missing checkouts, not about drift.
+
 If it reports drift, **stop**: the spec in front of you is not the spec that
 was approved, and everything you would plan from it inherits that.
 

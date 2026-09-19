@@ -19,8 +19,6 @@ import sys
 import textwrap
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GATE_PATHS = {
     "github": REPO_ROOT / "ci" / "github" / "eval-gate.yml",

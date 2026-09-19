@@ -43,6 +43,10 @@ Before relying on anything in the feature folder:
   `verify-authority` also needs `--commitment` — omit it and the answer is
   *not authorized* about the pointer you did not supply, which says nothing
   about your work.
+- **Check `sources` in the baseline first.** More than one entry means the
+  contract spans repositories and every one of them needs its own
+  `--source <source_key>=<path>` checkout. Without them you get refusals
+  about missing sources, which are not a verdict on the contract.
 - **Drift means stop.** The spec in front of you is not the one that was
   approved, and everything you plan from it inherits that.
 - **Unverified is not permission.** An unreachable graph, or an unset
