@@ -43,6 +43,18 @@ from .authority_check import Outcome, PdgUnreachable, verify
 
 COMMITMENTS_DIR = "commitments"
 BASELINE_FILE = "baseline.json"
+#: The id the decision service assigned, recorded beside the baseline rather
+#: than inside it. Inside, it would change the digest — and the digest is what
+#: the approval binds, so recording the id an approval returned would break
+#: the binding to the baseline that id was issued for.
+#:
+#: This is increment 11's design, finally built: "the baseline names no
+#: decision ... a local pointer names the commitment and the PDG adjudicates
+#: it". Until a live run against discovery-engine on 2026-09-19, the gate used
+#: `baseline.commitment_key` as the id, and the engine assigns its own
+#: (`cmt-<uuid>`) at approval — so every real commitment 404'd and reported as
+#: NOT AUTHORIZED. The gate would have failed every approved change.
+POINTER_FILE = "commitment.json"
 
 
 class NoSuchCommitment(RuntimeError):
@@ -176,6 +188,32 @@ def _load(path: Path) -> tuple[dict | None, str | None]:
     return data, None
 
 
+def _pointer(package: Path) -> tuple[str | None, str | None]:
+    """The commitment id recorded for this package, or why it cannot be read.
+
+    Absent is not an error: a baseline with no pointer is a well-formed
+    proposal nobody has approved, and `verify` already reports that as a
+    definite *not authorized*. Unreadable is different — the package's state
+    cannot be established — and collapsing the two would report a verdict
+    the gate has not earned.
+    """
+    path = package / POINTER_FILE
+    if not path.is_file():
+        return None, None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as unreadable:
+        return None, f"could not read {POINTER_FILE}: {unreadable}"
+    except ValueError as malformed:
+        return None, f"{POINTER_FILE} is not valid JSON: {malformed}"
+    if not isinstance(data, dict):
+        return None, f"{POINTER_FILE} does not contain an object"
+    commitment_id = data.get("commitment_id")
+    if not isinstance(commitment_id, str) or not commitment_id:
+        return None, f"{POINTER_FILE} records no commitment_id"
+    return commitment_id, None
+
+
 def _roots_for(baseline: dict, target: Path, supplied: dict[str, Path]) -> dict[str, Path]:
     """Where each declared source is checked out.
 
@@ -263,7 +301,12 @@ def run(
             result.authority_detail = "not checked: the baseline could not be checked"
             continue
 
-        commitment_id = baseline.get("commitment_key")
+        commitment_id, pointer_error = _pointer(path.parent)
+        if pointer_error:
+            result.error = pointer_error
+            result.authority_detail = f"not checked: {pointer_error}"
+            continue
+
         try:
             outcome = verify(baseline, commitment_id=commitment_id, fetch=fetch)
         except NoSuchCommitment as absent:
@@ -313,8 +356,19 @@ def _check_removals(
     for key in at_base:
         if key in present:
             continue
+        commitment_id, pointer_error = _pointer_at(target, base_ref, key)
+        if pointer_error:
+            report.problems.append(
+                f"{key} was removed from {COMMITMENTS_DIR}/ and its recorded "
+                f"commitment id could not be read at {base_ref!r}: {pointer_error}"
+            )
+            continue
+        if commitment_id is None:
+            # Nothing ever named a decision for it, so nothing is being
+            # removed from enforcement.
+            continue
         try:
-            status = fetch(key)
+            status = fetch(commitment_id)
         except NoSuchCommitment:
             # The graph never knew about it either. Nothing is being removed
             # from enforcement that was ever under it.
@@ -333,6 +387,28 @@ def _check_removals(
             )
 
 
+def _pointer_at(target: Path, ref: str, key: str) -> tuple[str | None, str | None]:
+    """The pointer as it stood at `ref`, since the package is gone from disk."""
+    try:
+        blob = subprocess.run(
+            ["git", "-C", str(target), "show",
+             f"{ref}:{COMMITMENTS_DIR}/{key}/{POINTER_FILE}"],
+            check=True, capture_output=True, text=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None, None
+    try:
+        data = json.loads(blob)
+    except ValueError as malformed:
+        return None, f"{POINTER_FILE} is not valid JSON: {malformed}"
+    if not isinstance(data, dict):
+        return None, f"{POINTER_FILE} does not contain an object"
+    commitment_id = data.get("commitment_id")
+    if not isinstance(commitment_id, str) or not commitment_id:
+        return None, f"{POINTER_FILE} records no commitment_id"
+    return commitment_id, None
+
+
 def exit_status(report: GateReport, *, enforced: bool) -> int:
     """Enforcement is a property of the call site, not of configuration.
 
@@ -349,6 +425,7 @@ __all__ = [
     "BaseRefUnreadable",
     "GateReport",
     "NoSuchCommitment",
+    "POINTER_FILE",
     "PackageResult",
     "PdgUnreachable",
     "discover",

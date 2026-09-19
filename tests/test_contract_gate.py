@@ -92,6 +92,11 @@ def _add_commitment(repo, key: str, revision: str) -> None:
             "id_source": "tag",
         }],
     }), encoding="utf-8")
+    # The id the decision service assigned. Real engines mint their own
+    # (`cmt-<uuid>`), which is why the key cannot stand in for it.
+    (package / "commitment.json").write_text(
+        json.dumps({"commitment_id": f"cmt-{key}"}), encoding="utf-8"
+    )
 
 
 def authorizing(baseline: dict) -> dict:
@@ -113,8 +118,10 @@ def authorizing(baseline: dict) -> dict:
 def fetcher(project, *, authorizes=True):
     """A PDG that answers about whatever baseline the gate found."""
     def fetch(commitment_id: str) -> dict:
-        path = project / "commitments" / commitment_id / "baseline.json"
+        key = commitment_id.removeprefix("cmt-")
+        path = project / "commitments" / key / "baseline.json"
         status = authorizing(json.loads(path.read_text(encoding="utf-8")))
+        status["commitment_id"] = commitment_id
         status["authorizes_work"] = authorizes
         return status
     return fetch
@@ -128,7 +135,7 @@ def remembering_fetcher(project, *, authorizes):
     up front, because the file is about to be deleted.
     """
     remembered = {
-        package.name: authorizing(
+        f"cmt-{package.name}": authorizing(
             json.loads((package / "baseline.json").read_text(encoding="utf-8"))
         )
         for package in (project / "commitments").iterdir()
@@ -335,6 +342,9 @@ def _two_source_commitment(repo, key, revision):
             "kind": "scenario", "id_source": "tag",
         }],
     }), encoding="utf-8")
+    (package / "commitment.json").write_text(
+        json.dumps({"commitment_id": f"cmt-{key}"}), encoding="utf-8"
+    )
 
 
 def test_a_contract_spanning_repositories_is_checkable_when_checkouts_are_given(project):
@@ -502,3 +512,124 @@ def test_a_base_reference_that_cannot_be_read_is_refused_not_ignored(project):
 
     assert not report.ok
     assert any("no-such-ref" in p for p in report.problems)
+
+
+# --- the pointer that names the decision -------------------------------------
+#
+# Found by running the gate against a live discovery-engine (2026-09-19).
+# `contract_gate` looked the commitment up by `baseline.commitment_key`, and
+# the engine assigns its own id (`cmt-<uuid>`) at approval. Every real
+# commitment therefore 404s, which — correctly, per increment 11 — reports as
+# NOT AUTHORIZED. The gate would have failed every approved change.
+#
+# The key cannot simply be renamed to the engine's id either: `commitment_key`
+# is inside the digested document, so changing it changes the digest and the
+# binding check fails instead. Increment 11 already said what the answer is —
+# "the baseline names no decision ... a local pointer names the commitment and
+# the PDG adjudicates it" — and the pointer is what was never built.
+
+
+def _write_pointer(project, key, commitment_id):
+    (project / "commitments" / key / "commitment.json").write_text(
+        json.dumps({"commitment_id": commitment_id}), encoding="utf-8"
+    )
+
+
+def test_the_pointer_names_the_commitment_the_pdg_adjudicates(project):
+    """The id the decision service assigned, recorded beside the baseline and
+    deliberately outside it: anything inside changes the digest, and the
+    digest is what the approval binds."""
+    _write_pointer(project, "support-response-approval", "cmt-1234")
+    seen = {}
+
+    def fetch(commitment_id):
+        seen["id"] = commitment_id
+        status = authorizing(json.loads(
+            (project / "commitments" / "support-response-approval" / "baseline.json")
+            .read_text(encoding="utf-8")
+        ))
+        status["commitment_id"] = commitment_id
+        return status
+
+    contract_gate.run(project, fetch=fetch)
+
+    assert seen["id"] == "cmt-1234"
+
+
+def test_the_pointer_is_not_part_of_the_digest(project):
+    """Adding it must not invalidate an approval that already exists. If the
+    pointer changed the digest, recording the id the PDG returned would break
+    the binding to the baseline that id was issued for."""
+    from cli.baseline import compute_digest
+
+    path = project / "commitments" / "support-response-approval" / "baseline.json"
+    before = compute_digest(json.loads(path.read_text(encoding="utf-8")))
+
+    _write_pointer(project, "support-response-approval", "cmt-1234")
+
+    after = compute_digest(json.loads(path.read_text(encoding="utf-8")))
+    assert before == after
+
+
+def test_a_package_with_no_pointer_authorizes_nothing(project):
+    """No pointer means no recorded decision. `verify` already says exactly
+    that, and it is a definite answer rather than an error: a baseline is a
+    well-formed proposal until something authorizes it."""
+    (project / "commitments" / "support-response-approval" / "commitment.json").unlink()
+
+    report = contract_gate.run(project, fetch=fetcher(project))
+
+    assert report.packages[0].authorized is False
+    assert "no commitment" in report.packages[0].authority_detail.lower()
+
+
+def test_a_malformed_pointer_is_refused_rather_than_read_as_absent(project):
+    """"Unreadable" and "absent" lead somewhere different: absent is a
+    proposal nobody approved, unreadable is a package whose state cannot be
+    established. Treating the second as the first reports a definite verdict
+    the gate has not earned."""
+    (project / "commitments" / "support-response-approval" / "commitment.json").write_text(
+        "{not json", encoding="utf-8"
+    )
+
+    report = contract_gate.run(project, fetch=fetcher(project))
+
+    assert report.packages[0].error is not None
+    assert report.packages[0].authorized is None
+
+
+def test_a_pointer_with_no_commitment_id_is_refused(project):
+    (project / "commitments" / "support-response-approval" / "commitment.json").write_text(
+        json.dumps({"note": "todo"}), encoding="utf-8"
+    )
+
+    report = contract_gate.run(project, fetch=fetcher(project))
+
+    assert report.packages[0].error is not None
+
+
+def test_a_removal_is_judged_by_the_pointer_too(project):
+    """The removal check asks the PDG about a commitment that is gone, so it
+    needs the same id the gate would have used — read from the base
+    revision, because the working tree no longer has the package at all."""
+    _write_pointer(project, "support-response-approval", "cmt-removed")
+    _git(project, "add", "-A")
+    _git(project, "commit", "-m", "commitment on the base branch")
+    base = subprocess.run(
+        ["git", "-C", str(project), "rev-parse", "HEAD"],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
+    asked = []
+
+    def fetch(commitment_id):
+        asked.append(commitment_id)
+        return {"schema_version": 1, "commitment_id": commitment_id,
+                "authorizes_work": True}
+
+    import shutil
+    shutil.rmtree(project / "commitments" / "support-response-approval")
+
+    report = contract_gate.run(project, fetch=fetch, base_ref=base)
+
+    assert asked == ["cmt-removed"], "the removal check must use the recorded id"
+    assert not report.ok
