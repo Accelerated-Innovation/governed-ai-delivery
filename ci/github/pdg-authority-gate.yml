@@ -36,6 +36,30 @@
 #   zero. This flag makes the *workflow* assert the expectation, so disabling
 #   the gate means editing the gate.
 #
+# WHY `pull_request_target` AND NOT `pull_request`:
+#   `pull_request` runs the workflow definition *from the branch being
+#   gated*, with repository secrets, for anyone who can push a branch. The
+#   flags below would then protect nothing: delete them, or add one step that
+#   posts GOVKIT_PDG_TOKEN elsewhere. A chokepoint editable by the thing
+#   passing through it is not a chokepoint.
+#
+#   `pull_request_target` takes the definition from the base branch — the one
+#   branch protection already guards — and checks out the pull request's
+#   merge ref as *data*.
+#
+#   THE RULE THAT MAKES THIS SAFE: this job reads the checked-out tree and
+#   executes nothing from it. One pinned install from PyPI, one govkit
+#   invocation. Do not add an editable install, a requirements file, a build
+#   script or a task runner here — each would hand the credential to code the
+#   pull request authored. A test enforces this.
+#
+# FORK PULL REQUESTS:
+#   `pull_request_target` supplies secrets to fork pull requests too, so this
+#   gate works for external contributions rather than failing closed on every
+#   one of them. That is the reason it can be a required check without making
+#   fork contributions unmergeable — and the reason the no-execution rule
+#   above is not advice.
+#
 # WHY THE ENDPOINT IS A SECRET AND NOT A REPOSITORY SETTING:
 #   An endpoint read from the working tree, paired with a credential from the
 #   environment, is a token-exfiltration primitive: a pull request points at
@@ -49,6 +73,8 @@
 #      make an approval.
 #   2. Set BASELINE and COMMITMENT below for your commitment package.
 #   3. Add `pdg-authority` to your branch protection required checks.
+#   4. This file must be on the base branch to run at all — that is what
+#      `pull_request_target` means, and it is the property being relied on.
 #
 #   Until GOVKIT_PDG_URL is set this job FAILS CLOSED on every pull request.
 #   That is deliberate: a gate that passes because it was never configured is
@@ -62,7 +88,7 @@
 name: PDG authority gate
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
 
 permissions:
@@ -77,7 +103,15 @@ jobs:
       BASELINE: commitments/CHANGE_ME/baseline.json
       COMMITMENT: CHANGE_ME
     steps:
+      # The merge ref, because the baseline being gated is the one the pull
+      # request proposes — `pull_request_target` checks out the base by
+      # default, which would verify the wrong tree. `persist-credentials:
+      # false` because this event's token is write-scoped and must not be
+      # left in .git/config beside untrusted content.
       - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:

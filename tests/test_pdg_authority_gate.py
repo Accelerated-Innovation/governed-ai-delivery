@@ -77,11 +77,13 @@ def test_the_endpoint_and_token_come_from_secrets_not_the_repository(path):
 
 def test_the_github_gate_runs_on_pull_requests_to_the_protected_branch():
     """Merge is the boundary. A gate that only runs on push has already let
-    the change land."""
+    the change land, and one that runs on every branch gates nothing in
+    particular."""
     workflow = yaml.safe_load(GITHUB.read_text(encoding="utf-8"))
 
     triggers = workflow.get(True) or workflow.get("on")
-    assert "pull_request" in triggers
+    pull_request = next(v for k, v in triggers.items() if str(k).startswith("pull_request"))
+    assert "main" in pull_request["branches"]
 
 
 def test_the_gate_does_not_hard_code_an_endpoint():
@@ -90,3 +92,88 @@ def test_the_gate_does_not_hard_code_an_endpoint():
     for path in (GITHUB, AZURE):
         body = path.read_text(encoding="utf-8")
         assert "https://" not in body.replace("https://github.com", ""), path
+
+
+# ---------------------------------------------------------------------------
+# Who controls the definition that holds the credential
+# ---------------------------------------------------------------------------
+
+
+def _github_steps() -> list[dict]:
+    workflow = yaml.safe_load(GITHUB.read_text(encoding="utf-8"))
+    return workflow["jobs"]["pdg-authority"]["steps"]
+
+
+def test_the_github_gate_definition_cannot_be_edited_by_the_branch_it_gates():
+    """`pull_request` runs the workflow *from the pull request's own branch*,
+    with repository secrets, for any contributor who can push a branch. The
+    gate's flags then protect nothing: the attacker deletes them, or simply
+    adds a step that posts `GOVKIT_PDG_TOKEN` somewhere.
+
+    `pull_request_target` runs the definition from the base branch, which is
+    the branch protection already guards. Every reason this gate sits at
+    merge — that it is a real chokepoint — depends on the chokepoint not
+    being editable by the thing passing through it.
+    """
+    workflow = yaml.safe_load(GITHUB.read_text(encoding="utf-8"))
+    triggers = workflow.get(True) or workflow.get("on")
+
+    assert "pull_request_target" in triggers
+    assert "pull_request" not in triggers
+
+
+def test_the_github_gate_checks_out_the_pull_request_without_its_credentials():
+    """`pull_request_target` checks out the *base* by default, which would
+    verify the wrong tree — the gate must read the baseline the pull request
+    proposes. So the merge ref is explicit.
+
+    And `persist-credentials: false`, because that event's token is
+    write-scoped: leaving it in `.git/config` beside a checkout of untrusted
+    code is the footgun `pull_request_target` is notorious for.
+    """
+    checkout = next(s for s in _github_steps() if "checkout" in str(s.get("uses", "")))
+
+    assert "merge" in str(checkout["with"]["ref"])
+    assert checkout["with"]["persist-credentials"] is False
+
+
+@pytest.mark.parametrize("path", [GITHUB, AZURE])
+def test_the_gate_executes_nothing_the_pull_request_could_have_written(path):
+    """The safety of running with secrets over an untrusted tree rests
+    entirely on this: the job reads those files and executes none of them.
+
+    One pinned install from PyPI and one govkit invocation. No editable
+    install, no requirements file, no build script, no task runner — each of
+    which would hand the credential to code the pull request authored.
+    """
+    body = path.read_text(encoding="utf-8")
+    scripts = "\n".join(
+        line for line in body.splitlines() if not line.lstrip().startswith("#")
+    )
+
+    for tree_sourced in ("pip install -e", "pip install -r", "setup.py", "./", "make ", "npm ", "tox"):
+        assert tree_sourced not in scripts, tree_sourced
+
+
+def test_the_azure_gate_records_the_exposure_it_cannot_close():
+    """Azure DevOps builds pull-request validation from the YAML **in the
+    source branch**, and has no `pull_request_target` equivalent. So the same
+    hazard the GitHub gate closes stays open there, and the only controls are
+    organizational.
+
+    Recording it in the template is not a fix and is not offered as one. It
+    is the alternative to shipping a gate whose adopters believe their token
+    is protected the way the GitHub one is.
+    """
+    body = AZURE.read_text(encoding="utf-8")
+
+    assert "source branch" in body.lower()
+    assert "read-only" in body.lower()
+
+
+@pytest.mark.parametrize("path", [GITHUB, AZURE])
+def test_both_templates_say_what_happens_to_a_fork_pull_request(path):
+    """An enforced gate with no credential fails closed, which is right for an
+    outage and wrong for a fork: it makes every external contribution
+    unmergeable, and the maintainer cannot tell the two apart from the log."""
+    assert "fork" in path.read_text(encoding="utf-8").lower()

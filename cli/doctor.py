@@ -1248,7 +1248,16 @@ def _authority_line(target: Path) -> str:
         data = json.loads(marker.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return "  authority: unknown — .govkit/marker.json could not be read"
-    source = ((data.get("authority") or {}).get("source") or "none")
+    if not isinstance(data, dict):
+        return "  authority: unknown — .govkit/marker.json is not a marker object"
+    # A hand-written `"authority": "pdg"` is valid JSON and reaches here. It
+    # must not cost the whole report: this line is context printed *before*
+    # the findings, so an exception here loses the findings that would have
+    # explained the malformed marker.
+    block = data.get("authority")
+    if block is not None and not isinstance(block, dict):
+        return "  authority: unknown — `authority` in .govkit/marker.json is not an object"
+    source = ((block or {}).get("source") or "none")
     if source == "pdg":
         return (
             "  authority: pdg — `govkit verify-authority --enforce` checks this "

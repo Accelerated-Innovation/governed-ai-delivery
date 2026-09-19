@@ -36,6 +36,43 @@
 #   zero. This flag makes the *workflow* assert the expectation, so disabling
 #   the gate means editing the gate.
 #
+# WHO CONTROLS THIS DEFINITION — READ BEFORE ADDING THE SECRET:
+#   Azure DevOps builds pull-request validation from the YAML that is in
+#   the **source branch**. There is no `pull_request_target` equivalent, so
+#   anyone who can
+#   push a branch can edit this file and read GOVKIT_PDG_TOKEN out of the
+#   run — deleting the flags below, or adding a step that posts it elsewhere.
+#   Build-validation policy names the pipeline, not the revision of its YAML,
+#   and required reviewers do not help: validation runs before review.
+#
+#   The GitHub form of this gate closes that hole. This one cannot, and the
+#   remaining controls are organizational rather than in this file:
+#
+#     - Treat everyone with Contribute permission as trusted with the token.
+#       That is the actual threat model; it is not weakened by anything here.
+#     - Use a DEDICATED READ-ONLY credential for this gate, scoped to
+#       authority reads and nothing else, and rotate it independently.
+#     - Keep "Make secrets available to builds of forks" OFF (the default).
+#     - Review changes to this file as you would a change to branch policy,
+#       because that is what it is.
+#
+#   This note is not a fix and is not offered as one. It is here so no
+#   adopter believes their token is protected the way the GitHub gate's is.
+#
+#   THE RULE THAT LIMITS THE DAMAGE: this job reads the checked-out tree and
+#   executes nothing from it. One pinned install from PyPI, one govkit
+#   invocation. Do not add an editable install, a requirements file, a build
+#   script or a task runner. A test enforces this.
+#
+# FORK PULL REQUESTS:
+#   Azure withholds secret variables from fork builds, and an enforced check
+#   with no credential fails closed — correctly for an outage, wrongly for a
+#   fork, and the log cannot tell a maintainer which happened. Do not turn
+#   fork secrets on to fix that; it hands the token to anyone who can open a
+#   pull request. Either keep this gate off the required list for
+#   fork-originated pull requests, or land external contributions by
+#   re-pushing them to a branch in the repository, where the gate applies.
+#
 # WHY THE ENDPOINT IS A SECRET AND NOT A REPOSITORY SETTING:
 #   An endpoint read from the working tree, paired with a credential from the
 #   environment, is a token-exfiltration primitive: a pull request points at

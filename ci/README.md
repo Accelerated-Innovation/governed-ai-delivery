@@ -218,6 +218,29 @@ A critical distinction in this governance framework: some checks enforce **actua
 | ADR approval attestation | adr-approval-gate | An ADR changed in the PR that claims `Accepted` carries an approving review from an approver in `governance/approval_policy.yaml`, submitted against the head commit |
 | Measured quality evidence | evidence-gate | `govkit evidence` reads the test report and axe results and gives a verdict per rubric dimension. Unmeasured dimensions report INCONCLUSIVE, which is **not** a pass |
 
+#### The PDG authority gate holds a credential, so who can edit it matters
+
+The gate runs with a PDG token. On GitHub it is wired as `pull_request_target`,
+so its definition comes from the **base branch** rather than from the branch
+being gated — otherwise any contributor who can push a branch could delete the
+flags or add a step that exfiltrates the token. What makes that safe is a rule
+the job keeps: it *reads* the checked-out tree and executes nothing from it —
+one pinned install from PyPI and one `govkit` invocation. Adding an editable
+install, a requirements file, a build script or a task runner to this workflow
+breaks that guarantee. A test in this repository enforces it.
+
+Because secrets reach `pull_request_target` runs on fork pull requests too, the
+GitHub gate can be a required check without making external contributions
+unmergeable.
+
+**Azure DevOps cannot offer the same guarantee.** It builds pull-request
+validation from the YAML in the source branch and has no `pull_request_target`
+equivalent, so anyone with Contribute permission can read the token out of a
+run. Use a dedicated read-only credential for the gate, rotate it
+independently, keep fork secrets off, and review changes to the pipeline file
+as you would a change to branch policy. The template says all of this at the
+top of the file.
+
 #### The fix-lane gate needs configuring before it does anything
 
 Set `SOURCE_PATHS` in the workflow to your application source roots
