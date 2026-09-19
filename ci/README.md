@@ -218,6 +218,25 @@ A critical distinction in this governance framework: some checks enforce **actua
 | ADR approval attestation | adr-approval-gate | An ADR changed in the PR that claims `Accepted` carries an approving review from an approver in `governance/approval_policy.yaml`, submitted against the head commit |
 | Measured quality evidence | evidence-gate | `govkit evidence` reads the test report and axe results and gives a verdict per rubric dimension. Unmeasured dimensions report INCONCLUSIVE, which is **not** a pass |
 
+#### What the gate cannot defend, and what must
+
+Three things switch the PDG authority gate off. It catches two: deleting a
+commitment package (`--base-ref`) and setting `authority.source` back to
+`none` (`--require-authority`, which makes the *workflow* assert the
+expectation rather than read it out of the tree it is gating).
+
+It cannot catch the third, because a check
+**cannot protect the file that defines it**. On GitHub the running definition comes from the base branch, so an edit
+has no effect on its own pull request and full effect on everyone afterwards;
+on Azure it is worse, because validation builds the pipeline YAML from the
+source branch and the edit takes effect immediately.
+
+Use the host's path-scoped review requirement rather than a second
+review-reading gate — CODEOWNERS on GitHub, automatically included required
+reviewers on Azure — naming an approver for the gate file and
+`.govkit/marker.json`. A gate that read reviews could do the same job and
+would be one more thing that can drift from the policy it enforces.
+
 #### What a commitment package looks like
 
 The gate discovers packages under `commitments/`, and each one takes **two**

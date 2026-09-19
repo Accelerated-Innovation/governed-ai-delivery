@@ -93,6 +93,53 @@
 #   runs. The endpoint and the credential travel together, from the secret
 #   store.
 #
+# PROTECT THIS GATE FROM THE PULL REQUESTS IT GATES:
+#   Three things switch this gate off, and it can only defend two of them.
+#
+#     deleting a commitment package  -> caught by --base-ref
+#     authority.source back to none  -> caught by --require-authority
+#     editing this pipeline          -> NOT CAUGHT
+#
+#   A check cannot protect the file that defines it, and on Azure the
+#   problem is sharper: validation builds the YAML from the source branch,
+#   so an edit takes effect on the very pull request making it.
+#
+#   Add a branch policy with automatically included required reviewers,
+#   scoped by path, naming an approver for
+#
+#     ci/azure/pdg-authority-gate.yml
+#     .govkit/marker.json
+#
+#   Note what this does and does not buy on Azure. Required reviewers stop
+#   an edit being *merged* without an approver. They do not stop the edited
+#   pipeline running with the credential during validation, because that
+#   happens before review. Both controls are needed and neither is
+#   sufficient; see the exposure note above.
+#
+# THE WINDOW THIS GATE CANNOT CLOSE:
+#   The check proves authority *when it runs*. Merge happens later, and an
+#   approval can be invalidated in between — a green build then says
+#   something that stopped being true. An earlier green build cannot
+#   authorize indefinitely, and this pipeline alone cannot make that so.
+#
+#   NARROW IT: the build-validation policy has an expiration setting. Set it
+#   to "expire after N hours", or to expire immediately when the target
+#   branch is updated. Azure then refuses to count a stale green build, and
+#   the window becomes the expiry you chose rather than unbounded.
+#
+#   This is the one place Azure does *better* than the GitHub form, which
+#   has no equivalent per-check expiry.
+#
+#   WHAT AZURE CANNOT DO: rerun the check against the merge candidate.
+#   Validation builds the source branch, so even a fresh run has not seen
+#   the merge result. Combined with the source-branch YAML problem above,
+#   an Azure gate has a strictly wider exposure than the GitHub one. That is
+#   reported here rather than smoothed over.
+#
+#   WHAT REMAINS: an invalidation inside the window lands the change. The
+#   next pull request fails, because every commitment is checked on every
+#   run — detected, not prevented.
+#
 # THE COMMITMENT PACKAGE, AND THE POINTER THE GATE NEEDS:
 #   Each package is a directory under `commitments/`, and it takes two files:
 #

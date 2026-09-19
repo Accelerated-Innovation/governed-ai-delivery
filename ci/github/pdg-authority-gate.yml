@@ -76,6 +76,55 @@
 #   runs. The endpoint and the credential travel together, from the secret
 #   store.
 #
+# PROTECT THIS GATE FROM THE PULL REQUESTS IT GATES:
+#   Three things switch this gate off, and it can only defend two of them.
+#
+#     deleting a commitment package  -> caught by --base-ref
+#     authority.source back to none  -> caught by --require-authority
+#     editing this workflow          -> NOT CAUGHT
+#
+#   A check cannot protect the file that defines it. Because this runs as
+#   `pull_request_target` the running definition comes from the base
+#   branch, so an edit has no effect on its own pull request — and full
+#   effect on everyone afterwards, once merged.
+#
+#   Use the host's own path-scoped review requirement, not a second gate:
+#   add a CODEOWNERS entry naming an approver for
+#
+#     ci/github/pdg-authority-gate.yml
+#     .govkit/marker.json
+#
+#   and turn on "Require review from Code Owners" in branch protection. A
+#   review-reading gate could do the same thing, and would be one more
+#   thing that can drift from the policy it enforces.
+#
+# THE WINDOW THIS GATE CANNOT CLOSE:
+#   The check proves authority *when it runs*. Merge happens later, and an
+#   approval can be invalidated in between — a green tick then says
+#   something that stopped being true. An earlier green build cannot
+#   authorize indefinitely, and this gate alone cannot make that so.
+#
+#   NARROW IT: in branch protection, require branches to be
+#   "up to date before merging". Every move of the base branch forces this
+#   gate to run again, so in an active repository the window is minutes.
+#   In a quiet one it is however long the pull request sits.
+#
+#   WHY NOT A MERGE QUEUE, which would rerun the check on the exact merge
+#   candidate and close the window properly: `merge_group` runs the workflow
+#   definition from the queue ref, and that ref contains the pull request's
+#   own commits. It hands the credential straight back to the branch being
+#   gated — the thing `pull_request_target` exists to prevent. Closing a
+#   staleness window by reopening a token-exfiltration path is a bad trade,
+#   so this template refuses it deliberately. A test asserts the refusal, so
+#   adding `merge_group:` later is a decision someone has to make on purpose.
+#
+#   WHAT REMAINS: if a commitment is invalidated between the last run and
+#   the merge, the change lands. The next pull request touching that
+#   repository fails, because discovery checks every commitment on every
+#   run — so it is detected, not prevented. That is the honest description
+#   of this control, and it is not a substitute for invalidating a
+#   commitment before work on it is in flight.
+#
 # THE COMMITMENT PACKAGE, AND THE POINTER THE GATE NEEDS:
 #   Each package is a directory under `commitments/`, and it takes two files:
 #

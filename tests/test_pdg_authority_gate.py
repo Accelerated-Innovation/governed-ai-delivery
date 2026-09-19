@@ -248,3 +248,133 @@ def test_the_ci_readme_documents_the_package_layout():
 
     assert "commitment.json" in readme
     assert "baseline.json" in readme
+
+
+# ---------------------------------------------------------------------------
+# The invalidation-to-merge race — increment 13B
+# ---------------------------------------------------------------------------
+#
+# The gate proves authority *when it runs*. Merge happens later. Everything
+# in between is a window in which an approval can be withdrawn while a green
+# tick still says it was not — "an earlier green build cannot authorize
+# indefinitely", in the plan's words.
+#
+# Neither provider closes it completely, and the plan is explicit about what
+# to do then: report the enforcement limitation and the host integration it
+# needs, rather than claiming it is solved.
+
+
+@pytest.mark.parametrize("path", [GITHUB, AZURE])
+def test_the_template_names_the_race_it_cannot_close(path):
+    """Stated in the file an adopter actually reads, not only in a design
+    note. A gate whose residual window is undocumented gets trusted for more
+    than it does."""
+    body = path.read_text(encoding="utf-8").lower()
+
+    assert "invalidat" in body
+    assert "window" in body
+
+
+@pytest.mark.parametrize("path", [GITHUB, AZURE])
+def test_the_template_names_the_host_setting_that_narrows_it(path):
+    """Each provider has a different partial answer, and neither is on by
+    default. Naming the setting is the difference between a limitation an
+    adopter can act on and one they can only regret."""
+    body = path.read_text(encoding="utf-8").lower()
+
+    if path is GITHUB:
+        # Re-runs the gate whenever the base branch moves.
+        assert "up to date" in body
+    else:
+        # Azure build-validation policies expire on a timer.
+        assert "expir" in body
+
+
+def test_the_github_gate_does_not_use_a_merge_queue():
+    """A merge queue would rerun the check on the merge candidate, which is
+    exactly what this race wants — and `merge_group` runs the workflow
+    definition from the queue ref, which contains the pull request's own
+    commits.
+
+    That hands the credential back to the branch being gated, undoing the
+    reason this gate runs as `pull_request_target` at all. Closing a
+    staleness window by reopening a token-exfiltration path is a bad trade,
+    and it has to be refused deliberately rather than adopted because it
+    looks like the obvious fix.
+    """
+    workflow = yaml.safe_load(GITHUB.read_text(encoding="utf-8"))
+    triggers = workflow.get(True) or workflow.get("on")
+
+    assert "merge_group" not in triggers
+    assert "merge_group" in GITHUB.read_text(encoding="utf-8"), (
+        "refusing the merge queue is a decision; it has to be written down "
+        "or the next person will simply add it"
+    )
+
+
+# ---------------------------------------------------------------------------
+# What stops a pull request switching the gate off — increment 13B
+# ---------------------------------------------------------------------------
+
+SECTION = "# PROTECT THIS GATE FROM THE PULL REQUESTS IT GATES:"
+
+
+def _section(path) -> str:
+    """The protection section only.
+
+    Scoped deliberately. The first version of these tests searched the whole
+    file and three of them passed on incidental prose — including an Azure
+    line explaining that required reviewers do **not** help, which is the
+    opposite of what was being asserted. A guard that matches anything
+    matches nothing.
+    """
+    import re
+
+    body = path.read_text(encoding="utf-8")
+    assert SECTION in body, f"{path} has no protection section"
+    rest = body[body.index(SECTION) + len(SECTION):]
+    # The next section header, not merely the next comment line — every line
+    # in the body starts with "# " too, which made this return "" and every
+    # assertion below pass against nothing.
+    nxt = re.search(r"^# [A-Z]", rest, re.MULTILINE)
+    return rest[: nxt.start()] if nxt else rest
+
+
+@pytest.mark.parametrize("path", [GITHUB, AZURE])
+def test_the_template_says_which_files_must_require_an_approver(path):
+    """Three things disable this gate, and it can only defend two of them.
+
+    Deleting a commitment is caught by `--base-ref`. Setting
+    `authority.source` back to `none` is caught by `--require-authority`,
+    because the *workflow* asserts the expectation rather than reading it
+    out of the tree. **Editing the workflow is not caught at all** — on
+    GitHub the running definition comes from the base branch, so the edit
+    has no effect on its own pull request and full effect on everyone
+    afterwards.
+
+    Nothing inside the gate can fix that: a check cannot protect the file
+    that defines it. The host's path-scoped review requirement can, which
+    is why the exact paths are named rather than left to be inferred.
+    """
+    section = _section(path)
+
+    assert "pdg-authority-gate.yml" in section
+    assert ".govkit/marker.json" in section
+
+
+def test_the_github_template_names_codeowners():
+    """The native mechanism, rather than a second review-reading gate. This
+    repository already ships one of those for ADRs, and a copy of it here
+    would be machinery the host provides for free plus one more thing that
+    can drift."""
+    assert "CODEOWNERS" in _section(GITHUB)
+
+
+def test_the_azure_template_names_its_equivalent():
+    assert "required reviewers" in _section(AZURE).lower()
+
+
+def test_the_ci_readme_explains_what_the_gate_cannot_defend():
+    readme = pathlib.Path("ci/README.md").read_text(encoding="utf-8")
+
+    assert "cannot protect the file that defines it" in readme
