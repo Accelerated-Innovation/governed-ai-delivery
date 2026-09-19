@@ -1482,3 +1482,78 @@ class TestLoadSkillContextServices:
         ctx = load_skill_context(tmp_path)
         assert ctx is not None
         assert ctx.services == [ServiceRef(name="orders", root="src/orders")]
+
+
+class TestAuthorityFact:
+    """Increment 12 — skills need one place to read whether this project is
+    under a behavior contract.
+
+    The signal already exists: increment 11's `authority.source` in the
+    marker. Inventing a second switch would let the two disagree, and a
+    project could then enforce at merge while its agents planned as though
+    nothing applied.
+    """
+
+    def test_a_project_with_no_pdg_reports_authority_none(self, tmp_path):
+        """The default, and the state most projects using GovKit are in. It
+        is reported rather than omitted: a skill must be able to tell "asked
+        and the answer is none" from "this context predates the field"."""
+        from cli.skill_context import build_skill_context
+
+        context = build_skill_context(tmp_path, _write_marker(tmp_path))
+
+        assert context["authority"] == {"source": "none"}
+
+    def test_a_pdg_project_reports_authority_pdg(self, tmp_path):
+        from cli.skill_context import build_skill_context
+
+        marker = _write_marker(tmp_path, authority={"source": "pdg"})
+        context = build_skill_context(tmp_path, marker)
+
+        assert context["authority"]["source"] == "pdg"
+
+    def test_the_contract_version_travels_with_it(self, tmp_path):
+        """A skill that reads the mode but not the version cannot tell a
+        supported PDG from one whose status contract it does not understand."""
+        from cli.skill_context import build_skill_context
+
+        marker = _write_marker(tmp_path, authority={"source": "pdg", "contract_version": 1})
+        context = build_skill_context(tmp_path, marker)
+
+        assert context["authority"]["contract_version"] == 1
+
+    def test_the_endpoint_and_credential_are_never_written_here(self, tmp_path):
+        """`skill_context.yaml` is a committed file. The marker schema
+        refuses to hold the endpoint for exactly this reason — an endpoint
+        read from the repository, paired with a credential from the
+        environment, is how a pull request collects the token — and the
+        derived file must not reintroduce what the source refused.
+        """
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path, authority={"source": "pdg"})
+        path = write_skill_context(tmp_path, marker)
+        text = path.read_text(encoding="utf-8").lower()
+
+        for leak in ("token", "url", "endpoint", "credential", "secret"):
+            assert leak not in text, leak
+
+    def test_a_malformed_authority_block_reads_as_none_rather_than_crashing(self, tmp_path):
+        """A hand-edited marker must not take `apply` down with it, and the
+        safe reading of "I cannot tell" is the default mode, not the
+        enforcing one — claiming a contract that is not there would have
+        agents refuse work nobody asked them to refuse."""
+        from cli.skill_context import build_skill_context
+
+        marker = _write_marker(tmp_path, authority="pdg")
+        context = build_skill_context(tmp_path, marker)
+
+        assert context["authority"] == {"source": "none"}
+
+    def test_an_unrecognised_source_is_not_silently_treated_as_a_contract(self, tmp_path):
+        from cli.skill_context import build_skill_context
+
+        marker = _write_marker(tmp_path, authority={"source": "something-else"})
+        context = build_skill_context(tmp_path, marker)
+
+        assert context["authority"]["source"] == "none"

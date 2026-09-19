@@ -296,6 +296,39 @@ def _stack_facts(marker: dict) -> dict:
     return facts
 
 
+# The two modes a project can be in. Anything else — a hand-edited marker, a
+# value from a newer govkit — reads as `none`, because the safe default is
+# the one that asks agents for nothing. Claiming a contract that is not
+# there would have them refuse work nobody asked them to refuse.
+_AUTHORITY_SOURCES = ("none", "pdg")
+
+
+def _authority_facts(marker: dict) -> dict:
+    """Whether this project's behavior is under a PDG contract.
+
+    Derived from the marker rather than recorded separately: a second switch
+    could disagree with the first, and a project would then enforce at merge
+    while its agents planned as though nothing applied.
+
+    The endpoint and the credential are deliberately not here. The marker
+    schema refuses to hold them — an endpoint read from the repository,
+    paired with a credential from the environment, is how a pull request
+    collects the token — and this file is committed too, so it must not
+    reintroduce what the source refused.
+    """
+    block = marker.get("authority")
+    if not isinstance(block, dict):
+        return {"source": "none"}
+    source = block.get("source")
+    if source not in _AUTHORITY_SOURCES:
+        return {"source": "none"}
+    facts = {"source": source}
+    contract_version = block.get("contract_version")
+    if isinstance(contract_version, int) and not isinstance(contract_version, bool):
+        facts["contract_version"] = contract_version
+    return facts
+
+
 def build_skill_context(target: Path, marker: dict, profile: RepoProfile | None = None) -> dict:
     """Build the skill-context dict that gets serialized to YAML.
 
@@ -358,6 +391,11 @@ def build_skill_context(target: Path, marker: dict, profile: RepoProfile | None 
         # leaves its tokens unexpanded and doctor flags them.
         "docs_area": TYPE_AREA.get(options.get("type"), ""),
         "llm": level == "5",
+        # Increment 12: the one place a skill asks whether this project's
+        # behavior is a versioned commitment. Always present, so a skill can
+        # tell "asked, and the answer is none" from a context file written
+        # before the field existed.
+        "authority": _authority_facts(marker),
         "pii": _pii_facts(target),
         "extensions": _extension_facts(target),
         # What govkit derived this run, regardless of what the live fields
