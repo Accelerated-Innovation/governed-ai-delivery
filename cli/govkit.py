@@ -35,6 +35,7 @@ from .cmd_evidence import register as _register_evidence
 from .cmd_extension import register as _register_extension
 from .cmd_fix import register as _register_fix
 from .cmd_init import register as _register_init
+from .cmd_inspect_package import register as _register_inspect_package
 from .cmd_list import register as _register_list
 from .cmd_stack import register as _register_stack
 from .cmd_upgrade import register as _register_upgrade
@@ -44,7 +45,6 @@ from .cmd_verdict import register as _register_verdict
 from .cmd_verify_authority import register as _register_verify_authority
 from .cmd_verify_contract import register as _register_verify_contract
 from .doctor import register as _register_doctor
-from .inspect_package import register as _register_inspect_package
 from .version import GOVKIT_VERSION
 
 # Subcommand registrars. Each command module owns its argparse surface and

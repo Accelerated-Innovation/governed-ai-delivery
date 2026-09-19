@@ -317,3 +317,149 @@ def test_nothing_is_written_when_there_is_nothing_to_convert(package, tmp_path):
 
     assert code != 0
     assert not out.exists()
+
+
+# --- seven review findings --------------------------------------------------
+
+CONSTRAINED = """\
+Feature: Response approval
+
+  @rule:only-approved-may-send @nfr:send-latency
+  Rule: Only an approved response may be sent
+
+    @scenario:unapproved-blocked @evaluation:tone-check
+    Scenario: An unapproved response cannot be sent
+      Given a drafted response
+      Then the send is refused
+"""
+
+
+@pytest.mark.parametrize("key", ["../other", "Not-A-Slug", "", "a/b", "-leading"])
+def test_a_feature_key_that_is_not_a_slug_is_refused(package, key):
+    """Two problems in one. `../other` reads a different directory under
+    the target, and anything outside the schema's pattern produces a draft
+    whose `commitment_key` the schema rejects — a successful-looking run
+    that cannot be used."""
+    target, _ = package()
+
+    with pytest.raises(inspect_package.NotInspectable):
+        inspect_package.inspect(target, key, source_key="app")
+
+
+@pytest.mark.parametrize("source_key", ["Not-A-Slug", "", "with/slash", "-leading"])
+def test_a_source_key_that_is_not_a_slug_is_refused(package, source_key):
+    target, key = package()
+
+    with pytest.raises(inspect_package.NotInspectable):
+        inspect_package.inspect(target, key, source_key=source_key)
+
+
+def test_every_selected_entry_carries_a_content_digest(package):
+    """`selectedBehaviorRef` requires it. Without it the draft stays
+    schema-invalid even after a person supplies the opportunity, scope and
+    exclusions the report asks for — so the "starting point" never becomes
+    a usable baseline."""
+    target, key = package()
+
+    report = inspect_package.inspect(target, key, source_key="app")
+
+    for entry in report.draft["selected_behavior"]:
+        assert entry["content_digest"].startswith("sha256:"), entry
+
+
+def test_the_digest_is_the_closure_digest_not_a_hash_of_the_file(package):
+    """It has to be the same function the drift checker compares against,
+    or a draft is born drifted."""
+    from cli import spec_closure
+
+    target, key = package()
+    report = inspect_package.inspect(target, key, source_key="app")
+
+    doc = spec_closure.parse_feature(
+        (target / "features" / key / "acceptance.feature").read_text(encoding="utf-8")
+    )
+    element = spec_closure.resolve(doc, "scenario", "unapproved-blocked")
+    expected = spec_closure.content_digest(spec_closure.closure(doc, element))
+
+    entry = next(e for e in report.draft["selected_behavior"] if "scenario:" in e["ref"])
+    assert entry["content_digest"] == expected
+
+
+def test_a_gitignored_feature_file_is_not_treated_as_committed(package, tmp_path):
+    """Ordinary porcelain omits ignored files, so an ignored feature read
+    as clean and was pinned to HEAD — a draft describing text that does not
+    exist at the revision it names."""
+    target, key = package()
+    (target / ".gitignore").write_text("features/\n", encoding="utf-8")
+    _git(target, "add", "-A")
+    _git(target, "commit", "-q", "-m", "ignore features")
+    _git(target, "rm", "-r", "--cached", "-q", "features")
+    _git(target, "commit", "-q", "-m", "untrack features")
+
+    with pytest.raises(inspect_package.NotInspectable):
+        inspect_package.inspect(target, key, source_key="app")
+
+
+def test_authored_constraint_tags_are_reported_not_dropped(package):
+    """`@nfr:` / `@evaluation:` / `@design:` / `@agent-authority:` are
+    exactly the kinds a `constraints` entry may reference, so silently
+    filtering them lost authored scope while the report claimed everything
+    authored was included."""
+    target, key = package(CONSTRAINED)
+
+    report = inspect_package.inspect(target, key, source_key="app")
+
+    flagged = " ".join(report.needs_decision)
+    assert "nfr:send-latency" in flagged
+    assert "evaluation:tone-check" in flagged
+
+
+def test_constraint_tags_are_not_invented_into_the_draft(package):
+    """A constraint entry needs a `content_digest` of content this tool
+    cannot see — an NFR lives in `nfrs.md`, not in the Gherkin. Emitting
+    one would mean fabricating the digest that binds it."""
+    target, key = package(CONSTRAINED)
+
+    report = inspect_package.inspect(target, key, source_key="app")
+
+    assert "constraints" not in report.draft
+
+
+def test_a_malformed_feature_file_refuses_rather_than_traces(package):
+    """`parse_feature` raises, and `main` caught only `NotInspectable`."""
+    target, key = package()
+    # An unclosed docstring. The first attempt at this test used
+    # `Scenario` with no colon, which the parser happily reads as
+    # description text — a malformed-input test has to be verified to
+    # actually malform something.
+    (target / "features" / key / "acceptance.feature").write_text(
+        'Feature: f\n  Scenario: s\n    Given x\n      """\n      never closed\n',
+        encoding="utf-8",
+    )
+    _git(target, "add", "-A")
+    _git(target, "commit", "-q", "-m", "broken")
+
+    with pytest.raises(inspect_package.NotInspectable):
+        inspect_package.inspect(target, key, source_key="app")
+
+
+def test_a_checkout_with_no_origin_names_that_as_still_required(package):
+    """`repository` is required and `minLength: 1`, so an empty string is
+    an extra schema defect. It is a normal state for a local checkout — it
+    just has to be named rather than left for someone to discover."""
+    target, key = package()
+
+    report = inspect_package.inspect(target, key, source_key="app")
+
+    if not report.draft["sources"][0]["repository"]:
+        assert any("repository" in item.lower() for item in report.still_required)
+
+
+def test_the_command_module_follows_the_repository_convention():
+    """`cmd_*.py` registers, the domain module holds the logic — the split
+    every sibling command uses (`cmd_validate_baseline.py` beside
+    `baseline_check.py`)."""
+    import importlib
+
+    module = importlib.import_module("cli.cmd_inspect_package")
+    assert callable(module.register)

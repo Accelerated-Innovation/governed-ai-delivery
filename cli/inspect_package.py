@@ -32,6 +32,7 @@ WHY A DIRTY TREE IS REFUSED
 
 from __future__ import annotations
 
+import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -39,6 +40,21 @@ from pathlib import Path
 from . import spec_closure
 
 FEATURE_FILE = "acceptance.feature"
+
+#: Straight from `behavioral_baseline.schema.json`. Validating here means a
+#: run either refuses or produces something the schema can accept — rather
+#: than succeeding and handing back a draft that is rejected later. It also
+#: closes the path question: `../other` is not a slug, so it never reaches
+#: a filesystem join.
+_FEATURE_KEY = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+_SOURCE_KEY = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
+
+#: The kinds a `constraints` entry may reference. Authored tags of these
+#: kinds are *reported*, never converted: a constraint needs a
+#: `content_digest` of content this tool cannot see — an NFR lives in
+#: `nfrs.md`, not in the Gherkin — and emitting one would mean fabricating
+#: the digest that binds it.
+_CONSTRAINT_KINDS = ("nfr", "evaluation", "design", "agent-authority")
 
 #: What a person has to supply before the draft is a proposal anyone can act
 #: on. Both are decisions or judgements, not facts readable from the tree —
@@ -64,6 +80,7 @@ class NotInspectable(RuntimeError):
 class Report:
     draft: dict | None = None
     needs_identity: list = field(default_factory=list)
+    needs_decision: list = field(default_factory=list)
     still_required: list = field(default_factory=list)
 
 
@@ -86,29 +103,54 @@ def _name(node: dict) -> str:
 def inspect(target: Path, feature_key: str, *, source_key: str) -> Report:
     """Read one package and draft what could be committed from it."""
     target = Path(target)
+    if not _FEATURE_KEY.match(feature_key or ""):
+        raise NotInspectable(
+            f"feature key {feature_key!r} is not a slug (lowercase, digits, hyphens). "
+            "The schema requires it of commitment_key, and a key that is not a slug "
+            "is also not a directory name under features/."
+        )
+    if not _SOURCE_KEY.match(source_key or ""):
+        raise NotInspectable(
+            f"source key {source_key!r} is not a slug; every reference is qualified "
+            "with it and the schema rejects the result"
+        )
+
     path = target / "features" / feature_key / FEATURE_FILE
     if not path.is_file():
         raise NotInspectable(f"no {FEATURE_FILE} at features/{feature_key}/")
 
     relative = path.relative_to(target).as_posix()
-    dirty = _run(target, "status", "--porcelain", "--", relative)
+    # `--ignored` because ordinary porcelain omits ignored files: an ignored
+    # feature read as clean and was pinned to HEAD, producing a draft that
+    # describes text not present at the revision it names.
+    dirty = _run(target, "status", "--porcelain", "--ignored", "--", relative)
     if dirty:
         raise NotInspectable(
-            f"{relative} has uncommitted changes. The draft pins a commit, and a "
-            "baseline that names a revision the text was never in binds something "
+            f"{relative} has uncommitted or ignored changes. The draft pins a commit, "
+            "and a baseline naming a revision the text was never in binds something "
             "nobody can retrieve."
         )
     revision = _run(target, "rev-parse", "HEAD")
 
-    doc = spec_closure.parse_feature(path.read_text(encoding="utf-8"))
+    try:
+        doc = spec_closure.parse_feature(path.read_text(encoding="utf-8"))
+    except (spec_closure.SpecParseError, spec_closure.ParserUnavailable) as unreadable:
+        raise NotInspectable(f"{relative} could not be parsed: {unreadable}") from unreadable
 
-    selected, needs_identity = [], []
+    selected, needs_identity, needs_decision = [], [], []
     for kind, node, _rule in spec_closure._walk(doc):
-        authored = [
-            (found_kind, slug)
-            for found_kind, slug in spec_closure._authored(node.get("tags") or [])
-            if found_kind == kind
-        ]
+        all_authored = spec_closure._authored(node.get("tags") or [])
+        authored = [(k, slug) for k, slug in all_authored if k == kind]
+        for other_kind, slug in all_authored:
+            if other_kind in _CONSTRAINT_KINDS:
+                needs_decision.append(
+                    f"@{other_kind}:{slug} on {kind} {_name(node)!r} is a constraint "
+                    f"reference, and constraints are normative scope. It is not "
+                    f"converted: a constraints entry needs a content_digest of "
+                    f"content outside this Gherkin, so including it would mean "
+                    f"inventing the digest that binds it. Decide whether it belongs "
+                    f"in this commitment and add it by hand."
+                )
         if not authored:
             needs_identity.append(
                 f"{kind}: {_name(node)!r} has no authored identity. Add "
@@ -117,15 +159,26 @@ def inspect(target: Path, feature_key: str, *, source_key: str) -> Report:
             )
             continue
         for _found_kind, slug in authored:
+            element = spec_closure.resolve(doc, kind, slug)
+            if element is None:  # pragma: no cover - resolve mirrors _walk
+                needs_identity.append(f"@{kind}:{slug} could not be resolved")
+                continue
             selected.append(
                 {
                     "ref": f"{source_key}/{feature_key}#{kind}:{slug}",
                     "kind": kind,
                     "id_source": "tag",
+                    # The closure digest — the same function the drift
+                    # checker compares against. Any other hash makes a
+                    # draft born drifted, and the schema requires the
+                    # field regardless.
+                    "content_digest": spec_closure.content_digest(
+                        spec_closure.closure(doc, element)
+                    ),
                 }
             )
 
-    report = Report(needs_identity=needs_identity)
+    report = Report(needs_identity=needs_identity, needs_decision=needs_decision)
     if not selected:
         # A draft here would be the most misleading possible output: nothing
         # in this package can bind an approval.
@@ -146,6 +199,17 @@ def inspect(target: Path, feature_key: str, *, source_key: str) -> Report:
         "selected_behavior": selected,
     }
     report.still_required = list(STILL_REQUIRED)
+    if not report.draft["sources"][0]["repository"]:
+        # Normal for a local-only checkout, and still a schema defect:
+        # `repository` is required with minLength 1. Named rather than left
+        # for somebody to discover at submission.
+        report.still_required.insert(
+            0,
+            "sources[0].repository: this checkout has no `origin`, and the schema "
+            "requires a non-empty repository identity. Fill in the URL or package "
+            "name; nothing fetches it, but it is how two same-named features in "
+            "different repositories stay distinct.",
+        )
     return report
 
 
@@ -180,6 +244,8 @@ def main(argv: list | None = None) -> int:
 
     for flag in report.needs_identity:
         print(f"  NEEDS IDENTITY  {flag}")
+    for flag in report.needs_decision:
+        print(f"  NEEDS DECISION  {flag}")
 
     if report.draft is None:
         print(
@@ -194,45 +260,3 @@ def main(argv: list | None = None) -> int:
     for item in report.still_required:
         print(f"    - {item}")
     return 0
-
-
-def register(subparsers) -> None:
-    """Register the `inspect-package` subcommand."""
-    from . import paths
-
-    p = subparsers.add_parser(
-        "inspect-package",
-        help="Draft a behavioral baseline from an existing feature package",
-    )
-    p.add_argument("--target", required=True, type=Path, help=paths.TARGET_HELP)
-    p.add_argument("--feature", required=True, help="the feature key under features/")
-    p.add_argument(
-        "--source-key", required=True, help="the source_key every reference is qualified with"
-    )
-    p.add_argument("--out", required=True, type=Path)
-    p.set_defaults(func=lambda args: _dispatch(args))
-
-
-def _dispatch(args) -> None:
-    import sys
-
-    sys.exit(
-        main(
-            [
-                "--target",
-                str(args.target),
-                "--feature",
-                args.feature,
-                "--source-key",
-                args.source_key,
-                "--out",
-                str(args.out),
-            ]
-        )
-    )
-
-
-if __name__ == "__main__":
-    import sys
-
-    sys.exit(main())
