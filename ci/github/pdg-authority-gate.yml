@@ -209,7 +209,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install govkit
-        run: pip install govkit~=0.21.0
+        run: pip install govkit~=0.21.1
 
       - name: Verify every commitment is undrifted and currently authorized
         env:
