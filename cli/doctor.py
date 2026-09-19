@@ -17,6 +17,7 @@ directories under cwd so monorepos get checked per-app.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -1228,11 +1229,45 @@ def run_doctor(target: Path) -> list[ValidationFinding]:
 _SEVERITY_RANK = {"error": 0, "warning": 1, "info": 2}
 
 
+def _authority_line(target: Path) -> str:
+    """Which authority mode this project is in, as context rather than a finding.
+
+    The dangerous state is not "no PDG" — that is the default and most
+    projects using GovKit are in it. It is a project whose owners believe it
+    verifies and which silently does not, because `verify-authority` then
+    reports *not applicable* and exits zero while looking like a pass.
+    Nothing surfaced the mode, so nothing would have told them.
+
+    Not a warning: reporting the common, correct state as a finding trains
+    people to skim past the line that matters.
+    """
+    marker = target / ".govkit" / "marker.json"
+    if not marker.is_file():
+        return "  authority: none (no marker)"
+    try:
+        data = json.loads(marker.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "  authority: unknown — .govkit/marker.json could not be read"
+    source = ((data.get("authority") or {}).get("source") or "none")
+    if source == "pdg":
+        return (
+            "  authority: pdg — `govkit verify-authority --enforce` checks this "
+            "project against the PDG"
+        )
+    return (
+        "  authority: none — this project does not verify against a PDG. "
+        "`govkit validate-baseline` still checks the spec against its approved "
+        "revision."
+    )
+
+
 def _print_findings(target: Path, findings: list[ValidationFinding]) -> None:
     """Print a grouped, color-free summary to stdout. Designed for CI logs."""
     by_sev: dict[Severity, list[ValidationFinding]] = {"error": [], "warning": [], "info": []}
     for f in findings:
         by_sev[f.severity].append(f)
+
+    print(_authority_line(target))
 
     if not findings:
         print(f"  doctor: clean — no findings for {target}")
