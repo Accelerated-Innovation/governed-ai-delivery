@@ -1189,9 +1189,13 @@ def run_doctor(target: Path) -> list[ValidationFinding]:
     Always includes at minimum a marker-missing error if .govkit isn't
     present, so callers know the install can't be validated.
     """
-    findings: list[ValidationFinding] = []
-
     marker = read_govkit_marker(target)
+    return inspect_doctor(target, marker)
+
+
+def inspect_doctor(target: Path, marker: dict | None) -> list[ValidationFinding]:
+    """Inspect explicit marker input without legacy marker migration or warnings."""
+    findings: list[ValidationFinding] = []
     if marker is None:
         findings.append(ValidationFinding(
             id="D000",

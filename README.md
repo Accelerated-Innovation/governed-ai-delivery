@@ -196,6 +196,7 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 | `govkit verdict` | For a harness driving an autonomous agent: decide whether a run may open a PR. Exits `0` FIXED / `1` REJECTED / `2` REFUSED / `3` BLOCKED — a refusal is a success, not a failure. |
 | `govkit stack` | `stack list` shows bundled tech-stack overlays; `stack apply <id>` swaps the stack on an existing install. |
 | `govkit pack` | `pack list`, `preview`, `apply`, `verify`, and `check` compose explicit capabilities, install pinned resources/native skills, and run independent controls. |
+| `govkit conform` | Collect local/JSON check results with required-control, execution and evidence states. See [check reports](docs/CONFORMANCE.md) for scope, explicit pack execution and limitations. |
 | `govkit extension` | `extension list` shows bundled extension packs; `extension add <id> --target <path>` copies one into your project's `extensions/<id>/`. |
 | `govkit upgrade` | Refresh the files govkit owns (contracts, CI gates, templates) to a new version without touching the files you own. |
 | `govkit list` | List available agents and starter templates. |

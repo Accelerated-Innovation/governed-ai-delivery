@@ -31,6 +31,7 @@ import argparse
 
 from .calibrate import register as _register_calibrate
 from .cmd_apply import register as _register_apply
+from .cmd_conform import register as _register_conform
 from .cmd_evidence import register as _register_evidence
 from .cmd_extension import register as _register_extension
 from .cmd_fix import register as _register_fix
@@ -57,6 +58,7 @@ _REGISTRARS = (
     _register_list,
     _register_profile,
     _register_pack,
+    _register_conform,
     _register_stack,
     _register_extension,
     _register_init,

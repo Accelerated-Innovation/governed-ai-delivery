@@ -95,6 +95,29 @@ def discover_adrs(target: Path) -> list[Path]:
     return [p for p in found if p.is_file() and p.name != TEMPLATE_NAME]
 
 
+def discover_adrs_strict(target: Path) -> list[Path]:
+    """The same ADR layout, with unreadable inventories propagated to callers.
+
+    Avoid glob's permission-error suppression: a conformance adapter must not
+    report a verified empty inventory when a directory could not be listed.
+    """
+    docs = target / "docs"
+    if not docs.exists():
+        return []
+    found = []
+    for area in docs.iterdir():
+        if not area.is_dir():
+            continue
+        directory = area / "architecture/ADR"
+        if not directory.exists():
+            continue
+        found.extend(
+            p for p in directory.iterdir()
+            if p.is_file() and p.suffix == ".md" and p.name != TEMPLATE_NAME
+        )
+    return sorted(found)
+
+
 def parse_adr_status(text: str) -> str | None:
     """The declared status, or None when there is no parseable `## Status`.
 
@@ -239,13 +262,15 @@ def _in_scope(rel: str, prefixes: list) -> bool:
     return any(rel.startswith(p) for p in prefixes if isinstance(p, str))
 
 
-def check_approval_policy(target: Path) -> tuple[list[str], list[str]]:
+def check_approval_policy(
+    target: Path, *, validate_schema=None, adrs=None
+) -> tuple[list[str], list[str]]:
     """Return (issues, warnings) for the target's ADR approval attestation.
 
     Silent when the repo has neither ADRs nor a policy — a repo that never
     adopted this sees no change, the same contract the defect lane carries.
     """
-    adrs = discover_adrs(target)
+    adrs = discover_adrs(target) if adrs is None else adrs
     policy_path = target / POLICY_REL
     rel = POLICY_REL.as_posix()
 
@@ -263,7 +288,7 @@ def check_approval_policy(target: Path) -> tuple[list[str], list[str]]:
     if policy is None:
         return issues, []
 
-    schema_issues, warnings = _validate_against_schema(target)
+    schema_issues, warnings = (validate_schema or _validate_against_schema)(target)
     if schema_issues:
         return schema_issues, warnings
 

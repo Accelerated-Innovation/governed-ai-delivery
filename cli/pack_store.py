@@ -342,6 +342,14 @@ def verify_lock(target: Path, *, include_skills: bool = True) -> LockVerificatio
         return LockVerification(None, (PackDecision("invalid-lock", (_LOCK,), str(exc)),))
 
 
+def locked_check_requirements(target: Path) -> tuple[tuple[str, bool], ...]:
+    """Expose selected controls only after replaying their pinned lock inputs."""
+    lock, _, _ = _read_lock(target.absolute())
+    return tuple(
+        (identifier, check["required"]) for identifier, check in sorted(lock["checks"].items())
+    )
+
+
 def execute_check(
     target: Path, check_id: str, arguments: tuple[str, ...]
 ) -> subprocess.CompletedProcess:
