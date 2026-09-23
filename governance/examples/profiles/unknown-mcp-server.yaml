@@ -1,0 +1,15 @@
+schema_version: 1
+source: {reference: decisions/governance-adoption.md, authority: accepted}
+repository:
+  id: unfamiliar-mcp-server
+  project_type: null
+  stack: null
+integrations: {agent: claude-code, ci: null}
+capabilities: [{id: application-governance}]
+policy:
+  source: {reference: decisions/team-policy.md, authority: accepted}
+  required_checks: [{id: security}]
+  contracts:
+    - source: {reference: CONTRIBUTING.md, authority: accepted}
+      scope: [src/]
+maintenance: {allow_refresh: false}

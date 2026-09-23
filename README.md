@@ -126,6 +126,8 @@ Fullstack-in-one-repo is supported via the [monorepo pattern](docs/MONOREPO_PATT
 
 ### What gets installed
 
+Declarative configuration is available through `govkit profile preview` and `govkit profile apply`. This path validates independent capabilities and accepted policy, then saves only profile/resolution metadata; capability resource installation remains separate. See [declarative profiles](docs/DECLARATIVE_PROFILES.md) for the contract, protection rules, and worked examples. The legacy installation commands below retain their existing behavior.
+
 After applying, your project contains artifacts appropriate to the shape you picked.
 
 **Backend shape** (`--type api` or `--type cli`):

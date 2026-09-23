@@ -262,8 +262,8 @@ def check(baseline: dict, roots: dict[str, Path]) -> Report:
         # possible way to say nothing at all.
         #
         # `validate_baseline` does not catch this: the emptiness rule lives in
-        # the JSON Schema, and jsonschema is a test dependency rather than a
-        # runtime one. So the refusal belongs here too.
+        # the JSON Schema, which this baseline path does not execute.
+        # Profile schema validation is separate, so the refusal belongs here too.
         report.refusals.append(
             "the baseline selects no behavior and declares no constraints, so there is "
             "no approved scope to check against"

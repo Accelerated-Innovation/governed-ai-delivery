@@ -282,6 +282,43 @@ jobs:
           print("baseline contract OK from wheel: %s, %d invalid fixtures" % (digest, len(invalid)))
           '
 
+      - name: Declarative profiles preview and apply from the wheel
+        # Runtime dependencies, bundled schemas/examples and actual CLI dispatch
+        # must work without the checkout or the test extra on Python's path.
+        run: |
+          set -euo pipefail
+          cd /tmp
+          /tmp/wheel-smoke-venv/bin/python -I - <<'PY'
+          import json
+          import subprocess
+          import sys
+          import tempfile
+          from pathlib import Path
+          from cli import paths, profiles
+
+          assert Path(profiles.__file__).is_relative_to(sys.prefix)
+          examples = sorted((paths.GOVERNANCE_DIR / "examples/profiles").glob("*.yaml"))
+          assert len(examples) >= 3
+          for example in examples:
+              with tempfile.TemporaryDirectory() as directory:
+                  target = Path(directory)
+                  command = [sys.executable, "-I", "-m", "cli.govkit", "profile"]
+                  options = ["--profile", str(example), "--target", str(target), "--json"]
+                  result = subprocess.run(command + ["preview"] + options, check=True, capture_output=True, text=True)
+                  assert json.loads(result.stdout)["resolution"]["release_metadata_status"] == "not-queried"
+                  assert list(target.iterdir()) == []
+                  subprocess.run(command + ["apply"] + options, check=True, capture_output=True, text=True)
+                  record_path = target / ".govkit/resolution.json"
+                  record = profiles.load_resolution(record_path)
+                  assert record.ready and record.profile_digest == profiles.load_profile(example).digest
+                  assert not (target / ".govkit/marker.json").exists()
+                  before = {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in (target / ".govkit").iterdir()}
+                  subprocess.run(command + ["apply"] + options, check=True, capture_output=True, text=True)
+                  after = {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in (target / ".govkit").iterdir()}
+                  assert before == after
+          print(f"Profile wheel smoke passed for {len(examples)} examples")
+          PY
+
       - name: Apply against a fresh tmp dir from the wheel install
         # End-to-end: the wheel-installed `govkit apply` writes the marker,
         # the stack overlay docs, the editable header, and the skill_context.

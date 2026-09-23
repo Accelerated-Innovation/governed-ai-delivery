@@ -1,0 +1,43 @@
+schema_version: 1
+source: {reference: decisions/governance-adoption.md, authority: accepted}
+repository:
+  id: existing-llm-service
+  project_type: api
+  stack: null
+integrations: {agent: codex, ci: github}
+capabilities:
+  - id: application-governance
+  - id: llm-evaluation
+policy:
+  source: {reference: decisions/team-policy.md, authority: accepted}
+  required_capabilities: [application-governance, llm-evaluation]
+  required_checks:
+    - {id: security}
+    - {id: evaluation, capability_id: llm-evaluation}
+  contracts:
+    - source: {reference: architecture/service.md, authority: accepted}
+      scope: [service/]
+  workflows:
+    - id: small-change
+      source: {reference: decisions/team-policy.md, authority: accepted}
+      when: [bounded-defect]
+      additional_checks: [regression]
+    - id: model-change
+      source: {reference: decisions/team-policy.md, authority: accepted}
+      when: [model-behavior]
+      required_capabilities: [llm-evaluation]
+      additional_checks: [evaluation]
+maintenance:
+  sources:
+    - id: approved
+      url: https://example.invalid/approved-releases.json
+      channels: [stable]
+  constraints:
+    - component: govkit
+      source_id: approved
+      channel: stable
+      pin: 0.21.1
+      compatibility: ">=0.21,<1"
+  metadata_max_age_hours: 24
+  assessment_max_age_hours: 168
+  allow_refresh: false
