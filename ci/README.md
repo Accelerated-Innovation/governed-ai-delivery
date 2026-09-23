@@ -349,6 +349,26 @@ no new push is needed to take an approval back. A later `COMMENTED` review does
 state. Logins are matched case-insensitively, so the policy need not reproduce
 the exact casing the platform returns.
 
+**Changed-path input and PR base.** Both templates run the real Git diff before
+starting the checker. The Python program arrives on stdin; the changed-path list
+arrives separately through `CHANGED_ADR_PATHS`. A failed diff or unavailable base
+fails the job; only a successful diff with no relevant ADRs can report "No ADR
+changed". Keep full checkout history (`fetch-depth: 0` on GitHub, `fetchDepth: 0`
+on Azure).
+
+- GitHub uses `github.event.pull_request.base.sha` from the PR event, without
+  depending on an `origin/main` remote-tracking ref.
+- Azure Repos fetches the exact `refs/heads/...` target from
+  [`System.PullRequest.TargetBranch`](https://learn.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops#system-variables).
+  Keep `persistCredentials: true` and configure PR branch-policy validation so
+  this variable is populated. The comparison uses the target tip fetched at
+  execution time; Azure does not supply GitHub's event base-SHA input here.
+- Both use a three-dot diff and `--relative`. In a monorepo, set the review
+  collection and checker steps' working directory to the same service root,
+  containing that service's `governance/` and `docs/`. Paths and approval scopes
+  are relative to that root; sibling services are excluded. Align the workflow's
+  branch filters or branch policies with the intended PR targets.
+
 **Set it up:**
 
 1. Edit `governance/approval_policy.yaml` and replace `YOUR_APPROVER_LOGIN` with
