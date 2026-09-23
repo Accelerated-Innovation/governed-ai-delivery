@@ -86,3 +86,7 @@ equivalent. Do not replicate them for parity; see
 ## When changing behavior, keep the payload internally consistent
 
 A change is rarely one file. Changing a schema means updating starter templates and worked examples that must still validate against it. Changing a CI gate template means updating both `ci/github/` and `ci/azure/` and `ci/README.md`. Changing an architecture doc that agents read means reflecting it in the affected skills/rules. Tests assert this cross-consistency (`tests/test_schemas.py`, `tests/test_fixtures.py`, the per-extension tests). The commit convention is `type(scope): description` with types `feat|fix|docs|test|refactor|chore`.
+
+### Declarative packs
+
+`govkit profile` saves metadata; `govkit pack` separately resolves and installs pinned resources and native skills without a legacy marker. See `docs/CAPABILITY_PACKS.md` and ADR 0003. Keep the strict manifest/profile/lock schemas synchronized, and verify payload resources from a clean wheel. Agent-neutral pack skill sources live under `extensions/`; do not create three divergent copies. Pack resources, examples and detection are not accepted project policy.

@@ -1,0 +1,19 @@
+schema_version: 1
+source:
+  reference: policies/delivery.md
+  authority: accepted
+repository:
+  id: gherkin-without-llm
+  project_type: api
+  stack: null
+integrations:
+  agent: codex
+  ci: github
+capabilities:
+- id: application-governance
+- id: gherkin-delivery
+policy:
+  source:
+    reference: policies/delivery.md
+    authority: accepted
+  required_checks: []

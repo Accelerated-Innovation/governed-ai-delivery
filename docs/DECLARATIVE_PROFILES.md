@@ -2,7 +2,7 @@
 
 A version-1 `.govkit/profile.yaml` records desired capabilities and accepted project policy without a maturity level. The profile path is separate from the legacy `.govkit/marker.json`, which describes legacy installation state.
 
-This increment supports profile validation, preview, and metadata materialization. It does not install capability resources, route requests, execute checks, query releases, or migrate a legacy installation. Continue using existing `govkit apply` / `upgrade` commands for legacy installation; those commands do not silently adopt a profile merely because it exists.
+The profile commands support validation, preview, and metadata materialization. Use the separate [capability pack commands](CAPABILITY_PACKS.md) to resolve/install resources and execute selected controls. Profile commands do not route requests, execute checks, query releases, or migrate a legacy installation. Continue using existing `govkit apply` / `upgrade` commands for legacy installation; those commands do not silently adopt a profile merely because it exists.
 
 ## Preview and save
 
@@ -32,7 +32,7 @@ Exit code 0 means the preview is consistent and its metadata destinations are wr
 
 The bundled [profile schema](../governance/schemas/profile.schema.json) is validated at runtime. Unknown fields and versions, duplicate YAML/JSON keys, YAML aliases, invalid authority, non-finite numbers, duplicate identifiers, and invalid policy references are rejected. YAML dates are read as strings and expiry dates must be valid ISO dates. JSON is also accepted as profile input.
 
-Required top-level fields are `schema_version: 1`, `source`, `repository`, `capabilities`, and `policy`. `integrations` and `maintenance` are optional. Empty capabilities are valid for policy-only configuration. A source contains a nonempty `reference` and `authority: accepted`.
+Required top-level fields are `schema_version: 1`, `source`, `repository`, `capabilities`, and `policy`. `integrations`, `packs`, and `maintenance` are optional. Empty capabilities are valid for policy-only configuration. A source contains a nonempty `reference` and `authority: accepted`.
 
 | Field | Meaning |
 |---|---|
@@ -40,6 +40,7 @@ Required top-level fields are `schema_version: 1`, `source`, `repository`, `capa
 | `repository.project_type`, `repository.stack` | Accepted descriptions, or null/omitted when unknown; custom existing stacks are allowed |
 | `integrations.agent`, `integrations.ci` | A supported agent/provider or null/omitted; selecting them does not install integration assets |
 | `capabilities[]` | Desired IDs with optional explicit `requires`, `conflicts`, and `requires_context` |
+| `packs[]` | Optional exact pack ID/version/source pins; local sources require a content digest; pins constrain selection without enabling a capability |
 | `policy.source` | Accepted authority for mandatory policy |
 | `policy.required_capabilities` | Mandatory IDs; missing selections produce an unresolved decision rather than silent enabling |
 | `policy.required_checks[]` | Mandatory check IDs with an optional `capability_id`; requests cannot omit these controls |
@@ -47,7 +48,7 @@ Required top-level fields are `schema_version: 1`, `source`, `repository`, `capa
 | `policy.workflows[]` | Permitted workflow IDs, accepted sources, `when` labels, required capabilities and additional checks |
 | `policy.transitions[]` | Scoped retain/improve/migrate declarations with current and target contracts, applicability and accepted exceptions |
 
-The built-in capability vocabulary includes `application-governance`, `gherkin-delivery`, and `llm-evaluation` (LLM development and evaluation). These IDs can be declared independently. No level or implied Gherkin dependency is added. Custom IDs are permitted, but this increment does not resolve a pack/version graph or establish whether a resource is installed or available offline.
+The built-in capability vocabulary includes `application-governance`, `gherkin-delivery`, and `llm-evaluation` (LLM development and evaluation). These IDs can be declared independently. No level or implied Gherkin dependency is added. Custom IDs are permitted. `govkit pack preview` separately resolves their available providers and versions, and `govkit pack verify` checks installed resources offline.
 
 Unknown context remains explicit. A selected capability can declare `requires_context: [stack]`, for example; that capability then reports the missing decision. Unrelated unknown context does not block metadata materialization. The preview retains independent selections and reports every unresolved decision.
 

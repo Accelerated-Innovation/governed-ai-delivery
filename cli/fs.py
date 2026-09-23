@@ -14,8 +14,10 @@ cycle back through cli/govkit.py.
 
 from __future__ import annotations
 
+import os
 import shutil
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -203,3 +205,19 @@ def copy_entry(
     return _copy_file(
         src, dest, skip_existing, applied_at, force, header_baseline, header_see,
     )
+
+
+def stage_bytes(path: Path, content: bytes) -> Path:
+    descriptor, name = tempfile.mkstemp(prefix=".govkit-stage-", dir=path.parent)
+    staged = Path(name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        if path.exists():
+            staged.chmod(path.stat().st_mode & 0o777)
+        return staged
+    except BaseException:
+        staged.unlink(missing_ok=True)
+        raise

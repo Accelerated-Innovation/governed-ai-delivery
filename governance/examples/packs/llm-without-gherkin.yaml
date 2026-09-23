@@ -1,0 +1,20 @@
+schema_version: 1
+source:
+  reference: policies/delivery.md
+  authority: accepted
+repository:
+  id: llm-without-gherkin
+  project_type: api
+  stack: null
+integrations:
+  agent: codex
+  ci: github
+capabilities:
+- id: application-governance
+- id: llm-evaluation
+policy:
+  source:
+    reference: policies/delivery.md
+    authority: accepted
+  required_checks:
+  - id: llm-exact-match

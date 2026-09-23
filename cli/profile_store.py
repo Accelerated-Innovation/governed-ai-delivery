@@ -6,10 +6,10 @@ from __future__ import annotations
 
 import json
 import os
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from .fs import stage_bytes as _stage
 from .profiles import (
     ProfileError,
     ProfileResolution,
@@ -125,22 +125,6 @@ def preview_materialization(
         )
     except OSError as exc:
         raise ProfileError(f"Cannot preview profile metadata: {exc}") from exc
-
-
-def _stage(path: Path, content: bytes) -> Path:
-    descriptor, name = tempfile.mkstemp(prefix=".govkit-profile-", dir=path.parent)
-    staged = Path(name)
-    try:
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(content)
-            stream.flush()
-            os.fsync(stream.fileno())
-        if path.exists():
-            staged.chmod(path.stat().st_mode & 0o777)
-        return staged
-    except BaseException:
-        staged.unlink(missing_ok=True)
-        raise
 
 
 def apply_profile(preview: ProfilePreview) -> None:

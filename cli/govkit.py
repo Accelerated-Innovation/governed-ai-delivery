@@ -37,6 +37,7 @@ from .cmd_fix import register as _register_fix
 from .cmd_init import register as _register_init
 from .cmd_inspect_package import register as _register_inspect_package
 from .cmd_list import register as _register_list
+from .cmd_pack import register as _register_pack
 from .cmd_profile import register as _register_profile
 from .cmd_stack import register as _register_stack
 from .cmd_upgrade import register as _register_upgrade
@@ -55,6 +56,7 @@ _REGISTRARS = (
     _register_apply,
     _register_list,
     _register_profile,
+    _register_pack,
     _register_stack,
     _register_extension,
     _register_init,

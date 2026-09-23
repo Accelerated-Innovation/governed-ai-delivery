@@ -126,7 +126,7 @@ Fullstack-in-one-repo is supported via the [monorepo pattern](docs/MONOREPO_PATT
 
 ### What gets installed
 
-Declarative configuration is available through `govkit profile preview` and `govkit profile apply`. This path validates independent capabilities and accepted policy, then saves only profile/resolution metadata; capability resource installation remains separate. See [declarative profiles](docs/DECLARATIVE_PROFILES.md) for the contract, protection rules, and worked examples. The legacy installation commands below retain their existing behavior.
+Declarative configuration is available through `govkit profile preview` and `govkit profile apply`. This path validates independent capabilities and accepted policy, then saves only profile/resolution metadata; use `govkit pack preview` / `apply` for pinned resources and native skills. See [capability packs](docs/CAPABILITY_PACKS.md) for composition, ownership, offline verification, and independent controls. See [declarative profiles](docs/DECLARATIVE_PROFILES.md) for the contract, protection rules, and worked examples. The legacy installation commands below retain their existing behavior.
 
 After applying, your project contains artifacts appropriate to the shape you picked.
 
@@ -195,6 +195,7 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 | `govkit evidence` | Report measured quality evidence from CI artifacts — a verdict per rubric dimension, with unmeasured ones reported as INCONCLUSIVE rather than green. |
 | `govkit verdict` | For a harness driving an autonomous agent: decide whether a run may open a PR. Exits `0` FIXED / `1` REJECTED / `2` REFUSED / `3` BLOCKED — a refusal is a success, not a failure. |
 | `govkit stack` | `stack list` shows bundled tech-stack overlays; `stack apply <id>` swaps the stack on an existing install. |
+| `govkit pack` | `pack list`, `preview`, `apply`, `verify`, and `check` compose explicit capabilities, install pinned resources/native skills, and run independent controls. |
 | `govkit extension` | `extension list` shows bundled extension packs; `extension add <id> --target <path>` copies one into your project's `extensions/<id>/`. |
 | `govkit upgrade` | Refresh the files govkit owns (contracts, CI gates, templates) to a new version without touching the files you own. |
 | `govkit list` | List available agents and starter templates. |
