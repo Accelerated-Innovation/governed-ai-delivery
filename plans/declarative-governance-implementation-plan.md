@@ -1,6 +1,6 @@
 # Declarative governance implementation plan
 
-Status: I00 merged; I01 implemented and verified locally, awaiting review/integration for #143. I02 is next.
+Status: I00 merged; I01 delivered in PR #181, awaiting review/integration for #143. I02 is next.
 Plan version: 1.5.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
@@ -587,7 +587,7 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 | Increment | Status | Evidence / commit / PR | Next action or blocker |
 |---|---|---|---|
 | I00 | complete | Merged as bfa4f76 through [PR #180](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/180); 16 failing shell regressions before fix → 74 ADR tests passing; fast suite 3496 passed, 2 skipped; hosted Tests run succeeded | #151 closed; I00 delivery complete |
-| I01 | complete | Delivery branch feat/143-resolution-foundation on bfa4f76; 258 frozen selections; 284 focused tests; fast suite 3780 passed, 2 skipped; clean-wheel smoke passed; see I01 record | Commit/PR authorized; record delivery link, then review/integrate #143 |
+| I01 | complete | Implementation dd70fb1; [PR #181](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/181); 258 frozen selections; 284 focused tests; fast suite 3780 passed, 2 skipped; clean-wheel smoke passed; see I01 record | Review/integrate #143; hosted CI results not yet verified |
 | I02 | not started | I01 foundation verified locally | Start with failing runtime profile/schema and preview tests |
 | I03 | not started | — | Wait for I01–I02 |
 | I04 | not started | — | Can establish protocol after I01 |
@@ -604,11 +604,11 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 Current handoff:
 
 - Completed: I00 merged; I01's pure resolution foundation and legacy facade verified locally.
-- Current increment: none; I01 is ready for review on feat/143-resolution-foundation, based on bfa4f76. The user authorized committing and opening its PR. The pre-existing I00 merge-status update is preserved in this plan.
+- Current increment: none; I01 is committed and pushed on feat/143-resolution-foundation, based on bfa4f76, with [PR #181](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/181) open against main. Implementation commit: dd70fb1. The pre-existing I00 merge-status update is preserved in this plan.
 - Next increment: I02 (#144); continue test first with runtime schemas/loaders and profile preview, using the I01 ADR and typed inputs.
 - Open product input: FeaturePeers definition, representative team repos, pilot participants, and actual legacy-retirement release boundary. These do not block I02.
 - Delivery scope: this plan, CLAUDE.md, cli/manifest.py, new cli/{legacy_resolution,resolution,resolution_models}.py, plans/decisions/0001-resolution-boundaries.md, tests/test_{legacy_resolution,resolution}.py, and tests/fixtures/legacy-resolution-baseline.json. No public CLI, installed layout, marker, or edit-protection changes are intended.
-- Issue tracking: #151 is closed; #143's acceptance is demonstrated locally and awaits review/integration; #142 remains open. Later feature and epic acceptance items remain unchecked.
+- Issue tracking: #151 is closed; #143's acceptance is demonstrated locally and awaits review/integration through PR #181 (Fixes #143); #142 remains open. Later feature and epic acceptance items remain unchecked.
 - Next agent: inspect current state before changing the ledger; no assumption that the baseline commit is still HEAD.
 
 Use this record after each session:
@@ -651,7 +651,8 @@ Next ready action:
 - **Standards applied:** Appendix B's typed-domain/shared-helper rules shaped the core and compatibility boundary; 2287157/2287159 preserve live path access and inward imports; 2287173/2287166 preserve category semantics and user customizations; ERROR 2297577/2297569/2297588 are supported by isolated explicit fixtures, real resolver execution with only I/O dependencies guarded, and programmatic assertions. Reused the recorded Qodo standards. No external Qodo review submission was retried after the prior authorization rejection.
 - **Worktree fingerprint:** SHA-256 `0775ec82addb0f3f62cedc753523ac3b8e0441a0e0135394d6011492aa1bdfa6`, computed over compact sorted-key JSON mapping each of the nine non-plan delivery paths to its file-content SHA-256. The execution plan is excluded to avoid a self-referential fingerprint.
 - **Pre-PR verification:** confirmed the final implementation fingerprint matches the tested worktree, the ten delivery paths contain no unrelated changes, whitespace checks pass, and remote main still points to bfa4f76. Only plan delivery metadata changed after validation, so the implementation checks were not repeated. No external Qodo submission was retried.
-- **Limits:** local Python 3.12 validation only; the full e2e/toolchain matrix, Python 3.11 CI, Windows, and hosted CI for I01 were not run. Wheel smoke is scoped to the cases above. Source authority is an explicit caller assertion, not authenticated approval. The foundation does not implement public profile schemas/loaders, pack/version graph resolution, discovery, impact-based workflow selection, executable checks, policy-exception enforcement, or authorized write plans; those remain in their owning increments. `ready` is not enforcement evidence or write authority.
+- **Delivery:** at the user's request, committed the implementation and plan as `dd70fb1082b16f3c60fbd9ca2cc2ba67a5a4ca38`, pushed `feat/143-resolution-foundation`, and opened [PR #181](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/181) against main with `Fixes #143`. This plan-link follow-up changes delivery metadata only. #143 and #142 track the open PR; neither is closed by this delivery. Hosted CI results have not been verified.
+- **Limits:** local Python 3.12 validation only; the full e2e/toolchain matrix, Python 3.11 CI, and Windows were not run locally; hosted CI results for I01 have not been verified. Wheel smoke is scoped to the cases above. Source authority is an explicit caller assertion, not authenticated approval. The foundation does not implement public profile schemas/loaders, pack/version graph resolution, discovery, impact-based workflow selection, executable checks, policy-exception enforcement, or authorized write plans; those remain in their owning increments. `ready` is not enforcement evidence or write authority.
 - **Next:** review/integrate #143, then start I02 with failing profile/schema and preview tests. The new internal module/model names and capability identifiers are documented in ADR 0001; do not expose a new command or on-disk format without I02 validation and compatibility evidence.
 
 ### Decision log
