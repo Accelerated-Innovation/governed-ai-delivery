@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "example-refactor",
+  "source": "local:requests/refactor.json",
+  "summary": "Extract duplicate internal formatting while preserving behavior.",
+  "confirmation": "confirmed",
+  "change": "refactor",
+  "scope": [
+    "src"
+  ],
+  "impacts": {
+    "bounded": true,
+    "within-contracts": true,
+    "new-behavior": false,
+    "security": false,
+    "auth": false,
+    "data": false,
+    "public-contract": false,
+    "nfr": false,
+    "ownership": false,
+    "architecture": false,
+    "cross-service": false,
+    "llm": false,
+    "mcp": false
+  },
+  "acceptance": [
+    "Existing observable behavior and tests remain unchanged."
+  ],
+  "references": [
+    {
+      "kind": "nfr",
+      "reference": "architecture.md",
+      "authority": "accepted"
+    }
+  ],
+  "preference": "auto"
+}

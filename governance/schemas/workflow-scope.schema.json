@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GovKit workflow-scope v1",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096,
+        "pattern": "\\S"
+      },
+      "minItems": 0,
+      "maxItems": 256
+    },
+    "impacts": {
+      "type": "object",
+      "properties": {
+        "bounded": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "within-contracts": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "new-behavior": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "security": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "auth": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "data": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "public-contract": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "nfr": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "ownership": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "architecture": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "cross-service": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "llm": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mcp": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "paths",
+    "impacts"
+  ],
+  "additionalProperties": false
+}

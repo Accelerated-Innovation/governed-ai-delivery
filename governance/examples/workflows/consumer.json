@@ -1,0 +1,87 @@
+{
+  "profile": {
+    "schema_version": 1,
+    "source": {
+      "reference": "policy.md",
+      "authority": "accepted"
+    },
+    "repository": {
+      "id": "workflow-example"
+    },
+    "integrations": {
+      "agent": "codex"
+    },
+    "capabilities": [
+      {
+        "id": "application-governance"
+      },
+      {
+        "id": "gherkin-delivery"
+      },
+      {
+        "id": "llm-evaluation"
+      }
+    ],
+    "policy": {
+      "source": {
+        "reference": "policy.md",
+        "authority": "accepted"
+      },
+      "contracts": [
+        {
+          "source": {
+            "reference": "architecture.md",
+            "authority": "accepted"
+          },
+          "scope": [
+            "src"
+          ]
+        }
+      ],
+      "transitions": [
+        {
+          "id": "service-port",
+          "source": {
+            "reference": "adr/next-service.md",
+            "authority": "accepted"
+          },
+          "scope": [
+            "src"
+          ],
+          "mode": "improve",
+          "current": [
+            {
+              "source": {
+                "reference": "architecture.md",
+                "authority": "accepted"
+              },
+              "scope": [
+                "src"
+              ]
+            }
+          ],
+          "target": [
+            {
+              "source": {
+                "reference": "architecture-target.md",
+                "authority": "accepted"
+              },
+              "scope": [
+                "src"
+              ]
+            }
+          ],
+          "applies_to": "new-and-changed"
+        }
+      ]
+    }
+  },
+  "files": {
+    "policy.md": "# Accepted delivery policy\nUse proportional evidence and retain required controls.\n",
+    "architecture.md": "# Accepted service contract\nThe existing API returns 42 for the default request. New opt-in formatting may preserve this behavior. NFR: preserve existing latency budget and authorization.\n",
+    "src/service.py": "def result():\n    return 42\n",
+    "tests/test_service.py": "from src.service import result\n\ndef test_default():\n    assert result() == 42\n",
+    "adr/next-service.md": "# Accepted migration\nMove computation behind a service port for new and changed code. Retain the public API. Verify dependency direction and migrate the existing implementation before removing the old rule.\n",
+    "architecture-target.md": "# Target\nThe API depends on a service port. The adapter implements the port and has no API dependency.\n"
+  }
+}

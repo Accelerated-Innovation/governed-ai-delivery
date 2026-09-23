@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "id": "example-architecture",
+  "source": "local:requests/architecture.json",
+  "summary": "Migrate computation behind the accepted service port.",
+  "confirmation": "confirmed",
+  "change": "architecture",
+  "scope": [
+    "src"
+  ],
+  "impacts": {
+    "bounded": true,
+    "within-contracts": true,
+    "new-behavior": true,
+    "security": false,
+    "auth": false,
+    "data": false,
+    "public-contract": false,
+    "nfr": false,
+    "ownership": false,
+    "architecture": true,
+    "cross-service": false,
+    "llm": false,
+    "mcp": false
+  },
+  "acceptance": [
+    "Changed code conforms to the target dependency direction; the transition exit is verified before retiring the old rule."
+  ],
+  "references": [
+    {
+      "kind": "nfr",
+      "reference": "architecture.md",
+      "authority": "accepted"
+    },
+    {
+      "kind": "contract",
+      "reference": "adr/next-service.md",
+      "authority": "accepted"
+    },
+    {
+      "kind": "contract",
+      "reference": "architecture-target.md",
+      "authority": "accepted"
+    }
+  ],
+  "preference": "auto"
+}

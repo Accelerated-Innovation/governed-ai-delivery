@@ -102,3 +102,7 @@ A change is rarely one file. Changing a schema means updating starter templates 
 ### Brownfield discovery
 
 `cmd_discover.py` renders bounded read-only observations from `discovery_scan.py` and decisions/previews from `discovery.py`. See [ADR 0005](plans/decisions/0005-brownfield-discovery.md) and [discovery](docs/BROWNFIELD_DISCOVERY.md). Observed docs/imports are not accepted policy; only explicit accepted profiles feed existing protected installers. Baselines are explicit caller-reviewed records, never written/accepted automatically. Incomplete/changed coverage cannot prove removal. Keep report schema, four bundled example repositories and runtime-only wheel smoke aligned. `maintenance_outcome()` uses I04's facts contract; actual diff/transition enforcement and integrated maintenance remain I07/I09.
+
+### Request workflow planning
+
+`cmd_request.py` prints proposed templates and per-request plans. `workflows.py` resolves only validated snapshots; `workflow_store.py` owns bounded local reads and deterministic replay. See [ADR 0006](plans/decisions/0006-request-workflows.md) and [request workflows](docs/REQUEST_WORKFLOWS.md). Preserve additive policy/check requirements, existing defect eligibility, independent LLM evaluation and verified pinned guidance. Agent normalization stays outside the deterministic boundary. Planning readiness is not approval or conformance. Supplied scope observations do not replace I07 actual-diff enforcement. Keep schemas, seven examples and runtime-only wheel smoke aligned.
