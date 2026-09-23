@@ -1,6 +1,6 @@
 # Declarative governance implementation plan
 
-Status: I00–I02 merged; I03 implemented and verified locally for #145, pending commit/PR.
+Status: I00–I02 merged; I03 delivered in PR #183 for #145, awaiting review/merge.
 Plan version: 1.10.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
@@ -590,7 +590,7 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 | I00 | complete | Merged as bfa4f76 through [PR #180](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/180); 16 failing shell regressions before fix → 74 ADR tests passing; fast suite 3496 passed, 2 skipped; hosted Tests run succeeded | #151 closed; I00 delivery complete |
 | I01 | complete | Merged as 941fe34 through [PR #181](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/181); 258 frozen selections; 284 focused tests; fast suite 3780 passed, 2 skipped; clean-wheel smoke and hosted Tests run passed; see I01 record | #143 closed; I01 delivery complete |
 | I02 | complete | Merged as b7d2f2f; implementation 27871fa; [PR #182](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/182); 51 focused tests; fast suite 3831 passed, 2 skipped; clean-wheel profile/legacy smoke plus 258 frozen selections; new CI step executed locally; see I02 record | #144 closed; hosted Tests run passed |
-| I03 | implemented; locally verified | 53 pack tests; 3884 fast-suite passes, 2 existing skips; 7 packs × 3 agents from a clean wheel; test-first and compatibility evidence below | Pending commit/PR; keep #145 open for I09 |
+| I03 | PR open; locally verified | Implementation c878d49; [PR #183](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/183); 53 pack tests; 3884 fast-suite passes, 2 existing skips; 7 packs × 3 agents from a clean wheel | Await review/merge; keep #145 open for I09 |
 | I04 | not started | — | Can establish protocol after I01 |
 | I05 | not started | — | Discovery after I02; installation integrates I03 |
 | I06 | not started | — | Wait for I02–I04 |
@@ -605,8 +605,8 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 Current handoff:
 
 - Completed: I00–I02 merged; the I02 Tests workflow passed for f88c595.
-- Current increment: I03 (#145) is implemented and verified locally on feat/145-capability-packs, based on b7d2f2f. Changes are uncommitted; no I03 PR or hosted run exists. Main was synchronized and the merged local I02 branch removed after its tree matched main.
-- Next action: complete the authorized I03 commit/PR delivery; use `Refs #145`, not a closing keyword. After integration, start I04 check/evidence foundation with failing tests. #145 remains open until I09 inventory/candidate acceptance. Future completed increments also include commit/PR delivery under the standing instruction above.
+- Current increment: I03 (#145) is implemented and verified locally on feat/145-capability-packs, based on b7d2f2f. Implementation c878d49 is pushed in [PR #183](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/183); review/merge is pending, and no successful hosted CI result is claimed here. Main was synchronized and the merged local I02 branch removed after its tree matched main.
+- Next action: review/merge PR #183. After integration, synchronize/clean up and start I04 check/evidence foundation with failing tests. #145 remains open until I09 inventory/candidate acceptance. Future completed increments include commit/PR delivery under the standing instruction above.
 - Open product input: FeaturePeers definition, representative team repos, pilot participants, and actual legacy-retirement release boundary. These do not block I03.
 - Delivery scope: this plan plus 43 non-plan paths: pack models/loading/resolution/store and command registration; shared schema/staging helpers with profile consumers; packaging runtime dependency; manifest/pack/lock/profile schemas; three neutral packs and two profile examples; four focused test files and a clean-wheel script/CI step; capability/profile guides, ADR 0003, README/CLAUDE. Existing third-party pack content and legacy command implementations remain unchanged.
 - Issue tracking: #151, #143 and #144 are closed. #142 remains open with its #143 and #144 feature items checked; #145 has its first 15 I03 criteria demonstrated locally, pending integration; its four I09 criteria remain unchecked. Later feature and epic end-to-end acceptance items remain unchecked.
@@ -689,7 +689,8 @@ Next ready action:
 - **Review and fingerprint:** local review checked authority, no-write/stale-input behavior, dependency-root identity, lock replay, resource ownership and packaged execution. SHA-256 **`cc2f59639ef2df4ee9bc4a0d43686a704ccb5406551b33b1d7af58b70176b5f1`**, computed over compact sorted-key JSON mapping the **43 non-plan changed/new paths** to their file-content SHA-256. This execution plan is excluded to avoid self-reference.
 - **Limits:** local Python 3.12 only; the full e2e/toolchain tier, Python 3.11, Windows and live agent sessions were not run. Native placement/reference checks do not prove agent reasoning. Pins/replay establish consistency, not source authenticity or authenticated acceptance. Standalone controls execute explicitly trusted pack code and are not sandboxed. The evaluator consumes supplied outputs; it does not run a model or prove evidence origin/freshness. General evidence protocols are I04, request routing I06, pipeline rendering I07 and maintenance candidates I09. Legacy contract prose keeps its original layout semantics; new-path copies are reference material, not accepted architecture. Per-file atomicity/caught-failure rollback are not concurrent-writer or crash-recovery guarantees.
 - **Pre-PR verification:** rechecked all 43 non-plan implementation paths against the recorded tested fingerprint and confirmed whitespace checks passed. Only plan delivery metadata and the user's new standing commit/PR instruction changed after validation; passing implementation checks were not repeated. No external Qodo submission was retried.
-- **Next:** complete I03 commit/PR delivery using `Refs #145` rather than closing it. After merge, synchronize/clean up and begin I04 with failing check/evidence tests; commit/create its PR when finished under the standing delivery instruction. Treat schemas, pack commands and storage layout as public contracts from this increment onward.
+- **Delivery:** committed the implementation and updated plan as `c878d495ca1b7aac645acd9616f12fecc39593a7`, pushed `feat/145-capability-packs`, and opened [PR #183](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/183) against main with `Refs #145`. A plan-only follow-up records the PR link and delivery state. #145 remains open for I09.
+- **Next:** after PR #183 merges, synchronize/clean up and begin I04 with failing check/evidence tests; commit/create its PR when finished under the standing delivery instruction. Treat schemas, pack commands and storage layout as public contracts from this increment onward.
 
 ### Decision log
 
@@ -773,7 +774,7 @@ Source: [[Feature 3] Composable capability packs, dependency resolution, and loc
 - [ ] Candidate selection respects version ordering, channels, compatibility, dependency constraints, and pins; a newer incompatible release is reported with its exclusion reason.
 - [ ] Assessment and metadata refresh do not install packages, change locks, overwrite customizations, or transmit repository content. Candidate previews identify affected resources and controls.
 
-Evidence: [I03 execution record](#i03-execution-record--2026-09-23), demonstrated locally and not yet committed/integrated. These checks cover repository pack composition and native placement; live agent behavior, request routing, authenticated evidence and release inventory/candidates are not claimed. #145 remains open for I09.
+Evidence: [I03 execution record](#i03-execution-record--2026-09-23), demonstrated locally and delivered in [PR #183](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/183), not yet merged. These checks cover repository pack composition and native placement; live agent behavior, request routing, authenticated evidence and release inventory/candidates are not claimed. #145 remains open for I09.
 
 ### Feature #178
 
