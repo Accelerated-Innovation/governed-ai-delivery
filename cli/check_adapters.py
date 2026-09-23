@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import stat
 from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -239,6 +240,8 @@ def _remote_reference(value) -> bool:
 
 def offline_instance(target: Path, schema: Path, instance: Path):
     """Replace the legacy optional process boundary with offline runtime validation."""
+    if not instance.resolve().is_relative_to(target.resolve()):
+        return validate.CheckStatus.WARN, "Instance resolves outside the assessed repository"
     if not schema.resolve().is_relative_to(target.resolve()) or not schema.is_file():
         return (
             validate.CheckStatus.WARN,
@@ -269,11 +272,42 @@ def offline_instance(target: Path, schema: Path, instance: Path):
 
 def approval_check(context: CheckContext) -> CheckOutcome:
     path = context.target / approval.POLICY_REL
-    if path.exists() and not path.is_file():
+    try:
+        policy_mode = path.stat().st_mode
+    except FileNotFoundError:
+        policy_mode = 0
+    if policy_mode and not stat.S_ISREG(policy_mode):
         return absent("Configured approval policy is not a readable file", state=State.UNKNOWN)
     adrs = approval.discover_adrs_strict(context.target)
-    if not path.exists() and not adrs:
+    if not policy_mode and not adrs:
         return absent("No ADR approval policy or ADRs configured")
+
+    proofs = {}
+    limitation = "Local shape and attestation references cannot authenticate provider reviews or establish active CI enforcement."
+
+    def read_text(source_path):
+        # Capture precisely the bytes the legacy checker consumes, including
+        # in-scope ADRs. Do not re-read a failing source just to hash it.
+        source = source_path.relative_to(context.target).as_posix()
+        method = "local-approval-policy" if source_path == path else "local-adr-attestation"
+        problem = "could not be read as UTF-8"
+        try:
+            if not source_path.resolve().is_relative_to(context.target.resolve()):
+                problem = "resolves outside the assessed repository"
+                raise OSError(problem)
+            content = source_path.read_bytes()
+            text = content.decode("utf-8")
+        except (OSError, UnicodeError, RuntimeError):
+            proofs[source] = Evidence(
+                source, (source,), method, "unverified-artifact", None, (limitation, problem)
+            )
+            # Preserve the source-specific legacy diagnosis without exporting
+            # an arbitrary exception payload or the resolved external path.
+            raise OSError(problem) from None
+        proofs[source] = Evidence(
+            source, (source,), method, "local-check", content_digest(content), (limitation,)
+        )
+        return text
 
     def schema_check(target):
         status, message = offline_instance(
@@ -288,35 +322,36 @@ def approval_check(context: CheckContext) -> CheckOutcome:
         )
 
     issues, warnings = approval.check_approval_policy(
-        context.target, validate_schema=schema_check, adrs=adrs
+        context.target, validate_schema=schema_check, adrs=adrs, read_text=read_text
     )
-    proof = evidence(
-        context.target,
-        approval.POLICY_REL.as_posix(),
-        "local-approval-policy",
-        "Local shape and attestation references cannot authenticate provider reviews or establish active CI enforcement.",
-    )
-    findings = tuple(
-        Finding(
-            "approval-invalid" if severity == "error" else "approval-unverified",
-            severity,
-            "policy",
-            message,
-            "Reconcile policy and independently verify approval in the provider.",
-            approval.POLICY_REL.as_posix(),
-            (proof,),
-        )
-        for messages, severity in ((issues, "error"), (warnings, "warning"))
-        for message in messages
-    )
+
+    findings = []
+    for messages, severity in ((issues, "error"), (warnings, "warning")):
+        for message in messages:
+            source = max(
+                (source for source in proofs if message.startswith(source + " ")),
+                key=len,
+                default=approval.POLICY_REL.as_posix(),
+            )
+            findings.append(
+                Finding(
+                    "approval-invalid" if severity == "error" else "approval-unverified",
+                    severity,
+                    "policy",
+                    message,
+                    "Reconcile policy and independently verify approval in the provider.",
+                    source,
+                    (proofs[source],) if source in proofs else (),
+                )
+            )
     # A local policy check can pass its narrow structural contract; its evidence
     # explicitly does not claim that an approval happened or a gate is active.
     return CheckOutcome(
         State.FAIL if issues else State.UNKNOWN if warnings else State.PASS,
         Execution.EXECUTED,
         "Local ADR policy/attestation structure checked",
-        findings,
-        (proof,),
+        tuple(findings),
+        tuple(proofs.values()),
     )
 
 

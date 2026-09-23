@@ -23,6 +23,8 @@ Inspection is offline and read-only. The command prints its report; shell redire
 
 The profile's accepted `policy.required_checks` are always selected and retain their policy reference. A missing provider reports unknown. Pack-declared required checks also remain required. The foundation evaluates these requirements across the explicit project target; conditional change/workflow applicability comes later. It provides no caller filter to remove mandatory controls.
 
+Approval evidence includes the policy and each in-scope ADR actually read, with its repository-relative source, scope and content digest. Templates and out-of-scope ADRs are excluded. Symlinks may reference files within the assessed repository; external targets cannot supply local approval evidence. Unreadable inventories stay unknown, and unreadable files retain their location and an unverified evidence record without a digest.
+
 To execute an installed control, opt in by ID and supply its arguments:
 
 ```json
@@ -38,6 +40,8 @@ govkit conform --target ./service --json \
 ```
 
 The arguments file is relative to the invoking shell; control arguments are passed unchanged and the control runs in the target directory. Repeat `--execute-pack-check` for multiple controls. This executes explicitly trusted pinned code and is not a sandbox; custom code can have side effects. Pack controls run independently of loading an agent skill. A missing native copy still produces a separate installation finding. The bundled exact-match evaluator measures supplied case outputs: it does not invoke a model or authenticate how those outputs were produced.
+
+Each execution ID must belong to the selected pinned pack lock. Built-in or uninstalled IDs are argument errors; they cannot promote advisory checks or start a partial batch of controls.
 
 ## States, totals and exit status
 

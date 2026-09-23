@@ -40,6 +40,7 @@ defect class PR #133 existed to fix.
 """
 
 import re
+import stat
 import subprocess
 from pathlib import Path
 
@@ -101,20 +102,38 @@ def discover_adrs_strict(target: Path) -> list[Path]:
     Avoid glob's permission-error suppression: a conformance adapter must not
     report a verified empty inventory when a directory could not be listed.
     """
-    docs = target / "docs"
-    if not docs.exists():
-        return []
+    def mode(path):
+        try:
+            return path.stat().st_mode
+        except FileNotFoundError:
+            # A dangling link is an unavailable inventory, not an absent one.
+            try:
+                path.lstat()
+            except FileNotFoundError:
+                return 0
+            raise
+
+    def children(path):
+        path_mode = mode(path)
+        if not path_mode:
+            return []
+        if not stat.S_ISDIR(path_mode):
+            raise NotADirectoryError(path)
+        if not path.resolve().is_relative_to(target.resolve()):
+            raise OSError("ADR inventory resolves outside the assessed repository")
+        return list(path.iterdir())
+
     found = []
-    for area in docs.iterdir():
-        if not area.is_dir():
+    for area in children(target / "docs"):
+        if not stat.S_ISDIR(mode(area)):
             continue
-        directory = area / "architecture/ADR"
-        if not directory.exists():
-            continue
-        found.extend(
-            p for p in directory.iterdir()
-            if p.is_file() and p.suffix == ".md" and p.name != TEMPLATE_NAME
-        )
+        for directory in children(area / "architecture"):
+            if directory.name != "ADR":
+                continue
+            for record in children(directory):
+                if record.suffix == ".md" and record.name != TEMPLATE_NAME:
+                    if stat.S_ISREG(mode(record)):
+                        found.append(record)
     return sorted(found)
 
 
@@ -178,12 +197,12 @@ def is_govkit_authored(text: str) -> bool:
     return compute_body_hash(text) == fields["hash"]
 
 
-def _load_policy(target: Path) -> tuple[dict | None, list[str]]:
+def _load_policy(target: Path, *, read_text=None) -> tuple[dict | None, list[str]]:
     """Read the policy. Returns (data, issues); data is None when unusable."""
     path = target / POLICY_REL
     rel = POLICY_REL.as_posix()
     try:
-        raw = path.read_text(encoding="utf-8")
+        raw = read_text(path) if read_text is not None else path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
         return None, [f"{rel} could not be read: {exc}"]
     try:
@@ -263,7 +282,7 @@ def _in_scope(rel: str, prefixes: list) -> bool:
 
 
 def check_approval_policy(
-    target: Path, *, validate_schema=None, adrs=None
+    target: Path, *, validate_schema=None, adrs=None, read_text=None
 ) -> tuple[list[str], list[str]]:
     """Return (issues, warnings) for the target's ADR approval attestation.
 
@@ -284,7 +303,7 @@ def check_approval_policy(
             "(run `govkit upgrade` to install it)"
         ]
 
-    policy, issues = _load_policy(target)
+    policy, issues = _load_policy(target, read_text=read_text)
     if policy is None:
         return issues, []
 
@@ -300,18 +319,20 @@ def check_approval_policy(
             "here; a reviewer does not gain it (AUTHORITY_AND_APPROVAL_CONTRACT.md)"
         )
 
-    warnings += _check_adrs(target, adrs, policy.get("require_approval_for") or [])
+    warnings += _check_adrs(
+        target, adrs, policy.get("require_approval_for") or [], read_text=read_text
+    )
     return [], warnings
 
 
-def _check_adrs(target: Path, adrs: list[Path], scope: list) -> list[str]:
+def _check_adrs(target: Path, adrs: list[Path], scope: list, *, read_text=None) -> list[str]:
     warnings = []
     for path in adrs:
         rel = path.relative_to(target).as_posix()
         if not _in_scope(rel, scope):
             continue
         try:
-            text = path.read_text(encoding="utf-8")
+            text = read_text(path) if read_text is not None else path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as exc:
             warnings.append(f"{rel} could not be read: {exc}")
             continue

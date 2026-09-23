@@ -112,6 +112,7 @@ def inspect_repository(
             "Inspect existing legacy artifacts without adopting a workflow",
             ".govkit/marker.json",
         )
+    controls = ()
     if lock_present:
         try:
             controls = locked_check_requirements(target)
@@ -138,6 +139,9 @@ def inspect_repository(
             )
             for check in profile.repository.policy.required_checks
         ] + specifications
+    unknown = set(context.execute_pack_checks) - {identifier for identifier, _ in controls}
+    if unknown:
+        raise ValueError("Not a selected pinned pack check: " + ", ".join(sorted(unknown)))
     for identifier in context.execute_pack_checks:
         specifications.append(
             CheckSpec(

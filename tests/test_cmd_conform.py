@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from cli.govkit import main
 from tests.test_capability_packs import profile
 from tests.test_pack_store import snapshot, write_profile
@@ -57,3 +59,58 @@ def test_cli_explicit_identity_and_invalid_argument_file(tmp_path, monkeypatch, 
     assert invoke(monkeypatch, ["--target", str(tmp_path), "--pack-arguments", str(arguments)]) == 1
     assert "arrays of strings" in capsys.readouterr().err
     assert snapshot(tmp_path) == before
+
+
+@pytest.mark.parametrize("identifier", ["legacy:doctor", "govkit:profile", "not-installed"])
+def test_execute_pack_check_rejects_ids_outside_the_pinned_lock(
+    tmp_path, monkeypatch, capsys, identifier
+):
+    write_profile(tmp_path, profile([]))
+    before = snapshot(tmp_path)
+    assert (
+        invoke(
+            monkeypatch, ["--target", str(tmp_path), "--json", "--execute-pack-check", identifier]
+        )
+        == 1
+    )
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert "selected pinned pack check" in output.err
+    assert identifier in output.err
+    assert snapshot(tmp_path) == before
+
+
+def test_invalid_execution_batch_does_not_start_a_valid_pack_control(tmp_path, monkeypatch, capsys):
+    import subprocess
+
+    from cli.pack_loading import bundled_catalog
+    from cli.pack_store import apply_install, preview_install
+
+    path = write_profile(tmp_path, profile(["llm-evaluation"], checks=["llm-exact-match"]))
+    apply_install(preview_install(path, tmp_path, bundled_catalog(), govkit_version="0.21.1"))
+    calls = []
+
+    def forbidden(*args, **kwargs):
+        calls.append(args)
+        raise AssertionError("No control should execute for an invalid argument batch")
+
+    monkeypatch.setattr(subprocess, "run", forbidden)
+    before = snapshot(tmp_path)
+    assert (
+        invoke(
+            monkeypatch,
+            [
+                "--target",
+                str(tmp_path),
+                "--json",
+                "--execute-pack-check",
+                "llm-exact-match",
+                "--execute-pack-check",
+                "legacy:doctor",
+            ],
+        )
+        == 1
+    )
+    output = capsys.readouterr()
+    assert "legacy:doctor" in output.err and output.out == ""
+    assert calls == [] and snapshot(tmp_path) == before
