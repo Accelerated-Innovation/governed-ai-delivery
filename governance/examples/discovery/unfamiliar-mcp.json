@@ -1,0 +1,7 @@
+{
+  "description": "Python MCP observation is not a FastAPI selection or an accepted architecture.",
+  "files": {
+    "pyproject.toml": "[project]\nname=\"tools\"\ndependencies=[\"mcp>=1\"]\n",
+    "server.py": "from mcp.server.fastmcp import FastMCP\nserver = FastMCP(\"tools\")\n"
+  }
+}

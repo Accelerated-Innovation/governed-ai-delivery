@@ -1,0 +1,7 @@
+{
+  "description": "Few docs: retain explicit architecture unknowns; propose only what selected work needs.",
+  "files": {
+    "package.json": "{\"name\":\"small-tool\",\"scripts\":{\"test\":\"node --test\"}}\n",
+    "index.js": "export const answer = 42;\n"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "description": "Adopt evaluation by referencing accepted team sources; no calibration or Gherkin prerequisite.",
+  "profile": {
+    "schema_version": 1,
+    "source": {
+      "reference": "decisions/governance.md",
+      "authority": "accepted"
+    },
+    "repository": {
+      "id": "documented-service"
+    },
+    "integrations": {
+      "agent": "codex"
+    },
+    "capabilities": [
+      {
+        "id": "llm-evaluation"
+      }
+    ],
+    "policy": {
+      "source": {
+        "reference": "decisions/governance.md",
+        "authority": "accepted"
+      },
+      "contracts": [
+        {
+          "source": {
+            "reference": "design/architecture.md",
+            "authority": "accepted"
+          },
+          "scope": [
+            "src"
+          ]
+        }
+      ]
+    }
+  },
+  "files": {
+    "pyproject.toml": "[project]\nname=\"service\"\ndependencies=[\"fastapi\", \"pytest\"]\n",
+    "design/architecture.md": "# Existing service architecture\nLayered architecture; keep domain logic separate from transport.\n",
+    "decisions/governance.md": "# Accepted governance decision\nRetain current contracts and adopt evaluation without Gherkin.\n",
+    "AGENTS.md": "# Team guidance\nRun pytest before review.\n",
+    "src/service.py": "def health():\n    return \"ok\"\n",
+    "tests/test_service.py": "from src.service import health\ndef test_health():\n    assert health() == \"ok\"\n",
+    ".github/workflows/tests.yml": "name: Existing tests\non: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: pytest\n"
+  }
+}

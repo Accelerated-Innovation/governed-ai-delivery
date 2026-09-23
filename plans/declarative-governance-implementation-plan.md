@@ -1,7 +1,7 @@
 # Declarative governance implementation plan
 
-Status: I00–I03 merged; I04 check/evidence foundation delivered in PR #184 for #146, awaiting review/merge.
-Plan version: 1.12.
+Status: I00–I04 merged; I05 brownfield discovery (#178) locally verified; preparing PR.
+Plan version: 1.13.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
 Primary epic: [#142 — Declarative, composable GovKit governance](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/142).
@@ -591,8 +591,8 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 | I01 | complete | Merged as 941fe34 through [PR #181](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/181); 258 frozen selections; 284 focused tests; fast suite 3780 passed, 2 skipped; clean-wheel smoke and hosted Tests run passed; see I01 record | #143 closed; I01 delivery complete |
 | I02 | complete | Merged as b7d2f2f; implementation 27871fa; [PR #182](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/182); 51 focused tests; fast suite 3831 passed, 2 skipped; clean-wheel profile/legacy smoke plus 258 frozen selections; new CI step executed locally; see I02 record | #144 closed; hosted Tests run passed |
 | I03 | complete | Merged as b379a5a through [PR #183](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/183); 53 pack tests; 3884 fast-suite passes; 21 wheel installs; hosted Tests passed for 9ed7f6a | #145 remains open for I09 |
-| I04 | PR open; locally verified | [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184), initial implementation 78b1069; five review bugs remediated with 23 additional regressions; 3943 fast-suite passes; runtime-only wheel smoke passed | Await updated review/CI and merge, then I05; #146 stays open for integrated acceptance |
-| I05 | not started | — | Discovery after I02; installation integrates I03 |
+| I04 | complete | [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184), initial implementation 78b1069; five review bugs remediated with 23 additional regressions; 3943 fast-suite passes; runtime-only wheel smoke passed | Merged 5426abe; final-head Tests run 35920010148 passed; #146 stays open for I07/I09 |
+| I05 | locally verified; preparing PR | feat/178-brownfield-discovery on 5426abe; 39 new tests; 3982 fast-suite passes; runtime-only wheel smoke passed | Commit/push/create PR; #178 remains open for I07 transition enforcement |
 | I06 | not started | — | Wait for I02–I04 |
 | I07 | not started | — | Wait for I04–I06 |
 | I08 | not started | — | Wait for I02–I03, I05, I07 |
@@ -604,13 +604,13 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 
 Current handoff:
 
-- Completed: I00–I03 merged; the I03 Tests workflow passed for 9ed7f6a.
-- Current increment: I04 (#146) on feat/146-check-evidence-foundation, based on b379a5a. Confirmed I03 merged, fast-forwarded main, verified identical trees and removed the squash-merged local I03 branch after remote deletion.
-- Next action: obtain updated review/CI for the five review-bug fixes on [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184), then review/merge. After merge, confirm CI/integration, synchronize/clean up, and begin I05 discovery (#178) test first. #146 remains open for later integrated conformance and maintenance acceptance.
-- Open product input: FeaturePeers definition, representative team repos, pilot participants, and actual legacy-retirement release boundary. These do not block I04.
-- Delivery scope: this plan plus 24 non-plan paths: check models/registry/adapters/assembly and command registration; narrow legacy doctor/validate/approval seams and public pinned-check requirements; runtime result schema and three examples; four focused test modules and clean-wheel smoke/installer CI step; conformance guide, ADR 0004 and README/CLAUDE guidance. Consumer CI templates and agent skill payloads are unchanged.
-- Issue tracking: #151, #143 and #144 are closed. #142 remains open with its #143 and #144 feature items checked; #145 has its first 15 I03 criteria integrated through PR #183; its four I09 criteria remain unchecked. #146 has four foundation criteria demonstrated locally; its workflow/change/maintenance criteria and epic end-to-end acceptance remain unchecked.
-- Next agent: inspect current state before changing the ledger; no assumption that the baseline commit is still HEAD.
+- Completed: I00–I04 merged; I04 Tests run 35920010148 passed for final head ccf0c22.
+- Current increment: I05 (#178) on feat/178-brownfield-discovery, based on merged I04 5426abe. Confirmed PR #184 and final-head Tests run 35920010148 succeeded; synchronized main, pruned remote refs, verified identical trees and deleted the local merged branch. Removed only known I04 temporary wheel/build artifacts; kept the shared development environment.
+- Next action: commit/push/create the verified I05 PR; after merge, confirm/synchronize/clean up and begin I06 (#179) test first.
+- Remaining integration: #146 stays open for I07/I09; no updated Qodo review status is inferred from merge. Reuse Appendix B rules and avoid previously rejected external diff export.
+
+- Open product input: FeaturePeers definition, representative team repos, pilot participants and the actual legacy-retirement release boundary remain later decisions; none blocks I05.
+- Issue tracking: #151/#143/#144 are closed. #145 stays open for I09; #146 stays open for I07/I09. #178 stays open until its integrated criteria are demonstrated.
 
 Use this record after each session:
 
@@ -717,6 +717,18 @@ Next ready action:
 - **Verification:** **23 added regressions**; the final expanded approval/conformance/legacy selection passed **336 tests**. Fast suite: **3943 passed, 2 existing skips, 150 e2e tests deselected**. Scoped Ruff lint/format and whitespace checks passed. A fresh runtime-only wheel environment passed the existing report/control smoke, plus real CLI ADR-digest, external-policy-rejection and invalid-pack-ID checks; the final wheel was rebuilt and its smoke rerun after the source-diagnosis refinement. No schema fields changed, and the existing report examples still validate/replay.
 - **Delivery/status:** these fixes update the existing PR #184 under the standing commit/push instruction; no new PR or merge. All five findings are addressed in code, with none dismissed or skipped. Qodo's review catalog exposed only `findings`, including after one catalog refresh, so manual `mark-implemented`/`dismiss` writes were unavailable. A fresh Qodo review must re-attribute the pushed fixes; no clean review of the fix commit is claimed here. #146 remains open for its later integrated criteria. Local Python 3.12, snapshot/concurrency and live-provider limitations remain as recorded above.
 
+### I05 execution record — 2026-09-23
+
+- **Identity and cleanup:** implemented on `feat/178-brownfield-discovery`, based on merged I04 `5426abe7ac3929a0d53e93774eacc7de85a078ec`. Confirmed PR #184 merged and [Tests run 35920010148](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/35920010148) succeeded for final head `ccf0c22`; individual logs/artifacts were not re-audited. Fetched/pruned, synchronized main, verified identical trees and removed the merged local branch. Removed only five known I04 temporary build/wheel artifacts; preserved `.venv` and unrelated local state. No new Qodo review status is inferred from merge.
+- **Test-first red:** the existing profile/materialization/setup baseline passed **62 tests**. The first discovery tests failed collection because the new module did not exist; four real CLI tests failed before command registration. Later failing regressions exposed changed reference selection being misreported as file deletion, explicit manifest references losing component boundaries, an old single-file marker aborting unrelated discovery, omitted policy-only maintenance findings, and a baseline claiming installer readiness without an accepted profile. The four-example assertion failed before fixtures were added. One test's guessed skill destination was corrected against the shipped pack manifest without changing installer behavior.
+- **Contract:** [ADR 0005](decisions/0005-brownfield-discovery.md) separates bounded collection, scoped proposals/rediscovery, accepted profiles and protected installation. `govkit discover` is offline/read-only; it does not run application code or checks, migrate markers, fetch policy, refactor source, accept a baseline or rewrite architecture. Source/digest/confidence/scope observations and explicit incomplete coverage feed a versioned report. Observed imports/frameworks/architecture phrases are narrow indicators, never accepted policy. Python MCP does not imply FastAPI. Accepted project sources take precedence, and optional architecture questions do not block independent useful capabilities.
+- **Composition and repeat review:** explicit accepted profiles delegate metadata/resource operations to the I02/I03 preview modules; the existing apply commands retain stale-input/edit protection and idempotence. Scoped retain/improve/migrate contracts, current/target rules, existing exceptions and exit-verification references remain intact. Baseline comparison surfaces changed dependency/framework, component, model/tool, reference, test and CI evidence at the same CLI version. Unchanged evidence does not repeat setup; pending decisions are preserved rather than accepted. Changed/incomplete coverage cannot prove deletion. `maintenance_outcome()` supplies I04-compatible findings without a conformance pass or a policy-violation inference.
+- **Final green:** **39 new tests** in `test_discovery.py` and `test_cmd_discover.py`; focused discovery/profile/pack/check integration passed **130 tests**. `source .venv/bin/activate && ./run_tests -q` → **3982 passed, 2 existing format-specific skips, 150 e2e tests deselected**, in 37.13 seconds. Scoped non-rewriting Ruff inspection, changed-file formatting and whitespace checks passed. Snapshot assertions cover byte/mtime preservation, source documents, applications and old markers. Network/process substitutes target external dependencies, not the implementation under test.
+- **Wheel/CI:** a fresh Python 3.12.14 environment installed the built wheel with runtime dependencies only. Four bundled repositories (documented service, sparse repo, unfamiliar MCP server and monorepo) validate/report through the real CLI. Documented service and monorepo adoption preserve original files and install only selected evaluation resources; repeated apply is idempotent. Same-version model usage changes produce a pending capability recommendation. `tests/wheel_discovery_smoke.py` passes, as does the exact new installer CI shell step with only its temporary interpreter path substituted. Consumer GitHub/Azure templates and agent payloads are unchanged. No hosted I05 CI result is claimed yet.
+- **Acceptance:** twelve #178 criteria are locally demonstrated. Its gradual-transition criterion remains unchecked for actual-change exception/violation classification, owned by I07; the fixture does demonstrate declarations and verification/exit references. #178 and epic #142 remain open. I05's bounded exit criteria are met; I06 is next after review/merge. #146 remains open for I07/I09; this increment contributes a typed observation adapter, not integrated maintenance or a gate.
+- **Limits:** stable local snapshots and narrow syntactic heuristics, not exhaustive/semantic architecture inference. Local source references only; URLs, symlinks and fragments are explicit unavailable inputs. Explicit accepted profile/installer inputs are read by the existing loaders outside the scan budgets. Baseline identity and digest consistency do not authenticate its author. Actual Git-diff checks, transition execution, release/resource assessment and remote reporting remain later increments. Local evidence covers Python 3.12; full e2e/toolchain, Python 3.11, Windows and live agent/provider sessions were not run. Appendix B rules were reused, and the previously rejected external diff export was not retried.
+- **Delivery:** implementation and plan are ready for the standing commit/push/PR instruction; record the PR link and head after creation. No consumer install was applied to the GovKit source repository.
+
 ### Decision log
 
 | Date | Decision | Basis |
@@ -724,6 +736,7 @@ Next ready action:
 | 2026-09-23 | Use this file as execution source of truth | Explicit user request |
 | 2026-09-23 | Use a test-first process for every implementation increment | Explicit user request; record failing tests before implementation and passing evidence afterward |
 | 2026-09-23 | Commit, push and create a PR whenever an increment is finished and verified | Explicit standing user instruction; no additional commit/PR prompt required; merging remains separate |
+| 2026-09-23 | Separate bounded brownfield observations from accepted profiles and reuse protected installer previews | I05 tests and [ADR 0005](decisions/0005-brownfield-discovery.md); explicit baselines, scoped review and no new write path |
 | 2026-09-23 | Add a shared check/evidence protocol and explicit `govkit conform` report with conservative legacy adapters | I04 tests and [ADR 0004](decisions/0004-check-evidence-foundation.md); required unknowns cannot pass, pack execution is explicit, raw reports are not authenticated gate input |
 | 2026-09-23 | Extend existing manifests with a versioned pack contract, pin declared resources and render native skills from one source | I03 tests and [ADR 0003](decisions/0003-capability-pack-installation.md); offline replay, explicit local overrides and independently executable controls |
 | 2026-09-23 | Expose explicit profile preview/apply for two-file metadata materialization; retain legacy command behavior | I02 tests and [ADR 0002](decisions/0002-profile-materialization.md); profile configuration is not capability installation |
@@ -806,20 +819,22 @@ Evidence: [I03 execution record](#i03-execution-record--2026-09-23), demonstrate
 
 Source: [[Feature 8] Brownfield discovery and focused governance setup](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/178).
 
-- [ ] Discovery works on an ungoverned repository and writes no target files.
-- [ ] An existing repository with usable architecture/ADR/test/CI sources can adopt a selected capability without rewriting those sources or completing universal calibration.
-- [ ] Every proposed rule is traceable to an accepted source or a clearly marked decision awaiting confirmation.
-- [ ] Unrecognized stacks, including a representative Python MCP-server fixture, retain explicit unknowns instead of installing FastAPI assumptions as accepted architecture.
-- [ ] Retain/improve/migrate choices can be scoped to different components; installation does not refactor application code.
+- [x] Discovery works on an ungoverned repository and writes no target files.
+- [x] An existing repository with usable architecture/ADR/test/CI sources can adopt a selected capability without rewriting those sources or completing universal calibration.
+- [x] Every proposed rule is traceable to an accepted source or a clearly marked decision awaiting confirmation.
+- [x] Unrecognized stacks, including a representative Python MCP-server fixture, retain explicit unknowns instead of installing FastAPI assumptions as accepted architecture.
+- [x] Retain/improve/migrate choices can be scoped to different components; installation does not refactor application code.
 - [ ] A gradual-transition fixture distinguishes existing exceptions from new violations and states how the transition will be verified.
-- [ ] Unresolved relevant decisions block dependent work only; unrelated hypothetical cleanup does not prevent first useful work.
-- [ ] Proposed operations are reviewable; authorized writes respect edit protection and are idempotent.
-- [ ] Repeated discovery reviews only stale/newly relevant decisions and does not repeat the entire setup ceremony.
-- [ ] Examples cover a documented conventional service, a sparsely documented repo, an unfamiliar MCP server, and a monorepo with conflicting conventions.
+- [x] Unresolved relevant decisions block dependent work only; unrelated hypothetical cleanup does not prevent first useful work.
+- [x] Proposed operations are reviewable; authorized writes respect edit protection and are idempotent.
+- [x] Repeated discovery reviews only stale/newly relevant decisions and does not repeat the entire setup ceremony.
+- [x] Examples cover a documented conventional service, a sparsely documented repo, an unfamiliar MCP server, and a monorepo with conflicting conventions.
 
-- [ ] Repeat discovery detects representative repository/architecture/capability changes and supplies evidence-backed, scoped maintenance findings without modifying accepted policy.
-- [ ] A current-version repository with changed governance needs receives a focused review/capability recommendation; unchanged relevant evidence does not repeat the setup ceremony.
-- [ ] Incomplete or conflicting change evidence remains explicit, and a changed observation is not automatically treated as a violation or accepted replacement architecture.
+- [x] Repeat discovery detects representative repository/architecture/capability changes and supplies evidence-backed, scoped maintenance findings without modifying accepted policy.
+- [x] A current-version repository with changed governance needs receives a focused review/capability recommendation; unchanged relevant evidence does not repeat the setup ceremony.
+- [x] Incomplete or conflicting change evidence remains explicit, and a changed observation is not automatically treated as a violation or accepted replacement architecture.
+
+Evidence: [I05 execution record](#i05-execution-record--2026-09-23). Twelve criteria are demonstrated locally; the transition fixture preserves scopes, existing exceptions and verification/exit references, but actual-change classification/enforcement remains I07. #178 stays open.
 
 ### Feature #179
 

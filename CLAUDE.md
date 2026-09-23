@@ -94,3 +94,7 @@ A change is rarely one file. Changing a schema means updating starter templates 
 ### Check and evidence foundation
 
 `cmd_conform.py` renders the report assembled by `conformance.py` through typed models, an explicit registry/runner and legacy/pack adapters. See [ADR 0004](plans/decisions/0004-check-evidence-foundation.md) and [check reports](docs/CONFORMANCE.md). Required unknown/skipped/unconfigured evidence cannot pass; a validated result file does not authenticate its origin. Keep runtime schemas and examples aligned. Default inspection is offline and read-only: never use the migrating legacy marker reader in this path. Preserve the legacy commands' behavior through injected external boundaries. Pack execution requires explicit opt-in and is not sandboxed. Actual-diff routing and maintenance are later increments.
+
+### Brownfield discovery
+
+`cmd_discover.py` renders bounded read-only observations from `discovery_scan.py` and decisions/previews from `discovery.py`. See [ADR 0005](plans/decisions/0005-brownfield-discovery.md) and [discovery](docs/BROWNFIELD_DISCOVERY.md). Observed docs/imports are not accepted policy; only explicit accepted profiles feed existing protected installers. Baselines are explicit caller-reviewed records, never written/accepted automatically. Incomplete/changed coverage cannot prove removal. Keep report schema, four bundled example repositories and runtime-only wheel smoke aligned. `maintenance_outcome()` uses I04's facts contract; actual diff/transition enforcement and integrated maintenance remain I07/I09.
