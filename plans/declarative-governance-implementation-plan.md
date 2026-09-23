@@ -1,6 +1,6 @@
 # Declarative governance implementation plan
 
-Status: I00 and I01 merged; I02 implemented and verified locally, awaiting review/integration for #144. I03 is next.
+Status: I00 and I01 merged; I02 delivered in PR #182, awaiting review/integration for #144. I03 is next.
 Plan version: 1.8.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
@@ -588,7 +588,7 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 |---|---|---|---|
 | I00 | complete | Merged as bfa4f76 through [PR #180](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/180); 16 failing shell regressions before fix → 74 ADR tests passing; fast suite 3496 passed, 2 skipped; hosted Tests run succeeded | #151 closed; I00 delivery complete |
 | I01 | complete | Merged as 941fe34 through [PR #181](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/181); 258 frozen selections; 284 focused tests; fast suite 3780 passed, 2 skipped; clean-wheel smoke and hosted Tests run passed; see I01 record | #143 closed; I01 delivery complete |
-| I02 | complete | Delivery branch feat/144-declarative-profiles on 941fe34; 51 focused tests; fast suite 3831 passed, 2 skipped; clean-wheel profile/legacy smoke plus 258 frozen selections; new CI step executed locally; see I02 record | Commit/PR authorized; record delivery link, then review/integrate #144 |
+| I02 | complete | Implementation 27871fa; [PR #182](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/182); 51 focused tests; fast suite 3831 passed, 2 skipped; clean-wheel profile/legacy smoke plus 258 frozen selections; new CI step executed locally; see I02 record | Review/integrate #144; hosted CI results not yet verified |
 | I03 | not started | I01 merged; I02 profile foundation verified locally | Start with failing pack descriptor/composition/lock tests after I02 review |
 | I04 | not started | — | Can establish protocol after I01 |
 | I05 | not started | — | Discovery after I02; installation integrates I03 |
@@ -604,11 +604,11 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 Current handoff:
 
 - Completed: I00 and I01 merged; I02's declarative profile contracts and protected metadata materialization verified locally.
-- Current increment: none; I02 is ready for review on feat/144-declarative-profiles, based on 941fe34. The user authorized committing and opening its PR. The I01 merge-status update is preserved.
+- Current increment: none; I02 is committed and pushed on feat/144-declarative-profiles, based on 941fe34, with [PR #182](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/182) open against main. Implementation commit: 27871fa. The I01 merge-status update is preserved.
 - Next increment: I03 (#145); begin test first with pack descriptors, composition, locks and resource installation, consuming I02's explicit configuration without treating metadata as installed-state evidence.
 - Open product input: FeaturePeers definition, representative team repos, pilot participants, and actual legacy-retirement release boundary. These do not block I03.
 - Delivery scope: this plan; profiles.py, profile_store.py, cmd_profile.py and CLI registration; runtime dependency promotion in pyproject.toml; paired profile/resolution schemas and three example pairs; three focused test files; profile guide, ADR 0002, README/CLAUDE; a baseline-check comment corrected for the dependency change; and the wheel CI profile smoke step. Legacy install/upgrade behavior, marker handling and edit protection remain unchanged.
-- Issue tracking: #151 and #143 are closed; #144's eleven acceptance items are demonstrated locally and await review/integration. #142 remains open with only its #143 feature item checked. Later feature and epic end-to-end acceptance items remain unchecked.
+- Issue tracking: #151 and #143 are closed; #144's eleven acceptance items are demonstrated locally and await review/integration through PR #182 (Fixes #144). #142 remains open with only its #143 feature item checked. Later feature and epic end-to-end acceptance items remain unchecked.
 - Next agent: inspect current state before changing the ledger; no assumption that the baseline commit is still HEAD.
 
 Use this record after each session:
@@ -670,7 +670,8 @@ Next ready action:
 - **Standards applied:** reused Appendix B's rules retrieved through Qodo. Runtime validators/shared services and typed inputs implement the domain/shared-helper rules; 2287160/2287161/2287159 keep command registration and inward dependencies; 2287157/2287176 preserve live bundled paths and real wheel verification; 2287166/2287173 protect project files and existing marker semantics; 2287168 is supported by runtime validation/replay of every example. ERROR 2297577/2297569/2297588 are supported by isolated explicit fixtures, real production resolver/CLI execution with only I/O failure seams substituted, and programmatic assertions. No external Qodo review submission was retried.
 - **Worktree fingerprint:** SHA-256 `2a4036ffc6008ae472e05112aa4d45342054e51c7cac663ed5979c78d022ac01`, computed over compact sorted-key JSON mapping each of the 22 non-plan changed/new delivery paths to its file-content SHA-256. The execution plan is excluded to avoid self-reference.
 - **Pre-PR verification:** confirmed the implementation fingerprint matches the tested worktree, the 23 delivery paths contain no unrelated changes, whitespace checks pass, and remote main still points to 941fe34. Only plan delivery metadata changed after validation, so the passing implementation checks were not repeated. No external Qodo submission was retried.
-- **Limits:** local Python 3.12 only; full e2e/toolchain, Python 3.11, Windows and hosted I02 CI were not run. Accepted references remain caller assertions. Workflow conditions and maintenance/version constraints are declarations for later consumers, not executed routing/assessment. Full scope-overlap/exception enforcement, pack availability/installation, migration and conformance remain in their owning increments. The two-file writer offers per-file atomic replacement and caught-failure rollback, not a concurrent-writer transaction or crash-recovery journal.
+- **Delivery:** at the user's request, committed the implementation and plan as `27871fa7cd77b6d3db5b3061f2f9e38177493d22`, pushed `feat/144-declarative-profiles`, and opened [PR #182](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/182) against main with `Fixes #144`. This plan-link follow-up changes delivery metadata only. #144 and #142 track the open PR; neither is closed by this delivery. Hosted CI results have not been verified.
+- **Limits:** local Python 3.12 only; full e2e/toolchain, Python 3.11 and Windows were not run locally; hosted I02 CI results have not been verified. Accepted references remain caller assertions. Workflow conditions and maintenance/version constraints are declarations for later consumers, not executed routing/assessment. Full scope-overlap/exception enforcement, pack availability/installation, migration and conformance remain in their owning increments. The two-file writer offers per-file atomic replacement and caught-failure rollback, not a concurrent-writer transaction or crash-recovery journal.
 - **Next:** review/integrate #144, then start I03's pack descriptor/composition/locking tests. Treat the new schemas and commands as public contracts; preserve runtime rejection, example parity/replay and packaged-resource verification when extending them.
 
 ### Decision log
