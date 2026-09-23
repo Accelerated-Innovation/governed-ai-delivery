@@ -1,0 +1,266 @@
+{
+  "govkit_version": "0.21.1",
+  "kind": "profile-resolution",
+  "plan": {
+    "integrations": {
+      "agent": "codex",
+      "ci": "github",
+      "project_type": "api",
+      "stack": null
+    },
+    "kind": "installation",
+    "observations": [],
+    "policy": {
+      "contracts": [
+        {
+          "scope": [
+            "service/"
+          ],
+          "source": {
+            "authority": "accepted",
+            "reference": "architecture/service.md"
+          }
+        }
+      ],
+      "required_checks": [
+        {
+          "capability_id": null,
+          "id": "security",
+          "reasons": [
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "decisions/team-policy.md"
+              },
+              "text": "Required by accepted project policy"
+            }
+          ]
+        },
+        {
+          "capability_id": "llm-evaluation",
+          "id": "evaluation",
+          "reasons": [
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "decisions/team-policy.md"
+              },
+              "text": "Required by accepted project policy"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "authority": "accepted",
+        "reference": "decisions/team-policy.md"
+      },
+      "transitions": []
+    },
+    "proposals": [],
+    "provenance": [
+      {
+        "details": {
+          "kind": "profile",
+          "schema_version": 1
+        },
+        "digest": "7289a4bc5baf0cdfa40a9eb895c0a18d02e421f71a3e2ef1afad0eff9671a82a",
+        "source": {
+          "authority": "accepted",
+          "reference": "decisions/governance-adoption.md"
+        }
+      }
+    ],
+    "repository_id": "existing-llm-service",
+    "schema_version": 1,
+    "selections": {
+      "artifacts": [],
+      "capabilities": [
+        {
+          "conflicts": [],
+          "id": "application-governance",
+          "reasons": [
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "decisions/governance-adoption.md"
+              },
+              "text": "Explicit desired capability"
+            }
+          ],
+          "requires": []
+        },
+        {
+          "conflicts": [],
+          "id": "llm-evaluation",
+          "reasons": [
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "decisions/governance-adoption.md"
+              },
+              "text": "Explicit desired capability"
+            }
+          ],
+          "requires": []
+        }
+      ],
+      "checks": [
+        {
+          "capability_id": null,
+          "id": "security",
+          "reasons": [
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "decisions/team-policy.md"
+              },
+              "text": "Required by accepted project policy"
+            },
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "decisions/team-policy.md"
+              },
+              "text": "Required by accepted policy"
+            }
+          ]
+        },
+        {
+          "capability_id": "llm-evaluation",
+          "id": "evaluation",
+          "reasons": [
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "decisions/team-policy.md"
+              },
+              "text": "Required by accepted project policy"
+            },
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "decisions/team-policy.md"
+              },
+              "text": "Required by accepted policy"
+            }
+          ]
+        }
+      ],
+      "unresolved": []
+    }
+  },
+  "profile": {
+    "capabilities": [
+      {
+        "id": "application-governance"
+      },
+      {
+        "id": "llm-evaluation"
+      }
+    ],
+    "integrations": {
+      "agent": "codex",
+      "ci": "github"
+    },
+    "maintenance": {
+      "allow_refresh": false,
+      "assessment_max_age_hours": 168,
+      "constraints": [
+        {
+          "channel": "stable",
+          "compatibility": ">=0.21,<1",
+          "component": "govkit",
+          "pin": "0.21.1",
+          "source_id": "approved"
+        }
+      ],
+      "metadata_max_age_hours": 24,
+      "sources": [
+        {
+          "channels": [
+            "stable"
+          ],
+          "id": "approved",
+          "url": "https://example.invalid/approved-releases.json"
+        }
+      ]
+    },
+    "policy": {
+      "contracts": [
+        {
+          "scope": [
+            "service/"
+          ],
+          "source": {
+            "authority": "accepted",
+            "reference": "architecture/service.md"
+          }
+        }
+      ],
+      "required_capabilities": [
+        "application-governance",
+        "llm-evaluation"
+      ],
+      "required_checks": [
+        {
+          "id": "security"
+        },
+        {
+          "capability_id": "llm-evaluation",
+          "id": "evaluation"
+        }
+      ],
+      "source": {
+        "authority": "accepted",
+        "reference": "decisions/team-policy.md"
+      },
+      "workflows": [
+        {
+          "additional_checks": [
+            "regression"
+          ],
+          "id": "small-change",
+          "source": {
+            "authority": "accepted",
+            "reference": "decisions/team-policy.md"
+          },
+          "when": [
+            "bounded-defect"
+          ]
+        },
+        {
+          "additional_checks": [
+            "evaluation"
+          ],
+          "id": "model-change",
+          "required_capabilities": [
+            "llm-evaluation"
+          ],
+          "source": {
+            "authority": "accepted",
+            "reference": "decisions/team-policy.md"
+          },
+          "when": [
+            "model-behavior"
+          ]
+        }
+      ]
+    },
+    "repository": {
+      "id": "existing-llm-service",
+      "project_type": "api",
+      "stack": null
+    },
+    "schema_version": 1,
+    "source": {
+      "authority": "accepted",
+      "reference": "decisions/governance-adoption.md"
+    }
+  },
+  "profile_digest": "7289a4bc5baf0cdfa40a9eb895c0a18d02e421f71a3e2ef1afad0eff9671a82a",
+  "release_metadata_status": "not-queried",
+  "schema_version": 1,
+  "unknowns": [
+    "stack"
+  ]
+}

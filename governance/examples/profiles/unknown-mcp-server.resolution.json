@@ -1,0 +1,159 @@
+{
+  "govkit_version": "0.21.1",
+  "kind": "profile-resolution",
+  "plan": {
+    "integrations": {
+      "agent": "claude-code",
+      "ci": null,
+      "project_type": null,
+      "stack": null
+    },
+    "kind": "installation",
+    "observations": [],
+    "policy": {
+      "contracts": [
+        {
+          "scope": [
+            "src/"
+          ],
+          "source": {
+            "authority": "accepted",
+            "reference": "CONTRIBUTING.md"
+          }
+        }
+      ],
+      "required_checks": [
+        {
+          "capability_id": null,
+          "id": "security",
+          "reasons": [
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "decisions/team-policy.md"
+              },
+              "text": "Required by accepted project policy"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "authority": "accepted",
+        "reference": "decisions/team-policy.md"
+      },
+      "transitions": []
+    },
+    "proposals": [],
+    "provenance": [
+      {
+        "details": {
+          "kind": "profile",
+          "schema_version": 1
+        },
+        "digest": "f2014508b6320d598ff18122b4db24a44b3dc413541eb06377e300eb96e1385b",
+        "source": {
+          "authority": "accepted",
+          "reference": "decisions/governance-adoption.md"
+        }
+      }
+    ],
+    "repository_id": "unfamiliar-mcp-server",
+    "schema_version": 1,
+    "selections": {
+      "artifacts": [],
+      "capabilities": [
+        {
+          "conflicts": [],
+          "id": "application-governance",
+          "reasons": [
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "decisions/governance-adoption.md"
+              },
+              "text": "Explicit desired capability"
+            }
+          ],
+          "requires": []
+        }
+      ],
+      "checks": [
+        {
+          "capability_id": null,
+          "id": "security",
+          "reasons": [
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "decisions/team-policy.md"
+              },
+              "text": "Required by accepted project policy"
+            },
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "decisions/team-policy.md"
+              },
+              "text": "Required by accepted policy"
+            }
+          ]
+        }
+      ],
+      "unresolved": []
+    }
+  },
+  "profile": {
+    "capabilities": [
+      {
+        "id": "application-governance"
+      }
+    ],
+    "integrations": {
+      "agent": "claude-code",
+      "ci": null
+    },
+    "maintenance": {
+      "allow_refresh": false
+    },
+    "policy": {
+      "contracts": [
+        {
+          "scope": [
+            "src/"
+          ],
+          "source": {
+            "authority": "accepted",
+            "reference": "CONTRIBUTING.md"
+          }
+        }
+      ],
+      "required_checks": [
+        {
+          "id": "security"
+        }
+      ],
+      "source": {
+        "authority": "accepted",
+        "reference": "decisions/team-policy.md"
+      }
+    },
+    "repository": {
+      "id": "unfamiliar-mcp-server",
+      "project_type": null,
+      "stack": null
+    },
+    "schema_version": 1,
+    "source": {
+      "authority": "accepted",
+      "reference": "decisions/governance-adoption.md"
+    }
+  },
+  "profile_digest": "f2014508b6320d598ff18122b4db24a44b3dc413541eb06377e300eb96e1385b",
+  "release_metadata_status": "not-queried",
+  "schema_version": 1,
+  "unknowns": [
+    "ci",
+    "project_type",
+    "stack"
+  ]
+}

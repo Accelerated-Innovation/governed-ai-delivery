@@ -33,12 +33,13 @@ requires-python = ">=3.11"
 
 dependencies = [
     "pyyaml>=6.0",
+    "jsonschema>=4.0,<5",
 ]
 
 [project.optional-dependencies]
 # Baseline validation parses Gherkin with the Cucumber team's own parser.
 # Optional rather than a runtime dependency: the installer's whole runtime
-# surface is pyyaml, and only `govkit validate --baseline` needs this. It is
+# surface validates profiles with PyYAML/jsonschema; only `govkit validate --baseline` needs this. It is
 # not a soft dependency in behaviour — cli/spec_closure.py raises
 # ParserUnavailable rather than falling back to a shallow parse, which would
 # mis-compute the closure and answer confidently with the wrong verdict.
@@ -47,7 +48,6 @@ baseline = [
 ]
 test = [
     "pytest>=8.0",
-    "jsonschema>=4.0",
     # The baseline tests parse real Gherkin; without this they do not skip,
     # they raise ParserUnavailable and turn CI red on a clean checkout.
     "gherkin-official>=32,<43",

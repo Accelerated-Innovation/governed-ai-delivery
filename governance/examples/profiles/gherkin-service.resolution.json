@@ -1,0 +1,331 @@
+{
+  "govkit_version": "0.21.1",
+  "kind": "profile-resolution",
+  "plan": {
+    "integrations": {
+      "agent": "copilot",
+      "ci": "azure",
+      "project_type": "api",
+      "stack": "existing-framework"
+    },
+    "kind": "installation",
+    "observations": [],
+    "policy": {
+      "contracts": [],
+      "required_checks": [
+        {
+          "capability_id": null,
+          "id": "security",
+          "reasons": [
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "policies/delivery.md"
+              },
+              "text": "Required by accepted project policy"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "authority": "accepted",
+        "reference": "policies/delivery.md"
+      },
+      "transitions": [
+        {
+          "applies_to": "all",
+          "current": [
+            {
+              "scope": [
+                "services/core/"
+              ],
+              "source": {
+                "authority": "accepted",
+                "reference": "architecture/core.md"
+              }
+            }
+          ],
+          "exceptions": [],
+          "id": "retain-core",
+          "mode": "retain",
+          "scope": [
+            "services/core/"
+          ],
+          "source": {
+            "authority": "accepted",
+            "reference": "adr/core-boundary.md"
+          },
+          "target": []
+        },
+        {
+          "applies_to": "new-and-changed",
+          "current": [
+            {
+              "scope": [
+                "services/api/"
+              ],
+              "source": {
+                "authority": "accepted",
+                "reference": "architecture/api-current.md"
+              }
+            }
+          ],
+          "exceptions": [
+            {
+              "expires_at": "2026-12-31",
+              "id": "old-adapter",
+              "scope": [
+                "services/api/old/"
+              ],
+              "source": {
+                "authority": "accepted",
+                "reference": "adr/api-exception.md"
+              }
+            }
+          ],
+          "id": "improve-api",
+          "mode": "improve",
+          "scope": [
+            "services/api/"
+          ],
+          "source": {
+            "authority": "accepted",
+            "reference": "adr/api-ports.md"
+          },
+          "target": [
+            {
+              "scope": [
+                "services/api/new/"
+              ],
+              "source": {
+                "authority": "accepted",
+                "reference": "architecture/api-target.md"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "proposals": [],
+    "provenance": [
+      {
+        "details": {
+          "kind": "profile",
+          "schema_version": 1
+        },
+        "digest": "619ccb4350b6a255288571cfdad3176b9fb95396b59bf680c2d29d195ef0f9c6",
+        "source": {
+          "authority": "accepted",
+          "reference": "adr/governance.md"
+        }
+      }
+    ],
+    "repository_id": "gherkin-service",
+    "schema_version": 1,
+    "selections": {
+      "artifacts": [],
+      "capabilities": [
+        {
+          "conflicts": [],
+          "id": "application-governance",
+          "reasons": [
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "adr/governance.md"
+              },
+              "text": "Explicit desired capability"
+            }
+          ],
+          "requires": []
+        },
+        {
+          "conflicts": [],
+          "id": "gherkin-delivery",
+          "reasons": [
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "adr/governance.md"
+              },
+              "text": "Explicit desired capability"
+            }
+          ],
+          "requires": [
+            "application-governance"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "capability_id": null,
+          "id": "security",
+          "reasons": [
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "policies/delivery.md"
+              },
+              "text": "Required by accepted project policy"
+            },
+            {
+              "source": {
+                "authority": "accepted",
+                "reference": "policies/delivery.md"
+              },
+              "text": "Required by accepted policy"
+            }
+          ]
+        }
+      ],
+      "unresolved": []
+    }
+  },
+  "profile": {
+    "capabilities": [
+      {
+        "id": "application-governance"
+      },
+      {
+        "id": "gherkin-delivery",
+        "requires": [
+          "application-governance"
+        ]
+      }
+    ],
+    "integrations": {
+      "agent": "copilot",
+      "ci": "azure"
+    },
+    "policy": {
+      "required_checks": [
+        {
+          "id": "security"
+        }
+      ],
+      "source": {
+        "authority": "accepted",
+        "reference": "policies/delivery.md"
+      },
+      "transitions": [
+        {
+          "applies_to": "all",
+          "current": [
+            {
+              "scope": [
+                "services/core/"
+              ],
+              "source": {
+                "authority": "accepted",
+                "reference": "architecture/core.md"
+              }
+            }
+          ],
+          "id": "retain-core",
+          "mode": "retain",
+          "scope": [
+            "services/core/"
+          ],
+          "source": {
+            "authority": "accepted",
+            "reference": "adr/core-boundary.md"
+          },
+          "target": []
+        },
+        {
+          "applies_to": "new-and-changed",
+          "current": [
+            {
+              "scope": [
+                "services/api/"
+              ],
+              "source": {
+                "authority": "accepted",
+                "reference": "architecture/api-current.md"
+              }
+            }
+          ],
+          "exceptions": [
+            {
+              "expires_at": "2026-12-31",
+              "id": "old-adapter",
+              "scope": [
+                "services/api/old/"
+              ],
+              "source": {
+                "authority": "accepted",
+                "reference": "adr/api-exception.md"
+              }
+            }
+          ],
+          "id": "improve-api",
+          "mode": "improve",
+          "scope": [
+            "services/api/"
+          ],
+          "source": {
+            "authority": "accepted",
+            "reference": "adr/api-ports.md"
+          },
+          "target": [
+            {
+              "scope": [
+                "services/api/new/"
+              ],
+              "source": {
+                "authority": "accepted",
+                "reference": "architecture/api-target.md"
+              }
+            }
+          ]
+        }
+      ],
+      "workflows": [
+        {
+          "additional_checks": [
+            "regression"
+          ],
+          "id": "small-change",
+          "source": {
+            "authority": "accepted",
+            "reference": "policies/delivery.md"
+          },
+          "when": [
+            "bounded-defect"
+          ]
+        },
+        {
+          "additional_checks": [
+            "acceptance-tests"
+          ],
+          "id": "full-feature",
+          "required_capabilities": [
+            "gherkin-delivery"
+          ],
+          "source": {
+            "authority": "accepted",
+            "reference": "policies/delivery.md"
+          },
+          "when": [
+            "public-contract",
+            "substantial-feature"
+          ]
+        }
+      ]
+    },
+    "repository": {
+      "id": "gherkin-service",
+      "project_type": "api",
+      "stack": "existing-framework"
+    },
+    "schema_version": 1,
+    "source": {
+      "authority": "accepted",
+      "reference": "adr/governance.md"
+    }
+  },
+  "profile_digest": "619ccb4350b6a255288571cfdad3176b9fb95396b59bf680c2d29d195ef0f9c6",
+  "release_metadata_status": "not-queried",
+  "schema_version": 1,
+  "unknowns": []
+}

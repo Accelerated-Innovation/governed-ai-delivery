@@ -1,0 +1,47 @@
+schema_version: 1
+source: {reference: adr/governance.md, authority: accepted}
+repository: {id: gherkin-service, project_type: api, stack: existing-framework}
+integrations: {agent: copilot, ci: azure}
+capabilities:
+  - {id: application-governance}
+  - id: gherkin-delivery
+    requires: [application-governance]
+policy:
+  source: {reference: policies/delivery.md, authority: accepted}
+  required_checks: [{id: security}]
+  workflows:
+    - id: small-change
+      source: {reference: policies/delivery.md, authority: accepted}
+      when: [bounded-defect]
+      additional_checks: [regression]
+    - id: full-feature
+      source: {reference: policies/delivery.md, authority: accepted}
+      when: [public-contract, substantial-feature]
+      required_capabilities: [gherkin-delivery]
+      additional_checks: [acceptance-tests]
+  transitions:
+    - id: retain-core
+      source: {reference: adr/core-boundary.md, authority: accepted}
+      scope: [services/core/]
+      mode: retain
+      current:
+        - source: {reference: architecture/core.md, authority: accepted}
+          scope: [services/core/]
+      target: []
+      applies_to: all
+    - id: improve-api
+      source: {reference: adr/api-ports.md, authority: accepted}
+      scope: [services/api/]
+      mode: improve
+      current:
+        - source: {reference: architecture/api-current.md, authority: accepted}
+          scope: [services/api/]
+      target:
+        - source: {reference: architecture/api-target.md, authority: accepted}
+          scope: [services/api/new/]
+      applies_to: new-and-changed
+      exceptions:
+        - id: old-adapter
+          source: {reference: adr/api-exception.md, authority: accepted}
+          scope: [services/api/old/]
+          expires_at: 2026-12-31
