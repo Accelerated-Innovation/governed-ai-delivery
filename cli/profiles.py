@@ -8,17 +8,15 @@ Workflow and maintenance declarations do not execute routing, checks or lookups.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from pathlib import Path
 from urllib.parse import urlsplit
 
-import yaml
-from jsonschema import Draft202012Validator, FormatChecker
+from packaging.version import InvalidVersion, Version
 
-from . import paths, version
+from . import version
 from .resolution import resolve_repository
 from .resolution_models import (
     AcceptedPolicy,
@@ -39,75 +37,19 @@ from .resolution_models import (
     SourceRef,
     UnresolvedDecision,
 )
-
-
-class ProfileError(ValueError):
-    """Invalid, conflicting or unsafe profile/record input."""
-
-
-def canonical_json(value: object) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
-
-
-def content_digest(content: bytes) -> str:
-    return hashlib.sha256(content).hexdigest()
-
-
-class _ProfileLoader(yaml.SafeLoader):
-    """JSON-shaped YAML only: no aliases, duplicate keys or implicit dates."""
-
-    yaml_implicit_resolvers = {
-        key: [(tag, regex) for tag, regex in values if tag != "tag:yaml.org,2002:timestamp"]
-        for key, values in yaml.SafeLoader.yaml_implicit_resolvers.items()
-    }
-
-    def compose_node(self, parent, index):
-        if self.check_event(yaml.AliasEvent):
-            raise ProfileError("YAML aliases are not allowed in a profile or resolution record")
-        return super().compose_node(parent, index)
-
-    def construct_mapping(self, node, deep=False):
-        result = {}
-        for key_node, value_node in node.value:
-            key = self.construct_object(key_node, deep=deep)
-            if not isinstance(key, str):
-                raise ProfileError("Object keys must be strings")
-            if key in result:
-                raise ProfileError(f"Duplicate YAML/JSON key: {key}")
-            result[key] = self.construct_object(value_node, deep=deep)
-        return result
-
-
-def _read_document(path: Path) -> dict:
-    try:
-        value = yaml.load(path.read_text(encoding="utf-8"), Loader=_ProfileLoader)
-        # Reject YAML-specific objects and non-finite values before validation.
-        canonical_json(value)
-        return value
-    except (OSError, UnicodeError, yaml.YAMLError, TypeError, ValueError, RecursionError) as exc:
-        raise ProfileError(f"{path}: {exc}") from exc
-
-
-def _validate(document: dict, schema_name: str) -> None:
-    try:
-        canonical_json(document)
-        schema = json.loads(
-            (paths.GOVERNANCE_DIR / "schemas" / f"{schema_name}.schema.json").read_text(
-                encoding="utf-8"
-            )
-        )
-    except (OSError, UnicodeError, TypeError, ValueError, RecursionError) as exc:
-        raise ProfileError(f"Cannot validate {schema_name}: {exc}") from exc
-    # Bundled schemas use local $defs only; validation never retrieves schemas.
-    errors = list(
-        Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(document)
-    )
-    if errors:
-        details = []
-        for error in errors:
-            location = "/" + "/".join(str(part) for part in error.absolute_path)
-            details.append(f"{location}: {error.message}")
-        raise ProfileError(f"Invalid {schema_name}: " + "; ".join(details))
+from .schema_validation import (
+    DocumentError as ProfileError,
+)
+from .schema_validation import (
+    canonical_json,
+    content_digest,
+)
+from .schema_validation import (
+    read_document as _read_document,
+)
+from .schema_validation import (
+    validate_document as _validate,
+)
 
 
 def _source(data: dict) -> SourceRef:
@@ -238,6 +180,12 @@ def parse_profile(document: dict) -> ProjectProfile:
     policy_data = document["policy"]
     maintenance_data = document.get("maintenance", {})
     _unique(document["capabilities"], "capabilities")
+    _unique(document.get("packs", []), "packs")
+    for pin in document.get("packs", []):
+        try:
+            Version(pin["version"])
+        except InvalidVersion as exc:
+            raise ProfileError(f"Invalid pack version: {pin['version']}") from exc
     for name in ("required_checks", "workflows", "transitions"):
         _unique(policy_data.get(name, []), f"policy/{name}")
     for transition in policy_data.get("transitions", []):

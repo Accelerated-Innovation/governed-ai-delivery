@@ -1,0 +1,9 @@
+{
+  "cases": [
+    {
+      "id": "demonstration",
+      "expected": "hello",
+      "actual": "hello"
+    }
+  ]
+}

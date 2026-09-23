@@ -1,0 +1,18 @@
+id: gherkin-delivery
+name: Gherkin Delivery
+version: 1.0.0
+govkit_min_version: 0.21.1
+extension_type: skills
+contract_sets: []
+skills:
+- path: skills/gherkin-delivery
+  install_as: gherkin-delivery
+capability_pack:
+  schema_version: 1
+  provides:
+  - gherkin-delivery
+  requires: []
+  conflicts: []
+  resources:
+  - path: README.md
+    kind: advisory

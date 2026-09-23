@@ -1,0 +1,18 @@
+id: application-governance
+name: Application Governance
+version: 1.0.0
+govkit_min_version: 0.21.1
+extension_type: skills
+contract_sets: []
+skills:
+- path: skills/application-governance
+  install_as: application-governance
+capability_pack:
+  schema_version: 1
+  provides:
+  - application-governance
+  requires: []
+  conflicts: []
+  resources:
+  - path: README.md
+    kind: advisory
