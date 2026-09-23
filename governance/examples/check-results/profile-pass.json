@@ -1,0 +1,247 @@
+{
+  "exit_code": 0,
+  "govkit_version": "0.21.1",
+  "identity": {
+    "change_digest": null,
+    "dirty_digest": null,
+    "observed_at": "2026-09-23T12:00:00Z",
+    "pack_lock_digest": null,
+    "profile_digest": "9d43d90fd8d3b39e3aa3a2c9fd4b3965fbb38a0b2ccf528257abfee1c96b2bea",
+    "repository": "example-service",
+    "resolution_digest": null,
+    "revision": "example-revision"
+  },
+  "kind": "check-results",
+  "limitations": [
+    "Result consistency does not authenticate policy or evidence origin.",
+    "Only the named checks and scopes were assessed; change routing and maintenance assessment are not performed."
+  ],
+  "results": [
+    {
+      "evidence": [],
+      "execution": "not-run",
+      "findings": [
+        {
+          "applicability_reason": "Verify selected installed resources without executing controls",
+          "category": "check",
+          "check_id": "govkit:pack-lock",
+          "code": "not-applicable",
+          "evidence": [],
+          "id": "finding:2f90ce45f3517cfc7fdbb34ad826761a8d4b37268fbc9aaa76fd3e0ebfd00c71",
+          "location": null,
+          "message": "No pack installation is selected",
+          "scope": [
+            "."
+          ],
+          "severity": "warning",
+          "source_policy": ".govkit/profile.yaml",
+          "suggested_action": "Resolve the finding and rerun the check."
+        }
+      ],
+      "id": "govkit:pack-lock",
+      "reason": "Verify selected installed resources without executing controls",
+      "required": false,
+      "scope": [
+        "."
+      ],
+      "source_policy": ".govkit/profile.yaml",
+      "state": "not-applicable",
+      "summary": "No pack installation is selected"
+    },
+    {
+      "evidence": [
+        {
+          "digest": "bae9b9a3b39d387592fd51e02b30b17930947137267b0ce9f362912224f23bc6",
+          "limitations": [
+            "Accepted authority is the author's assertion; referenced policy content is not authenticated or enforced here."
+          ],
+          "method": "profile-validation",
+          "origin": "local-check",
+          "scope": [
+            ".govkit/profile.yaml"
+          ],
+          "source": ".govkit/profile.yaml"
+        }
+      ],
+      "execution": "executed",
+      "findings": [
+        {
+          "applicability_reason": "Validate the accepted declarative configuration",
+          "category": "check",
+          "check_id": "govkit:profile",
+          "code": "pass",
+          "evidence": [
+            {
+              "digest": "bae9b9a3b39d387592fd51e02b30b17930947137267b0ce9f362912224f23bc6",
+              "limitations": [
+                "Accepted authority is the author's assertion; referenced policy content is not authenticated or enforced here."
+              ],
+              "method": "profile-validation",
+              "origin": "local-check",
+              "scope": [
+                ".govkit/profile.yaml"
+              ],
+              "source": ".govkit/profile.yaml"
+            }
+          ],
+          "id": "finding:61bf1ad4eaa74f5e89a9dbde7f7dcbe2b1865d20029196f92aa3b23489c11bb4",
+          "location": null,
+          "message": "Profile and available resolution metadata checked",
+          "scope": [
+            "."
+          ],
+          "severity": "info",
+          "source_policy": ".govkit/profile.yaml",
+          "suggested_action": "Review the declared scope and evidence."
+        }
+      ],
+      "id": "govkit:profile",
+      "reason": "Validate the accepted declarative configuration",
+      "required": true,
+      "scope": [
+        "."
+      ],
+      "source_policy": ".govkit/profile.yaml",
+      "state": "pass",
+      "summary": "Profile and available resolution metadata checked"
+    },
+    {
+      "evidence": [],
+      "execution": "not-run",
+      "findings": [
+        {
+          "applicability_reason": "Inspect existing legacy artifacts without adopting a workflow",
+          "category": "check",
+          "check_id": "legacy:approval-policy",
+          "code": "not-applicable",
+          "evidence": [],
+          "id": "finding:4019d83cc918d449f1fed6e27bedc440aaa5c1773d8cd74f20c431a614cac5fe",
+          "location": null,
+          "message": "No ADR approval policy or ADRs configured",
+          "scope": [
+            "."
+          ],
+          "severity": "warning",
+          "source_policy": ".govkit/marker.json",
+          "suggested_action": "Resolve the finding and rerun the check."
+        }
+      ],
+      "id": "legacy:approval-policy",
+      "reason": "Inspect existing legacy artifacts without adopting a workflow",
+      "required": false,
+      "scope": [
+        "."
+      ],
+      "source_policy": ".govkit/marker.json",
+      "state": "not-applicable",
+      "summary": "No ADR approval policy or ADRs configured"
+    },
+    {
+      "evidence": [],
+      "execution": "not-run",
+      "findings": [
+        {
+          "applicability_reason": "Inspect existing legacy artifacts without adopting a workflow",
+          "category": "check",
+          "check_id": "legacy:doctor",
+          "code": "not-applicable",
+          "evidence": [],
+          "id": "finding:0a785cc23674dd86c4aeafdc2221ffa1fafc76cec6bc3667c92b0488bd288f30",
+          "location": null,
+          "message": "Legacy doctor requires an installation marker",
+          "scope": [
+            "."
+          ],
+          "severity": "warning",
+          "source_policy": ".govkit/marker.json",
+          "suggested_action": "Resolve the finding and rerun the check."
+        }
+      ],
+      "id": "legacy:doctor",
+      "reason": "Inspect existing legacy artifacts without adopting a workflow",
+      "required": false,
+      "scope": [
+        "."
+      ],
+      "source_policy": ".govkit/marker.json",
+      "state": "not-applicable",
+      "summary": "Legacy doctor requires an installation marker"
+    },
+    {
+      "evidence": [],
+      "execution": "not-run",
+      "findings": [
+        {
+          "applicability_reason": "Inspect existing legacy artifacts without adopting a workflow",
+          "category": "check",
+          "check_id": "legacy:extensions",
+          "code": "not-applicable",
+          "evidence": [],
+          "id": "finding:3c5d353784044cf1ea74a91cf1c4e725d25798c72f7c4bf998c7cfd94b858f26",
+          "location": null,
+          "message": "No legacy extensions configured",
+          "scope": [
+            "."
+          ],
+          "severity": "warning",
+          "source_policy": ".govkit/marker.json",
+          "suggested_action": "Resolve the finding and rerun the check."
+        }
+      ],
+      "id": "legacy:extensions",
+      "reason": "Inspect existing legacy artifacts without adopting a workflow",
+      "required": false,
+      "scope": [
+        "."
+      ],
+      "source_policy": ".govkit/marker.json",
+      "state": "not-applicable",
+      "summary": "No legacy extensions configured"
+    },
+    {
+      "evidence": [],
+      "execution": "not-run",
+      "findings": [
+        {
+          "applicability_reason": "Inspect existing legacy artifacts without adopting a workflow",
+          "category": "check",
+          "check_id": "legacy:features",
+          "code": "not-applicable",
+          "evidence": [],
+          "id": "finding:4101c5d555eff1add3d2f124836b746111de9be722e305842578a1de1e419475",
+          "location": null,
+          "message": "Legacy feature checks require explicit legacy configuration",
+          "scope": [
+            "."
+          ],
+          "severity": "warning",
+          "source_policy": ".govkit/marker.json",
+          "suggested_action": "Resolve the finding and rerun the check."
+        }
+      ],
+      "id": "legacy:features",
+      "reason": "Inspect existing legacy artifacts without adopting a workflow",
+      "required": false,
+      "scope": [
+        "."
+      ],
+      "source_policy": ".govkit/marker.json",
+      "state": "not-applicable",
+      "summary": "Legacy feature checks require explicit legacy configuration"
+    }
+  ],
+  "schema_version": 1,
+  "state": "pass",
+  "summary": {
+    "executed": 1,
+    "fail": 0,
+    "not-applicable": 5,
+    "pass": 1,
+    "required": 1,
+    "required_satisfied": 1,
+    "skipped": 0,
+    "unknown": 0,
+    "waived": 0,
+    "warn": 0
+  }
+}

@@ -40,6 +40,7 @@ defect class PR #133 existed to fix.
 """
 
 import re
+import stat
 import subprocess
 from pathlib import Path
 
@@ -93,6 +94,47 @@ def discover_adrs(target: Path) -> list[Path]:
     except OSError:
         return []
     return [p for p in found if p.is_file() and p.name != TEMPLATE_NAME]
+
+
+def discover_adrs_strict(target: Path) -> list[Path]:
+    """The same ADR layout, with unreadable inventories propagated to callers.
+
+    Avoid glob's permission-error suppression: a conformance adapter must not
+    report a verified empty inventory when a directory could not be listed.
+    """
+    def mode(path):
+        try:
+            return path.stat().st_mode
+        except FileNotFoundError:
+            # A dangling link is an unavailable inventory, not an absent one.
+            try:
+                path.lstat()
+            except FileNotFoundError:
+                return 0
+            raise
+
+    def children(path):
+        path_mode = mode(path)
+        if not path_mode:
+            return []
+        if not stat.S_ISDIR(path_mode):
+            raise NotADirectoryError(path)
+        if not path.resolve().is_relative_to(target.resolve()):
+            raise OSError("ADR inventory resolves outside the assessed repository")
+        return list(path.iterdir())
+
+    found = []
+    for area in children(target / "docs"):
+        if not stat.S_ISDIR(mode(area)):
+            continue
+        for directory in children(area / "architecture"):
+            if directory.name != "ADR":
+                continue
+            for record in children(directory):
+                if record.suffix == ".md" and record.name != TEMPLATE_NAME:
+                    if stat.S_ISREG(mode(record)):
+                        found.append(record)
+    return sorted(found)
 
 
 def parse_adr_status(text: str) -> str | None:
@@ -155,12 +197,12 @@ def is_govkit_authored(text: str) -> bool:
     return compute_body_hash(text) == fields["hash"]
 
 
-def _load_policy(target: Path) -> tuple[dict | None, list[str]]:
+def _load_policy(target: Path, *, read_text=None) -> tuple[dict | None, list[str]]:
     """Read the policy. Returns (data, issues); data is None when unusable."""
     path = target / POLICY_REL
     rel = POLICY_REL.as_posix()
     try:
-        raw = path.read_text(encoding="utf-8")
+        raw = read_text(path) if read_text is not None else path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
         return None, [f"{rel} could not be read: {exc}"]
     try:
@@ -239,13 +281,15 @@ def _in_scope(rel: str, prefixes: list) -> bool:
     return any(rel.startswith(p) for p in prefixes if isinstance(p, str))
 
 
-def check_approval_policy(target: Path) -> tuple[list[str], list[str]]:
+def check_approval_policy(
+    target: Path, *, validate_schema=None, adrs=None, read_text=None
+) -> tuple[list[str], list[str]]:
     """Return (issues, warnings) for the target's ADR approval attestation.
 
     Silent when the repo has neither ADRs nor a policy — a repo that never
     adopted this sees no change, the same contract the defect lane carries.
     """
-    adrs = discover_adrs(target)
+    adrs = discover_adrs(target) if adrs is None else adrs
     policy_path = target / POLICY_REL
     rel = POLICY_REL.as_posix()
 
@@ -259,11 +303,11 @@ def check_approval_policy(target: Path) -> tuple[list[str], list[str]]:
             "(run `govkit upgrade` to install it)"
         ]
 
-    policy, issues = _load_policy(target)
+    policy, issues = _load_policy(target, read_text=read_text)
     if policy is None:
         return issues, []
 
-    schema_issues, warnings = _validate_against_schema(target)
+    schema_issues, warnings = (validate_schema or _validate_against_schema)(target)
     if schema_issues:
         return schema_issues, warnings
 
@@ -275,18 +319,20 @@ def check_approval_policy(target: Path) -> tuple[list[str], list[str]]:
             "here; a reviewer does not gain it (AUTHORITY_AND_APPROVAL_CONTRACT.md)"
         )
 
-    warnings += _check_adrs(target, adrs, policy.get("require_approval_for") or [])
+    warnings += _check_adrs(
+        target, adrs, policy.get("require_approval_for") or [], read_text=read_text
+    )
     return [], warnings
 
 
-def _check_adrs(target: Path, adrs: list[Path], scope: list) -> list[str]:
+def _check_adrs(target: Path, adrs: list[Path], scope: list, *, read_text=None) -> list[str]:
     warnings = []
     for path in adrs:
         rel = path.relative_to(target).as_posix()
         if not _in_scope(rel, scope):
             continue
         try:
-            text = path.read_text(encoding="utf-8")
+            text = read_text(path) if read_text is not None else path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as exc:
             warnings.append(f"{rel} could not be read: {exc}")
             continue

@@ -220,7 +220,7 @@ def check_nfrs_sections(feature_dir: Path) -> tuple[CheckStatus, str]:
 _NO_SCHEMA_REASON = "no eval_criteria schema installed for this project type"
 
 
-def _resolve_eval_schema(feature_dir: Path) -> tuple[Path | None, str]:
+def _resolve_eval_schema(feature_dir: Path, *, marker_reader=None) -> tuple[Path | None, str]:
     """Resolve the installed eval_criteria schema governing this feature.
 
     Returns (schema, "") when resolved, or (None, reason) when instance
@@ -236,7 +236,7 @@ def _resolve_eval_schema(feature_dir: Path) -> tuple[Path | None, str]:
     """
     ancestors = list(feature_dir.parents)[:3]
     for ancestor in ancestors:
-        marker = read_govkit_marker(ancestor)
+        marker = (marker_reader or read_govkit_marker)(ancestor)
         if not marker:
             continue
         area = TYPE_AREA.get((marker.get("options") or {}).get("type"))
@@ -263,7 +263,9 @@ def _resolve_eval_schema(feature_dir: Path) -> tuple[Path | None, str]:
     return None, _NO_SCHEMA_REASON
 
 
-def check_eval_criteria(feature_dir: Path) -> tuple[CheckStatus, str]:
+def check_eval_criteria(
+    feature_dir: Path, *, marker_reader=None, validate_instance=None
+) -> tuple[CheckStatus, str]:
     """Check eval_criteria.yaml required keys, then validate the instance
     against the installed schema via check-jsonschema.
 
@@ -282,9 +284,11 @@ def check_eval_criteria(feature_dir: Path) -> tuple[CheckStatus, str]:
     if issues:
         return CheckStatus.FAIL, f"{_EVAL_CRITERIA_YAML}: {'; '.join(issues)}"
 
-    schema, skip_reason = _resolve_eval_schema(feature_dir)
+    schema, skip_reason = _resolve_eval_schema(feature_dir, marker_reader=marker_reader)
     if schema is None:
         return CheckStatus.WARN, f"{_EVAL_CRITERIA_YAML} structure OK — {skip_reason}; instance validation skipped"
+    if validate_instance is not None:
+        return validate_instance(schema, path)
     try:
         result = subprocess.run(
             ["check-jsonschema", "--schemafile", str(schema), str(path)],
@@ -666,7 +670,9 @@ def _data_prediction_not_required(feature_dir: Path) -> tuple[CheckStatus, str]:
     )
 
 
-def _build_checks(level: str, marker_type: str | None = None) -> tuple[list[str], list]:
+def _build_checks(
+    level: str, marker_type: str | None = None, *, marker_reader=None, validate_instance=None
+) -> tuple[list[str], list]:
     """Return the artifact list and check functions for a given level.
 
     L3 is handled by an early no-op return in run_validation() and never reaches
@@ -677,6 +683,10 @@ def _build_checks(level: str, marker_type: str | None = None) -> tuple[list[str]
     prediction_check = (
         _data_prediction_not_required if marker_type == "data" else check_plan_eval_prediction
     )
+    evaluation_check = check_eval_criteria
+    if marker_reader is not None or validate_instance is not None:
+        def evaluation_check(fd):
+            return check_eval_criteria(fd, marker_reader=marker_reader, validate_instance=validate_instance)
     artifacts = L4_REQUIRED_ARTIFACTS
     if level == "5":
         checks = [
@@ -684,7 +694,7 @@ def _build_checks(level: str, marker_type: str | None = None) -> tuple[list[str]
             check_gherkin_syntax,
             check_nfrs_no_tbd,
             check_nfrs_sections,
-            check_eval_criteria,
+            evaluation_check,
             prediction_check,
             check_gherkin_nfr_coverage,
             check_llm_nfrs,
@@ -700,7 +710,7 @@ def _build_checks(level: str, marker_type: str | None = None) -> tuple[list[str]
             check_gherkin_syntax,
             check_nfrs_no_tbd,
             check_nfrs_sections,
-            check_eval_criteria,
+            evaluation_check,
             prediction_check,
             check_gherkin_nfr_coverage,
         ]

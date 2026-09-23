@@ -325,6 +325,12 @@ jobs:
           cd /tmp
           /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_pack_smoke.py"
 
+      - name: Check reports and explicit controls work from the wheel
+        run: |
+          set -euo pipefail
+          cd /tmp
+          /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_check_smoke.py"
+
       - name: Apply against a fresh tmp dir from the wheel install
         # End-to-end: the wheel-installed `govkit apply` writes the marker,
         # the stack overlay docs, the editable header, and the skill_context.

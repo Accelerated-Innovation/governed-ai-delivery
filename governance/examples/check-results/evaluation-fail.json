@@ -1,0 +1,330 @@
+{
+  "exit_code": 1,
+  "govkit_version": "0.21.1",
+  "identity": {
+    "change_digest": null,
+    "dirty_digest": null,
+    "observed_at": "2026-09-23T12:00:00Z",
+    "pack_lock_digest": "ce4667f69dc6bafe66e97984d01ea05a51a001428d5f6abd71b091bc13e7e3c5",
+    "profile_digest": "6b5f29c503ebaad9a40945398dcf38eae5ba04b9eb6a90a8af2c77d260873455",
+    "repository": "example-service",
+    "resolution_digest": null,
+    "revision": "example-revision"
+  },
+  "kind": "check-results",
+  "limitations": [
+    "Result consistency does not authenticate policy or evidence origin.",
+    "Only the named checks and scopes were assessed; change routing and maintenance assessment are not performed."
+  ],
+  "results": [
+    {
+      "evidence": [
+        {
+          "digest": "ce4667f69dc6bafe66e97984d01ea05a51a001428d5f6abd71b091bc13e7e3c5",
+          "limitations": [
+            "Resource consistency is not source authenticity or proof that a control ran."
+          ],
+          "method": "pack-lock-replay",
+          "origin": "local-check",
+          "scope": [
+            ".govkit/pack-lock.json"
+          ],
+          "source": ".govkit/pack-lock.json"
+        }
+      ],
+      "execution": "executed",
+      "findings": [
+        {
+          "applicability_reason": "Verify selected installed resources without executing controls",
+          "category": "check",
+          "check_id": "govkit:pack-lock",
+          "code": "pass",
+          "evidence": [
+            {
+              "digest": "ce4667f69dc6bafe66e97984d01ea05a51a001428d5f6abd71b091bc13e7e3c5",
+              "limitations": [
+                "Resource consistency is not source authenticity or proof that a control ran."
+              ],
+              "method": "pack-lock-replay",
+              "origin": "local-check",
+              "scope": [
+                ".govkit/pack-lock.json"
+              ],
+              "source": ".govkit/pack-lock.json"
+            }
+          ],
+          "id": "finding:f56a1c2591f0b61a737ac2c9f619c9e4c0400b3b4d5e03f2f7ba4e0e6492dc15",
+          "location": null,
+          "message": "Pinned resources and native skills verified",
+          "scope": [
+            "."
+          ],
+          "severity": "info",
+          "source_policy": ".govkit/profile.yaml",
+          "suggested_action": "Review the declared scope and evidence."
+        }
+      ],
+      "id": "govkit:pack-lock",
+      "reason": "Verify selected installed resources without executing controls",
+      "required": true,
+      "scope": [
+        "."
+      ],
+      "source_policy": ".govkit/profile.yaml",
+      "state": "pass",
+      "summary": "Pinned resources and native skills verified"
+    },
+    {
+      "evidence": [
+        {
+          "digest": "57ec7f77fd1db86686f6fffddf3c5243e6d179398499e6c710b00e6cb56c8e83",
+          "limitations": [
+            "Accepted authority is the author's assertion; referenced policy content is not authenticated or enforced here."
+          ],
+          "method": "profile-validation",
+          "origin": "local-check",
+          "scope": [
+            ".govkit/profile.yaml"
+          ],
+          "source": ".govkit/profile.yaml"
+        }
+      ],
+      "execution": "executed",
+      "findings": [
+        {
+          "applicability_reason": "Validate the accepted declarative configuration",
+          "category": "check",
+          "check_id": "govkit:profile",
+          "code": "pass",
+          "evidence": [
+            {
+              "digest": "57ec7f77fd1db86686f6fffddf3c5243e6d179398499e6c710b00e6cb56c8e83",
+              "limitations": [
+                "Accepted authority is the author's assertion; referenced policy content is not authenticated or enforced here."
+              ],
+              "method": "profile-validation",
+              "origin": "local-check",
+              "scope": [
+                ".govkit/profile.yaml"
+              ],
+              "source": ".govkit/profile.yaml"
+            }
+          ],
+          "id": "finding:61bf1ad4eaa74f5e89a9dbde7f7dcbe2b1865d20029196f92aa3b23489c11bb4",
+          "location": null,
+          "message": "Profile and available resolution metadata checked",
+          "scope": [
+            "."
+          ],
+          "severity": "info",
+          "source_policy": ".govkit/profile.yaml",
+          "suggested_action": "Review the declared scope and evidence."
+        }
+      ],
+      "id": "govkit:profile",
+      "reason": "Validate the accepted declarative configuration",
+      "required": true,
+      "scope": [
+        "."
+      ],
+      "source_policy": ".govkit/profile.yaml",
+      "state": "pass",
+      "summary": "Profile and available resolution metadata checked"
+    },
+    {
+      "evidence": [],
+      "execution": "not-run",
+      "findings": [
+        {
+          "applicability_reason": "Inspect existing legacy artifacts without adopting a workflow",
+          "category": "check",
+          "check_id": "legacy:approval-policy",
+          "code": "not-applicable",
+          "evidence": [],
+          "id": "finding:4019d83cc918d449f1fed6e27bedc440aaa5c1773d8cd74f20c431a614cac5fe",
+          "location": null,
+          "message": "No ADR approval policy or ADRs configured",
+          "scope": [
+            "."
+          ],
+          "severity": "warning",
+          "source_policy": ".govkit/marker.json",
+          "suggested_action": "Resolve the finding and rerun the check."
+        }
+      ],
+      "id": "legacy:approval-policy",
+      "reason": "Inspect existing legacy artifacts without adopting a workflow",
+      "required": false,
+      "scope": [
+        "."
+      ],
+      "source_policy": ".govkit/marker.json",
+      "state": "not-applicable",
+      "summary": "No ADR approval policy or ADRs configured"
+    },
+    {
+      "evidence": [],
+      "execution": "not-run",
+      "findings": [
+        {
+          "applicability_reason": "Inspect existing legacy artifacts without adopting a workflow",
+          "category": "check",
+          "check_id": "legacy:doctor",
+          "code": "not-applicable",
+          "evidence": [],
+          "id": "finding:0a785cc23674dd86c4aeafdc2221ffa1fafc76cec6bc3667c92b0488bd288f30",
+          "location": null,
+          "message": "Legacy doctor requires an installation marker",
+          "scope": [
+            "."
+          ],
+          "severity": "warning",
+          "source_policy": ".govkit/marker.json",
+          "suggested_action": "Resolve the finding and rerun the check."
+        }
+      ],
+      "id": "legacy:doctor",
+      "reason": "Inspect existing legacy artifacts without adopting a workflow",
+      "required": false,
+      "scope": [
+        "."
+      ],
+      "source_policy": ".govkit/marker.json",
+      "state": "not-applicable",
+      "summary": "Legacy doctor requires an installation marker"
+    },
+    {
+      "evidence": [],
+      "execution": "not-run",
+      "findings": [
+        {
+          "applicability_reason": "Inspect existing legacy artifacts without adopting a workflow",
+          "category": "check",
+          "check_id": "legacy:extensions",
+          "code": "not-applicable",
+          "evidence": [],
+          "id": "finding:3c5d353784044cf1ea74a91cf1c4e725d25798c72f7c4bf998c7cfd94b858f26",
+          "location": null,
+          "message": "No legacy extensions configured",
+          "scope": [
+            "."
+          ],
+          "severity": "warning",
+          "source_policy": ".govkit/marker.json",
+          "suggested_action": "Resolve the finding and rerun the check."
+        }
+      ],
+      "id": "legacy:extensions",
+      "reason": "Inspect existing legacy artifacts without adopting a workflow",
+      "required": false,
+      "scope": [
+        "."
+      ],
+      "source_policy": ".govkit/marker.json",
+      "state": "not-applicable",
+      "summary": "No legacy extensions configured"
+    },
+    {
+      "evidence": [],
+      "execution": "not-run",
+      "findings": [
+        {
+          "applicability_reason": "Inspect existing legacy artifacts without adopting a workflow",
+          "category": "check",
+          "check_id": "legacy:features",
+          "code": "not-applicable",
+          "evidence": [],
+          "id": "finding:4101c5d555eff1add3d2f124836b746111de9be722e305842578a1de1e419475",
+          "location": null,
+          "message": "Legacy feature checks require explicit legacy configuration",
+          "scope": [
+            "."
+          ],
+          "severity": "warning",
+          "source_policy": ".govkit/marker.json",
+          "suggested_action": "Resolve the finding and rerun the check."
+        }
+      ],
+      "id": "legacy:features",
+      "reason": "Inspect existing legacy artifacts without adopting a workflow",
+      "required": false,
+      "scope": [
+        "."
+      ],
+      "source_policy": ".govkit/marker.json",
+      "state": "not-applicable",
+      "summary": "Legacy feature checks require explicit legacy configuration"
+    },
+    {
+      "evidence": [
+        {
+          "digest": "374304f97afe0c6b642092c6287830f1f3c9d852c7760d6fe87658c5cc06a470",
+          "limitations": [
+            "Executes explicitly trusted code, not a sandbox; an exit status does not authenticate the supplied evidence's origin, freshness or completeness."
+          ],
+          "method": "pinned-python-exit",
+          "origin": "tool-execution",
+          "scope": [
+            "."
+          ],
+          "source": "pack-check:llm-exact-match"
+        }
+      ],
+      "execution": "executed",
+      "findings": [
+        {
+          "applicability_reason": "Required by accepted project policy",
+          "category": "check",
+          "check_id": "llm-exact-match",
+          "code": "fail",
+          "evidence": [
+            {
+              "digest": "374304f97afe0c6b642092c6287830f1f3c9d852c7760d6fe87658c5cc06a470",
+              "limitations": [
+                "Executes explicitly trusted code, not a sandbox; an exit status does not authenticate the supplied evidence's origin, freshness or completeness."
+              ],
+              "method": "pinned-python-exit",
+              "origin": "tool-execution",
+              "scope": [
+                "."
+              ],
+              "source": "pack-check:llm-exact-match"
+            }
+          ],
+          "id": "finding:a8f144dc48ea10df90b95f19499a7c2cbeb5e2c0d5c2fd7424429cad5ebb76c9",
+          "location": null,
+          "message": "Pinned control exited 1",
+          "scope": [
+            "."
+          ],
+          "severity": "error",
+          "source_policy": "policy.md",
+          "suggested_action": "Resolve the finding and rerun the check."
+        }
+      ],
+      "id": "llm-exact-match",
+      "reason": "Required by accepted project policy",
+      "required": true,
+      "scope": [
+        "."
+      ],
+      "source_policy": "policy.md",
+      "state": "fail",
+      "summary": "Pinned control exited 1"
+    }
+  ],
+  "schema_version": 1,
+  "state": "fail",
+  "summary": {
+    "executed": 3,
+    "fail": 1,
+    "not-applicable": 4,
+    "pass": 2,
+    "required": 3,
+    "required_satisfied": 2,
+    "skipped": 0,
+    "unknown": 0,
+    "waived": 0,
+    "warn": 0
+  }
+}
