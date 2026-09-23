@@ -112,11 +112,36 @@ stages:
             displayName: Collect approving reviews
 
           - script: |
+              set -euo pipefail
+              # Azure Repos supplies the PR target branch rather than a base SHA.
+              # Fetch that exact ref; origin/main may be absent or the wrong target.
+              case "${TARGET_BRANCH:-}" in
+                refs/heads/*) ;;
+                *) echo "FAIL: no valid System.PullRequest.TargetBranch; run as PR branch-policy validation." >&2
+                   exit 1 ;;
+              esac
+              if ! git fetch --no-tags origin "$TARGET_BRANCH"; then
+                echo "FAIL: could not fetch the PR target; check checkout credentials and target branch." >&2
+                exit 1
+              fi
+              if ! BASE_SHA=$(git rev-parse --verify 'FETCH_HEAD^{commit}'); then
+                echo "FAIL: the pull request base commit is unavailable; keep checkout fetchDepth: 0." >&2
+                exit 1
+              fi
+
               # Three-dot: what this branch changed relative to the merge base.
-              # Two-dot would also report changes main made since the branch point.
+              # Two-dot would also report changes the target made since the branch point.
               # --diff-filter=d drops deletions — a removed ADR has nothing to attest.
-              git diff --name-only --diff-filter=d origin/main...HEAD \
-                -- 'docs/*/architecture/ADR/*.md' | python - <<'EOF'
+              # --relative keeps paths readable when this step runs in a monorepo service.
+              if ! changed=$(git diff --name-only --diff-filter=d --relative "$BASE_SHA...HEAD" \
+                -- 'docs/*/architecture/ADR/*.md'); then
+                echo "FAIL: could not determine changed ADRs; check base history and checkout depth." >&2
+                exit 1
+              fi
+
+              # stdin contains the program. Send data separately so it cannot be discarded
+              # by the here-document, and only run the checker after a successful diff.
+              CHANGED_ADR_PATHS="$changed" python - <<'EOF'
               import hashlib
               import json
               import os
@@ -196,7 +221,11 @@ stages:
 
               head_sha = os.environ.get("HEAD_SHA", "").strip()
 
-              changed = [ln.strip() for ln in sys.stdin if ln.strip()]
+              changed = [
+                  ln.strip()
+                  for ln in os.environ["CHANGED_ADR_PATHS"].splitlines()
+                  if ln.strip()
+              ]
               changed = [p for p in changed if not p.endswith("TEMPLATE.md")]
               if not changed:
                   print("No ADR changed in this PR; nothing for this gate to check.")
@@ -350,4 +379,5 @@ stages:
               EOF
             env:
               HEAD_SHA: $(System.PullRequest.SourceCommitId)
+              TARGET_BRANCH: $(System.PullRequest.TargetBranch)
             displayName: Require an authorised approval for each Accepted ADR

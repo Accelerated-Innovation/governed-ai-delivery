@@ -6,10 +6,10 @@ is well-formed and report an ADR claiming `Accepted` with nothing behind it, but
 it can never prove an approval happened. Only the reviews API can, and only CI
 has it.
 
-Following `tests/test_fix_lane_gate_checks.py`: extract the heredoc, execute it
-against fixtures, and pin the two platform embeddings identical so they cannot
-drift. Asserting on the YAML text would prove only that words are present —
-these tests run the checker.
+Execute both complete shell steps against isolated Git repositories as well as
+the extracted checker against policy fixtures. Checker-only tests cannot catch
+shell redirections that discard the changed-path input. Pin the two checker
+embeddings identical so their approval semantics cannot drift.
 
 Like the fix-lane gate, this one is deliberately self-contained. It never
 invokes govkit: a blocking gate must not depend on an unpinned PyPI release, and
@@ -21,10 +21,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
 import textwrap
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -116,10 +119,12 @@ def _run(
     return subprocess.run(
         [sys.executable, str(script)],
         cwd=tmp_path,
-        input="\n".join(changed),
         capture_output=True,
         text=True,
-        env={"HEAD_SHA": head_sha, "PATH": "", "SYSTEMROOT": ""},
+        env={
+            "HEAD_SHA": head_sha, "CHANGED_ADR_PATHS": "\n".join(changed),
+            "PATH": "", "SYSTEMROOT": "",
+        },
     )
 
 
@@ -150,6 +155,168 @@ def test_checker_extraction_is_not_empty():
     run an empty script and trivially pass."""
     body = _extract_checker(GATE_PATHS["github"])
     assert "approval_policy.yaml" in body and "commit_id" in body, body[:300]
+
+
+@dataclass
+class ShellRepo:
+    root: Path
+    env: dict[str, str]
+    git_executable: str
+    bash_executable: str
+    base_sha: str = ""
+
+    def git(self, *args: str) -> str:
+        return subprocess.run(
+            [self.git_executable, *args], cwd=self.root, env=self.env,
+            check=True, capture_output=True, text=True,
+        ).stdout.strip()
+
+    def write(self, relative: str, text: str) -> None:
+        path = self.root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    def commit(self) -> str:
+        self.git("add", ".")
+        self.git("commit", "-m", "Fixture change")
+        return self.git("rev-parse", "HEAD")
+
+    def run_gate(
+        self, platform: str, *, directory: str = ".", approved: bool = False,
+        base_sha: str | None = None, target_branch: str = "refs/heads/release/governance",
+    ) -> subprocess.CompletedProcess:
+        head = self.git("rev-parse", "HEAD")
+        working = self.root / directory
+        working.mkdir(parents=True, exist_ok=True)
+        self.write(
+            f"{directory}/governance/approval_policy.yaml",
+            yaml.safe_dump(_policy(require_approval_for=["docs/backend/"])),
+        )
+        self.write(
+            f"{directory}/reviews.jsonl",
+            json.dumps(_approval(commit=head)) + "\n" if approved else "",
+        )
+        parsed = yaml.safe_load(GATE_PATHS[platform].read_text(encoding="utf-8"))
+        if platform == "github":
+            steps = parsed["jobs"]["adr-approval-check"]["steps"]
+            script_key, name_key = "run", "name"
+        else:
+            steps = parsed["stages"][0]["jobs"][0]["steps"]
+            script_key, name_key = "script", "displayName"
+        step = next(
+            s for s in steps
+            if s.get(name_key) == "Require an authorised approval for each Accepted ADR"
+        )
+        # Resolve only provider inputs. Run the shipped shell/program unchanged.
+        provider_values = {
+            "${{ github.event.pull_request.head.sha }}": head,
+            "${{ github.event.pull_request.base.sha }}": (
+                self.base_sha if base_sha is None else base_sha
+            ),
+            "$(System.PullRequest.SourceCommitId)": head,
+            "$(System.PullRequest.TargetBranch)": target_branch,
+        }
+        env = self.env | {key: provider_values[value] for key, value in step["env"].items()}
+        return subprocess.run(
+            [self.bash_executable, "-c", step[script_key]], cwd=working, env=env,
+            capture_output=True, text=True,
+        )
+
+
+@pytest.fixture
+def shell_repo(tmp_path):
+    git, bash = shutil.which("git"), shutil.which("bash")
+    if not git or not bash:
+        pytest.skip("ADR shell regressions require Git and Bash")
+    env = {
+        "PATH": os.pathsep.join([
+            str(Path(sys.executable).parent), str(Path(git).parent), os.defpath,
+        ]),
+        "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_TERMINAL_PROMPT": "0",
+        "GIT_ALLOW_PROTOCOL": "file",
+        "GIT_AUTHOR_NAME": "Gate fixture",
+        "GIT_AUTHOR_EMAIL": "gate@example.invalid",
+        "GIT_COMMITTER_NAME": "Gate fixture",
+        "GIT_COMMITTER_EMAIL": "gate@example.invalid",
+        "GIT_AUTHOR_DATE": "2026-09-23T12:00:00Z",
+        "GIT_COMMITTER_DATE": "2026-09-23T12:00:00Z",
+    }
+    repo = ShellRepo(tmp_path, env, git, bash)
+    repo.git("init", "--initial-branch=main")
+    repo.write("README.md", "Base repository\n")
+    repo.base_sha = repo.commit()
+    repo.git("branch", "release/governance")
+    repo.git("remote", "add", "origin", str(repo.root))
+    repo.git("update-ref", "refs/remotes/origin/main", repo.base_sha)
+    repo.git("checkout", "-b", "topic")
+    return repo
+
+
+@pytest.mark.parametrize("platform", sorted(GATE_PATHS))
+class TestShellTransport:
+    @pytest.mark.parametrize("directory", [".", "apps/service"])
+    def test_changed_accepted_adr_without_approval_fails(self, shell_repo, platform, directory):
+        shell_repo.write(f"{directory}/{ADR_REL}", _adr())
+        shell_repo.commit()
+        result = shell_repo.run_gate(platform, directory=directory)
+        assert ADR_REL in result.stdout, result.stdout + result.stderr
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "No ADR changed" not in result.stdout
+
+    @pytest.mark.parametrize("directory", [".", "apps/service"])
+    def test_valid_approval_reports_the_adr(self, shell_repo, platform, directory):
+        shell_repo.write(f"{directory}/{ADR_REL}", _adr())
+        shell_repo.commit()
+        result = shell_repo.run_gate(platform, directory=directory, approved=True)
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert ADR_REL in result.stdout, result.stdout
+        assert "Every changed Accepted ADR carries an authorised approval" in result.stdout
+
+    def test_successful_diff_without_an_adr_passes(self, shell_repo, platform):
+        shell_repo.write("README.md", "An ordinary documentation change\n")
+        shell_repo.commit()
+        result = shell_repo.run_gate(platform)
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "No ADR changed" in result.stdout
+
+    def test_pr_target_does_not_require_origin_main(self, shell_repo, platform):
+        shell_repo.write(ADR_REL, _adr())
+        shell_repo.commit()
+        shell_repo.git("update-ref", "-d", "refs/remotes/origin/main")
+        result = shell_repo.run_gate(platform, approved=True)
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert ADR_REL in result.stdout, result.stdout
+
+    @pytest.mark.parametrize("missing", [False, True])
+    def test_unavailable_pr_base_fails(self, shell_repo, platform, missing):
+        shell_repo.write(ADR_REL, _adr())
+        shell_repo.commit()
+        result = shell_repo.run_gate(
+            platform, approved=True, base_sha="" if missing else OLD_SHA,
+            target_branch="" if missing else "refs/heads/missing",
+        )
+        assert result.returncode != 0, result.stdout + result.stderr
+        assert "FAIL:" in result.stdout + result.stderr
+        assert "No ADR changed" not in result.stdout
+
+    def test_diff_without_a_merge_base_fails(self, shell_repo, platform):
+        shell_repo.git("checkout", "--orphan", "unrelated")
+        shell_repo.write(ADR_REL, _adr())
+        shell_repo.commit()
+        result = shell_repo.run_gate(platform, approved=True)
+        assert result.returncode != 0, result.stdout + result.stderr
+        assert "FAIL:" in result.stdout + result.stderr
+        assert "No ADR changed" not in result.stdout
+
+    def test_nested_gate_ignores_other_services(self, shell_repo, platform):
+        shell_repo.write(f"apps/other/{ADR_REL}", _adr())
+        shell_repo.commit()
+        result = shell_repo.run_gate(platform, directory="apps/service")
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "No ADR changed" in result.stdout
 
 
 class TestNothingToAttest:
