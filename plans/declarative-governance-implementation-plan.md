@@ -1,6 +1,6 @@
 # Declarative governance implementation plan
 
-Status: I00–I05 merged; I06 request workflows (#179) locally verified, delivering PR.
+Status: I00–I05 merged; I06 request workflows delivered in PR #186, awaiting review/merge.
 Plan version: 1.15.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
@@ -595,7 +595,7 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 | I03 | complete | Merged as b379a5a through [PR #183](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/183); 53 pack tests; 3884 fast-suite passes; 21 wheel installs; hosted Tests passed for 9ed7f6a | #145 remains open for I09 |
 | I04 | complete | [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184), initial implementation 78b1069; five review bugs remediated with 23 additional regressions; 3943 fast-suite passes; runtime-only wheel smoke passed | Merged 5426abe; final-head Tests run 35920010148 passed; #146 stays open for I07/I09 |
 | I05 | complete | [PR #185](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/185), implementation 09a1de3; three Qodo bugs remediated with 13 regressions; 3995 fast-suite passes; runtime-only wheel smoke passed | Merged 21ccef2; final-head Tests run 35926710002 passed; #178 remains open for I07 |
-| I06 | locally verified; delivering PR | feat/179-request-workflows on 21ccef2; 33 request tests; 4,028 fast tests pass; runtime-only wheel passed | Qodo local review attempted: backend repo_not_connected; commit/push/PR with limitation recorded |
+| I06 | PR open | [PR #186](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/186), implementation 5ff34d7; 33 request tests; 4,028 fast tests pass; runtime-only wheel passed | Await CI/review/merge; Qodo local review attempted but backend repo_not_connected |
 | I07 | not started | — | Wait for I04–I06 |
 | I08 | not started | — | Wait for I02–I03, I05, I07 |
 | I09 | not started | — | Wait for I02–I03, I05, I07 |
@@ -608,7 +608,7 @@ Current handoff:
 
 - Completed: I00–I05 merged. PR #185 merged as `21ccef2dbb64bb092b8e86d7fd5ec93d190949ac`; final-head [Tests run 35926710002](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/35926710002) passed for `1b6bcb0`. Individual logs/artifacts were not re-audited.
 - Current increment: I06 (#179) on `feat/179-request-workflows`. Synchronized main, pruned the deleted remote branch, verified identical trees and removed the merged local branch. Removed six known I05 temporary artifacts; preserved `.venv`.
-- Next action: commit/push/create I06 PR with local evidence and the Qodo limitation recorded. The authorized local review submission failed with `repo_not_connected`; reconnect the repository in the authenticated Qodo workspace before a review can complete. I07 follows I06 review/merge.
+- Next action: review [I06 PR #186](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/186) and its hosted checks. The authorized local Qodo submission failed with `repo_not_connected`; reconnect the repository in the authenticated Qodo workspace before local review can complete. I07 follows I06 review/merge.
 - Issue tracking: #151/#143/#144 are closed; #178 remains open for I07 transition enforcement, #145 for I09, #146 for I07/I09. I06 must not claim actual-diff enforcement before I07.
 - Open product input: FeaturePeers definition, representative team repos, pilot participants and the actual legacy-retirement release boundary remain later decisions; none blocks I06.
 
@@ -1013,3 +1013,5 @@ Retrieved through Qodo on 2026-09-23 with qodo-get-rules 1.1.4, scoped to /Accel
 - Final local validation: **33 new request tests; 4,028 fast-suite passes, 2 existing Copilot-format skips, 150 e2e deselected** (35.76s). Scoped Ruff check/format and diff whitespace pass. Rebuilt runtime-only clean wheel passes seven examples across three agents, replay, supplied scope expansion, verified native guidance and read-only preservation. The toolchain tier and hosted CI were not run locally; CI remains pending.
 - Qodo local review: CLI 1.0.3 authenticated via the existing host keychain. After automatic approval review initially rejected external export, the user explicitly approved sending this I06 diff and issue/plan context. The context reference format was corrected after local validation rejected strings. The actual deep review submitted 127,237 bytes including all 20 untracked files, then failed with backend `repo_not_connected`: the authenticated workspace cannot clone `Accelerated-Innovation/governed-ai-delivery`. No findings or clean verdict were returned. Do not retry until its Qodo Git integration is connected/reconnected. The PR records the unavailable review; no Qodo configuration was changed.
 - Remaining boundary: supplied scope observations can add obligations/revise identity, but I07 must derive actual changed scope and enforce trusted conformance. #179's combined override/actual-scope acceptance criterion stays open until that integration; no automatic issue closure is requested.
+
+- Delivery: implementation `5ff34d77cf73651583a6d1bf16bf558d6832e6c1` pushed on `feat/179-request-workflows`; [PR #186](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/186) opened with the Qodo limitation and verification evidence. #179 has ten locally demonstrated criteria checked and remains open for I07 actual-scope enforcement; epic #142 records the handoff. Hosted CI is pending, not claimed passed.
