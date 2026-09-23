@@ -1,6 +1,6 @@
 # Declarative governance implementation plan
 
-Status: I00–I04 merged; I05 brownfield discovery (#178) locally verified; preparing PR.
+Status: I00–I04 merged; I05 brownfield discovery (#178) delivered in PR #185, awaiting review/merge.
 Plan version: 1.13.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
@@ -592,7 +592,7 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 | I02 | complete | Merged as b7d2f2f; implementation 27871fa; [PR #182](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/182); 51 focused tests; fast suite 3831 passed, 2 skipped; clean-wheel profile/legacy smoke plus 258 frozen selections; new CI step executed locally; see I02 record | #144 closed; hosted Tests run passed |
 | I03 | complete | Merged as b379a5a through [PR #183](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/183); 53 pack tests; 3884 fast-suite passes; 21 wheel installs; hosted Tests passed for 9ed7f6a | #145 remains open for I09 |
 | I04 | complete | [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184), initial implementation 78b1069; five review bugs remediated with 23 additional regressions; 3943 fast-suite passes; runtime-only wheel smoke passed | Merged 5426abe; final-head Tests run 35920010148 passed; #146 stays open for I07/I09 |
-| I05 | locally verified; preparing PR | feat/178-brownfield-discovery on 5426abe; 39 new tests; 3982 fast-suite passes; runtime-only wheel smoke passed | Commit/push/create PR; #178 remains open for I07 transition enforcement |
+| I05 | in progress | [PR #185](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/185), implementation 09a1de3; 39 new tests; 3982 fast-suite passes; runtime-only wheel smoke passed | Await review/CI and merge; #178 remains open for I07 transition enforcement |
 | I06 | not started | — | Wait for I02–I04 |
 | I07 | not started | — | Wait for I04–I06 |
 | I08 | not started | — | Wait for I02–I03, I05, I07 |
@@ -606,7 +606,7 @@ Current handoff:
 
 - Completed: I00–I04 merged; I04 Tests run 35920010148 passed for final head ccf0c22.
 - Current increment: I05 (#178) on feat/178-brownfield-discovery, based on merged I04 5426abe. Confirmed PR #184 and final-head Tests run 35920010148 succeeded; synchronized main, pruned remote refs, verified identical trees and deleted the local merged branch. Removed only known I04 temporary wheel/build artifacts; kept the shared development environment.
-- Next action: commit/push/create the verified I05 PR; after merge, confirm/synchronize/clean up and begin I06 (#179) test first.
+- Next action: review/merge [PR #185](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/185) after CI; then confirm/synchronize/clean up and begin I06 (#179) test first. No I05 hosted CI result is claimed yet.
 - Remaining integration: #146 stays open for I07/I09; no updated Qodo review status is inferred from merge. Reuse Appendix B rules and avoid previously rejected external diff export.
 
 - Open product input: FeaturePeers definition, representative team repos, pilot participants and the actual legacy-retirement release boundary remain later decisions; none blocks I05.
@@ -727,7 +727,7 @@ Next ready action:
 - **Wheel/CI:** a fresh Python 3.12.14 environment installed the built wheel with runtime dependencies only. Four bundled repositories (documented service, sparse repo, unfamiliar MCP server and monorepo) validate/report through the real CLI. Documented service and monorepo adoption preserve original files and install only selected evaluation resources; repeated apply is idempotent. Same-version model usage changes produce a pending capability recommendation. `tests/wheel_discovery_smoke.py` passes, as does the exact new installer CI shell step with only its temporary interpreter path substituted. Consumer GitHub/Azure templates and agent payloads are unchanged. No hosted I05 CI result is claimed yet.
 - **Acceptance:** twelve #178 criteria are locally demonstrated. Its gradual-transition criterion remains unchecked for actual-change exception/violation classification, owned by I07; the fixture does demonstrate declarations and verification/exit references. #178 and epic #142 remain open. I05's bounded exit criteria are met; I06 is next after review/merge. #146 remains open for I07/I09; this increment contributes a typed observation adapter, not integrated maintenance or a gate.
 - **Limits:** stable local snapshots and narrow syntactic heuristics, not exhaustive/semantic architecture inference. Local source references only; URLs, symlinks and fragments are explicit unavailable inputs. Explicit accepted profile/installer inputs are read by the existing loaders outside the scan budgets. Baseline identity and digest consistency do not authenticate its author. Actual Git-diff checks, transition execution, release/resource assessment and remote reporting remain later increments. Local evidence covers Python 3.12; full e2e/toolchain, Python 3.11, Windows and live agent/provider sessions were not run. Appendix B rules were reused, and the previously rejected external diff export was not retried.
-- **Delivery:** implementation and plan are ready for the standing commit/push/PR instruction; record the PR link and head after creation. No consumer install was applied to the GovKit source repository.
+- **Delivery:** committed implementation and plan as `09a1de3ff3628403b0041bc954fbfc09b1cfc16c`, pushed `feat/178-brownfield-discovery`, and opened [PR #185](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/185) against main with `Refs #178`. This plan-only follow-up records delivery and handoff; unchanged implementation checks were not repeated. No merge or consumer install was performed. The change spans 18 paths including this plan.
 
 ### Decision log
 
