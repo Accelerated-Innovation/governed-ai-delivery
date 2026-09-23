@@ -1,0 +1,177 @@
+{
+  "description": "Different component conventions remain scoped; team decisions retain, improve and migrate independently. Actual diff enforcement is I07.",
+  "files": {
+    "decisions/governance.md": "# Accepted team scope\nRetain stable; improve API only on changes; migrate worker incrementally.\n",
+    "services/stable/pyproject.toml": "[project]\ndependencies=[]\n",
+    "services/api/pyproject.toml": "[project]\ndependencies=[\"fastapi\"]\n",
+    "services/worker/pyproject.toml": "[project]\ndependencies=[\"mcp\"]\n",
+    "services/stable/docs/architecture.md": "# Stable conventions\nLayered architecture.\n",
+    "services/api/docs/architecture.md": "# Current API\nLayered architecture.\n",
+    "services/worker/docs/architecture.md": "# Current worker\nHexagonal architecture.\n",
+    "decisions/stable.md": "# Accepted retain\nApplies only to new and changed code under services/stable; leave unrelated existing code intact.\n",
+    "decisions/stable-existing.md": "# Existing exception\nOnly services/stable/legacy is exempt; new modules outside legacy must follow the target contract.\n",
+    "decisions/api.md": "# Accepted improve\nApplies only to new and changed code under services/api; leave unrelated existing code intact.\n",
+    "decisions/api-existing.md": "# Existing exception\nOnly services/api/legacy is exempt; new modules outside legacy must follow the target contract.\n",
+    "services/api/docs/target-and-exit.md": "# Target and exit criteria\nHexagonal architecture. New/changed modules use domain ports; preserve the legacy exception. Verify with component boundary tests and review the actual diff. Retire the exception only after legacy callers are migrated and those tests pass. This reference does not assert those tests ran.\n",
+    "decisions/worker.md": "# Accepted migrate\nApplies only to new and changed code under services/worker; leave unrelated existing code intact.\n",
+    "decisions/worker-existing.md": "# Existing exception\nOnly services/worker/legacy is exempt; new modules outside legacy must follow the target contract.\n",
+    "services/worker/docs/target-and-exit.md": "# Target and exit criteria\nHexagonal architecture. New/changed modules use domain ports; preserve the legacy exception. Verify with component boundary tests and review the actual diff. Retire the exception only after legacy callers are migrated and those tests pass. This reference does not assert those tests ran.\n"
+  },
+  "profile": {
+    "schema_version": 1,
+    "source": {
+      "reference": "decisions/governance.md",
+      "authority": "accepted"
+    },
+    "repository": {
+      "id": "monorepo"
+    },
+    "integrations": {
+      "agent": "codex"
+    },
+    "capabilities": [
+      {
+        "id": "llm-evaluation"
+      }
+    ],
+    "policy": {
+      "source": {
+        "reference": "decisions/governance.md",
+        "authority": "accepted"
+      },
+      "transitions": [
+        {
+          "id": "stable",
+          "source": {
+            "reference": "decisions/stable.md",
+            "authority": "accepted"
+          },
+          "scope": [
+            "services/stable"
+          ],
+          "mode": "retain",
+          "current": [
+            {
+              "source": {
+                "reference": "services/stable/docs/architecture.md",
+                "authority": "accepted"
+              },
+              "scope": [
+                "services/stable"
+              ]
+            }
+          ],
+          "target": [],
+          "applies_to": "new-and-changed",
+          "exceptions": [
+            {
+              "id": "legacy",
+              "source": {
+                "reference": "decisions/stable-existing.md",
+                "authority": "accepted"
+              },
+              "scope": [
+                "services/stable/legacy"
+              ],
+              "expires_at": null
+            }
+          ]
+        },
+        {
+          "id": "api",
+          "source": {
+            "reference": "decisions/api.md",
+            "authority": "accepted"
+          },
+          "scope": [
+            "services/api"
+          ],
+          "mode": "improve",
+          "current": [
+            {
+              "source": {
+                "reference": "services/api/docs/architecture.md",
+                "authority": "accepted"
+              },
+              "scope": [
+                "services/api"
+              ]
+            }
+          ],
+          "target": [
+            {
+              "source": {
+                "reference": "services/api/docs/target-and-exit.md",
+                "authority": "accepted"
+              },
+              "scope": [
+                "services/api"
+              ]
+            }
+          ],
+          "applies_to": "new-and-changed",
+          "exceptions": [
+            {
+              "id": "legacy",
+              "source": {
+                "reference": "decisions/api-existing.md",
+                "authority": "accepted"
+              },
+              "scope": [
+                "services/api/legacy"
+              ],
+              "expires_at": null
+            }
+          ]
+        },
+        {
+          "id": "worker",
+          "source": {
+            "reference": "decisions/worker.md",
+            "authority": "accepted"
+          },
+          "scope": [
+            "services/worker"
+          ],
+          "mode": "migrate",
+          "current": [
+            {
+              "source": {
+                "reference": "services/worker/docs/architecture.md",
+                "authority": "accepted"
+              },
+              "scope": [
+                "services/worker"
+              ]
+            }
+          ],
+          "target": [
+            {
+              "source": {
+                "reference": "services/worker/docs/target-and-exit.md",
+                "authority": "accepted"
+              },
+              "scope": [
+                "services/worker"
+              ]
+            }
+          ],
+          "applies_to": "new-and-changed",
+          "exceptions": [
+            {
+              "id": "legacy",
+              "source": {
+                "reference": "decisions/worker-existing.md",
+                "authority": "accepted"
+              },
+              "scope": [
+                "services/worker/legacy"
+              ],
+              "expires_at": null
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

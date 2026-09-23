@@ -37,6 +37,10 @@ Ruff has `fix = true` in `pyproject.toml`, so `ruff check` **rewrites files**. S
 
 Bootstraps its own `scripts/.venv/` (gitignored) and writes sandboxes under `scripts/projects*/`. See [scripts/README.md](scripts/README.md). L4/L5 `validate` is **expected to fail** in these sandboxes — the starter features intentionally omit `plan.md` / `architecture_preflight.md`.
 
+## Delivery review
+
+Before creating a PR, run Qodo local review using `qodo-review` with self-contained session context and issue/spec references. Evaluate findings and fix verified bugs test first; record the actual result. Do not silently skip a blocked review or claim it completed. For an existing PR, use `qodo-review-resolver` to inspect and remediate its structured findings. Keep the implementation plan and issue status current, then follow the user's standing commit/push/PR instruction. Merging requires separate authorization.
+
 ## Installer architecture (`cli/`)
 
 The CLI is deliberately layered so command modules depend **inward** only, avoiding import cycles:
@@ -94,3 +98,7 @@ A change is rarely one file. Changing a schema means updating starter templates 
 ### Check and evidence foundation
 
 `cmd_conform.py` renders the report assembled by `conformance.py` through typed models, an explicit registry/runner and legacy/pack adapters. See [ADR 0004](plans/decisions/0004-check-evidence-foundation.md) and [check reports](docs/CONFORMANCE.md). Required unknown/skipped/unconfigured evidence cannot pass; a validated result file does not authenticate its origin. Keep runtime schemas and examples aligned. Default inspection is offline and read-only: never use the migrating legacy marker reader in this path. Preserve the legacy commands' behavior through injected external boundaries. Pack execution requires explicit opt-in and is not sandboxed. Actual-diff routing and maintenance are later increments.
+
+### Brownfield discovery
+
+`cmd_discover.py` renders bounded read-only observations from `discovery_scan.py` and decisions/previews from `discovery.py`. See [ADR 0005](plans/decisions/0005-brownfield-discovery.md) and [discovery](docs/BROWNFIELD_DISCOVERY.md). Observed docs/imports are not accepted policy; only explicit accepted profiles feed existing protected installers. Baselines are explicit caller-reviewed records, never written/accepted automatically. Incomplete/changed coverage cannot prove removal. Keep report schema, four bundled example repositories and runtime-only wheel smoke aligned. `maintenance_outcome()` uses I04's facts contract; actual diff/transition enforcement and integrated maintenance remain I07/I09.
