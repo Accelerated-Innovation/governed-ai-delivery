@@ -48,3 +48,10 @@ govkit request plan request.json --previous request-plan.json --scope observed-s
 **I06 boundary:** scope observations are explicitly supplied, not derived from Git. I07 must compare approved intent with actual changes and trusted current policy/resources, execute checks and enforce conformance. A ready plan is neither conformance nor approval. CLI exit 0 means a plan was produced, including plans with unresolved decisions; exit 1 means invalid/unreadable inputs. Inspect blocking `decisions` or `RequestPlan.ready` for planning readiness.
 
 Seven runnable fixtures under `governance/examples/workflows/` cover defect, enhancement, refactor, MCP, LLM, full Gherkin delivery and architecture migration. Their shared consumer is illustrative; it is not accepted policy for the GovKit source repository. Fast tests and the runtime-only wheel smoke exercise all seven, with native guidance checked for all three agents.
+
+## Checking the actual change
+
+I07 now supplies `govkit conform --request ... --base ... --policy-target ...`.
+See [CHANGE_CONFORMANCE.md](CHANGE_CONFORMANCE.md) for trusted inputs, real Git
+scope, proportional artifacts, explicit tests, scoped transitions and limitations.
+A request plan alone remains a proposal, not conformance or approval.

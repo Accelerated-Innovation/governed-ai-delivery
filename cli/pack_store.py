@@ -372,23 +372,26 @@ def verified_lock_document(target: Path) -> dict:
 
 
 def execute_check(
-    target: Path, check_id: str, arguments: tuple[str, ...]
+    target: Path,
+    check_id: str,
+    arguments: tuple[str, ...],
+    *,
+    working_directory: Path | None = None,
 ) -> subprocess.CompletedProcess:
     """Execute an explicitly requested pinned Python control, independently of skills."""
     target = target.absolute()
-    verification = verify_lock(target, include_skills=False)
-    if not verification.ready:
+    lock, verification = _verify_lock_snapshot(target, include_skills=False)
+    if lock is None or not verification.ready:
         raise PackError(
             "Pinned check verification failed: "
             + "; ".join(d.message for d in verification.decisions)
         )
-    lock, _, _ = _read_lock(target)
     if check_id not in lock["checks"]:
         raise PackError(f"No selected executable check: {check_id}")
     script = _destination(target, lock["checks"][check_id]["path"])
     return subprocess.run(
         [sys.executable, "-I", str(script), *arguments],
-        cwd=target,
+        cwd=working_directory if working_directory is not None else target,
         capture_output=True,
         text=True,
         check=False,

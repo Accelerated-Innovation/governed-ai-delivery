@@ -1,0 +1,250 @@
+{
+  "profile": {
+    "schema_version": 1,
+    "source": {
+      "reference": "policy.md",
+      "authority": "accepted"
+    },
+    "repository": {
+      "id": "workflow-example"
+    },
+    "integrations": {
+      "agent": "codex"
+    },
+    "capabilities": [
+      {
+        "id": "application-governance"
+      },
+      {
+        "id": "gherkin-delivery"
+      },
+      {
+        "id": "llm-evaluation"
+      }
+    ],
+    "policy": {
+      "source": {
+        "reference": "policy.md",
+        "authority": "accepted"
+      },
+      "contracts": [
+        {
+          "source": {
+            "reference": "architecture.md",
+            "authority": "accepted"
+          },
+          "scope": [
+            "src"
+          ]
+        }
+      ],
+      "transitions": [
+        {
+          "id": "service-port",
+          "source": {
+            "reference": "adr/next-service.md",
+            "authority": "accepted"
+          },
+          "scope": [
+            "src"
+          ],
+          "mode": "improve",
+          "current": [
+            {
+              "source": {
+                "reference": "architecture.md",
+                "authority": "accepted"
+              },
+              "scope": [
+                "src"
+              ]
+            }
+          ],
+          "target": [
+            {
+              "source": {
+                "reference": "architecture-target.md",
+                "authority": "accepted"
+              },
+              "scope": [
+                "src"
+              ]
+            }
+          ],
+          "applies_to": "new-and-changed"
+        }
+      ],
+      "conformance": {
+        "reference": "conformance.json",
+        "authority": "accepted"
+      }
+    }
+  },
+  "files": {
+    "policy.md": "# Accepted delivery policy\nUse proportional evidence and retain required controls.\n",
+    "architecture.md": "# Accepted service contract\nThe existing API returns 42 for the default request. New opt-in formatting may preserve this behavior. NFR: preserve existing latency budget and authorization.\n",
+    "src/service.py": "def result():\n    return 42\n",
+    "tests/test_service.py": "from src.service import result\n\ndef test_default():\n    assert result() == 42\n",
+    "adr/next-service.md": "# Accepted migration\nMove computation behind a service port for new and changed code. Retain the public API. Verify dependency direction and migrate the existing implementation before removing the old rule.\n",
+    "architecture-target.md": "# Target\nThe API depends on a service port. The adapter implements the port and has no API dependency.\n",
+    "src/mcp_tool.py": "def tool(value):\n    if not isinstance(value, str):\n        raise TypeError(\"value must be text\")\n    return {\"length\": len(value)}\n",
+    "results.json": "{\"cases\":[{\"id\":\"hello\",\"expected\":\"hi\",\"actual\":\"hi\"}]}",
+    "fixes/restore-response/fix.yaml": "{\n  \"version\": 1,\n  \"id\": \"restore-response\",\n  \"summary\": \"Restore the established default response\",\n  \"expectation\": {\n    \"source\": \"architecture.md\",\n    \"reference\": \"The existing API returns 42\"\n  },\n  \"failure\": {\n    \"observed\": \"The default response returns 0\"\n  },\n  \"surface\": {\n    \"paths\": [\n      \"src/service.py\"\n    ]\n  },\n  \"reproduction\": {\n    \"test\": \"tests/test_service.py\"\n  },\n  \"risk\": {\n    \"architecture\": false,\n    \"security_auth\": false,\n    \"data_handling\": false,\n    \"public_contract\": false,\n    \"nfr\": false,\n    \"cross_service\": false\n  },\n  \"introduces_new_behavior\": false\n}\n",
+    "docs/spec.md": "# Pilot evidence: spec\nRestoring the default result preserves the accepted API and NFR. Architecture/MCP changes require their additional checks. This document is a presence fixture, not approval.\n",
+    "docs/plan.md": "# Pilot evidence: plan\nRestoring the default result preserves the accepted API and NFR. Architecture/MCP changes require their additional checks. This document is a presence fixture, not approval.\n",
+    "docs/architecture-preflight.md": "# Pilot evidence: architecture-preflight\nRestoring the default result preserves the accepted API and NFR. Architecture/MCP changes require their additional checks. This document is a presence fixture, not approval.\n",
+    "docs/test-plan.md": "# Pilot evidence: test-plan\nRestoring the default result preserves the accepted API and NFR. Architecture/MCP changes require their additional checks. This document is a presence fixture, not approval.\n",
+    "docs/validation.md": "# Pilot evidence: validation\nRestoring the default result preserves the accepted API and NFR. Architecture/MCP changes require their additional checks. This document is a presence fixture, not approval.\n",
+    "docs/architecture-decision.md": "# Pilot evidence: architecture-decision\nRestoring the default result preserves the accepted API and NFR. Architecture/MCP changes require their additional checks. This document is a presence fixture, not approval.\n",
+    "docs/transition-plan.md": "# Pilot evidence: transition-plan\nRestoring the default result preserves the accepted API and NFR. Architecture/MCP changes require their additional checks. This document is a presence fixture, not approval.\n",
+    "docs/review-architecture.md": "# Pilot evidence: review:architecture\nRestoring the default result preserves the accepted API and NFR. Architecture/MCP changes require their additional checks. This document is a presence fixture, not approval.\n",
+    "docs/review-mcp.md": "# Pilot evidence: review:mcp\nRestoring the default result preserves the accepted API and NFR. Architecture/MCP changes require their additional checks. This document is a presence fixture, not approval.\n",
+    "docs/review-public-contract.md": "# Pilot evidence: review:public-contract\nRestoring the default result preserves the accepted API and NFR. Architecture/MCP changes require their additional checks. This document is a presence fixture, not approval.\n"
+  },
+  "conformance": {
+    "schema_version": 1,
+    "impact_rules": [
+      {
+        "paths": [
+          "src",
+          "docs"
+        ],
+        "impacts": {}
+      },
+      {
+        "paths": [
+          "src/mcp_tool.py"
+        ],
+        "impacts": {
+          "mcp": true,
+          "public-contract": true
+        }
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "spec",
+        "references": [
+          "docs/spec.md"
+        ]
+      },
+      {
+        "id": "plan",
+        "references": [
+          "docs/plan.md"
+        ]
+      },
+      {
+        "id": "architecture-preflight",
+        "references": [
+          "docs/architecture-preflight.md"
+        ]
+      },
+      {
+        "id": "test-plan",
+        "references": [
+          "docs/test-plan.md"
+        ]
+      },
+      {
+        "id": "validation",
+        "references": [
+          "docs/validation.md"
+        ]
+      },
+      {
+        "id": "architecture-decision",
+        "references": [
+          "docs/architecture-decision.md"
+        ]
+      },
+      {
+        "id": "transition-plan",
+        "references": [
+          "docs/transition-plan.md"
+        ]
+      },
+      {
+        "id": "review:architecture",
+        "references": [
+          "docs/review-architecture.md"
+        ]
+      },
+      {
+        "id": "review:mcp",
+        "references": [
+          "docs/review-mcp.md"
+        ]
+      },
+      {
+        "id": "review:public-contract",
+        "references": [
+          "docs/review-public-contract.md"
+        ]
+      },
+      {
+        "id": "fix-record",
+        "references": [
+          "fixes/restore-response/fix.yaml"
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "id": "project:tests",
+        "argv": [
+          "{python}",
+          "-c",
+          "import runpy; runpy.run_path('tests/test_service.py')['test_default']()"
+        ],
+        "timeout_seconds": 10
+      },
+      {
+        "id": "review:mcp",
+        "argv": [
+          "{python}",
+          "-c",
+          "import runpy\ntool = runpy.run_path('src/mcp_tool.py')['tool']\nassert tool('hello') == {'length': 5}\ntry:\n    tool(1)\nexcept TypeError:\n    pass\nelse:\n    raise AssertionError('tool accepted invalid input')"
+        ],
+        "timeout_seconds": 10
+      },
+      {
+        "id": "review:public-contract",
+        "argv": [
+          "{python}",
+          "-c",
+          "import runpy\ntool = runpy.run_path('src/mcp_tool.py')['tool']\nassert tool('hello') == {'length': 5}\ntry:\n    tool(1)\nexcept TypeError:\n    pass\nelse:\n    raise AssertionError('tool accepted invalid input')"
+        ],
+        "timeout_seconds": 10
+      }
+    ],
+    "constraints": [
+      {
+        "id": "current-boundary",
+        "source": "architecture.md",
+        "paths": [
+          "src"
+        ],
+        "forbidden_text": [
+          "import forbidden"
+        ]
+      },
+      {
+        "id": "target-boundary",
+        "source": "architecture-target.md",
+        "paths": [
+          "src"
+        ],
+        "forbidden_text": [
+          "import api"
+        ]
+      }
+    ]
+  },
+  "base_files": {
+    "src/service.py": "def result():\n    return 0\n"
+  },
+  "fixed_files": {
+    "src/service.py": "def result():\n    return 42\n"
+  }
+}

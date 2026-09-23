@@ -260,7 +260,11 @@ def _evidence(data):
 
 def load_report(path: Path) -> CheckReport:
     """Validate a raw report for inspection, not as authenticated gate input."""
-    data = read_document(path)
+    return parse_report(read_document(path))
+
+
+def parse_report(data: dict) -> CheckReport:
+    """Validate serialized facts without treating their origin as authenticated."""
     validate_document(data, "check-results")
     results = []
     for item in data["results"]:

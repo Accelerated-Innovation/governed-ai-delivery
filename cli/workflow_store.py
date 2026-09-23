@@ -168,7 +168,11 @@ def load_workflow_plan(path: Path) -> RequestPlan:
     Replay detects inconsistency, not forged author assertions. CI must separately
     re-resolve against its trusted profile/lock, approved intent and actual diff.
     """
-    document = read_document(path)
+    return parse_workflow_plan(read_document(path))
+
+
+def parse_workflow_plan(document: dict) -> RequestPlan:
+    """Replay a record from explicit data; authority remains a caller assertion."""
     validate_document(document, "workflow-plan")
     inputs = document["inputs"]
     result = resolve_workflow(
