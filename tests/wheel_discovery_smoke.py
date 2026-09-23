@@ -66,12 +66,41 @@ with tempfile.TemporaryDirectory() as directory:
             assert all(op["action"] == "preserve" for op in current["operations"])
             invoke("pack", "apply", "--target", str(target), "--json")
             assert snapshot(target) == after
+            lock = target / ".govkit/pack-lock.json"
+            lock.write_text("{}")
+            broken = snapshot(target)
+            report = invoke("discover", "--target", str(target), "--json")
+            assert not report["install_ready"]
+            assert any(d["id"] == "install:preview-unavailable" for d in report["review"])
+            assert report["observations"] and snapshot(target) == broken
         if example.stem == "sparse-repository":
             manifest = target / "package.json"
             manifest.write_text('{"dependencies":{"openai":"6"}}')
             changed = invoke("discover", *options, "--baseline", str(record))
             assert any(d["id"] == "capability:llm-evaluation" for d in changed["review"])
             assert changed["accepted_profile"] is None
+            reference_args = [
+                arg for index in range(10) for arg in ("--reference", f"ref-{index}.txt")
+            ]
+            bounded = invoke("discover", *options, "--max-files", "2", *reference_args)
+            assert len(bounded["references"]) == 2
+            assert "reference-limit" in bounded["coverage"]["limitations"]
+    target = root / "incomplete-baseline"
+    target.mkdir()
+    old_source = target / "old.py"
+    old_source.write_text("import mcp\n")
+    oversized = target / "README.md"
+    oversized.write_text("x" * 65)
+    options = ["--target", str(target), "--max-bytes", "64", "--json"]
+    prior = invoke("discover", *options)
+    assert not prior["coverage"]["complete"]
+    record = root / "incomplete-reviewed.json"
+    record.write_text(json.dumps(prior))
+    old_source.unlink()
+    oversized.write_text("# Short\n")
+    current = invoke("discover", *options, "--baseline", str(record))
+    assert current["coverage"]["complete"]
+    assert next(c for c in current["changes"] if c["source"] == "old.py")["kind"] == "unavailable"
 print(
-    "Discovery wheel smoke passed: four examples, explicit adoption, preservation, idempotence and focused rediscovery"
+    "Discovery wheel smoke passed: four examples, explicit adoption, preservation, idempotence focused rediscovery and review regressions"
 )

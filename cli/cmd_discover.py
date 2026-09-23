@@ -22,7 +22,7 @@ def cmd_discover(args: argparse.Namespace) -> None:
             Path(args.target),
             profile_path=Path(args.profile) if args.profile else None,
             baseline=load_baseline(Path(args.baseline)) if args.baseline else None,
-            references=tuple(args.reference),
+            references=args.reference,
             capabilities=tuple(args.capability),
             limits=limits,
         )

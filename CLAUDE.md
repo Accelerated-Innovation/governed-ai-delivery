@@ -37,6 +37,10 @@ Ruff has `fix = true` in `pyproject.toml`, so `ruff check` **rewrites files**. S
 
 Bootstraps its own `scripts/.venv/` (gitignored) and writes sandboxes under `scripts/projects*/`. See [scripts/README.md](scripts/README.md). L4/L5 `validate` is **expected to fail** in these sandboxes — the starter features intentionally omit `plan.md` / `architecture_preflight.md`.
 
+## Delivery review
+
+Before creating a PR, run Qodo local review using `qodo-review` with self-contained session context and issue/spec references. Evaluate findings and fix verified bugs test first; record the actual result. Do not silently skip a blocked review or claim it completed. For an existing PR, use `qodo-review-resolver` to inspect and remediate its structured findings. Keep the implementation plan and issue status current, then follow the user's standing commit/push/PR instruction. Merging requires separate authorization.
+
 ## Installer architecture (`cli/`)
 
 The CLI is deliberately layered so command modules depend **inward** only, avoiding import cycles:

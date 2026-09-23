@@ -36,8 +36,13 @@ The default bounds are 2,048 directory entries, 128 files, 64 KiB per file, 1 Mi
 of file content and six directory levels below the root. Reads use at most one
 extra sentinel byte per file to detect overflow. `--max-entries`, `--max-files`,
 `--max-bytes`, `--max-total-bytes` and `--max-depth` override these limits. Explicit
-references are prioritized within the file/byte bounds. Git metadata, virtual
-environments, build/vendor trees, `.govkit` and native skill directories are
+references are prioritized within the file/byte bounds. Reference collection
+retains at most `max_files` distinct paths and consumes at most `max_entries`
+references plus one overflow probe, including duplicates. Caller references come
+first, then accepted-profile references in document order; only the bounded set
+is sorted. Overflow reports `reference-limit` and records the retained paths, so
+changing input order can change an explicitly incomplete sample. Git metadata,
+virtual environments, build/vendor trees, `.govkit` and native skill directories are
 excluded from automatic scanning. The accepted profile is read separately by the
 existing profile loader; installer previews inspect their own selected resources.
 
@@ -101,8 +106,9 @@ Unchanged evidence produces no new review ceremony; pending decisions remain in
 associated commitments. Dependency/framework indicators, component moves,
 model/tool imports, architecture sources, tests and CI produce scoped fit-review
 facts even when the installed CLI version is current. Model indicators can
-recommend `llm-evaluation`, but cannot select it. Incomplete scans or changed
-coverage never establish that an unseen file was removed.
+recommend `llm-evaluation`, but cannot select it. Removal requires complete
+baseline and current coverage with matching limits and retained references. Incomplete scans on either side, or changed coverage,
+never establish that an unseen file was removed.
 
 JSON uses [the versioned discovery schema](../governance/schemas/discovery.schema.json).
 The loader validates shape and profile/digest consistency; it does not authenticate

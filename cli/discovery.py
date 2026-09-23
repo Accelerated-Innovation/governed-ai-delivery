@@ -10,11 +10,12 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import asdict, dataclass
+from itertools import chain
 from pathlib import Path
 
 from .check_models import CheckOutcome, Evidence, Execution, Finding, State
 from .discovery_scan import DiscoveryLimits, scan_repository
-from .pack_loading import bundled_catalog
+from .pack_loading import PackError, bundled_catalog
 from .pack_store import preview_install
 from .profile_store import preview_materialization
 from .profiles import load_profile, parse_profile
@@ -137,17 +138,15 @@ def load_baseline(path: Path) -> dict:
 
 
 def _references(document):
-    """All accepted authority references, including workflow/transition exceptions."""
-    references = set()
+    """Yield authority references lazily so collection can stop at the scan budget."""
     if isinstance(document, dict):
         if document.get("authority") == "accepted" and isinstance(document.get("reference"), str):
-            references.add(document["reference"])
+            yield document["reference"]
         for value in document.values():
-            references.update(_references(value))
+            yield from _references(value)
     elif isinstance(document, list):
         for value in document:
-            references.update(_references(value))
-    return references
+            yield from _references(value)
 
 
 def _decision(identifier, scope, reason, sources=(), *, status="pending", choices=(), affects=()):
@@ -187,7 +186,7 @@ def _decisions(scan, profile, capabilities):
                 )
             )
     for transition in transitions:
-        sources = _references(transition)
+        sources = set(_references(transition))
         covered.update(transition["scope"])
         for scope in transition["scope"]:
             available = all(s in by_source and by_source[s].status == "observed" for s in sources)
@@ -270,7 +269,11 @@ def _changes(scan, baseline):
                 asdict(scan.limits) == baseline["coverage"]["limits"]
                 and list(scan.references) == baseline["references"]
             )
-            kind = "removed" if scan.complete and same_coverage else "unavailable"
+            kind = (
+                "removed"
+                if scan.complete and baseline["coverage"]["complete"] and same_coverage
+                else "unavailable"
+            )
         elif after["status"] != "observed":
             kind = "unavailable"
         else:
@@ -386,7 +389,7 @@ def _install_preview(profile_path, target):
                     )
                 )
         return operations, ready, pending
-    except (OSError, DocumentError):
+    except (OSError, DocumentError, PackError):
         return (
             [],
             False,
@@ -431,7 +434,7 @@ def discover(
             raise DocumentError("Baseline repository identity does not match current repository")
     accepted = profile.document if profile else None
     scan = scan_repository(
-        target, references=tuple(sorted(set(references) | _references(accepted))), limits=limits
+        target, references=chain(references, _references(accepted)), limits=limits
     )
     decisions = _decisions(scan, profile, capabilities)
     changes = _changes(scan, baseline)

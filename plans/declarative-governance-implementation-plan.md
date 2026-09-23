@@ -1,7 +1,7 @@
 # Declarative governance implementation plan
 
 Status: I00–I04 merged; I05 brownfield discovery (#178) delivered in PR #185, awaiting review/merge.
-Plan version: 1.13.
+Plan version: 1.14.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
 Primary epic: [#142 — Declarative, composable GovKit governance](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/142).
@@ -16,6 +16,7 @@ This file is the execution source of truth for the agreed GovKit refactor. It co
 - Routine implementation choices can be resolved and recorded by the coding agent. Escalate only unresolved product/architecture decisions, incompatible requirements, or actions beyond the authorized task.
 - Update the execution ledger and handoff record after each increment. An unchecked criterion stays unchecked until its required behavior is demonstrated.
 - Standing delivery instruction (2026-09-23): when an increment is finished and verified, commit the changes, push its branch, and create a PR without waiting for another request. Include plan/issue status updates; do not merge the PR unless separately authorized.
+- Standing review instruction (2026-09-23): run Qodo local review (`qodo-review`) with self-contained session context before creating every future PR. Evaluate findings, remediate verified bugs test first, and record the actual result before delivery. Do not silently skip the review or claim completion if authentication, entitlement or approval blocks it; report the exact limitation. This new explicit instruction supersedes the earlier choice not to attempt local review after I00's export rejection. Existing PR findings use `qodo-review-resolver`; local review is the pre-PR path.
 - Creating this document does not implement any feature. The initial next increment is I00.
 
 ### Start or resume a coding session
@@ -26,7 +27,8 @@ This file is the execution source of truth for the agreed GovKit refactor. It co
 4. Inspect the named code seams and existing tests. Confirm current behavior rather than treating historical line numbers or test counts as facts.
 5. State the bounded change and its relevant acceptance criteria. Implement in small reviewable changes.
 6. Run the narrow checks that prove the changed behavior, then the integration checks required by Section 8.
-7. Record files changed, results, failures/skips, decisions, and the next step. Do not mark a feature complete just because one of its increments is done.
+7. Before creating a PR, run Qodo local review with the implementation rationale and issue/spec references; evaluate its findings and verify any fixes.
+8. Record files changed, results, failures/skips, decisions, and the next step. Do not mark a feature complete just because one of its increments is done.
 
 Suggested instruction for a future session:
 
@@ -592,7 +594,7 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 | I02 | complete | Merged as b7d2f2f; implementation 27871fa; [PR #182](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/182); 51 focused tests; fast suite 3831 passed, 2 skipped; clean-wheel profile/legacy smoke plus 258 frozen selections; new CI step executed locally; see I02 record | #144 closed; hosted Tests run passed |
 | I03 | complete | Merged as b379a5a through [PR #183](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/183); 53 pack tests; 3884 fast-suite passes; 21 wheel installs; hosted Tests passed for 9ed7f6a | #145 remains open for I09 |
 | I04 | complete | [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184), initial implementation 78b1069; five review bugs remediated with 23 additional regressions; 3943 fast-suite passes; runtime-only wheel smoke passed | Merged 5426abe; final-head Tests run 35920010148 passed; #146 stays open for I07/I09 |
-| I05 | in progress | [PR #185](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/185), implementation 09a1de3; 39 new tests; 3982 fast-suite passes; runtime-only wheel smoke passed | Await review/CI and merge; #178 remains open for I07 transition enforcement |
+| I05 | in progress | [PR #185](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/185), implementation 09a1de3; three Qodo bugs remediated with 13 regressions; 3995 fast-suite passes; runtime-only wheel smoke passed | Await review/CI and merge; #178 remains open for I07 transition enforcement |
 | I06 | not started | — | Wait for I02–I04 |
 | I07 | not started | — | Wait for I04–I06 |
 | I08 | not started | — | Wait for I02–I03, I05, I07 |
@@ -606,7 +608,7 @@ Current handoff:
 
 - Completed: I00–I04 merged; I04 Tests run 35920010148 passed for final head ccf0c22.
 - Current increment: I05 (#178) on feat/178-brownfield-discovery, based on merged I04 5426abe. Confirmed PR #184 and final-head Tests run 35920010148 succeeded; synchronized main, pruned remote refs, verified identical trees and deleted the local merged branch. Removed only known I04 temporary wheel/build artifacts; kept the shared development environment.
-- Next action: review/merge [PR #185](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/185) after CI; then confirm/synchronize/clean up and begin I06 (#179) test first. No I05 hosted CI result is claimed yet.
+- Next action: obtain CI/re-review for the three bug fixes on [PR #185](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/185), then review/merge. After merge, confirm/synchronize/clean up and begin I06 (#179) test first. Tests run 35925719448 passed for pre-fix fe670f8; no hosted result for the fixes is claimed yet. Run Qodo local review before creating the next PR.
 - Remaining integration: #146 stays open for I07/I09; no updated Qodo review status is inferred from merge. Reuse Appendix B rules and avoid previously rejected external diff export.
 
 - Open product input: FeaturePeers definition, representative team repos, pilot participants and the actual legacy-retirement release boundary remain later decisions; none blocks I05.
@@ -729,12 +731,24 @@ Next ready action:
 - **Limits:** stable local snapshots and narrow syntactic heuristics, not exhaustive/semantic architecture inference. Local source references only; URLs, symlinks and fragments are explicit unavailable inputs. Explicit accepted profile/installer inputs are read by the existing loaders outside the scan budgets. Baseline identity and digest consistency do not authenticate its author. Actual Git-diff checks, transition execution, release/resource assessment and remote reporting remain later increments. Local evidence covers Python 3.12; full e2e/toolchain, Python 3.11, Windows and live agent/provider sessions were not run. Appendix B rules were reused, and the previously rejected external diff export was not retried.
 - **Delivery:** committed implementation and plan as `09a1de3ff3628403b0041bc954fbfc09b1cfc16c`, pushed `feat/178-brownfield-discovery`, and opened [PR #185](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/185) against main with `Refs #178`. This plan-only follow-up records delivery and handoff; unchanged implementation checks were not repeated. No merge or consumer install was performed. The change spans 18 paths including this plan.
 
+### I05 PR #185 review remediation — 2026-09-23
+
+- **Review input:** `qodo-review-resolver` skill, Qodo CLI 1.0.3, structured review run `1238179` completed at `09a1de3`. Three open findings: two action-required, one recommended. The current PR head `fe670f8` differs only in plan delivery metadata; `git diff 09a1de3..HEAD -- cli tests governance` is empty. Findings were independently reproduced in unchanged current code; the older run is not claimed as an exact-head review. Checkout origin and provider repository identity match. [Tests run 35925719448](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/35925719448) succeeded for `fe670f8`; individual job logs/artifacts were not re-audited.
+- **Test first:** the existing discovery/CLI baseline passed **39 tests**. New tests produced **12 failures and 1 pass** before production edits, exercising real report/CLI/pack paths and a lazy reference-input boundary.
+- **`c59e54c2-d88a-459b-8225-f9b75926ff0e` — false removal claims:** require both baseline and current coverage to be complete, with matching limits/references, before emitting removal. A baseline limited by an unrelated oversized file cannot prove deletion on a later complete scan; the absent source remains unavailable.
+- **`e77956f2-3de9-466d-9124-ea0b2f9f326f` — pack conflicts abort discovery:** isolate `PackError` alongside profile/filesystem failures in the installation-preview boundary. Six real CLI cases cover malformed/inconsistent locks, missing pinned resources, symlink destinations and conflicting parent/destination types. Evidence, accepted profile and focused installation diagnostics survive; targets stay unchanged.
+- **`f1d10fde-dcd0-44ae-8747-695fe4b217ec` — unbounded references:** stream caller and accepted-profile references into bounded collection before materializing/sorting; cap retained distinct sources at `max_files` and iteration at `max_entries` plus one overflow probe. Duplicate-heavy streams cannot bypass the budget. Record `reference-limit` and only the retained references; never present truncated coverage as complete. Accepted policy is preserved unchanged.
+- **Workflow update:** future PR creation now requires Qodo local review with session context under the user's explicit standing instruction. This existing PR uses its structured review findings. No new PR or merge is intended.
+- **Verification:** **13 additional regressions**, with the expanded discovery/CLI/profile-store/pack-store/check selection passing **109 tests**. Final fast suite: **3995 passed, 2 existing format-specific skips, 150 e2e deselected**, in 32.10 seconds. Scoped Ruff lint/format and whitespace checks passed. A fresh runtime-only Python 3.12 wheel passed all four example/adoption scenarios plus real CLI incomplete-baseline, malformed-lock and reference-overflow regressions. Existing schemas remain unchanged.
+- **Delivery/status:** fixes are committed/pushed to existing PR #185 under the standing instruction; no new PR or merge. All three findings were reproduced and addressed; none dismissed or skipped. The authenticated Qodo catalog exposes only review reads, so manual `mark-implemented`/`dismiss` writes are unavailable. Re-review must verify/re-attribute the pushed fixes; no clean exact-head Qodo review is claimed. #178 remains open for I07's integrated transition criterion. The same local Python/platform, snapshot and explicit-profile-loader limitations apply.
+
 ### Decision log
 
 | Date | Decision | Basis |
 |---|---|---|
 | 2026-09-23 | Use this file as execution source of truth | Explicit user request |
 | 2026-09-23 | Use a test-first process for every implementation increment | Explicit user request; record failing tests before implementation and passing evidence afterward |
+| 2026-09-23 | Run Qodo local review with context before future PR creation | Explicit user instruction; record the actual review result and handle verified bugs test first |
 | 2026-09-23 | Commit, push and create a PR whenever an increment is finished and verified | Explicit standing user instruction; no additional commit/PR prompt required; merging remains separate |
 | 2026-09-23 | Separate bounded brownfield observations from accepted profiles and reuse protected installer previews | I05 tests and [ADR 0005](decisions/0005-brownfield-discovery.md); explicit baselines, scoped review and no new write path |
 | 2026-09-23 | Add a shared check/evidence protocol and explicit `govkit conform` report with conservative legacy adapters | I04 tests and [ADR 0004](decisions/0004-check-evidence-foundation.md); required unknowns cannot pass, pack execution is explicit, raw reports are not authenticated gate input |

@@ -208,13 +208,28 @@ def _safe_path(target: Path, relative: str) -> Path:
     return current
 
 
+def _bounded_references(references, limits: DiscoveryLimits) -> tuple[tuple[str, ...], bool]:
+    """Bound both unique storage and iteration, including duplicate-heavy inputs."""
+    selected = set()
+    for index, reference in enumerate(references):
+        if index >= limits.max_entries:
+            return tuple(sorted(selected)), True
+        if reference not in selected:
+            if len(selected) >= limits.max_files:
+                return tuple(sorted(selected)), True
+            selected.add(reference)
+    return tuple(sorted(selected)), False
+
+
 def scan_repository(target: Path, *, references=(), limits: DiscoveryLimits | None = None) -> Scan:
     target = target.absolute()
     limits = limits or DiscoveryLimits()
     if target.is_symlink() or not target.is_dir():
         raise DocumentError("Discovery target must be an existing directory, not a symlink")
+    references, reference_limited = _bounded_references(references, limits)
+    reference_set = frozenset(references)
     candidates = {reference: _category(reference) or "reference" for reference in references}
-    limitations = set()
+    limitations = {"reference-limit"} if reference_limited else set()
     entries_seen = 0
     # Bounded enumeration: do not materialize/sort an unbounded directory listing.
     pending = [(target, 0)]
@@ -253,7 +268,7 @@ def scan_repository(target: Path, *, references=(), limits: DiscoveryLimits | No
             boundaries.add(str(PurePosixPath(relative).parent))
     observations = []
     consumed = 0
-    ordered = sorted(candidates, key=lambda p: (p not in references, p))
+    ordered = sorted(candidates, key=lambda p: (p not in reference_set, p))
     if len(ordered) > limits.max_files:
         limitations.add("file-limit")
     for relative in ordered[: limits.max_files]:
@@ -302,5 +317,5 @@ def scan_repository(target: Path, *, references=(), limits: DiscoveryLimits | No
         not limitations,
         tuple(sorted(limitations)),
         limits,
-        tuple(sorted(references)),
+        references,
     )
