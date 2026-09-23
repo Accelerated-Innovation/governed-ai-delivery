@@ -244,7 +244,7 @@ def test_guidance_names_only_verified_installed_skills(tmp_path, agent):
     report = plan(tmp_path, request())
     assert report.document["guidance"]
     assert all((tmp_path / g["path"]).is_file() for g in report.document["guidance"])
-    assert any(g["id"] == "request-planning" for g in report.document["guidance"])
+    assert any(g["id"] == "govkit-request-planning" for g in report.document["guidance"])
     (tmp_path / report.document["guidance"][0]["path"]).write_text("local edit")
     drifted = plan(tmp_path, request())
     assert not drifted.ready and not drifted.document["guidance"]

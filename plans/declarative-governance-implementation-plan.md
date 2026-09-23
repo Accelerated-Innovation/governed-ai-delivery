@@ -1,7 +1,7 @@
 # Declarative governance implementation plan
 
 Status: I00–I05 merged; I06 request workflows delivered in PR #186, awaiting review/merge.
-Plan version: 1.15.
+Plan version: 1.16.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
 Primary epic: [#142 — Declarative, composable GovKit governance](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/142).
@@ -595,7 +595,7 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 | I03 | complete | Merged as b379a5a through [PR #183](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/183); 53 pack tests; 3884 fast-suite passes; 21 wheel installs; hosted Tests passed for 9ed7f6a | #145 remains open for I09 |
 | I04 | complete | [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184), initial implementation 78b1069; five review bugs remediated with 23 additional regressions; 3943 fast-suite passes; runtime-only wheel smoke passed | Merged 5426abe; final-head Tests run 35920010148 passed; #146 stays open for I07/I09 |
 | I05 | complete | [PR #185](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/185), implementation 09a1de3; three Qodo bugs remediated with 13 regressions; 3995 fast-suite passes; runtime-only wheel smoke passed | Merged 21ccef2; final-head Tests run 35926710002 passed; #178 remains open for I07 |
-| I06 | PR open | [PR #186](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/186), implementation 5ff34d7; 33 request tests; 4,028 fast tests pass; runtime-only wheel passed | Await CI/review/merge; Qodo local review attempted but backend repo_not_connected |
+| I06 | PR open; three review bugs remediated | [PR #186](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/186), implementation 5ff34d7; 8 additional regressions, 61 focused passes, 4,036 fast tests pass; runtime-only wheel passed | Await fix-head CI/Qodo review/merge; local review remains unavailable (repo_not_connected) |
 | I07 | not started | — | Wait for I04–I06 |
 | I08 | not started | — | Wait for I02–I03, I05, I07 |
 | I09 | not started | — | Wait for I02–I03, I05, I07 |
@@ -608,7 +608,7 @@ Current handoff:
 
 - Completed: I00–I05 merged. PR #185 merged as `21ccef2dbb64bb092b8e86d7fd5ec93d190949ac`; final-head [Tests run 35926710002](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/35926710002) passed for `1b6bcb0`. Individual logs/artifacts were not re-audited.
 - Current increment: I06 (#179) on `feat/179-request-workflows`. Synchronized main, pruned the deleted remote branch, verified identical trees and removed the merged local branch. Removed six known I05 temporary artifacts; preserved `.venv`.
-- Next action: review [I06 PR #186](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/186) and its hosted checks. The authorized local Qodo submission failed with `repo_not_connected`; reconnect the repository in the authenticated Qodo workspace before local review can complete. I07 follows I06 review/merge.
+- Next action: inspect the three review fixes in [I06 PR #186](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/186) and their new hosted checks/Qodo attribution. Prior-head Tests run 35928908847 passed. Qodo structured PR reads work, but its refreshed catalog exposes no finding-outcome writes; a fresh review must attribute the fixes. Local pre-PR review remains separately unavailable (`repo_not_connected`); no retry without reconnection. I07 follows I06 review/merge.
 - Issue tracking: #151/#143/#144 are closed; #178 remains open for I07 transition enforcement, #145 for I09, #146 for I07/I09. I06 must not claim actual-diff enforcement before I07.
 - Open product input: FeaturePeers definition, representative team repos, pilot participants and the actual legacy-retirement release boundary remain later decisions; none blocks I06.
 
@@ -1015,3 +1015,14 @@ Retrieved through Qodo on 2026-09-23 with qodo-get-rules 1.1.4, scoped to /Accel
 - Remaining boundary: supplied scope observations can add obligations/revise identity, but I07 must derive actual changed scope and enforce trusted conformance. #179's combined override/actual-scope acceptance criterion stays open until that integration; no automatic issue closure is requested.
 
 - Delivery: implementation `5ff34d77cf73651583a6d1bf16bf558d6832e6c1` pushed on `feat/179-request-workflows`; [PR #186](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/186) opened with the Qodo limitation and verification evidence. #179 has ten locally demonstrated criteria checked and remains open for I07 actual-scope enforcement; epic #142 records the handoff. Hosted CI is pending, not claimed passed.
+
+
+### PR #186 Qodo review remediation — 2026-09-23
+
+- Qodo structured review run `1238528` completed for implementation `5ff34d7`; the then-current head `aa37299` differed only in this plan. All affected production/test files were unchanged. Reproduced each reported bug against the current checkout; no exact-head clean review is inferred from the older session.
+- `f260808a-d4d9-44dc-b810-82d1131c8d03` (action required, Reliability): install the new skill as `govkit-request-planning`, preserving an existing unowned `request-planning` skill. Three regression cases cover native agent layouts and original user bytes/mtime.
+- `1693f17c-c758-4a29-826c-ccb28b0cae71` (recommended, Reliability): share verification and its exact lock snapshot; remove the unverified second read before advertising guidance. Compare the verified lock profile digest with the profile captured by planning. Filesystem-boundary tests reproduce a different internally valid lock on the second read and a profile/lock replacement during capture. Observations are not filesystem transactions or approval evidence.
+- `9eeef9aa-9a57-4f41-8cdf-47f8694b821c` (recommended, Correctness): allow the plan and every check to retain the union of 64 declared and 256 observed paths (up to 320). Boundary regressions exercise 256, 257 and 320 total paths, retained auth controls, identity reassessment, replay and no writes. The input limits stay unchanged.
+- Test first: **7 failing regressions + 1 passing boundary control** before fixes; all **8 pass** afterward. Workflow/pack focused run: **61 passed**. Full fast suite: **4,036 passed, 2 existing Copilot-format skips, 150 e2e deselected** (40.34s). Scoped Ruff check/format and diff whitespace pass. A freshly built wheel in a clean runtime-only virtualenv passes seven examples across three agents plus user-skill collision, maximum scope/replay, resource-drift rejection and no-write checks.
+- Prior hosted [Tests run 35928908847](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/35928908847) succeeded for `aa37299`; individual logs/artifacts were not re-audited. The remediation's new CI/review is pending.
+- All three findings are addressed in code, none skipped or dismissed. After one catalog refresh, this Qodo workspace exposes only structured findings reads, not mark-implemented/dismiss. Do not substitute forge comments for outcome writes or claim Qodo closed these findings before its returned attribution confirms that. #179 remains open for I07 actual-scope enforcement.

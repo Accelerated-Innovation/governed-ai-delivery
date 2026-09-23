@@ -320,7 +320,10 @@ def apply_install(preview: PackPreview) -> None:
         raise PackError(f"Packs were not applied: {exc}") from exc
 
 
-def verify_lock(target: Path, *, include_skills: bool = True) -> LockVerification:
+def _verify_lock_snapshot(
+    target: Path, *, include_skills: bool = True
+) -> tuple[dict | None, LockVerification]:
+    """Keep the replayed document together with its profile/resource verification."""
     target = target.absolute()
     try:
         lock, files, _ = _read_lock(target)
@@ -337,9 +340,13 @@ def verify_lock(target: Path, *, include_skills: bool = True) -> LockVerificatio
                         "resource-drift", (relative,), "Missing or modified installed resource"
                     )
                 )
-        return LockVerification(lock["agent"], tuple(decisions))
+        return lock, LockVerification(lock["agent"], tuple(decisions))
     except (OSError, DocumentError, PackError) as exc:
-        return LockVerification(None, (PackDecision("invalid-lock", (_LOCK,), str(exc)),))
+        return None, LockVerification(None, (PackDecision("invalid-lock", (_LOCK,), str(exc)),))
+
+
+def verify_lock(target: Path, *, include_skills: bool = True) -> LockVerification:
+    return _verify_lock_snapshot(target, include_skills=include_skills)[1]
 
 
 def locked_check_requirements(target: Path) -> tuple[tuple[str, bool], ...]:
@@ -354,12 +361,13 @@ def verified_lock_document(target: Path) -> dict:
     """Read the replayed lock only when current profile and all resources match.
 
     Planning consumers may advertise native guidance only through this verified
-    boundary. The returned snapshot is not approval or check-execution evidence.
+    boundary. Return that exact snapshot, never a later unverified reread. This
+    is an observation, not a transaction against concurrent filesystem writers
+    or approval/check-execution evidence.
     """
-    verification = verify_lock(target)
-    if not verification.ready:
+    lock, verification = _verify_lock_snapshot(target)
+    if lock is None or not verification.ready:
         raise PackError("Pinned profile/resources are unavailable or modified; run pack verify")
-    lock, _, _ = _read_lock(target.absolute())
     return lock
 
 

@@ -56,6 +56,8 @@ def _context(target, profile, request):
     lock_digest, capabilities, checks, guidance = None, [], [], []
     try:
         lock = verified_lock_document(target)
+        if lock["profile_digest"] != profile.digest:
+            raise PackError("Accepted profile changed during request capture; plan again")
         lock_digest = content_digest((canonical_json(lock) + "\n").encode())
         capabilities = sorted({c for p in lock["packs"] for c in p["provides"]})
         checks = [

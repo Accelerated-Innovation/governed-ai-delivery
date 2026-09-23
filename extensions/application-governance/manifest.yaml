@@ -8,7 +8,7 @@ skills:
 - path: skills/application-governance
   install_as: application-governance
 - path: skills/request-planning
-  install_as: request-planning
+  install_as: govkit-request-planning
 capability_pack:
   schema_version: 1
   provides:

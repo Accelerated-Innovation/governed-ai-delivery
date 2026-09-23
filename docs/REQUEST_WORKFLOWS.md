@@ -12,13 +12,13 @@ govkit request plan request.json --target . --explain
 govkit request plan request.json --target . --json > request-plan.json
 ```
 
-The CLI prints to stdout; redirection is an explicit caller write. Planning requires the local accepted `.govkit/profile.yaml` and a verified `.govkit/pack-lock.json`. Use the existing profile/pack preview and apply commands for authorized setup. Application Governance pack 1.1.0 adds one agent-neutral `request-planning` skill, installed natively for Codex, Claude Code and Copilot. Existing locks remain pinned until explicitly reconciled. Plans only name native guidance whose pinned bytes and current profile verify.
+The CLI prints to stdout; redirection is an explicit caller write. Planning requires the local accepted `.govkit/profile.yaml` and a verified `.govkit/pack-lock.json`. Use the existing profile/pack preview and apply commands for authorized setup. Application Governance pack 1.1.0 adds one agent-neutral `request-planning` skill, installed as `govkit-request-planning` natively for Codex, Claude Code and Copilot. Existing locks remain pinned until explicitly reconciled. Plans only name native guidance from the same lock snapshot whose pinned bytes and current profile were verified. The captured profile must match that snapshot; a concurrent profile change requires re-planning. This is an observation, not a filesystem transaction.
 
 The request records `id`, original `source`, local `summary`, `confirmation`, change intent, literal repository-relative `scope`, impacts, acceptance, local references and an optional workflow preference. It can be JSON or YAML. The source identifier may be a ticket URL; no live lookup occurs. Preserve the current request and plan in the project's reviewed change process so later CI can inspect agreed intent offline.
 
 `template` starts with proposed intent and unknown (`null`) impacts. The agent can draft normalization by reading the request, accepted contracts and affected code; unresolved material facts remain unknown. The owner confirms the normalized intent. Confirmation and authority fields are caller assertions, not authenticated approval. Neither an editable label nor line count waives controls.
 
-Impact fields are `bounded`, `within-contracts`, `new-behavior`, `security`, `auth`, `data`, `public-contract`, `nfr`, `ownership`, `architecture`, `cross-service`, `llm` and `mcp`. Every normalized field must be explicit; unknown impacts retain applicable controls and block planning readiness. Scope paths are literal directories/files, not glob expressions.
+Impact fields are `bounded`, `within-contracts`, `new-behavior`, `security`, `auth`, `data`, `public-contract`, `nfr`, `ownership`, `architecture`, `cross-service`, `llm` and `mcp`. Every normalized field must be explicit; unknown impacts retain applicable controls and block planning readiness. Scope paths are literal directories/files, not glob expressions. A request permits 64 paths and supplied observations permit 256; the resulting plan and each check retain their union of up to 320 distinct paths.
 
 ## Selected workflows
 

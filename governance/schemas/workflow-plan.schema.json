@@ -71,7 +71,7 @@
         "pattern": "\\S"
       },
       "minItems": 1,
-      "maxItems": 256
+      "maxItems": 320
     },
     "impacts": {
       "type": "object",
@@ -435,7 +435,7 @@
               "pattern": "\\S"
             },
             "minItems": 1,
-            "maxItems": 256
+            "maxItems": 320
           },
           "execution": {
             "const": "not-run"
