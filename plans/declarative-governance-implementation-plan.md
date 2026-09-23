@@ -1,7 +1,7 @@
 # Declarative governance implementation plan
 
-Status: I00 complete and verified; [PR #180](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/180) is open for review. I01 is next. No feature of the broader refactor is complete.
-Plan version: 1.2.
+Status: I00 merged; I01 implemented and verified locally, awaiting review/integration for #143. I02 is next.
+Plan version: 1.5.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
 Primary epic: [#142 — Declarative, composable GovKit governance](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/142).
@@ -586,9 +586,9 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 
 | Increment | Status | Evidence / commit / PR | Next action or blocker |
 |---|---|---|---|
-| I00 | complete | Commit 1b781bf; [PR #180](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/180); 16 failing shell regressions before fix → 74 ADR tests passing; fast suite 3496 passed, 2 skipped; see I00 record below | Await PR review/CI and merge; #151 stays open until merge |
-| I01 | not started | I00 prerequisite verified locally | Add test-first legacy characterization, then resolution ADR and pure typed foundation |
-| I02 | not started | — | Wait for I01 |
+| I00 | complete | Merged as bfa4f76 through [PR #180](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/180); 16 failing shell regressions before fix → 74 ADR tests passing; fast suite 3496 passed, 2 skipped; hosted Tests run succeeded | #151 closed; I00 delivery complete |
+| I01 | complete | Delivery branch feat/143-resolution-foundation on bfa4f76; 258 frozen selections; 284 focused tests; fast suite 3780 passed, 2 skipped; clean-wheel smoke passed; see I01 record | Commit/PR authorized; record delivery link, then review/integrate #143 |
+| I02 | not started | I01 foundation verified locally | Start with failing runtime profile/schema and preview tests |
 | I03 | not started | — | Wait for I01–I02 |
 | I04 | not started | — | Can establish protocol after I01 |
 | I05 | not started | — | Discovery after I02; installation integrates I03 |
@@ -603,12 +603,12 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 
 Current handoff:
 
-- Completed: I00; actual Git/Bash/Python transport verified for both providers, with approval semantics preserved.
-- Current increment: none; I00 is committed on fix/151-adr-gate-input and under review in PR #180.
-- Next increment: I01 (#143); continue test first and keep the enforcement repair separate from the broad refactor.
-- Open product input: FeaturePeers definition, representative team repos, pilot participants, and actual legacy-retirement release boundary. These do not block I01.
-- Delivery scope: this plan, both ci/{github,azure}/adr-approval-gate.yml templates, ci/README.md, and tests/test_adr_approval_gate_checks.py. The plan was untracked at the implementation session's start and is included in this delivery at the user's request.
-- Issue tracking: #151 is implemented in PR #180, awaiting review/merge; #142 remains open with I00 progress recorded. Neither broader feature checklists nor the epic acceptance criteria are complete.
+- Completed: I00 merged; I01's pure resolution foundation and legacy facade verified locally.
+- Current increment: none; I01 is ready for review on feat/143-resolution-foundation, based on bfa4f76. The user authorized committing and opening its PR. The pre-existing I00 merge-status update is preserved in this plan.
+- Next increment: I02 (#144); continue test first with runtime schemas/loaders and profile preview, using the I01 ADR and typed inputs.
+- Open product input: FeaturePeers definition, representative team repos, pilot participants, and actual legacy-retirement release boundary. These do not block I02.
+- Delivery scope: this plan, CLAUDE.md, cli/manifest.py, new cli/{legacy_resolution,resolution,resolution_models}.py, plans/decisions/0001-resolution-boundaries.md, tests/test_{legacy_resolution,resolution}.py, and tests/fixtures/legacy-resolution-baseline.json. No public CLI, installed layout, marker, or edit-protection changes are intended.
+- Issue tracking: #151 is closed; #143's acceptance is demonstrated locally and awaits review/integration; #142 remains open. Later feature and epic acceptance items remain unchecked.
 - Next agent: inspect current state before changing the ledger; no assumption that the baseline commit is still HEAD.
 
 Use this record after each session:
@@ -634,10 +634,25 @@ Next ready action:
 - **Acceptance demonstrated:** actual template Bash executes real Git and Python, with known unauthorized Accepted ADRs failing and printing the ADR path; valid current-head approval passes and prints the path; successful empty diffs pass; missing/unavailable bases and missing merge bases fail; non-main PR targets work without origin/main; nested service paths resolve against service-local policy and sibling services are excluded. Both providers execute all 20 shell cases against isolated local repositories/remotes without network access.
 - **Green:** `.venv/bin/python -m pytest tests/test_adr_approval_gate_checks.py -q --tb=short` → **74 passed**. `source .venv/bin/activate && ./run_tests -q` → **3496 passed, 2 skipped, 150 deselected**. The two skips are existing non-Copilot applyTo cases in tests/test_behavior_contract_rule.py; deselected tests are the e2e tier. `.venv/bin/python -m ruff check --no-fix tests/test_adr_approval_gate_checks.py` and `git diff --check` passed.
 - **Pre-PR review:** reviewed the local diff and confirmed the implementation fingerprint still matches the tested worktree. Qodo review submission was rejected by automatic approval review because exporting the private diff/context to that external service was not authorized; no Qodo findings or clean-review claim exists. Only plan delivery metadata changed after the tests, so the passing implementation checks were not rerun.
-- **Delivery:** at the user's request, committed the repair and plan as `1b781bf9794329640ed0f0fea7989bf9037b55ba`, pushed `fix/151-adr-gate-input`, and opened [PR #180](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/180) against main with `Fixes #151`. This follow-up records the PR link; no merge or hosted-CI success is claimed.
+- **Delivery:** at the user's request, committed the repair and plan as `1b781bf9794329640ed0f0fea7989bf9037b55ba`, pushed `fix/151-adr-gate-input`, and opened [PR #180](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/180) against main with `Fixes #151`. PR #180 merged on 2026-09-23 as `bfa4f76ae2179b9f14d17f1ee2d109bf4946666f`, closing #151. Its [Tests workflow run](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/35904543702) completed successfully for PR head `5ccd290a915bdd4245ae4c13c08ee91c552d6bd9`; individual job logs/artifacts were not re-audited. Local main also includes the independently merged dependency update #177 (`fa6b982`).
 - **Standards applied:** Appendix B's ERROR 2297577 (isolated explicit fixture state), ERROR 2297569 (real production shell/checker; only provider metadata/review input substituted), ERROR 2297588 (explicit status/path assertions), and WARNING 2287169 (paired templates plus README). The existing checker-parity test passes. Reused the plan's recorded Qodo standards; no fresh rule-search result is claimed.
-- **Limits:** these are local shell integration results, not live GitHub/Azure review API or branch-policy execution. The full e2e/toolchain tier, clean-wheel smoke, and Windows pilot were not run for this bounded repair. Azure compares against the target tip fetched at execution, unlike GitHub's event base snapshot. This does not address the separate limitations around unchanged/Proposed ADRs, approval-policy trust, or provider enforcement configuration.
-- **Next:** review/merge #151 through the normal repository process; begin I01's characterization tests and ADR. Keep #151 open until integration is recorded, and leave all broader feature acceptance items unchecked.
+- **Limits:** the reported test counts are local shell integration results, not live GitHub/Azure review API or branch-policy execution. The full e2e/toolchain tier, clean-wheel smoke, and Windows pilot were not run locally; hosted workflow status is recorded separately above. Azure compares against the target tip fetched at execution, unlike GitHub's event base snapshot. This does not address the separate limitations around unchanged/Proposed ADRs, approval-policy trust, or provider enforcement configuration.
+- **Next:** begin I01's characterization tests and ADR from the merged main baseline. Leave all broader feature acceptance items unchecked; the merge-status update to this plan can accompany the next implementation increment.
+
+### I01 execution record — 2026-09-23
+
+- **Initial verification identity:** implemented and verified locally on `feat/143-resolution-foundation`, based on `bfa4f76ae2179b9f14d17f1ee2d109bf4946666f`. The implementation session ended with uncommitted changes; the user subsequently authorized a commit and PR. The I00 merge-status edit present at session start is preserved.
+- **Implementation:** `cli/resolution_models.py` defines explicit repository/request inputs, requirements with reasons/source authority, integration selections, policy/contract/transition references, unresolved decisions, and versioned installation/workflow plans. `cli/resolution.py` checks explicit dependencies, conflicts, missing provenance and unaccepted requirement sources without I/O; request requirements cannot remove repository controls or dependencies. Plans snapshot mutable input metadata and serialize deterministically; workflow results bind to an installation-plan identity. `cli/legacy_resolution.py` owns the existing level/merge/replace/dispatch interpretation and lossless legacy conversion. `cli/manifest.py` retains loading/prompts and its existing public selection facade. [ADR 0001](decisions/0001-resolution-boundaries.md) and CLAUDE.md explain the boundary and later consumers.
+- **Test-first characterization:** before production edits, recorded ordered selection fingerprints for **258** supported combinations across all three agents, both providers, all six project types, the three supported levels, and applicable stacks. `tests/test_legacy_resolution.py` passed **260 tests**, including readable base-duplicate/attribute and option-order cases. Existing unsupported data/L5 and UI/explicit-stack cases passed **4 tests** before the refactor.
+- **Test-first red:** `tests/test_resolution.py` first failed collection with `ModuleNotFoundError` for the absent adapter/core modules. After implementing the initial contracts, an additional behavioral pass produced **5 failed, 18 passed**: requests lost existing dependencies or failed to add constraints, observed/proposed requirements appeared ready, and unresolved plans converted to legacy lists. Fixed those failures. A final diagnostic-identity regression produced **1 failed, 23 deselected**, demonstrating that delimiter-containing identifiers could collapse distinct findings; hashing the canonical affected-subject array fixed the collision.
+- **Final green:** `.venv/bin/python -m pytest tests/test_resolution.py tests/test_legacy_resolution.py -q` → **284 passed** (24 core tests and 260 characterization tests). `source .venv/bin/activate && ./run_tests -q` → **3780 passed, 2 skipped, 150 deselected**. Skips are the existing non-Copilot applyTo cases; the deselected tier is e2e. An expanded compatibility run covering test_govkit, test_maturity_model, headers, markers, marker authority, and stack upgrades passed **689 tests** before the final diagnostic-identity refinement. Scoped `ruff check --no-fix` and `git diff --check` passed; only touched/new Python files were formatted.
+- **Built-wheel evidence:** built `govkit-0.21.1-py3-none-any.whl` with an isolated hatchling 1.32.4 build environment, installed it with PyYAML 6.0.3 into a clean temporary venv, and executed with isolated Python from outside the checkout. Verified all four changed/new module bytes match the final source and bundle paths resolve inside the installed wheel. **258** frozen selections and associated installation/request plans passed; the distinct-decision-ID regression passed. Fresh apply/upgrade fixtures for Codex API L4/GitHub/python-fastapi, Copilot data L4/Azure/databricks-lakehouse, and Claude Code API L5/GitHub/dotnet-aspnet preserved marker options, edited governed contracts, and user-owned files.
+- **Acceptance mapping:** legacy ABI, order and metadata → frozen matrix/synthetic cases plus existing install tests; level-free inputs and independent capabilities → core tests; repository/request separation and policy retention → request tests; provenance, authority, deterministic serialization and structured conflicts → core tests; no effects/inward dependencies → forbidden-I/O test and import-boundary assertions; architecture/trust/migration seams → ADR 0001. All eight #143 acceptance items are checked as locally demonstrated; the issue remains open pending review/integration.
+- **Standards applied:** Appendix B's typed-domain/shared-helper rules shaped the core and compatibility boundary; 2287157/2287159 preserve live path access and inward imports; 2287173/2287166 preserve category semantics and user customizations; ERROR 2297577/2297569/2297588 are supported by isolated explicit fixtures, real resolver execution with only I/O dependencies guarded, and programmatic assertions. Reused the recorded Qodo standards. No external Qodo review submission was retried after the prior authorization rejection.
+- **Worktree fingerprint:** SHA-256 `0775ec82addb0f3f62cedc753523ac3b8e0441a0e0135394d6011492aa1bdfa6`, computed over compact sorted-key JSON mapping each of the nine non-plan delivery paths to its file-content SHA-256. The execution plan is excluded to avoid a self-referential fingerprint.
+- **Pre-PR verification:** confirmed the final implementation fingerprint matches the tested worktree, the ten delivery paths contain no unrelated changes, whitespace checks pass, and remote main still points to bfa4f76. Only plan delivery metadata changed after validation, so the implementation checks were not repeated. No external Qodo submission was retried.
+- **Limits:** local Python 3.12 validation only; the full e2e/toolchain matrix, Python 3.11 CI, Windows, and hosted CI for I01 were not run. Wheel smoke is scoped to the cases above. Source authority is an explicit caller assertion, not authenticated approval. The foundation does not implement public profile schemas/loaders, pack/version graph resolution, discovery, impact-based workflow selection, executable checks, policy-exception enforcement, or authorized write plans; those remain in their owning increments. `ready` is not enforcement evidence or write authority.
+- **Next:** review/integrate #143, then start I02 with failing profile/schema and preview tests. The new internal module/model names and capability identifiers are documented in ADR 0001; do not expose a new command or on-disk format without I02 validation and compatibility evidence.
 
 ### Decision log
 
@@ -645,6 +660,8 @@ Next ready action:
 |---|---|---|
 | 2026-09-23 | Use this file as execution source of truth | Explicit user request |
 | 2026-09-23 | Use a test-first process for every implementation increment | Explicit user request; record failing tests before implementation and passing evidence afterward |
+| 2026-09-23 | Keep the legacy facade and ordered manifest selection behind a pure requirements core | I01 characterization and [ADR 0001](decisions/0001-resolution-boundaries.md); no public CLI or installer semantics change |
+| 2026-09-23 | Treat plan readiness as consistency only; retain accepted policy and request requirements separately | #143 trust boundary; requirement selection is not execution evidence or write authorization |
 | 2026-09-23 | Use GitHub's event base SHA and Azure Repos' fetched PR target ref for I00 | Provider-specific inputs; no origin/main assumption; fetch/diff failure must be visible |
 | 2026-09-23 | Capabilities and per-request workflows replace levels in the new model | Agreed product direction; legacy semantics retained for migration |
 | 2026-09-23 | Discovery and focused confirmation precede brownfield writes | Agreed adoption approach |
@@ -660,14 +677,16 @@ Captured from the live issue list on 2026-09-23. These are requirements, not cla
 
 Source: [[Feature 1] Capability-based resolution foundation and legacy adapter](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/143).
 
-- [ ] Representative existing agent × level × type × CI × stack configurations preserve their artifact selections and supported behavior through the adapter.
-- [ ] The new domain model resolves without a maturity-level field; legacy level handling stays inside compatibility code/provenance.
-- [ ] Repository configuration and per-request requirements are separate typed inputs with independently inspectable outputs.
-- [ ] Each selected capability, artifact, and check carries its applicability reason and authority/source.
-- [ ] Identical explicit inputs produce identical serialized plans; ambiguous or conflicting inputs yield structured unresolved decisions.
-- [ ] The core has no writes, network access, printing, or process exits.
-- [ ] Existing tests and focused characterization tests pass; downstream consumers do not import command modules.
-- [ ] The ADR documents trust boundaries, dependency direction, and migration seams.
+- [x] Representative existing agent × level × type × CI × stack configurations preserve their artifact selections and supported behavior through the adapter.
+- [x] The new domain model resolves without a maturity-level field; legacy level handling stays inside compatibility code/provenance.
+- [x] Repository configuration and per-request requirements are separate typed inputs with independently inspectable outputs.
+- [x] Each selected capability, artifact, and check carries its applicability reason and authority/source.
+- [x] Identical explicit inputs produce identical serialized plans; ambiguous or conflicting inputs yield structured unresolved decisions.
+- [x] The core has no writes, network access, printing, or process exits.
+- [x] Existing tests and focused characterization tests pass; downstream consumers do not import command modules.
+- [x] The ADR documents trust boundaries, dependency direction, and migration seams.
+
+Evidence: [I01 execution record](#i01-execution-record--2026-09-23); these checks describe local acceptance, not a merged release or completed epic.
 
 ### Feature #144
 
