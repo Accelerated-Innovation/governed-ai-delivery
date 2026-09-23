@@ -1,6 +1,6 @@
 # Declarative governance implementation plan
 
-Status: I00 complete and verified; prepared for review on fix/151-adr-gate-input. I01 is next. No feature of the broader refactor is complete.
+Status: I00 complete and verified; [PR #180](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/180) is open for review. I01 is next. No feature of the broader refactor is complete.
 Plan version: 1.2.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
@@ -586,7 +586,7 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 
 | Increment | Status | Evidence / commit / PR | Next action or blocker |
 |---|---|---|---|
-| I00 | complete | Branch fix/151-adr-gate-input, based on af81945; 16 failing shell regressions before fix → 74 ADR tests passing; fast suite 3496 passed, 2 skipped; see I00 record below | Submit and review the #151 repair separately from the broader refactor |
+| I00 | complete | Commit 1b781bf; [PR #180](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/180); 16 failing shell regressions before fix → 74 ADR tests passing; fast suite 3496 passed, 2 skipped; see I00 record below | Await PR review/CI and merge; #151 stays open until merge |
 | I01 | not started | I00 prerequisite verified locally | Add test-first legacy characterization, then resolution ADR and pure typed foundation |
 | I02 | not started | — | Wait for I01 |
 | I03 | not started | — | Wait for I01–I02 |
@@ -604,11 +604,11 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 Current handoff:
 
 - Completed: I00; actual Git/Bash/Python transport verified for both providers, with approval semantics preserved.
-- Current increment: none; I00 is ready for review on fix/151-adr-gate-input.
+- Current increment: none; I00 is committed on fix/151-adr-gate-input and under review in PR #180.
 - Next increment: I01 (#143); continue test first and keep the enforcement repair separate from the broad refactor.
 - Open product input: FeaturePeers definition, representative team repos, pilot participants, and actual legacy-retirement release boundary. These do not block I01.
 - Delivery scope: this plan, both ci/{github,azure}/adr-approval-gate.yml templates, ci/README.md, and tests/test_adr_approval_gate_checks.py. The plan was untracked at the implementation session's start and is included in this delivery at the user's request.
-- Issue tracking: #151 is implemented and verified locally, awaiting review/merge; #142 remains open with I00 progress recorded. Neither broader feature checklists nor the epic acceptance criteria are complete.
+- Issue tracking: #151 is implemented in PR #180, awaiting review/merge; #142 remains open with I00 progress recorded. Neither broader feature checklists nor the epic acceptance criteria are complete.
 - Next agent: inspect current state before changing the ledger; no assumption that the baseline commit is still HEAD.
 
 Use this record after each session:
@@ -634,6 +634,7 @@ Next ready action:
 - **Acceptance demonstrated:** actual template Bash executes real Git and Python, with known unauthorized Accepted ADRs failing and printing the ADR path; valid current-head approval passes and prints the path; successful empty diffs pass; missing/unavailable bases and missing merge bases fail; non-main PR targets work without origin/main; nested service paths resolve against service-local policy and sibling services are excluded. Both providers execute all 20 shell cases against isolated local repositories/remotes without network access.
 - **Green:** `.venv/bin/python -m pytest tests/test_adr_approval_gate_checks.py -q --tb=short` → **74 passed**. `source .venv/bin/activate && ./run_tests -q` → **3496 passed, 2 skipped, 150 deselected**. The two skips are existing non-Copilot applyTo cases in tests/test_behavior_contract_rule.py; deselected tests are the e2e tier. `.venv/bin/python -m ruff check --no-fix tests/test_adr_approval_gate_checks.py` and `git diff --check` passed.
 - **Pre-PR review:** reviewed the local diff and confirmed the implementation fingerprint still matches the tested worktree. Qodo review submission was rejected by automatic approval review because exporting the private diff/context to that external service was not authorized; no Qodo findings or clean-review claim exists. Only plan delivery metadata changed after the tests, so the passing implementation checks were not rerun.
+- **Delivery:** at the user's request, committed the repair and plan as `1b781bf9794329640ed0f0fea7989bf9037b55ba`, pushed `fix/151-adr-gate-input`, and opened [PR #180](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/180) against main with `Fixes #151`. This follow-up records the PR link; no merge or hosted-CI success is claimed.
 - **Standards applied:** Appendix B's ERROR 2297577 (isolated explicit fixture state), ERROR 2297569 (real production shell/checker; only provider metadata/review input substituted), ERROR 2297588 (explicit status/path assertions), and WARNING 2287169 (paired templates plus README). The existing checker-parity test passes. Reused the plan's recorded Qodo standards; no fresh rule-search result is claimed.
 - **Limits:** these are local shell integration results, not live GitHub/Azure review API or branch-policy execution. The full e2e/toolchain tier, clean-wheel smoke, and Windows pilot were not run for this bounded repair. Azure compares against the target tip fetched at execution, unlike GitHub's event base snapshot. This does not address the separate limitations around unchanged/Proposed ADRs, approval-policy trust, or provider enforcement configuration.
 - **Next:** review/merge #151 through the normal repository process; begin I01's characterization tests and ADR. Keep #151 open until integration is recorded, and leave all broader feature acceptance items unchecked.
