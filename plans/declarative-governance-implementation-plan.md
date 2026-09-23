@@ -1,6 +1,6 @@
 # Declarative governance implementation plan
 
-Status: I00–I03 merged; I04 check/evidence foundation locally verified for #146, preparing commit/PR delivery.
+Status: I00–I03 merged; I04 check/evidence foundation delivered in PR #184 for #146, awaiting review/merge.
 Plan version: 1.11.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
@@ -591,7 +591,7 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 | I01 | complete | Merged as 941fe34 through [PR #181](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/181); 258 frozen selections; 284 focused tests; fast suite 3780 passed, 2 skipped; clean-wheel smoke and hosted Tests run passed; see I01 record | #143 closed; I01 delivery complete |
 | I02 | complete | Merged as b7d2f2f; implementation 27871fa; [PR #182](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/182); 51 focused tests; fast suite 3831 passed, 2 skipped; clean-wheel profile/legacy smoke plus 258 frozen selections; new CI step executed locally; see I02 record | #144 closed; hosted Tests run passed |
 | I03 | complete | Merged as b379a5a through [PR #183](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/183); 53 pack tests; 3884 fast-suite passes; 21 wheel installs; hosted Tests passed for 9ed7f6a | #145 remains open for I09 |
-| I04 | locally verified; PR pending | 36 new tests; 395 focused passes; 3920 fast-suite passes; runtime-only wheel reports and explicit-control smoke passed | Commit/push/create PR; keep #146 open for integrated acceptance |
+| I04 | PR open; locally verified | [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184), implementation 78b1069; 36 new tests; 395 focused passes; 3920 fast-suite passes; runtime-only wheel smoke passed | Await merge, then I05; #146 stays open for integrated acceptance |
 | I05 | not started | — | Discovery after I02; installation integrates I03 |
 | I06 | not started | — | Wait for I02–I04 |
 | I07 | not started | — | Wait for I04–I06 |
@@ -606,7 +606,7 @@ Current handoff:
 
 - Completed: I00–I03 merged; the I03 Tests workflow passed for 9ed7f6a.
 - Current increment: I04 (#146) on feat/146-check-evidence-foundation, based on b379a5a. Confirmed I03 merged, fast-forwarded main, verified identical trees and removed the squash-merged local I03 branch after remote deletion.
-- Next action: commit/push/create the verified I04 PR under the standing delivery instruction. After merge, confirm CI/integration, synchronize/clean up, and begin I05 discovery (#178) test first. #146 remains open for later integrated conformance and maintenance acceptance.
+- Next action: review/merge [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184). After merge, confirm CI/integration, synchronize/clean up, and begin I05 discovery (#178) test first. #146 remains open for later integrated conformance and maintenance acceptance.
 - Open product input: FeaturePeers definition, representative team repos, pilot participants, and actual legacy-retirement release boundary. These do not block I04.
 - Delivery scope: this plan plus 23 non-plan paths: check models/registry/adapters/assembly and command registration; narrow legacy doctor/validate/approval seams and public pinned-check requirements; runtime result schema and three examples; three focused test modules and clean-wheel smoke/installer CI step; conformance guide, ADR 0004 and README/CLAUDE guidance. Consumer CI templates and agent skill payloads are unchanged.
 - Issue tracking: #151, #143 and #144 are closed. #142 remains open with its #143 and #144 feature items checked; #145 has its first 15 I03 criteria integrated through PR #183; its four I09 criteria remain unchecked. #146 has four foundation criteria demonstrated locally; its workflow/change/maintenance criteria and epic end-to-end acceptance remain unchecked.
@@ -702,7 +702,7 @@ Next ready action:
 - **Wheel and worked records:** the final wheel was installed with runtime dependencies only into a fresh Python 3.12.14 environment; isolated imports came from that environment. Three bundled pass/unknown/failure reports validated and replayed. The real CLI demonstrated skipped, executed-pass and executed-fail LLM checks without Gherkin/legacy markers, unchanged target bytes/mtimes during checks, and identical reports for identical explicit local/CI inputs. Added `tests/wheel_check_smoke.py` to installer CI and executed the exact new shell step locally with only its temporary interpreter path substituted. No I04 hosted CI result is claimed yet.
 - **Acceptance mapping:** #146 criteria 6–9 (non-pass required evidence, versioned/provenant findings, isolated non-printing checks with compatibility, and real positive/negative controls) are demonstrated locally. Criterion 1 has foundation parity evidence but stays unchecked for its complete change-scoped contract. Criteria 2–5 await workflow/diff/transition integration; all maintenance criteria remain unchecked. #146 and the epic remain open.
 - **Scope and limits:** 24 changed paths including this plan; no consumer install was applied to this source repository. Local evidence is Python 3.12; full local e2e/toolchain, Python 3.11, Windows and live provider/agent sessions were not run. Origin labels/digests do not authenticate policy or evidence authors/freshness. Revision/time annotations are explicit inputs; unavailable change/dirty-tree facts remain null. Pack code is trusted and unsandboxed; the evaluator measures supplied outputs without running a model. Concurrent filesystem edits are outside snapshot guarantees. Actual-change routing, authorized waivers, provider enforcement, pipeline generation and maintenance remain later increments. Appendix B's previously loaded Qodo rules were reused; the prior rejected external diff export was not retried and review was local.
-- **Delivery:** ready to commit/push/open its PR under the standing instruction; a plan-only follow-up will record the resulting link. This record does not authorize merging.
+- **Delivery:** committed implementation and plan as `78b10691bf00c284875789a0db10374fa73ed34e`, pushed `feat/146-check-evidence-foundation`, and opened [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184) against main with `Refs #146`. This plan-only follow-up records the link and final handoff; implementation checks were not repeated for delivery metadata. #146 remains open. No merge was performed.
 - **Next:** after I04 merges, confirm/synchronize/clean up, then implement I05 focused brownfield discovery (#178) test first with documented-service, sparse, unfamiliar-MCP and monorepo fixtures. Preserve the check protocol and accepted-policy/observed-evidence boundary.
 
 ### Decision log
@@ -846,7 +846,7 @@ Source: [[Feature 4] Policy-aware conformance for repositories and individual ch
 - [ ] Output identifies the assessed repository/profile/resolution, time and release-metadata source/as-of status, and does not label unavailable freshness information as current.
 - [ ] Assessment leaves code, profile, locks, installed resources, and CI unchanged, and can produce partial useful results when an integration is unavailable.
 
-Evidence: [I04 execution record](#i04-execution-record--2026-09-23) demonstrates the four foundation criteria locally. Full change-scoped conformance and maintenance remain unimplemented; #146 stays open.
+Evidence: [I04 execution record](#i04-execution-record--2026-09-23) demonstrates the four foundation criteria locally, delivered in [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184). Full change-scoped conformance and maintenance remain unimplemented; #146 stays open.
 
 ### Feature #147
 
