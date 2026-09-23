@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "example-feature",
+  "source": "local:requests/feature.json",
+  "summary": "Deliver a substantial feature through the full Gherkin workflow.",
+  "confirmation": "confirmed",
+  "change": "feature",
+  "scope": [
+    "src"
+  ],
+  "impacts": {
+    "bounded": true,
+    "within-contracts": true,
+    "new-behavior": true,
+    "security": false,
+    "auth": false,
+    "data": false,
+    "public-contract": false,
+    "nfr": false,
+    "ownership": false,
+    "architecture": false,
+    "cross-service": false,
+    "llm": false,
+    "mcp": false
+  },
+  "acceptance": [
+    "Observable scenarios cover the complete agreed user journey."
+  ],
+  "references": [
+    {
+      "kind": "nfr",
+      "reference": "architecture.md",
+      "authority": "accepted"
+    }
+  ],
+  "preference": "auto"
+}

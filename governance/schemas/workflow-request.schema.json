@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GovKit workflow-request v1",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "\\S"
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "\\S"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "\\S"
+    },
+    "confirmation": {
+      "enum": [
+        "confirmed",
+        "proposed"
+      ]
+    },
+    "change": {
+      "enum": [
+        "defect",
+        "enhancement",
+        "refactor",
+        "maintenance",
+        "feature",
+        "architecture",
+        "unknown"
+      ]
+    },
+    "scope": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096,
+        "pattern": "\\S"
+      },
+      "minItems": 1,
+      "maxItems": 64
+    },
+    "impacts": {
+      "type": "object",
+      "properties": {
+        "bounded": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "within-contracts": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "new-behavior": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "security": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "auth": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "data": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "public-contract": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "nfr": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "ownership": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "architecture": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "cross-service": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "llm": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mcp": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "bounded",
+        "within-contracts",
+        "new-behavior",
+        "security",
+        "auth",
+        "data",
+        "public-contract",
+        "nfr",
+        "ownership",
+        "architecture",
+        "cross-service",
+        "llm",
+        "mcp"
+      ],
+      "additionalProperties": false
+    },
+    "acceptance": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096,
+        "pattern": "\\S"
+      },
+      "minItems": 0,
+      "maxItems": 64
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "enum": [
+              "acceptance",
+              "nfr",
+              "contract",
+              "established-behavior",
+              "regression-test"
+            ]
+          },
+          "reference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "\\S"
+          },
+          "authority": {
+            "enum": [
+              "accepted",
+              "observed",
+              "proposed"
+            ]
+          },
+          "digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "reference",
+          "authority"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0,
+      "maxItems": 64
+    },
+    "preference": {
+      "enum": [
+        "auto",
+        "defect",
+        "bounded",
+        "full-feature",
+        "architecture"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "source",
+    "summary",
+    "confirmation",
+    "change",
+    "scope",
+    "impacts",
+    "acceptance",
+    "references",
+    "preference"
+  ],
+  "additionalProperties": false
+}

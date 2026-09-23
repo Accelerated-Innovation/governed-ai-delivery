@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "example-mcp",
+  "source": "local:requests/mcp.json",
+  "summary": "Add a published MCP tool with a defined input/output contract.",
+  "confirmation": "confirmed",
+  "change": "feature",
+  "scope": [
+    "src"
+  ],
+  "impacts": {
+    "bounded": true,
+    "within-contracts": true,
+    "new-behavior": true,
+    "security": false,
+    "auth": false,
+    "data": false,
+    "public-contract": true,
+    "nfr": false,
+    "ownership": false,
+    "architecture": false,
+    "cross-service": false,
+    "llm": false,
+    "mcp": true
+  },
+  "acceptance": [
+    "The tool validates its input and returns the documented result; boundary review is recorded."
+  ],
+  "references": [
+    {
+      "kind": "nfr",
+      "reference": "architecture.md",
+      "authority": "accepted"
+    }
+  ],
+  "preference": "auto"
+}

@@ -350,6 +350,19 @@ def locked_check_requirements(target: Path) -> tuple[tuple[str, bool], ...]:
     )
 
 
+def verified_lock_document(target: Path) -> dict:
+    """Read the replayed lock only when current profile and all resources match.
+
+    Planning consumers may advertise native guidance only through this verified
+    boundary. The returned snapshot is not approval or check-execution evidence.
+    """
+    verification = verify_lock(target)
+    if not verification.ready:
+        raise PackError("Pinned profile/resources are unavailable or modified; run pack verify")
+    lock, _, _ = _read_lock(target.absolute())
+    return lock
+
+
 def execute_check(
     target: Path, check_id: str, arguments: tuple[str, ...]
 ) -> subprocess.CompletedProcess:

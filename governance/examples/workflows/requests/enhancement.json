@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "example-enhancement",
+  "source": "local:requests/enhancement.json",
+  "summary": "Add an internal opt-in formatter within the accepted boundary.",
+  "confirmation": "confirmed",
+  "change": "enhancement",
+  "scope": [
+    "src"
+  ],
+  "impacts": {
+    "bounded": true,
+    "within-contracts": true,
+    "new-behavior": true,
+    "security": false,
+    "auth": false,
+    "data": false,
+    "public-contract": false,
+    "nfr": false,
+    "ownership": false,
+    "architecture": false,
+    "cross-service": false,
+    "llm": false,
+    "mcp": false
+  },
+  "acceptance": [
+    "The formatter covers empty and populated inputs without changing the public API."
+  ],
+  "references": [
+    {
+      "kind": "nfr",
+      "reference": "architecture.md",
+      "authority": "accepted"
+    }
+  ],
+  "preference": "auto"
+}

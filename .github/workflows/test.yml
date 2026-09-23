@@ -337,6 +337,11 @@ jobs:
           cd /tmp
           /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_discovery_smoke.py"
 
+      - name: Proportional request workflows work from the wheel
+        run: |
+          cd /tmp
+          /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_workflow_smoke.py"
+
       - name: Apply against a fresh tmp dir from the wheel install
         # End-to-end: the wheel-installed `govkit apply` writes the marker,
         # the stack overlay docs, the editable header, and the skill_context.

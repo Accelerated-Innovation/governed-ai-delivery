@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "id": "example-defect",
+  "source": "local:requests/defect.json",
+  "summary": "Restore the established default response.",
+  "confirmation": "confirmed",
+  "change": "defect",
+  "scope": [
+    "src"
+  ],
+  "impacts": {
+    "bounded": true,
+    "within-contracts": true,
+    "new-behavior": false,
+    "security": false,
+    "auth": false,
+    "data": false,
+    "public-contract": false,
+    "nfr": false,
+    "ownership": false,
+    "architecture": false,
+    "cross-service": false,
+    "llm": false,
+    "mcp": false
+  },
+  "acceptance": [
+    "The existing default response test passes; retain red/green evidence."
+  ],
+  "references": [
+    {
+      "kind": "nfr",
+      "reference": "architecture.md",
+      "authority": "accepted"
+    },
+    {
+      "kind": "established-behavior",
+      "reference": "architecture.md",
+      "authority": "accepted"
+    },
+    {
+      "kind": "regression-test",
+      "reference": "tests/test_service.py",
+      "authority": "observed"
+    }
+  ],
+  "preference": "auto"
+}

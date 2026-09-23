@@ -1,12 +1,14 @@
 id: application-governance
 name: Application Governance
-version: 1.0.0
+version: 1.1.0
 govkit_min_version: 0.21.1
 extension_type: skills
 contract_sets: []
 skills:
 - path: skills/application-governance
   install_as: application-governance
+- path: skills/request-planning
+  install_as: request-planning
 capability_pack:
   schema_version: 1
   provides:
