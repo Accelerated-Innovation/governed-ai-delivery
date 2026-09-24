@@ -451,7 +451,7 @@ def feature_check(context: CheckContext) -> CheckOutcome:
     )
 
 
-def pack_check(identifier: str):
+def pack_check(identifier: str, *, policy_target: Path | None = None):
     def run(context: CheckContext) -> CheckOutcome:
         if identifier not in context.execute_pack_checks:
             return absent(
@@ -459,7 +459,13 @@ def pack_check(identifier: str):
                 state=State.SKIPPED,
             )
         arguments = context.pack_arguments.get(identifier, ())
-        result = execute_check(context.target, identifier, arguments)
+        result = (
+            execute_check(context.target, identifier, arguments)
+            if policy_target is None
+            else execute_check(
+                policy_target, identifier, arguments, working_directory=context.target
+            )
+        )
         digest = content_digest(
             canonical_json(
                 {

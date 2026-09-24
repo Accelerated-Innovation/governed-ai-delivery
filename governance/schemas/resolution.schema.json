@@ -513,6 +513,9 @@
           "items": {
             "$ref": "#/$defs/workflow"
           }
+        },
+        "conformance": {
+          "$ref": "#/$defs/acceptedSource"
         }
       },
       "required": [

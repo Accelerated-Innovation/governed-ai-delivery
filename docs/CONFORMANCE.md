@@ -62,3 +62,9 @@ Evidence names source, scope, method, origin, digest when available, and limitat
 Worked reports demonstrate [a structural profile pass](../governance/examples/check-results/profile-pass.json), [an unconfigured required control](../governance/examples/check-results/required-unknown.json), and [a real exact-match failure](../governance/examples/check-results/evaluation-fail.json). They use synthetic repository/revision annotations and temporary consumer fixtures. A profile pass alone says nothing about unselected application controls.
 
 `cli.check_runner.load_report` validates schema, canonical finding identities and recomputed totals for inspection. It does not authenticate a report or accept it as gate evidence. Run the checks again against the relevant inputs. Local and CI callers can use the same engine; the wheel smoke test demonstrates parity for the same explicit fixtures. Provider evidence, actual-change routing and enforcement parity remain later work.
+
+## Actual-change conformance
+
+For accepted requests evaluated against a real Git base/worktree and a separate
+trusted policy checkout, see [CHANGE_CONFORMANCE.md](CHANGE_CONFORMANCE.md).
+The plain repository invocation and its legacy adapters retain their behavior.

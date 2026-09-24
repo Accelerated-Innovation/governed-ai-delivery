@@ -51,13 +51,20 @@ class _StrictLoader(yaml.SafeLoader):
         return result
 
 
-def read_document(path: Path) -> dict:
+def parse_document(content: str | bytes) -> dict:
+    """Parse one captured document without rereading its backing file."""
     try:
-        value = yaml.load(path.read_text(encoding="utf-8"), Loader=_StrictLoader)
-        # Reject YAML-specific objects and non-finite values before validation.
+        value = yaml.load(content, Loader=_StrictLoader)
         canonical_json(value)
         return value
-    except (OSError, UnicodeError, yaml.YAMLError, TypeError, ValueError, RecursionError) as exc:
+    except (UnicodeError, yaml.YAMLError, TypeError, ValueError, RecursionError) as exc:
+        raise DocumentError(str(exc)) from exc
+
+
+def read_document(path: Path) -> dict:
+    try:
+        return parse_document(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
         raise DocumentError(f"{path}: {exc}") from exc
 
 

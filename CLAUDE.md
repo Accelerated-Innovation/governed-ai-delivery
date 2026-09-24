@@ -106,3 +106,7 @@ A change is rarely one file. Changing a schema means updating starter templates 
 ### Request workflow planning
 
 `cmd_request.py` prints proposed templates and per-request plans. `workflows.py` resolves only validated snapshots; `workflow_store.py` owns bounded local reads and deterministic replay. See [ADR 0006](plans/decisions/0006-request-workflows.md) and [request workflows](docs/REQUEST_WORKFLOWS.md). Preserve additive policy/check requirements, existing defect eligibility, independent LLM evaluation and verified pinned guidance. Agent normalization stays outside the deterministic boundary. Planning readiness is not approval or conformance. Supplied scope observations do not replace I07 actual-diff enforcement. Keep schemas, seven examples and runtime-only wheel smoke aligned.
+
+### Actual-change conformance
+
+`change_scope.py` captures bounded Git observations; `change_policy.py` reads accepted provider configuration; `change_architecture.py` measures scoped literal constraints; `change_defects.py` adapts existing eligibility/red-green execution. `change_conformance.py` recomputes request requirements and composes I04 checks. See ADR 0007 and `docs/CHANGE_CONFORMANCE.md`. Keep accepted policy outside the inspected tree, commands explicitly opted in, missing semantic/platform evidence unknown, and synthetic seven-pilot wheel coverage aligned. Legacy migration and consolidated maintenance remain I08/I09.

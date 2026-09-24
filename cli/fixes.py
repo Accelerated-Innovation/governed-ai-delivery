@@ -400,7 +400,7 @@ def _validate_against_schema(
 
 
 def validate_fix_record(
-    record: FixRecord, target: Path,
+    record: FixRecord, target: Path, *, schema_validator=None,
 ) -> tuple[list[str], list[str]]:
     """Return (issues, warnings) for one fix record.
 
@@ -422,7 +422,7 @@ def validate_fix_record(
     # schema check still runs so its warning is visible alongside them — a
     # reader needs to know coverage was reduced *and* what was already wrong.
     nested = _check_nested_structure(record)
-    schema_issues, warnings = _validate_against_schema(record, target)
+    schema_issues, warnings = (schema_validator or _validate_against_schema)(record, target)
     if nested or schema_issues:
         return nested + schema_issues, warnings
 
