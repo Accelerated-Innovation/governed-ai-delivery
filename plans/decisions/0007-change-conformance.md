@@ -16,21 +16,31 @@ small provider contract makes executable behavior reviewable without interpretin
 arbitrary prose as a rule. Missing coverage is unknown. Existing required/pinned
 checks survive routing even when their related files are unedited.
 
-The separate checkout is a trust boundary, not an authentication mechanism. CI must
+Neither checkout may contain the other. This separation is an input guard, not an
+authentication mechanism or command sandbox. CI must
 choose accepted inputs independently from the change. Captured content and final
 recapture detect ordinary stale or changing inputs; they do not offer atomic
 filesystem snapshots or a sandbox. Commands are opt-in, trusted and unsandboxed.
 Local code cannot approve architecture or grant arbitrary waivers. Scoped, dated
-existing exceptions apply only to baseline occurrence counts; target applicability
+existing exceptions apply only to baseline occurrence counts within their owning
+transition; overlapping transitions retain separate obligations. Target applicability
 is separate. Built-in architecture measurement is deliberately literal, with
 unmeasured semantic dimensions stated in evidence.
 
 Defects reuse existing eligibility with a bundled-schema validation boundary;
 legacy validation keeps its existing default. Opted-in baseline/current execution
-runs in a temporary copy and current target, never a destructive checkout. These
+runs on the current target and isolated current/base snapshots, never a destructive
+checkout. Both snapshots preserve executable modes and use the same current
+declared regression-test inputs. An isolated current pass is required before a
+baseline failure can count as red; absent snapshot dependencies remain unverified. These
 outcomes prove only the configured tests. The outer change-results contract embeds
 and replays the I06 plan and I04 report, retains identities/provenance and provides
 the same entry point locally and in CI. It is not an authenticated gate artifact.
+
+The Git identity includes index content identifiers, modes and flags. A staged
+version differing from the observed working tree remains in scope but cannot be
+verified by working-tree execution. Sparse/conflicted indexes fail closed without
+inventing deletions. Capture and final recapture do not modify the index.
 
 See [the command guide](../../docs/CHANGE_CONFORMANCE.md) for exact inputs, bounds,
 limitations and seven executable pilot fixtures. Migration, maintenance and provider

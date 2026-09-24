@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import shutil
 import tempfile
 from dataclasses import replace
 from pathlib import Path
@@ -18,6 +19,14 @@ from .workflows import _covers
 def _schema(record, target):
     validate_document(record.data, "fix_record")
     return [], []
+
+
+def _materialize(directory, files, modes):
+    for name, content in files.items():
+        destination = directory / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(content)
+        destination.chmod(0o755 if modes.get(name) == "100755" else 0o644)
 
 
 def defect_check(request, change, references, command, selected, run_command):
@@ -92,14 +101,43 @@ def defect_check(request, change, references, command, selected, run_command):
                     "Red/green verification needs a configured project test command and explicit defect:eligibility execution",
                     evidence=(proof,),
                 )
-            with tempfile.TemporaryDirectory(prefix="govkit-defect-baseline-") as directory:
-                baseline = Path(directory)
-                for name, content in change.base_files.items():
-                    destination = baseline / name
-                    destination.parent.mkdir(parents=True, exist_ok=True)
-                    destination.write_bytes(content)
-                red = run_command(command, {command["id"]})(replace(context, target=baseline))
             green = run_command(command, {command["id"]})(context)
+            if green.state is not State.PASS:
+                return CheckOutcome(
+                    green.state,
+                    green.execution,
+                    "Current project tests must pass before a defect can be verified",
+                    evidence=(proof, *green.evidence),
+                )
+            if not tests <= change.files.keys():
+                return CheckOutcome(
+                    State.UNKNOWN,
+                    Execution.NOT_RUN,
+                    "Regression test inputs must be included in the captured Git scope",
+                    evidence=(proof,),
+                )
+            # Both snapshots use the current declared regression tests. A missing
+            # or obsolete test in the base is not evidence of a production defect.
+            baseline_files = dict(change.base_files)
+            baseline_modes = dict(change.base_file_modes)
+            for name in tests:
+                baseline_files[name] = change.files[name]
+                baseline_modes[name] = change.file_modes[name]
+            with tempfile.TemporaryDirectory(prefix="govkit-defect-") as directory:
+                checkout = Path(directory) / "checkout"
+                isolated_context = replace(context, target=checkout)
+                _materialize(checkout, change.files, change.file_modes)
+                isolated_green = run_command(command, {command["id"]})(isolated_context)
+                if isolated_green.state is not State.PASS:
+                    return CheckOutcome(
+                        State.UNKNOWN,
+                        Execution.EXECUTED,
+                        "Current tests do not pass in snapshot isolation; missing Git metadata or dependencies cannot prove a defect",
+                        evidence=(proof, *green.evidence, *isolated_green.evidence),
+                    )
+                shutil.rmtree(checkout)
+                _materialize(checkout, baseline_files, baseline_modes)
+                red = run_command(command, {command["id"]})(isolated_context)
             state = (
                 State.PASS
                 if red.state is State.FAIL and green.state is State.PASS
@@ -111,8 +149,8 @@ def defect_check(request, change, references, command, selected, run_command):
             return CheckOutcome(
                 state,
                 Execution.EXECUTED,
-                "Configured project test command must fail on the base snapshot and pass on the current target; this measures only the selected tests",
-                evidence=(proof, *red.evidence, *green.evidence),
+                "The same current regression tests must fail on base code and pass on isolated current code and the current target; this measures only the selected tests",
+                evidence=(proof, *red.evidence, *isolated_green.evidence, *green.evidence),
             )
         except (OSError, ValueError):
             return CheckOutcome(

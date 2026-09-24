@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import stat
 import subprocess
@@ -31,6 +32,8 @@ class ChangeSnapshot:
     base_files: dict[str, bytes] = field(repr=False)
     problems: tuple[str, ...] = ()
     file_modes: dict[str, str] = field(default_factory=dict, repr=False)
+    base_file_modes: dict[str, str] = field(default_factory=dict, repr=False)
+    index_digest: str | None = None
 
     @property
     def complete(self):
@@ -55,8 +58,11 @@ class ChangeSnapshot:
             "tree_digest": content_digest(
                 canonical_json(
                     {
-                        p: {"digest": content_digest(b), "mode": self.file_modes.get(p)}
-                        for p, b in sorted(self.files.items())
+                        "index": self.index_digest,
+                        "files": {
+                            p: {"digest": content_digest(b), "mode": self.file_modes.get(p)}
+                            for p, b in sorted(self.files.items())
+                        },
                     }
                 ).encode()
             ),
@@ -95,7 +101,8 @@ def capture_change(
     target = target.absolute()
     before, after, changes, problems = {}, {}, [], []
     resolved, revision = None, None
-    current_modes = {}
+    current_modes, modes = {}, {}
+    index_digest = None
     try:
         if target.is_symlink() or not target.is_dir():
             raise ValueError("Target must be a real directory")
@@ -120,6 +127,19 @@ def capture_change(
             if kind != b"blob" or mode not in (b"100644", b"100755"):
                 raise ValueError("Unsupported baseline file kind")
             entries.append((path, mode, sha, int(size)))
+        index_input = _git(target, "ls-files", "--stage", "-v", "-z")
+        index_digest = content_digest(index_input)
+        index = {}
+        for entry in index_input.split(b"\0"):
+            if not entry:
+                continue
+            metadata, name = entry.split(b"\t", 1)
+            flag, mode, sha, stage = metadata.split()
+            path = name.decode("utf-8")
+            safe_relative(path)
+            if flag.upper() == b"S" or stage != b"0" or mode not in (b"100644", b"100755"):
+                raise ValueError("Sparse, conflicted or nonregular index is unsupported")
+            index[path] = (mode, sha)
         names = {
             n.decode("utf-8")
             for n in _git(
@@ -129,6 +149,7 @@ def capture_change(
         }
         if (
             len(entries) > max_files
+            or len(index) > max_files
             or len(names) > max_files
             or any(e[3] > max_bytes for e in entries)
             or sum(e[3] for e in entries) > max_total_bytes
@@ -166,9 +187,28 @@ def capture_change(
                 raise ValueError("Working tree exceeds content observation limits")
             after[name] = content
             current_modes[name] = b"100755" if metadata.st_mode & stat.S_IXUSR else b"100644"
-        for path in sorted(before.keys() | after.keys()):
+        base_index = {p: (m, sha) for p, m, sha, _ in entries}
+        object_format = _git(target, "rev-parse", "--show-object-format").decode().strip()
+        if object_format not in {"sha1", "sha256"}:
+            raise ValueError("Unsupported Git object format")
+        for path in sorted(before.keys() | after.keys() | index.keys()):
             old, new = before.get(path), after.get(path)
-            if old == new and modes.get(path) == current_modes.get(path):
+            staged = index.get(path) != base_index.get(path)
+            work_entry = (
+                None
+                if new is None
+                else (
+                    current_modes[path],
+                    hashlib.new(object_format, b"blob " + str(len(new)).encode() + b"\0" + new)
+                    .hexdigest()
+                    .encode(),
+                )
+            )
+            if staged and index.get(path) != work_entry:
+                problems.append(
+                    f"Staged content differs from the tested working tree: {path}; reconcile the index and retry."
+                )
+            if not staged and old == new and modes.get(path) == current_modes.get(path):
                 continue
             changes.append(
                 ChangedPath(
@@ -182,6 +222,8 @@ def capture_change(
             raise ValueError("Change exceeds the workflow scope limit")
         if _git(target, "rev-parse", "--verify", "HEAD^{commit}").decode().strip() != revision:
             raise ValueError("HEAD changed during observation")
+        if _git(target, "ls-files", "--stage", "-v", "-z") != index_input:
+            raise ValueError("Index changed during observation")
     except (OSError, ValueError, subprocess.SubprocessError):
         problems.append(
             "Git scope is incomplete, unsafe, unavailable or exceeds observation limits; inspect the repository and retry."
@@ -194,4 +236,6 @@ def capture_change(
         before,
         tuple(problems),
         {p: m.decode("ascii") for p, m in current_modes.items()},
+        {p: m.decode("ascii") for p, m in modes.items()},
+        index_digest,
     )

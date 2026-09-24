@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 from dataclasses import dataclass, replace
@@ -258,14 +259,26 @@ def inspect_change(
     Both local and CI callers supply that checkout, accepted intent and base.
     """
     target, policy_target = target.absolute(), policy_target.absolute()
-    if target.resolve() == policy_target.resolve() or policy_target.resolve().is_relative_to(
-        target.resolve()
-    ):
+    if target.resolve().is_relative_to(
+        policy_target.resolve()
+    ) or policy_target.resolve().is_relative_to(target.resolve()):
         raise ValueError(
             "Policy target must be a separate trusted checkout outside the change target"
         )
-    if observed_at:
-        datetime.fromisoformat(observed_at.replace("Z", "+00:00"))
+    if observed_at is not None:
+        try:
+            if not re.fullmatch(
+                r"\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-](?:[01]\d|2[0-3]):[0-5]\d)",
+                observed_at,
+            ):
+                raise ValueError("Invalid timestamp syntax")
+            observed_at = datetime.fromisoformat(
+                observed_at.upper().replace("Z", "+00:00")
+            ).isoformat()
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                "Observation time must be an RFC 3339 timestamp with a timezone"
+            ) from exc
     profile = load_profile(contained_file(policy_target, ".govkit/profile.yaml"))
     policy_error, policy_digest = False, None
     try:
@@ -405,7 +418,11 @@ def inspect_change(
     if selected - executable or selected - required:
         raise ValueError("Execution is not a selected configured check")
     if any(
-        k not in packs or not isinstance(v, (tuple, list)) or not all(isinstance(a, str) for a in v)
+        k not in packs
+        or k not in required
+        or k not in selected
+        or not isinstance(v, (tuple, list))
+        or not all(isinstance(a, str) for a in v)
         for k, v in (pack_arguments or {}).items()
     ):
         raise ValueError("Pack arguments must map selected pack IDs to string arrays")

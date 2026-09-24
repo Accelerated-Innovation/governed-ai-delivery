@@ -54,6 +54,17 @@ def assess_architecture(profile, policy, change, observed_at, evidence):
                 continue
             if transition and not any(_covers(s, path) for s in transition["scope"]):
                 continue
+            # A top-level current contract is measured in each applicable transition
+            # context. Overlapping transitions still retain independent obligations.
+            if transition is None and any(
+                any(_covers(s, path) for s in t["scope"])
+                and any(
+                    c["source"] == contract["source"] and any(_covers(s, path) for s in c["scope"])
+                    for c in t["current"]
+                )
+                for t in transitions
+            ):
+                continue
             if role == "target" and transition["applies_to"] != "all":
                 if path not in statuses or (
                     transition["applies_to"] == "new" and statuses[path] != "added"
@@ -92,7 +103,7 @@ def assess_architecture(profile, policy, change, observed_at, evidence):
                 )
                 continue
             for rule in applicable:
-                identity = (rule["id"], path, role)
+                identity = (rule["id"], path, role, transition["id"] if transition else None)
                 if identity in measured:
                     continue
                 measured.add(identity)
@@ -103,17 +114,10 @@ def assess_architecture(profile, policy, change, observed_at, evidence):
                     exception_candidates = (
                         [
                             e
-                            for t in transitions
-                            if any(_covers(s, path) for s in t["scope"])
-                            and any(
-                                c["source"] == contract["source"]
-                                and any(_covers(s, path) for s in c["scope"])
-                                for c in t["current"]
-                            )
-                            for e in t.get("exceptions", [])
+                            for e in transition.get("exceptions", [])
                             if any(_covers(s, path) for s in e["scope"])
                         ]
-                        if role == "current"
+                        if role == "current" and transition
                         else []
                     )
                     valid = [

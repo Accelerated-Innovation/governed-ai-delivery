@@ -23,7 +23,8 @@ edited plan cannot remove them. The CLI provides no path-filter escape hatch.
 
 ## Accepted policy and trust
 
-`--policy-target` must be outside the inspected repository. It contains the
+`--policy-target` and the inspected repository must be separate: neither directory
+may contain the other, including through resolved symlinks. It contains the
 accepted `.govkit/profile.yaml`, verified `.govkit/pack-lock.json`, installed
 pinned resources, and local accepted source references. Add an optional accepted
 reference to the profile:
@@ -77,9 +78,12 @@ Stdout/stderr are represented by digests, not copied into the report. A shared
 project-test provider supplies `project:tests` and `artifact:test-evidence`.
 Command exit status only measures the configured behavior; it is not semantic
 approval. Unknown providers stay unknown.
+Directory separation is an input guard, not an execution sandbox; trusted commands
+still have the invoking user's filesystem permissions.
 
 Pinned pack checks retain `--execute-pack-check ID` (or `--execute-check ID`) and
-`--pack-arguments arguments.json`. Resources are verified in the trusted checkout;
+`--pack-arguments arguments.json`. Every argument entry must name a required pack
+check explicitly selected to run. Resources are verified in the trusted checkout;
 the command runs against the inspected project. LLM checks run independently of
 workflow size and native skill loading. The shipped exact-match example evaluates
 supplied outputs, without calling a model. `artifact:change-record` reflects the
@@ -94,8 +98,14 @@ untracked nonignored files, deletions and executable-mode changes. Renames appea
 as add/delete. Repository-root inspection avoids partial-directory blind spots.
 Bounds are 2,048 files per tree, 1 MiB per file, 16 MiB per tree and 256 changed
 paths. Unsupported kinds (including symlinks/submodules), unavailable Git inputs,
-unsafe paths and exceeded bounds leave scope incomplete and blocking. Ignored
-untracked content is unmeasured. No checkout, index refresh, textconv or diff helper
+unsafe paths and exceeded bounds leave scope incomplete and blocking.
+Sparse/skip-worktree and conflicted indexes are unsupported and remain incomplete;
+missing sparse files are not reported as deletions. The index's object IDs, modes
+and flags contribute to the captured identity. If content changed from the base in
+the index differs from working-tree bytes or modes, its path remains in scope and
+scope is unverified. Reconcile the index and working tree before retrying: commands
+run on the working tree and cannot prove a different staged version conforms.
+Ignored untracked content is unmeasured. No checkout, index refresh, textconv or diff helper
 runs. This is not a filesystem transaction; the final `change:stable-inputs` check
 recaptures Git and accepted inputs and rejects changes observed during execution.
 
@@ -109,6 +119,9 @@ semantic controls need explicit trusted providers.
 
 Existing occurrence counts are compared with the base. Only existing occurrences
 can use an exception within the transition, current contract and exception scopes.
+Each overlapping transition must satisfy its own exceptions; a valid exception in
+one transition cannot excuse an expired or absent exception in another. Shared
+top-level contracts are measured within each applicable transition context.
 Extra occurrences in that file are new violations; moving code to a new path does
 not transfer its exception. The literal check cannot distinguish replacement or
 movement of identical text within a file with an unchanged count. Exception expiry
@@ -116,18 +129,27 @@ requires explicit `--observed-at` and a recorded expiry; unavailable expiry is
 unknown, and dates before that observation date fail. Exception evidence remains
 visible even when other checks fail. Nothing automatically retires current rules
 or approves migration completion.
+Observation timestamps must include a timezone in RFC 3339 syntax; invalid input
+is rejected before command execution. Valid offsets and lowercase `t`/`z` normalize
+to an ISO timestamp with an explicit offset.
 
 Defect requests retain the existing bundled `fix_record` schema and eligibility
 checks. Configure exactly one `fix-record` artifact at `fixes/<id>/fix.yaml`, with
 accepted established-behavior and regression-test references matching the normalized
 request. Actual changed paths must fit the recorded surface (apart from the record
 itself). To measure red/green, explicitly select `defect:eligibility` and configure
-`project:tests`. The trusted test command runs on a temporary copy of the captured
-base and on the current project; baseline failure and current success are both
-required. This does not check out or mutate either source tree. The temporary copy
-contains captured regular-file bytes, without Git metadata, ignored dependencies,
-symlinks or executable-bit restoration; commands needing those facilities remain
-unverified. Only the configured tests are evidenced; record assertions alone are
+`project:tests`. The trusted command must pass on the current project and an isolated
+current snapshot before baseline failure can count as red evidence. Both isolated
+runs use the same temporary path, rebuilt between runs, with captured executable
+modes and the same **current** declared regression-test bytes. Declare all regression
+test inputs in the normalized request; a missing or obsolete base test cannot prove
+a defect. A healthy baseline with a newly added passing test fails eligibility.
+This does not check out or mutate either source tree. Snapshots omit Git metadata,
+ignored dependencies and unsupported file kinds. If the isolated current run fails
+(even though the real checkout passes), eligibility remains unknown. The caller
+must configure tests that run equivalently in this bounded environment; command
+exit status does not distinguish every possible infrastructure failure from an
+assertion failure. Only the configured tests are evidenced; record assertions alone are
 not test execution. Broader changes escalate through request routing.
 
 ## Local/CI record and pilot
