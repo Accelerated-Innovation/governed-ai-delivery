@@ -3,8 +3,8 @@
 `govkit maintain inventory` reads a repository's recorded and actual resources.
 It separates the running CLI, legacy marker version, replayed profile resolution,
 locked packs and per-file digests. A matching version string never hides missing
-files or customizations. This first maintenance increment supplies facts; the
-consolidated release/resource/repository-fit/CI assessment follows in I09b.
+files or customizations. These facts feed the canonical
+[release/resource/repository-fit/CI assessment](MAINTENANCE_ASSESSMENT.md).
 
 ```sh
 govkit maintain inventory --target /work/service --json > /work/inventory.json

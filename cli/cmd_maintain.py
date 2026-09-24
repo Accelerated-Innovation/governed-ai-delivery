@@ -11,7 +11,15 @@ from pathlib import Path
 
 from . import paths
 from .fs import stage_bytes
+from .maintenance import (
+    assess_repository,
+    parse_assessment,
+    read_assessment,
+    render_assessment,
+    verify_assessment,
+)
 from .maintenance_inventory import inventory_repository, preview_candidate, read_bounded
+from .maintenance_operations import preview_operation
 from .pack_loading import contained_file, load_pack
 from .profiles import load_profile
 from .release_metadata import refresh_metadata
@@ -41,20 +49,67 @@ def cmd_maintain(args):
             finally:
                 temporary.unlink(missing_ok=True)
         elif args.action == "preview":
-            if not args.inventory or not args.component:
-                raise ValueError("Preview requires --inventory and --component")
-            inventory = parse_document(read_bounded(Path(args.inventory)))
-            report = preview_candidate(
+            catalog = tuple(load_pack(Path(path)) for path in args.pack_source)
+            if args.assessment:
+                if not args.recommendation or args.inventory:
+                    raise ValueError(
+                        "Assessment preview requires --recommendation and no --inventory"
+                    )
+                report = preview_operation(
+                    target,
+                    read_assessment(Path(args.assessment)).document,
+                    args.recommendation,
+                    catalog=catalog,
+                    as_of=as_of,
+                )
+            else:
+                if not args.inventory or not args.component:
+                    raise ValueError("Preview requires --inventory and --component")
+                inventory = parse_document(read_bounded(Path(args.inventory)))
+                report = preview_candidate(target, inventory, args.component, catalog=catalog)
+        elif args.action == "verify":
+            if not args.assessment:
+                raise ValueError("Verification requires --assessment")
+            report = verify_assessment(
                 target,
-                inventory,
-                args.component,
-                catalog=tuple(load_pack(Path(path)) for path in args.pack_source),
+                read_assessment(Path(args.assessment)).document,
+                as_of=as_of,
+                metadata=tuple(parse_document(read_bounded(Path(path))) for path in args.metadata)
+                if args.metadata
+                else None,
+                baseline=parse_document(read_bounded(Path(args.baseline)))
+                if args.baseline
+                else None,
+                ci_report=parse_document(read_bounded(Path(args.ci_report)))
+                if args.ci_report
+                else None,
             )
+        elif args.action == "assess":
+            report = assess_repository(
+                target,
+                as_of=as_of,
+                metadata=tuple(parse_document(read_bounded(Path(path))) for path in args.metadata),
+                baseline=parse_document(read_bounded(Path(args.baseline)))
+                if args.baseline
+                else None,
+                ci_report=parse_document(read_bounded(Path(args.ci_report)))
+                if args.ci_report
+                else None,
+            ).document
         else:
             documents = tuple(parse_document(read_bounded(Path(path))) for path in args.metadata)
             report = inventory_repository(target, as_of=as_of, metadata=documents).document
         if args.json:
             print(canonical_json(report))
+        elif args.action in {"assess", "verify"}:
+            print(
+                render_assessment(
+                    parse_assessment(report["assessment"] if args.action == "verify" else report)
+                )
+            )
+            if args.action == "verify":
+                for state in ("resolved", "remaining", "unverified", "new"):
+                    print(f"{state}: {len(report[state])}")
         elif args.action == "inventory":
             print(f"Version/resource inventory (read-only): {report['repository']}")
             print(
@@ -76,7 +131,7 @@ def cmd_maintain(args):
             print(f"Release metadata cache: {report['lookup_status']} — {args.output}")
         else:
             print(
-                f"Candidate preview (read-only): {report['component']} → {report['target_version']}"
+                f"Candidate preview (read-only): {report.get('component') or report['recommendation']['action']} → {report['target_version']}"
             )
             for operation in report["operations"]:
                 print(f"  {operation['action']}: {operation['path']}")
@@ -94,7 +149,10 @@ def register(subparsers):
         "maintain", help="Inventory versions/resources and preview known release candidates"
     )
     parser.add_argument(
-        "action", nargs="?", default="inventory", choices=("inventory", "preview", "refresh")
+        "action",
+        nargs="?",
+        default="inventory",
+        choices=("inventory", "assess", "preview", "verify", "refresh"),
     )
     parser.add_argument("--target", default=".", help=paths.TARGET_HELP)
     parser.add_argument("--as-of", help="Explicit timezone-aware assessment time (defaults to now)")
@@ -108,6 +166,14 @@ def register(subparsers):
         "--inventory", help="Saved inventory for a stale-input-protected candidate preview"
     )
     parser.add_argument("--component", help="Component ID from the inventory candidates")
+    parser.add_argument(
+        "--assessment", help="Saved canonical assessment for preview or verification"
+    )
+    parser.add_argument("--recommendation", help="Recommendation ID from a canonical assessment")
+    parser.add_argument("--baseline", help="Explicit last-reviewed discovery record for comparison")
+    parser.add_argument(
+        "--ci-report", help="Canonical check-results provider record; never fetched implicitly"
+    )
     parser.add_argument(
         "--pack-source", action="append", default=[], help="Explicit local candidate pack directory"
     )

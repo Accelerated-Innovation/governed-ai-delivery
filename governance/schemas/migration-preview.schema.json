@@ -185,6 +185,9 @@
     },
     "local_verification": {
       "type": "object"
+    },
+    "maintenance": {
+      "type": "object"
     }
   },
   "required": [
@@ -204,7 +207,8 @@
     "discovery",
     "digest",
     "discovery_coverage",
-    "local_verification"
+    "local_verification",
+    "maintenance"
   ],
   "additionalProperties": false,
   "allOf": [

@@ -12,7 +12,15 @@ govkit migrate --target /work/service --json > /work/migration-preview.json
 ```
 
 The default is preview. No target files are written. Review `proposed_profile`,
-`decisions`, `operations`, `controls`, `local_verification` and `discovery_coverage`.
+`decisions`, `operations`, `controls`, `local_verification`, `discovery_coverage`
+and the canonical `maintenance` assessment. Maintenance distinguishes version
+updates, resource reconciliation, capability review and CI repair. It does not
+turn these findings into automatic migration operations. An optional
+`--assessment /work/assessment.json` rechecks a saved assessment; use the same
+option for the subsequent apply. Both commands check evidence freshness against the
+current clock and reject changed release/CI freshness before writing. A still-valid
+record keeps its reviewed digest; post-operation verification uses the current time.
+See [maintenance assessment](MAINTENANCE_ASSESSMENT.md).
 The proposed profile uses the accepted-profile syntax for review; it is **not
 accepted** until you deliberately supply it through `--profile`.
 
@@ -65,7 +73,9 @@ A ready preview means its metadata operations can be applied. It does not mean
 legacy checks pass or that any CI gate is active. The preview includes read-only
 local conformance findings, observed discovery evidence and bounded coverage.
 After applying, GovKit reruns repository conformance and returns `verification`,
-`controls` and `remaining`. `enforcement_parity` stays false. A broken extension,
+`controls`, `remaining` and canonical `maintenance` verification. Maintenance
+separates resolved, remaining, unverified and new recommendations. Changed-policy
+or incomplete evidence cannot establish resolution. `enforcement_parity` stays false. A broken extension,
 missing schema, skipped LLM evaluation or unknown approval is not repaired by
 writing profile metadata.
 

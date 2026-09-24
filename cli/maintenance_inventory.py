@@ -77,6 +77,56 @@ class InventoryReport:
         return canonical_json(self._document)
 
 
+def release_facts(profile, metadata, *, installed, running_govkit, python_version, as_of):
+    """Resolve supplied/default release inputs and comparisons without reading the target."""
+    supplied, candidates, accepted_metadata, problems = {}, [], [], []
+    if profile:
+        for raw in metadata:
+            try:
+                doc = parse_metadata(raw, profile)
+                if doc["source_id"] in supplied:
+                    raise DocumentError("Duplicate metadata source")
+                supplied[doc["source_id"]] = doc
+            except ValueError:
+                raise DocumentError("Invalid, duplicated or unapproved release metadata") from None
+        for source in profile.maintenance.sources:
+            try:
+                validate_source_url(source.url)
+            except ValueError:
+                problems.append(f"metadata:{source.id}:unsupported-source-url")
+                continue
+            doc = supplied.get(
+                source.id,
+                {
+                    "schema_version": 1,
+                    "kind": "release-metadata",
+                    "source_id": source.id,
+                    "source_url": source.url,
+                    "as_of": None,
+                    "retrieved_at": None,
+                    "lookup_status": "unavailable",
+                    "releases": [],
+                },
+            )
+            accepted_metadata.append(doc)
+            try:
+                candidates.extend(
+                    select_candidates(
+                        profile,
+                        doc,
+                        installed=installed,
+                        running_govkit=running_govkit,
+                        python_version=python_version,
+                        as_of=as_of,
+                    )
+                )
+            except ValueError:
+                problems.append(f"candidates:{source.id}:invalid-version-policy")
+    elif metadata:
+        problems.append("metadata:profile-required")
+    return accepted_metadata, sorted(candidates, key=lambda c: c["component"]), problems
+
+
 def inventory_repository(target: Path, *, as_of=None, metadata=()):
     target = target.absolute()
     if not target.is_dir() or target.is_symlink():
@@ -168,51 +218,15 @@ def inventory_repository(target: Path, *, as_of=None, metadata=()):
         problems.append("lock:replay-or-resource-verification-failed")
     installed = {p["id"]: p["version"] for p in lock["packs"]} if lock else {}
     installed["govkit"] = version.GOVKIT_VERSION
-    supplied, candidates, accepted_metadata = {}, [], []
-    if profile:
-        for raw in metadata:
-            try:
-                doc = parse_metadata(raw, profile)
-                if doc["source_id"] in supplied:
-                    raise DocumentError("Duplicate metadata source")
-                supplied[doc["source_id"]] = doc
-            except ValueError:
-                raise DocumentError("Invalid, duplicated or unapproved release metadata") from None
-        for source in profile.maintenance.sources:
-            try:
-                validate_source_url(source.url)
-            except ValueError:
-                problems.append(f"metadata:{source.id}:unsupported-source-url")
-                continue
-            doc = supplied.get(
-                source.id,
-                {
-                    "schema_version": 1,
-                    "kind": "release-metadata",
-                    "source_id": source.id,
-                    "source_url": source.url,
-                    "as_of": None,
-                    "retrieved_at": None,
-                    "lookup_status": "unavailable",
-                    "releases": [],
-                },
-            )
-            accepted_metadata.append(doc)
-            try:
-                candidates.extend(
-                    select_candidates(
-                        profile,
-                        doc,
-                        installed=installed,
-                        running_govkit=version.GOVKIT_VERSION,
-                        python_version=platform.python_version(),
-                        as_of=as_of,
-                    )
-                )
-            except ValueError:
-                problems.append(f"candidates:{source.id}:invalid-version-policy")
-    elif metadata:
-        problems.append("metadata:profile-required")
+    accepted_metadata, candidates, release_problems = release_facts(
+        profile,
+        metadata,
+        installed=installed,
+        running_govkit=version.GOVKIT_VERSION,
+        python_version=platform.python_version(),
+        as_of=as_of,
+    )
+    problems.extend(release_problems)
     git = capture_change(target, "HEAD")
     identity = {
         "revision": git.revision,
