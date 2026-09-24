@@ -5,10 +5,14 @@ import os
 import subprocess
 import sys
 import tempfile
+from dataclasses import replace
 from pathlib import Path
 
 from cli import change_conformance, paths
 from cli.change_conformance import load_change_report
+from cli.posture import reference
+from cli.posture_change import parse_change_posture
+from cli.schema_validation import canonical_json, content_digest
 
 PILOTS = ("defect", "enhancement", "refactor", "mcp", "llm", "feature", "architecture")
 
@@ -95,6 +99,107 @@ def run_pilot(workspace, name):
         }
 
     before = snapshot()
+
+    def posture(source, label):
+        saved = workspace / (label + "-change.json")
+        saved.write_text(json.dumps(source))
+        output = workspace / (label + "-posture.json")
+        before_export = snapshot()
+        exported = invoke(
+            [
+                "posture",
+                "change",
+                "--results",
+                str(saved),
+                "--target",
+                str(target),
+                "--output",
+                str(output),
+                "--json",
+            ]
+        )
+        assert parse_change_posture(exported).document == exported == json.loads(output.read_text())
+        assert exported["results"]["summary"] == source["checks"]["summary"]
+        assert exported["results"]["exit_code"] == source["exit_code"]
+        assert exported["workflow"]["selected"] == source["plan"]["workflow"]
+        assert [
+            (c["ref"], c["state"], c["execution"], c["required"])
+            for c in exported["results"]["controls"]
+        ] == [
+            (reference("control", c["id"]), c["state"], c["execution"], c["required"])
+            for c in source["checks"]["results"]
+        ]
+        human = subprocess.run(
+            command + ["posture", "change", "--results", str(saved)], capture_output=True, text=True
+        )
+        assert human.returncode == 0, human.stderr
+        for control in exported["results"]["controls"]:
+            assert control["ref"] in human.stdout and control["state"] in human.stdout
+            for finding in control["findings"]:
+                assert finding["ref"] in human.stdout and finding["action_ref"] in human.stdout
+        if label == "initial":
+            # Saved results can be internally valid yet contradict their plan.
+            # Exercise installed CLI refusal before it creates a public artifact.
+            original = load_change_report(saved)
+            identifier = source["plan"]["checks"][0]["id"]
+            invalid = workspace / "weakened-results.json"
+            refused_output = workspace / "refused-posture.json"
+            for changes in (
+                {"scope": ("unplanned/narrow",)},
+                {"source_policy": "substituted-policy.md"},
+                {"reason": "substituted obligation"},
+            ):
+                altered = replace(
+                    original,
+                    checks=replace(
+                        original.checks,
+                        results=tuple(
+                            replace(c, spec=replace(c.spec, **changes))
+                            if c.spec.id == identifier
+                            else c
+                            for c in original.checks.results
+                        ),
+                    ),
+                )
+                invalid.write_text(altered.to_json())
+                assert load_change_report(invalid).document == altered.document
+                refused = subprocess.run(
+                    command
+                    + [
+                        "posture",
+                        "change",
+                        "--results",
+                        str(invalid),
+                        "--target",
+                        str(target),
+                        "--output",
+                        str(refused_output),
+                        "--json",
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
+                assert refused.returncode == 1 and not refused.stdout, (
+                    name,
+                    changes,
+                    refused.stderr,
+                )
+                assert not refused_output.exists(), (name, changes)
+            forged = json.loads(json.dumps(exported))
+            forged["results"]["controls"][0]["local_ref"] = "/checks/results/1"
+            forged["digest"] = content_digest(
+                canonical_json({k: v for k, v in forged.items() if k != "digest"}).encode()
+            )
+            try:
+                parse_change_posture(forged)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError((name, "Accepted a pointer to another result"))
+        assert output.stat().st_mode & 0o777 == 0o600
+        assert str(target) not in output.read_text() and str(trusted) not in output.read_text()
+        assert snapshot() == before_export
+
     expected = 1 if name == "architecture" else 0
     local = invoke(args, expected=expected)
     ci = invoke(args, ci=True, expected=expected)
@@ -103,6 +208,7 @@ def run_pilot(workspace, name):
     record = workspace / "result.json"
     record.write_text(json.dumps(local))
     assert load_change_report(record).document == local
+    posture(local, "initial")
     checks = {r["id"]: r for r in local["checks"]["results"]}
     assert checks["change:architecture"]["state"] == "pass"
     if name == "architecture":
@@ -126,13 +232,17 @@ def run_pilot(workspace, name):
     assert (
         next(r for r in failed["checks"]["results"] if r["id"] == failed_check)["state"] == "fail"
     )
+    posture(failed, "failed")
 
 
 if __name__ == "__main__":
     assert Path(change_conformance.__file__).is_relative_to(sys.prefix)
+    example = json.loads((paths.GOVERNANCE_DIR / "examples/posture/change.json").read_text())
+    assert parse_change_posture(example).document == example
     for name in PILOTS:
         with tempfile.TemporaryDirectory(prefix="govkit-change-pilot-") as directory:
-            run_pilot(Path(directory), name)
+            # The create-only writer rejects symlink parents, including macOS /var.
+            run_pilot(Path(directory).resolve(), name)
     print(
-        "Seven actual-change pilots: passing measurements, real failures, replay and local/CI parity verified."
+        "Seven actual-change pilots: real outcomes, private posture, planned metadata preservation, source pointer integrity and protected publication verified."
     )

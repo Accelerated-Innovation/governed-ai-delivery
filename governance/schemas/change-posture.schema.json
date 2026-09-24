@@ -1,0 +1,1034 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GovKit change-posture v1",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "change-posture"
+    },
+    "repository_ref": {
+      "type": "string",
+      "pattern": "^ref:[a-f0-9]{64}$"
+    },
+    "report_ref": {
+      "type": "string",
+      "pattern": "^ref:[a-f0-9]{64}$"
+    },
+    "as_of": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "revision_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "tree_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "request_plan_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "pack_lock_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "change_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "base_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^ref:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "revision_ref",
+        "tree_ref",
+        "profile_ref",
+        "request_plan_ref",
+        "pack_lock_ref",
+        "change_ref",
+        "base_ref"
+      ],
+      "additionalProperties": false
+    },
+    "running_cli": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/version"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "coverage": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "const": "unauthenticated-snapshot"
+        },
+        "git_complete": {
+          "type": "boolean"
+        },
+        "maintenance": {
+          "const": "not-supplied"
+        },
+        "discovery": {
+          "const": "not-supplied"
+        },
+        "provider_enforcement": {
+          "const": "not-supplied"
+        },
+        "controls": {
+          "const": "recorded-change-results"
+        },
+        "lock": {
+          "enum": [
+            "recorded",
+            "unknown"
+          ]
+        }
+      },
+      "required": [
+        "origin",
+        "git_complete",
+        "maintenance",
+        "discovery",
+        "provider_enforcement",
+        "controls",
+        "lock"
+      ],
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "configured": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capability"
+          }
+        },
+        "repository_required": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capability"
+          }
+        },
+        "recorded": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capability"
+          }
+        },
+        "change_required": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capability"
+          }
+        }
+      },
+      "required": [
+        "configured",
+        "repository_required",
+        "recorded",
+        "change_required"
+      ],
+      "additionalProperties": false
+    },
+    "configured_controls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          },
+          "applies_when": {
+            "enum": [
+              "repository",
+              "workflow"
+            ]
+          },
+          "execution": {
+            "const": "not-assessed"
+          }
+        },
+        "required": [
+          "ref",
+          "applies_when",
+          "execution"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "architecture": {
+      "type": "object",
+      "properties": {
+        "observed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "scope_ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "category": {
+                "enum": [
+                  "manifest",
+                  "architecture",
+                  "decision",
+                  "guidance",
+                  "documentation",
+                  "reference",
+                  "code",
+                  "test",
+                  "ci",
+                  "inventory"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "observed",
+                  "unavailable",
+                  "missing",
+                  "limited"
+                ]
+              },
+              "confidence": {
+                "enum": [
+                  "high",
+                  "medium",
+                  "low"
+                ]
+              }
+            },
+            "required": [
+              "source_ref",
+              "scope_ref",
+              "category",
+              "status",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "accepted_contracts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "scope_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                }
+              }
+            },
+            "required": [
+              "source_ref",
+              "scope_refs"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/transition"
+          }
+        }
+      },
+      "required": [
+        "observed",
+        "accepted_contracts",
+        "transitions"
+      ],
+      "additionalProperties": false
+    },
+    "workflow": {
+      "type": "object",
+      "properties": {
+        "selected": {
+          "enum": [
+            "defect",
+            "bounded",
+            "full-feature",
+            "architecture"
+          ]
+        },
+        "request_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "scope_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "impacts": {
+          "type": "object",
+          "properties": {
+            "bounded": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "within-contracts": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "new-behavior": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "security": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "auth": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "data": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "public-contract": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "nfr": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "ownership": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "architecture": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "cross-service": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "llm": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "mcp": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "bounded",
+            "within-contracts",
+            "new-behavior",
+            "security",
+            "auth",
+            "data",
+            "public-contract",
+            "nfr",
+            "ownership",
+            "architecture",
+            "cross-service",
+            "llm",
+            "mcp"
+          ],
+          "additionalProperties": false
+        },
+        "requirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "reason_ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "policy_ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "scope_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                }
+              }
+            },
+            "required": [
+              "ref",
+              "required",
+              "reason_ref",
+              "policy_ref",
+              "scope_refs"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "reason_ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "local_ref": {
+                "type": "string",
+                "pattern": "^/plan/artifacts/(0|[1-9][0-9]*)$"
+              }
+            },
+            "required": [
+              "ref",
+              "reason_ref",
+              "local_ref"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "code_ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "blocking": {
+                "type": "boolean"
+              },
+              "affected_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                }
+              },
+              "local_ref": {
+                "type": "string",
+                "pattern": "^/plan/decisions/(0|[1-9][0-9]*)$"
+              }
+            },
+            "required": [
+              "ref",
+              "code_ref",
+              "blocking",
+              "affected_refs",
+              "local_ref"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "reassessment": {
+          "type": "object",
+          "properties": {
+            "required": {
+              "type": "boolean"
+            },
+            "previous_plan_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "reason_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "added_control_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            }
+          },
+          "required": [
+            "required",
+            "previous_plan_ref",
+            "reason_refs",
+            "added_control_refs"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "selected",
+        "request_ref",
+        "scope_refs",
+        "impacts",
+        "requirements",
+        "artifacts",
+        "decisions",
+        "reassessment"
+      ],
+      "additionalProperties": false
+    },
+    "results": {
+      "type": "object",
+      "properties": {
+        "controls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/control"
+          }
+        },
+        "summary": {
+          "type": "object",
+          "properties": {
+            "pass": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "fail": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "warn": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unknown": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "skipped": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "not-applicable": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "waived": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "required": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "required_satisfied": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "executed": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "pass",
+            "fail",
+            "warn",
+            "unknown",
+            "skipped",
+            "not-applicable",
+            "waived",
+            "required",
+            "required_satisfied",
+            "executed"
+          ],
+          "additionalProperties": false
+        },
+        "state": {
+          "enum": [
+            "pass",
+            "fail",
+            "warn",
+            "unknown",
+            "skipped",
+            "not-applicable",
+            "waived"
+          ]
+        },
+        "exit_code": {
+          "enum": [
+            0,
+            1
+          ]
+        }
+      },
+      "required": [
+        "controls",
+        "summary",
+        "state",
+        "exit_code"
+      ],
+      "additionalProperties": false
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "repository_ref",
+    "report_ref",
+    "as_of",
+    "identity",
+    "running_cli",
+    "coverage",
+    "capabilities",
+    "configured_controls",
+    "architecture",
+    "workflow",
+    "results",
+    "digest"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "version": {
+      "type": "object",
+      "properties": {
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 80,
+              "pattern": "^[0-9]+(?:![0-9]+)?(?:\\.[0-9]+)*(?:(?:a|b|rc)[0-9]+)?(?:\\.post[0-9]+)?(?:\\.dev[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "display",
+        "ref"
+      ],
+      "additionalProperties": false
+    },
+    "capability": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "label": {
+          "enum": [
+            "application-governance",
+            "gherkin-delivery",
+            "llm-evaluation",
+            "custom"
+          ]
+        }
+      },
+      "required": [
+        "ref",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "exception": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "source_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "scope_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ref",
+        "source_ref",
+        "scope_refs",
+        "expires_at"
+      ],
+      "additionalProperties": false
+    },
+    "transition": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "mode": {
+          "enum": [
+            "retain",
+            "improve",
+            "migrate"
+          ]
+        },
+        "applies_to": {
+          "enum": [
+            "new",
+            "new-and-changed",
+            "all"
+          ]
+        },
+        "source_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "scope_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "current_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "target_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "exceptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/exception"
+          }
+        }
+      },
+      "required": [
+        "ref",
+        "mode",
+        "applies_to",
+        "source_ref",
+        "scope_refs",
+        "current_refs",
+        "target_refs",
+        "exceptions"
+      ],
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "source_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "scope_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "method_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "origin": {
+          "enum": [
+            "local-check",
+            "tool-execution",
+            "unverified-artifact",
+            "agent-assertion"
+          ]
+        },
+        "digest_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "limitation_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        }
+      },
+      "required": [
+        "source_ref",
+        "scope_refs",
+        "method_ref",
+        "origin",
+        "digest_ref",
+        "limitation_refs"
+      ],
+      "additionalProperties": false
+    },
+    "finding": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "code_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "category_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "message_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "action_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "location_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        }
+      },
+      "required": [
+        "ref",
+        "code_ref",
+        "severity",
+        "category_ref",
+        "message_ref",
+        "action_ref",
+        "location_ref",
+        "evidence"
+      ],
+      "additionalProperties": false
+    },
+    "control": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "reason_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "policy_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "scope_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "label": {
+          "enum": [
+            "llm-exact-match",
+            "custom"
+          ]
+        },
+        "state": {
+          "enum": [
+            "pass",
+            "fail",
+            "warn",
+            "unknown",
+            "skipped",
+            "not-applicable",
+            "waived"
+          ]
+        },
+        "execution": {
+          "enum": [
+            "not-run",
+            "executed",
+            "error"
+          ]
+        },
+        "summary_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        },
+        "local_ref": {
+          "type": "string",
+          "pattern": "^/checks/results/(0|[1-9][0-9]*)$"
+        }
+      },
+      "required": [
+        "ref",
+        "required",
+        "reason_ref",
+        "policy_ref",
+        "scope_refs",
+        "label",
+        "state",
+        "execution",
+        "summary_ref",
+        "evidence",
+        "findings",
+        "local_ref"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
