@@ -122,14 +122,14 @@ def test_caught_write_failure_restores_bytes_modes_and_timestamps(tmp_path, monk
     replace = os.replace
     count = 0
 
-    def fail_second(src, dest):
+    def fail_second(src, dest, **kwargs):
         nonlocal count
         count += 1
         if count == 2:
             raise OSError("injected write failure")
-        return replace(src, dest)
+        return replace(src, dest, **kwargs)
 
-    monkeypatch.setattr("cli.pipeline_store.os.replace", fail_second)
+    monkeypatch.setattr("cli.pipeline_files.os.replace", fail_second)
     with pytest.raises(ValueError, match="write failure"):
         apply_pipeline(updated, updated.digest)
     assert [(p.read_bytes(), p.stat().st_mode, p.stat().st_mtime_ns) for p in paths] == before

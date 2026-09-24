@@ -17,6 +17,11 @@ inspected checkout from import resolution. No package/network installation occur
 
 The common runtime validates the installed GovKit version, accepted profile digest
 and replayed pack closure before invoking existing actual-change conformance.
+The lock-recorded resolver version must also equal the runtime pin. Fixed execution
+opt-ins are validated against configured providers, then intersected with actual
+request requirements inside the common engine. Nonapplicable commands/pack arguments
+do not prevent other workflows; invalid selections and required disabled checks
+still fail. Direct local execution retains its strict selection default.
 Execution opt-ins are concrete settings; unknown/disabled required checks do not
 pass. Pin equality is consistency, not release authenticity or event authority.
 The caller must trust the interpreter/build and reusable template revision.
@@ -29,6 +34,13 @@ Unknown files, user edits and invalid metadata remain protected; provider switch
 require explicit reconciliation. No force overwrite or automatic workflow rewrite
 is added. Caught failures roll back files and ordinary metadata; concurrent edits
 and process crashes remain outside transactional guarantees.
+
+PR #193 review hardening binds staging, replacement, rollback and cleanup to open
+no-follow directory handles, including target ancestors. Directory identity is
+rechecked; pathname swaps cannot redirect writes through symlinks. Unsupported
+platforms refuse generation before writes rather than falling back to pathname
+operations. This protects the selected directories, not a concurrent-writer or
+same-user adversarial filesystem transaction.
 
 Check reports configuration separately from unknown activation/execution/enforcement.
 Golden provider contracts and real local script pilots establish equivalent common

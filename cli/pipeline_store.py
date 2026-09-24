@@ -4,14 +4,13 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from .fs import stage_bytes
 from .gate_catalog import compose_catalog
 from .pack_loading import load_pack
 from .pack_store import _destination
+from .pipeline_files import bound_pipeline_files
 from .pipeline_render import PipelineArtifact, parse_render, parse_settings, render_pipeline
 from .pipeline_runtime import read_input
 from .profiles import parse_profile
@@ -175,46 +174,40 @@ def apply_pipeline(preview, approved_digest):
     pending = [op for op in current.operations if op.action != "preserve"]
     if not pending:
         return
-    staged, completed, directories, stats = {}, [], set(), {}
-    try:
-        for op in pending:
-            destination = _destination(current.target, op.path)
-            if destination.exists():
-                stats[op.path] = destination.stat()
-            parent = destination.parent
-            while not parent.exists():
-                directories.add(parent)
-                parent = parent.parent
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            staged[op.path] = stage_bytes(destination, op.content)
-        if _refresh(preview).document != current.document:
-            raise DocumentError("Stale pipeline inputs after staging; preview again")
-        for op in pending:
-            destination = _destination(current.target, op.path)
-            if _state(current.target, op.path) != (op.before, op.mode, op.mtime_ns):
-                raise DocumentError("Stale pipeline destination before replacement")
-            os.replace(staged[op.path], destination)
-            completed.append(op)
-    except (OSError, ValueError) as exc:
-        for op in reversed(completed):
-            destination = _destination(current.target, op.path)
-            if read_input(destination) != op.content:
-                raise DocumentError("Concurrent pipeline edit prevented safe rollback") from exc
-            if op.before is None:
-                destination.unlink()
-            else:
-                temporary = stage_bytes(destination, op.before)
-                try:
-                    os.replace(temporary, destination)
-                    previous = stats[op.path]
-                    destination.chmod(previous.st_mode & 0o777)
-                    os.utime(destination, ns=(previous.st_atime_ns, previous.st_mtime_ns))
-                finally:
-                    temporary.unlink(missing_ok=True)
-        raise DocumentError(f"Pipeline generation was not applied: {exc}") from exc
-    finally:
-        for temporary in staged.values():
-            temporary.unlink(missing_ok=True)
-        for directory in sorted(directories, key=lambda path: len(path.parts), reverse=True):
-            if directory.is_dir() and not any(directory.iterdir()):
-                directory.rmdir()
+    with bound_pipeline_files(current.target) as files:
+        staged, completed, stats, parents = {}, [], {}, {}
+        try:
+            for op in pending:
+                parent = parents[op.path] = files.parent(op.path)
+                before, info = parent.read(Path(op.path).name)
+                if _bound_state(before, info) != (op.before, op.mode, op.mtime_ns):
+                    raise DocumentError("Stale pipeline destination before staging")
+                stats[op.path] = info
+                staged[op.path] = parent.stage(op.content, info)
+            if _refresh(preview).document != current.document:
+                raise DocumentError("Stale pipeline inputs after staging; preview again")
+            for op in pending:
+                files.verify()
+                parent, name = parents[op.path], Path(op.path).name
+                if _bound_state(*parent.read(name)) != (op.before, op.mode, op.mtime_ns):
+                    raise DocumentError("Stale pipeline destination before replacement")
+                parent.replace(staged[op.path], name)
+                completed.append(op)
+                files.verify()
+        except (OSError, ValueError) as exc:
+            for op in reversed(completed):
+                parent, name = parents[op.path], Path(op.path).name
+                if parent.read(name)[0] != op.content:
+                    raise DocumentError("Concurrent pipeline edit prevented safe rollback") from exc
+                if op.before is None:
+                    parent.unlink(name)
+                else:
+                    temporary = parent.stage(op.before, stats[op.path], restore_time=True)
+                    parent.replace(temporary, name)
+            raise DocumentError(f"Pipeline generation was not applied: {exc}") from exc
+
+
+def _bound_state(content, info):
+    if info is None:
+        return None, None, None
+    return content, info.st_mode & 0o777, info.st_mtime_ns

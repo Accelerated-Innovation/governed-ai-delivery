@@ -47,6 +47,8 @@ def run_bound(
     if not isinstance(base, str) or not re.fullmatch(r"(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})", base):
         raise DocumentError("Pipeline base must be a full trusted Git commit SHA")
     lock = verified_lock_document(policy_target)
+    if lock["govkit_version"] != binding["govkit_version"]:
+        raise DocumentError("Trusted pack lock differs from the exact pipeline runtime pin")
     if lock["profile_digest"] != binding["profile_digest"]:
         raise DocumentError("Trusted policy differs from the pipeline profile pin")
     if content_digest(canonical_json(lock["packs"]).encode()) != binding["packs_digest"]:
@@ -59,6 +61,7 @@ def run_bound(
         observed_at=observed_at,
         execute_checks=tuple(binding["execute_checks"]),
         pack_arguments=pack_arguments,
+        allow_inapplicable_checks=True,
     )
 
 

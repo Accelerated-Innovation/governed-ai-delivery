@@ -38,6 +38,25 @@ def run_pilot(workspace, agent):
         write(trusted, relative, text)
     for relative, text in fixture["base_files"].items():
         write(target, relative, text)
+    fixture["profile"]["policy"]["workflows"] = [
+        {
+            "id": "full-feature-quality",
+            "source": {"reference": "policy.md", "authority": "accepted"},
+            "when": ["full-feature"],
+            "additional_checks": ["feature-quality"],
+        }
+    ]
+    fixture["conformance"]["commands"].append(
+        {
+            "id": "feature-quality",
+            "argv": [
+                "{python}",
+                "-c",
+                "from pathlib import Path; assert '# review-fail' not in Path('src/service.py').read_text()",
+            ],
+            "timeout_seconds": 10,
+        }
+    )
     write(trusted, "conformance.json", json.dumps(fixture["conformance"]))
 
     def git(*args):
@@ -53,7 +72,7 @@ def run_pilot(workspace, agent):
     base = git("rev-parse", "HEAD")
     for relative, text in fixture["fixed_files"].items():
         write(target, relative, text)
-    checks = ["llm-exact-match", "project:tests"]
+    checks = ["llm-exact-match", "project:tests", "feature-quality", "defect:eligibility"]
     arguments = {"llm-exact-match": ["--results", "results.json"]}
     args_path = write(workspace, "arguments.json", json.dumps(arguments))
     settings = write(
@@ -106,13 +125,18 @@ def run_pilot(workspace, agent):
                 ["bash", "-c", script], env=env, cwd=workspace, capture_output=True, text=True
             )
             assert result.returncode == 0, (agent, provider, name, result.stderr, result.stdout)
+            if name == "feature":
+                feature_env = dict(env)
+            selected = ["llm-exact-match", "project:tests"] + (
+                ["feature-quality"] if name == "feature" else []
+            )
             local = inspect_change(
                 target,
                 request,
                 base=base,
                 policy_target=trusted,
                 observed_at=env["GOVKIT_OBSERVED_AT"],
-                execute_checks=checks,
+                execute_checks=selected,
                 pack_arguments=arguments,
             )
             assert json.loads(result.stdout) == json.loads(local.to_json())
@@ -130,13 +154,36 @@ def run_pilot(workspace, agent):
         )
         assert check["state"] == "fail"
         results.write_bytes(original)
+        service = target / "src/service.py"
+        original = service.read_bytes()
+        service.write_bytes(original + b"\n# review-fail\n")
+        failed = subprocess.run(
+            ["bash", "-c", script], env=feature_env, cwd=workspace, capture_output=True, text=True
+        )
+        assert failed.returncode == 1, failed.stderr
+        check = next(
+            r
+            for r in json.loads(failed.stdout)["checks"]["results"]
+            if r["id"] == "feature-quality"
+        )
+        assert check["state"] == "fail" and check["execution"] == "executed"
+        service.write_bytes(original)
+        apply_install(preview_install(source, trusted, bundled_catalog(), govkit_version="0.21.2"))
+        stale = subprocess.run(
+            ["bash", "-c", script], env=env, cwd=workspace, capture_output=True, text=True
+        )
+        assert stale.returncode == 1 and "lock differs" in stale.stderr
+        apply_install(
+            preview_install(source, trusted, bundled_catalog(), govkit_version=GOVKIT_VERSION)
+        )
 
 
 if __name__ == "__main__":
     assert Path(cli.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
     with tempfile.TemporaryDirectory(prefix="govkit-provider-pilot-") as directory:
         for agent in ("codex", "claude-code", "copilot"):
-            run_pilot(Path(directory) / agent, agent)
+            # macOS's default temporary path can include the /var symlink.
+            run_pilot(Path(directory).resolve() / agent, agent)
     print(
-        "Three agents, both provider scripts: protected generation, small/full/LLM local parity and real evaluation failures verified."
+        "Three agents, both provider scripts: protected generation, conditional workflow opt-ins, small/full/LLM local parity, real failures and resolver-version pins verified."
     )

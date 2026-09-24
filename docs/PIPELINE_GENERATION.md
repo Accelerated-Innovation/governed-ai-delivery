@@ -33,6 +33,14 @@ valid: required executable checks remain skipped/unconfigured until enabled,
 rather than silently passing. Enabled project/pack commands remain trusted,
 unsandboxed execution under the existing conformance contract.
 
+The list is a reusable execution allowlist. The common engine validates configured
+IDs, resolves the accepted request against trusted policy and actual changes, and
+executes only applicable opted-in checks. A full-feature-only check or
+`defect:eligibility` may remain enabled for other requests without running there.
+Pack argument mappings are validated before inapplicable entries are excluded;
+unknown IDs and malformed arguments still fail. Required checks are never removed
+by this filtering. Direct local execution selections remain strict by default.
+
 ```sh
 govkit pipeline preview --target /work/service \
   --profile /work/accepted/profile.json --settings /work/accepted/pipeline.json --json
@@ -64,7 +72,12 @@ generation of the same state preserves bytes and timestamps.
 
 Writes are individually atomic, staged and rechecked before replacement. Caught
 failures restore completed files and ordinary modes/timestamps; newly created
-empty directories are removed. This is not a concurrent-writer transaction or
+empty directories are removed. Generation opens directory components without
+following symlinks, then uses those directory handles for staging, replacement,
+rollback and cleanup. Swapping a pathname to an outside symlink cannot redirect
+these writes. Generation requires platform support for these operations and
+rejects symlinked target ancestors; unsupported platforms fail before writes.
+This is not a concurrent-writer transaction or
 crash-recovery journal. Concurrent edits that prevent safe rollback are reported,
 not overwritten. Local inputs and generated metadata are bounded to 4 MiB;
 encoded runtime bindings are bounded to 64 KiB. Oversized proposals fail before
@@ -94,8 +107,10 @@ project commands. These are caller requirements, not capabilities activated here
 
 Inputs bind through provider environment values, never shell interpolation. Both
 templates run the pinned module with Python isolation. Before executing checks it
-verifies the exact GovKit version, accepted profile digest and replayed installed
-pack closure against the generated binding. It then calls `inspect_change`, which
+verifies the exact installed and lock-recorded GovKit versions, accepted profile
+digest and replayed installed pack closure against the generated binding. An old
+resolver version in an otherwise unchanged lock requires explicit reconciliation.
+It then calls `inspect_change`, which
 recomputes requirements from trusted policy and actual Git changes. The catalog is
 not an allowlist; request labels, a changed plan and missing prerequisites cannot
 waive mandatory checks. Different accepted requests reuse the same entry point.
