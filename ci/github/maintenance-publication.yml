@@ -1,0 +1,12 @@
+# Optional steps for a protected caller AFTER an explicitly requested assessment.
+# GOVKIT_ASSESSMENT_FILE names only the newly created assessment artifact.
+# Review/pin the upload action and retention in the caller before adoption.
+steps:
+  - name: Publish selected GovKit maintenance assessment
+    if: ${{ always() && env.GOVKIT_PUBLISH_ASSESSMENT == 'true' }}
+    uses: actions/upload-artifact@v4
+    with:
+      name: govkit-maintenance-assessment
+      path: ${{ env.GOVKIT_ASSESSMENT_FILE }}
+      if-no-files-found: error
+      retention-days: 7

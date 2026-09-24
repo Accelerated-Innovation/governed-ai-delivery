@@ -4,10 +4,10 @@
 composite action or Azure step template. Both call the same common conformance
 engine against explicit prepared inputs. Existing workflows remain in place.
 
-This is I10b. Provider event selection, trusted checkout/admission, external
-required-check configuration, maintenance evidence collection and assessment
-publication remain I10c. Generated files do not activate a pipeline or establish
-that a control ran or is enforced.
+Optional [provider admission and evidence](PROVIDER_EVIDENCE.md) bind supported PR
+events before execution and feed canonical maintenance. External required-check
+configuration remains caller-owned. Generated files do not activate a pipeline or
+establish that a control ran or is enforced.
 
 ## Review and generate
 
@@ -136,7 +136,8 @@ returns `configuration: current`, `missing`, or `drifted`; missing/drifted state
 exit unsuccessfully. Malformed/protected metadata produces a validation error.
 Execution, activation and enforcement remain `unknown`, even for current files.
 Follow-up requirements identify the caller configuration still needed. This result
-is not yet a canonical maintenance/provider evidence adapter; that is I10c.
+is configuration-only; use `pipeline evidence` or `pipeline assess` to compare
+explicit runtime/provider exports through the canonical maintenance contract.
 
 The [bundled examples](../governance/examples/pipeline/README.md) include paired
 golden entry points. Tests run the actual generated scripts against local Git

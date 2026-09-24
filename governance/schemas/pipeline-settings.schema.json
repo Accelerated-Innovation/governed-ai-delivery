@@ -24,6 +24,37 @@
       },
       "uniqueItems": true,
       "maxItems": 128
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "repository",
+        "target_ref",
+        "allow_forks"
+      ],
+      "properties": {
+        "provider": {
+          "enum": [
+            "github",
+            "azure"
+          ]
+        },
+        "repository": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "target_ref": {
+          "type": "string",
+          "pattern": "^refs/heads/[A-Za-z0-9][A-Za-z0-9/_.-]*$",
+          "maxLength": 256
+        },
+        "allow_forks": {
+          "type": "boolean"
+        }
+      }
     }
   }
 }

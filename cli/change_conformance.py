@@ -78,7 +78,10 @@ class ChangeReport:
 
 
 def load_change_report(path: Path) -> ChangeReport:
-    document = read_document(path)
+    return parse_change_report(read_document(path))
+
+
+def parse_change_report(document: dict) -> ChangeReport:
     validate_document(document, "change-results")
     result = ChangeReport(
         document["change"], parse_workflow_plan(document["plan"]), parse_report(document["checks"])

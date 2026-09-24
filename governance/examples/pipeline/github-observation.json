@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "provider-observation",
+  "provider": "github",
+  "repository": "example/service",
+  "target_ref": "refs/heads/main",
+  "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "base": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "observed_at": "2026-09-24T12:00:00Z",
+  "artifact_digest": "9cfb212a38837d78772fe6bd76693c4eb78a551462c7bc3b951a3a0164732ea2",
+  "report_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "runtime_version": "0.21.1",
+  "run_id": "example-7",
+  "run_url": "https://example.invalid/run/7",
+  "enabled": null,
+  "required_check": null,
+  "all_changes": null,
+  "trusted_policy": null,
+  "approvals": null
+}

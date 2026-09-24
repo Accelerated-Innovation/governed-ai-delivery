@@ -11,8 +11,10 @@ import re
 import sys
 from pathlib import Path
 
+from .artifact_publication import publish_assessment
 from .change_conformance import inspect_change
 from .pack_store import verified_lock_document
+from .provider_admission import admit_run
 from .schema_validation import (
     DocumentError,
     canonical_json,
@@ -34,7 +36,17 @@ def read_input(path: Path, *, limit=4 * 1024 * 1024):
 
 
 def run_bound(
-    binding, target, policy_target, request_path, base, *, pack_arguments=None, observed_at=None
+    binding,
+    target,
+    policy_target,
+    request_path,
+    base,
+    *,
+    pack_arguments=None,
+    observed_at=None,
+    provider_event=None,
+    policy_revision=None,
+    request_digest=None,
 ):
     validate_document(binding, "pipeline-binding")
     if binding["govkit_version"] != GOVKIT_VERSION:
@@ -46,6 +58,22 @@ def run_bound(
         raise DocumentError("Pipeline checkout/request paths must be absolute")
     if not isinstance(base, str) or not re.fullmatch(r"(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})", base):
         raise DocumentError("Pipeline base must be a full trusted Git commit SHA")
+    request_content = read_input(request_path)
+    if "admission" in binding:
+        if content_digest(request_content) != request_digest:
+            raise DocumentError("Caller-accepted request digest mismatch")
+        admit_run(
+            binding["admission"],
+            provider_event,
+            target,
+            policy_target,
+            request_path,
+            base,
+            policy_revision=policy_revision,
+            request_digest=request_digest,
+        )
+    elif any(value is not None for value in (provider_event, policy_revision, request_digest)):
+        raise DocumentError("Provider inputs require accepted admission settings")
     lock = verified_lock_document(policy_target)
     if lock["govkit_version"] != binding["govkit_version"]:
         raise DocumentError("Trusted pack lock differs from the exact pipeline runtime pin")
@@ -55,7 +83,7 @@ def run_bound(
         raise DocumentError("Trusted pack closure differs from pipeline pins")
     return inspect_change(
         target,
-        parse_request(parse_document(read_input(request_path))),
+        parse_request(parse_document(request_content)),
         base=base,
         policy_target=policy_target,
         observed_at=observed_at,
@@ -80,6 +108,12 @@ def main():
             if not Path(path).is_absolute():
                 raise DocumentError("Pack arguments path must be absolute")
             arguments = parse_document(read_input(Path(path)))
+        event = None
+        event_path = os.environ.get("GOVKIT_PROVIDER_EVENT", "")
+        if event_path:
+            if not Path(event_path).is_absolute():
+                raise DocumentError("Provider event path must be absolute")
+            event = parse_document(read_input(Path(event_path)))
         report = run_bound(
             binding,
             values["TARGET"],
@@ -87,8 +121,20 @@ def main():
             values["REQUEST"],
             values["BASE"],
             pack_arguments=arguments,
+            provider_event=event,
+            policy_revision=os.environ.get("GOVKIT_POLICY_REVISION") or None,
+            request_digest=os.environ.get("GOVKIT_REQUEST_DIGEST") or None,
             observed_at=os.environ.get("GOVKIT_OBSERVED_AT") or None,
         )
+        output = os.environ.get("GOVKIT_CHANGE_OUTPUT", "")
+        if output:
+            if not Path(output).is_absolute() or Path(output).resolve().is_relative_to(
+                Path(values["POLICY_TARGET"]).resolve()
+            ):
+                raise DocumentError(
+                    "Change output must be absolute and outside the policy checkout"
+                )
+            publish_assessment(report.document, values["TARGET"], output)
         print(report.to_json())
         return report.exit_code
     except (OSError, ValueError, binascii.Error) as exc:

@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "provider-observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "provider",
+    "repository",
+    "target_ref",
+    "runtime_version",
+    "run_id",
+    "run_url",
+    "revision",
+    "base",
+    "artifact_digest",
+    "report_digest",
+    "observed_at",
+    "enabled",
+    "required_check",
+    "all_changes",
+    "trusted_policy",
+    "approvals"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "provider-observation"
+    },
+    "provider": {
+      "enum": [
+        "github",
+        "azure"
+      ]
+    },
+    "repository": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "target_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "runtime_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "run_url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://",
+      "maxLength": 2048
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^([a-f0-9]{40}|[a-f0-9]{64})$"
+    },
+    "base": {
+      "type": "string",
+      "pattern": "^([a-f0-9]{40}|[a-f0-9]{64})$"
+    },
+    "artifact_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "report_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "enabled": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "required_check": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "all_changes": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "trusted_policy": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "approvals": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    }
+  }
+}

@@ -437,6 +437,11 @@ def ci_dimension(inventory, profile, report, as_of):
             )
         ):
             issues.append("CI report identity does not match the assessed inputs.")
+        if (
+            identity.change_digest is not None
+            and identity.change_digest != inventory["identity"]["input_digest"]
+        ):
+            issues.append("CI report pipeline inputs do not match the assessed inputs.")
         try:
             age = (timestamp(as_of) - timestamp(identity.observed_at)).total_seconds() / 3600
             max_age = profile.maintenance.assessment_max_age_hours if profile else None
@@ -481,7 +486,7 @@ def ci_dimension(inventory, profile, report, as_of):
                 evidence=proof or observed,
                 uncertainty=uncertainty
                 + [
-                    "Result consistency does not authenticate the provider; I10 owns provider-specific collection and repair."
+                    "Result consistency does not authenticate the provider; collect exports through a trusted protected job."
                 ],
                 severity="error" if failed else "warning",
                 operation="ci-integration-review",
