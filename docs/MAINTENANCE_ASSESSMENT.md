@@ -64,7 +64,8 @@ obligation `migration:ci-enforcement`. An accepted GitHub/Azure integration also
 requires `ci:integration`. When an accepted profile specifies neither, this
 dimension is not applicable; an absent profile leaves requirements unknown.
 
-A provider record must cover the repository scope `.` and match repository ID,
+A provider record must include the repository scope `.` (additional narrower scopes
+are allowed) and match repository ID,
 complete Git revision/dirty-tree identity, profile, resolution and lock digests.
 Its `identity.observed_at` must be at or before assessment time and within accepted
 `maintenance.assessment_max_age_hours`. Missing age policy, times, Git coverage,
@@ -123,18 +124,25 @@ report to demonstrate its pass; replaying its prior failure cannot verify repair
 `govkit migrate preview` includes this canonical assessment automatically. Supply
 `--assessment /work/assessment.json` to bind an explicitly timed baseline/provider
 snapshot. Use that same option for the separately authorized `migrate apply`.
-Stale inputs are rejected before writes. Application reruns both the existing
+Stale inputs are rejected before writes. Preview and apply also reevaluate release
+and CI freshness against the current clock. An expired record must be regenerated;
+the reviewed digest stays stable while the same evidence remains valid. Application
+reruns both the existing
 conformance inspection and maintenance assessment, retaining unknown CI evidence
 and treating findings affected by changed accepted policy as unverified. If old
 metadata/baseline inputs no longer apply, fresh offline assessment exposes the gaps.
+Post-operation verification always uses the current time, including this fallback.
 Idempotence, original-content preservation and rollback remain unchanged.
 
 ## Record and observation limits
 
 `maintenance-assessment.schema.json` versions the record. It embeds inventory,
 discovery, canonical check results, explicit input snapshots and comparison digests.
-Replay validates derived checks/recommendations against those facts. Hashes do not
-authenticate sources. Built-in observations record references/digests rather than
+Replay binds saved metadata to the effective approved-source records and recomputes
+release candidates before validating derived checks/recommendations. Missing candidate
+sources and inconsistent saved inputs are validation errors. Explicit new inputs to
+`verify` are allowed. Hashes do not authenticate sources. Built-in observations
+record references/digests rather than
 repository source-file bodies. Supplied check-report text and policy metadata are
 retained, so choose appropriate provider inputs. Nothing is uploaded automatically.
 

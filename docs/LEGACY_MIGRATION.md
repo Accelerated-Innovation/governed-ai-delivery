@@ -17,7 +17,10 @@ and the canonical `maintenance` assessment. Maintenance distinguishes version
 updates, resource reconciliation, capability review and CI repair. It does not
 turn these findings into automatic migration operations. An optional
 `--assessment /work/assessment.json` rechecks a saved assessment; use the same
-option for the subsequent apply. See [maintenance assessment](MAINTENANCE_ASSESSMENT.md).
+option for the subsequent apply. Both commands check evidence freshness against the
+current clock and reject changed release/CI freshness before writing. A still-valid
+record keeps its reviewed digest; post-operation verification uses the current time.
+See [maintenance assessment](MAINTENANCE_ASSESSMENT.md).
 The proposed profile uses the accepted-profile syntax for review; it is **not
 accepted** until you deliberately supply it through `--profile`.
 

@@ -22,13 +22,19 @@ active-enforcement evidence.
 
 The versioned assessment preserves input snapshots, evidence, source/lookup times,
 baseline and resource identity, derived check results, stable recommendations,
-prerequisites, affected resources/controls and uncertainty. Record replay checks
-internal consistency, not authenticity. A candidate preview recomputes observed
+prerequisites, affected resources/controls and uncertainty. Record replay recomputes
+effective metadata and candidates from the saved inputs, then checks derived outcomes;
+this establishes internal consistency, not authenticity. A candidate preview recomputes
+observed
 inputs and freshness; it never executes a saved action list or downloads code.
 Other actions name their owning review workflow and remain unready for execution.
 
 Migration previews embed the canonical assessment; optional saved assessments bind
-explicit evidence. Existing digest acceptance, protected application and rollback
+explicit evidence. Preview and apply reevaluate freshness at the current time;
+changed release/CI freshness requires a new assessment and proposal. Evidence that
+remains valid keeps its reviewed digest. Post-operation assessment, including fallback
+after policy changes, uses the current time. Existing digest acceptance, protected
+application and rollback
 remain authoritative. After application, existing conformance and maintenance run
 again. A disappeared recommendation is resolved only if its dimension passes under
 unchanged accepted policy/identity; changed-policy or incomplete evidence stays

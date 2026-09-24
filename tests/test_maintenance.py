@@ -137,7 +137,7 @@ def ci_repository(tmp_path):
     return target
 
 
-def ci_evidence(target, *, state=State.PASS, mismatch=None):
+def ci_evidence(target, *, state=State.PASS, mismatch=None, scopes=((".",),)):
     from cli.maintenance_inventory import inventory_repository
 
     inventory = inventory_repository(target, as_of=AS_OF).document
@@ -171,9 +171,93 @@ def ci_evidence(target, *, state=State.PASS, mismatch=None):
     # The adapter must derive requirements from accepted policy, not this flag.
     return run_checks(
         CheckContext(target, identity),
-        (CheckSpec("ci:integration", False, "fixture", "fixture", (".",)),),
+        tuple(CheckSpec("ci:integration", False, "fixture", "fixture", scope) for scope in scopes),
         registry,
     ).to_document()
+
+
+@pytest.mark.parametrize("state", [State.PASS, State.FAIL])
+def test_ci_merged_root_and_narrow_scopes_retain_measured_outcome(tmp_path, state):
+    target = ci_repository(tmp_path)
+    provider = ci_evidence(target, state=state, scopes=((".",), ("src",)))
+    assert set(provider["results"][0]["scope"]) == {".", "src"}
+    report = assess_repository(target, as_of=AS_OF, ci_report=provider)
+    assert dimensions(report)["ci"]["state"] == state.value
+
+
+def test_ci_narrow_scope_alone_cannot_prove_repository_health(tmp_path):
+    target = ci_repository(tmp_path)
+    report = assess_repository(
+        target, as_of=AS_OF, ci_report=ci_evidence(target, scopes=(("src",),))
+    )
+    assert dimensions(report)["ci"]["state"] == "unknown"
+    assert "repair-ci" in actions(report)
+
+
+def redigest_assessment(document):
+    from cli.schema_validation import canonical_json, content_digest
+
+    inventory = document["inventory"]
+    inventory["digest"] = content_digest(
+        canonical_json({k: v for k, v in inventory.items() if k != "digest"}).encode()
+    )
+    document["identity"]["inventory_digest"] = inventory["digest"]
+    document["digest"] = content_digest(
+        canonical_json({k: v for k, v in document.items() if k != "digest"}).encode()
+    )
+    return document
+
+
+@pytest.mark.parametrize("change", ["replace", "remove", "add"])
+def test_saved_metadata_must_reproduce_the_assessed_release_facts(tmp_path, change):
+    target, _ = installed(tmp_path)
+    report = assess_repository(
+        target, as_of=AS_OF, metadata=() if change == "add" else (metadata(),)
+    )
+    document = report.document
+    document["inputs"]["metadata"] = [] if change == "remove" else [metadata(release("2.0"))]
+    before = snapshot(target)
+    with pytest.raises(ValueError, match="metadata|release"):
+        verify_assessment(target, redigest_assessment(document), as_of=AS_OF)
+    assert snapshot(target) == before
+
+
+def test_expired_metadata_is_rejected_even_when_installed_policy_failure_is_unchanged(tmp_path):
+    from cli.maintenance import validate_freshness
+
+    target, _ = installed(tmp_path)
+    policy = project().document
+    policy["maintenance"]["constraints"][0].update(component="govkit", compatibility=">=9")
+    (target / ".govkit/profile.yaml").write_text(json.dumps(policy))
+    report = assess_repository(
+        target, as_of=AS_OF, metadata=(metadata(release("0.22.0", component="govkit")),)
+    )
+    assert dimensions(report)["releases"]["state"] == "fail"
+    with pytest.raises(ValueError, match="freshness"):
+        validate_freshness(report.document, as_of="2026-09-26T00:00:00Z")
+
+
+def test_explicit_new_metadata_is_allowed_and_omitted_sources_remain_unavailable(tmp_path):
+    target, _ = installed(tmp_path)
+    policy = project().document
+    policy["maintenance"]["sources"].append(
+        {"id": "other", "url": "https://example.invalid/other.json", "channels": ["stable"]}
+    )
+    (target / ".govkit/profile.yaml").write_text(json.dumps(policy))
+    original = assess_repository(target, as_of=AS_OF, metadata=(metadata(),)).document
+
+    updated = verify_assessment(
+        target, original, as_of=AS_OF, metadata=(metadata(release("2.0")),)
+    )["assessment"]
+
+    assert updated["inventory"]["candidates"][0]["selected_target"] == "2.0"
+    assert original["inventory"]["candidates"][0]["selected_target"] == "1.1.0"
+    assert (
+        next(m for m in updated["inventory"]["metadata"] if m["source_id"] == "other")[
+            "lookup_status"
+        ]
+        == "unavailable"
+    )
 
 
 @pytest.mark.parametrize("state", [State.PASS, State.FAIL, State.UNKNOWN, State.SKIPPED])

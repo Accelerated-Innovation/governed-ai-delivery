@@ -453,7 +453,7 @@ def ci_dimension(inventory, profile, report, as_of):
         uncertainty = list(issues)
         if result is None:
             uncertainty.append("Required integration has no check result.")
-        elif result.spec.scope != (".",):
+        elif "." not in result.spec.scope:
             uncertainty.append("CI result does not cover the required repository scope.")
         outcome = result.outcome if result and not uncertainty else None
         if outcome and outcome.state is State.PASS:

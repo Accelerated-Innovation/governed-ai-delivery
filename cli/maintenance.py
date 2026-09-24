@@ -13,7 +13,7 @@ from .check_models import CheckResult, CheckSpec, Identity
 from .check_runner import CheckReport, normalize, parse_report
 from .discovery import discover
 from .maintenance_facts import ci_dimension, fit_dimension, release_dimension, resource_dimension
-from .maintenance_inventory import inventory_repository, read_bounded
+from .maintenance_inventory import inventory_repository, read_bounded, release_facts
 from .pack_loading import contained_file
 from .profiles import parse_profile
 from .schema_validation import (
@@ -71,6 +71,9 @@ def parse_assessment(document):
     )
     if (profile.digest if profile else None) != inventory["identity"]["profile_digest"]:
         raise DocumentError("Assessment profile identity does not match its inventory")
+    metadata, candidates, _ = _replay_releases(document, profile, document["as_of"])
+    if metadata != inventory["metadata"] or candidates != inventory["candidates"]:
+        raise DocumentError("Assessment release facts do not match their saved metadata inputs")
     provider = (
         parse_report(document["inputs"]["ci_report"])
         if document["inputs"]["ci_report"] is not None
@@ -101,6 +104,45 @@ def parse_assessment(document):
     ):
         raise DocumentError("Assessment identity does not match its inputs")
     return MaintenanceAssessment(document)
+
+
+def _replay_releases(document, profile, as_of):
+    inventory = document["inventory"]
+    installed = {p["id"]: p["version"] for p in inventory["locked_packs"]}
+    installed["govkit"] = inventory["running_cli"]
+    return release_facts(
+        profile,
+        document["inputs"]["metadata"],
+        installed=installed,
+        running_govkit=inventory["running_cli"],
+        python_version=inventory["python_version"],
+        as_of=as_of,
+    )
+
+
+def validate_freshness(document, *, as_of):
+    """Reject changed time-dependent advice while preserving a reviewed snapshot's digest.
+
+    Input identity is re-observed separately by the operation owner. This pure check
+    uses the same release and CI evaluators at the operation time; elapsed time alone
+    need not invalidate a proposal while its evidence remains within accepted ages.
+    """
+    prior = parse_assessment(document).document
+    profile = parse_profile(prior["inputs"]["profile"]) if prior["inputs"]["profile"] else None
+    provider = parse_report(prior["inputs"]["ci_report"]) if prior["inputs"]["ci_report"] else None
+    inventory = prior["inventory"]
+    _, candidates, _ = _replay_releases(prior, profile, as_of)
+    # Numeric age advances within the same accepted window. A changed freshness
+    # classification must invalidate the proposal even if another policy failure
+    # leaves the dimension's overall state and recommendations unchanged.
+    previous = [{k: v for k, v in c.items() if k != "age_hours"} for c in inventory["candidates"]]
+    current = [{k: v for k, v in c.items() if k != "age_hours"} for c in candidates]
+    if previous != current or ci_dimension(
+        inventory, profile, provider, prior["as_of"]
+    ) != ci_dimension(inventory, profile, provider, as_of):
+        raise DocumentError(
+            "Stale maintenance evidence: freshness changed; regenerate the assessment and proposal"
+        )
 
 
 def read_assessment(path: Path):

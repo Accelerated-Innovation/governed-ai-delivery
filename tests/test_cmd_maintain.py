@@ -16,6 +16,33 @@ def invoke(monkeypatch, *arguments):
     main()
 
 
+@pytest.mark.parametrize("action", ["verify", "preview"])
+def test_missing_candidate_source_is_a_controlled_validation_error(
+    tmp_path, monkeypatch, capsys, action
+):
+    from cli.maintenance import assess_repository
+    from tests.test_maintenance import redigest_assessment
+
+    target, _ = installed(tmp_path)
+    document = assess_repository(target, as_of=AS_OF, metadata=(metadata(),)).document
+    selected = next(r["id"] for r in document["recommendations"] if r["action"] == "upgrade-pack")
+    document["inventory"]["candidates"][0]["source_id"] = "missing-source"
+    record = tmp_path / "assessment.json"
+    record.write_text(json.dumps(redigest_assessment(document)))
+    before = snapshot(target)
+    arguments = [action, "--target", target, "--assessment", record, "--as-of", AS_OF]
+    if action == "preview":
+        arguments.extend(["--recommendation", selected])
+    with pytest.raises(SystemExit) as error:
+        invoke(monkeypatch, *arguments)
+    assert error.value.code == 1
+    output = capsys.readouterr()
+    assert "Error:" in output.err
+    assert "Traceback" not in output.err
+    assert not output.out
+    assert snapshot(target) == before
+
+
 def test_cli_inventory_is_read_only_and_has_human_and_json_views(tmp_path, monkeypatch, capsys):
     target, _ = installed(tmp_path)
     cache = tmp_path / "releases.json"

@@ -8,6 +8,7 @@ import base64
 import tempfile
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 from packaging.version import InvalidVersion, Version
@@ -18,7 +19,13 @@ from .check_models import Identity, State
 from .conformance import inspect_repository
 from .discovery_scan import scan_repository
 from .legacy_resolution import adapt_legacy_manifest
-from .maintenance import assess_repository, compare_assessments, parse_assessment, reassess
+from .maintenance import (
+    assess_repository,
+    compare_assessments,
+    parse_assessment,
+    reassess,
+    validate_freshness,
+)
 from .manifest import load_manifest
 from .pack_loading import bundled_catalog
 from .pack_store import apply_install, preview_install, verified_lock_document
@@ -37,6 +44,10 @@ from .version import GOVKIT_VERSION
 SOURCE = ".govkit/migration-source.json"
 RECEIPT = ".govkit/migration.json"
 METADATA = {SOURCE, ".govkit/profile.yaml", ".govkit/resolution.json", ".govkit/pack-lock.json"}
+
+
+def _now():
+    return datetime.now(timezone.utc).isoformat()
 
 
 @dataclass(frozen=True)
@@ -222,6 +233,7 @@ def preview_migration(
         and maintenance.digest != parse_assessment(assessment).digest
     ):
         raise DocumentError("Stale maintenance assessment; regenerate the migration proposal")
+    validate_freshness(maintenance.document, as_of=_now())
     if RECEIPT in snapshot.files:
         record = _receipt(target, snapshot)
         profile = load_profile(target / ".govkit/profile.yaml")
@@ -356,12 +368,13 @@ def _verification(target, before_assessment):
     report = inspect_repository(target)
     obligations = _legacy_checks(load_profile(target / ".govkit/profile.yaml").document)
     states = {r.spec.id: r.outcome.state for r in report.results}
+    as_of = _now()
     try:
-        after = reassess(target, before_assessment)
+        after = reassess(target, before_assessment, as_of=as_of)
     except DocumentError:
         # Migration may change accepted metadata sources and baseline identity.
         # Retain unknowns rather than treating the old provider record as current.
-        after = assess_repository(target, as_of=before_assessment["as_of"])
+        after = assess_repository(target, as_of=as_of)
     return {
         "schema_version": 1,
         "kind": "migration-result",
