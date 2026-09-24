@@ -1,0 +1,35 @@
+schema_version: 1
+source:
+  reference: .govkit/policy.md
+  authority: accepted
+repository:
+  id: Accelerated-Innovation/governed-ai-delivery
+  project_type: cli
+  stack: python
+integrations:
+  agent: null
+  ci: github
+capabilities: []
+packs: []
+policy:
+  source:
+    reference: .govkit/policy.md
+    authority: accepted
+  workflows:
+    - id: source-validation
+      source:
+        reference: .govkit/policy.md
+        authority: accepted
+      when: ["*"]
+      additional_checks:
+        - project:tests
+        - project:pipeline-contract
+        - provider:protected-caller
+  contracts:
+    - source:
+        reference: .govkit/policy.md
+        authority: accepted
+      scope: ["."]
+  conformance:
+    reference: .govkit/conformance.yaml
+    authority: accepted

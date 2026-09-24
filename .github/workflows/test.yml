@@ -382,6 +382,16 @@ jobs:
           cd /tmp
           /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_posture_smoke.py"
 
+      - name: Source self-hosting works from the wheel with test dependencies
+        # Separate from the runtime-only consumer environment. This candidate-
+        # policy smoke expects unknown enforcement, not protected PR admission.
+        run: |
+          set -euo pipefail
+          python -m venv /tmp/source-self-hosting-venv
+          /tmp/source-self-hosting-venv/bin/pip install dist/govkit-*.whl pytest
+          cd /tmp
+          /tmp/source-self-hosting-venv/bin/python -I -B "$GITHUB_WORKSPACE/tests/wheel_source_self_hosting_smoke.py" "$GITHUB_WORKSPACE"
+
       - name: Apply against a fresh tmp dir from the wheel install
         # End-to-end: the wheel-installed `govkit apply` writes the marker,
         # the stack overlay docs, the editable header, and the skill_context.

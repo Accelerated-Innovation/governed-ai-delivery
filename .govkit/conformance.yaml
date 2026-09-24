@@ -1,0 +1,37 @@
+schema_version: 1
+# The recurring maintenance request inspects the whole Git-visible source tree.
+# It does not classify arbitrary feature/security/API work as low impact.
+impact_rules:
+  - paths: ["."]
+    impacts: {}
+artifacts: []
+constraints: []
+commands:
+  # A bounded profile-validation regression suite, not the full product suite.
+  - id: project:tests
+    argv:
+      - "{python}"
+      - -I
+      - -B
+      - -m
+      - pytest
+      - --import-mode=importlib
+      - -p
+      - no:cacheprovider
+      - -q
+      - tests/test_profiles.py
+    timeout_seconds: 120
+  # This measures workflow declarations, not live provider enforcement.
+  - id: project:pipeline-contract
+    argv:
+      - "{python}"
+      - -I
+      - -B
+      - -m
+      - pytest
+      - --import-mode=importlib
+      - -p
+      - no:cacheprovider
+      - -q
+      - tests/test_source_pipeline_contract.py
+    timeout_seconds: 120

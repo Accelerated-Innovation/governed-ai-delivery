@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "id": "source-maintenance",
+  "source": "https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/149",
+  "summary": "Inspect the source repository's chosen minimal governance model and its local validation contracts.",
+  "confirmation": "confirmed",
+  "change": "maintenance",
+  "scope": ["."],
+  "impacts": {
+    "bounded": true,
+    "within-contracts": true,
+    "new-behavior": false,
+    "security": false,
+    "auth": false,
+    "data": false,
+    "public-contract": false,
+    "nfr": false,
+    "ownership": false,
+    "architecture": false,
+    "cross-service": false,
+    "llm": false,
+    "mcp": false
+  },
+  "acceptance": [
+    "Resolve the explicit source profile without installing consumer resources.",
+    "Record actual selected profile tests and pipeline contract checks independently.",
+    "Retain unmeasured architecture and protected-caller evidence as unknown in conformance and posture."
+  ],
+  "references": [],
+  "preference": "auto"
+}
