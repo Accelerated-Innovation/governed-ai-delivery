@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "source": {
+    "reference": "policy.md",
+    "authority": "accepted"
+  },
+  "repository": {
+    "id": "maintenance-example"
+  },
+  "integrations": {
+    "agent": "codex"
+  },
+  "capabilities": [
+    {
+      "id": "application-governance"
+    }
+  ],
+  "policy": {
+    "source": {
+      "reference": "policy.md",
+      "authority": "accepted"
+    }
+  },
+  "maintenance": {
+    "sources": [
+      {
+        "id": "team",
+        "url": "https://releases.example.invalid/govkit.json",
+        "channels": [
+          "stable"
+        ]
+      }
+    ],
+    "constraints": [
+      {
+        "component": "govkit",
+        "source_id": "team",
+        "channel": "stable",
+        "compatibility": ">=0.21,<1"
+      },
+      {
+        "component": "application-governance",
+        "source_id": "team",
+        "channel": "stable",
+        "compatibility": ">=1,<2"
+      }
+    ],
+    "metadata_max_age_hours": 24,
+    "allow_refresh": false
+  }
+}

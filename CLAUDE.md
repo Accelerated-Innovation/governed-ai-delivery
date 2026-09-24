@@ -114,3 +114,7 @@ A change is rarely one file. Changing a schema means updating starter templates 
 ### Safe legacy migration
 
 `migration.py` composes existing legacy/profile/pack/discovery/check boundaries in an isolated preview; `migration_store.py` owns bounded snapshots and reversible writes. See ADR 0008 and `docs/LEGACY_MIGRATION.md`. Default preview is read-only. Apply requires an explicitly accepted profile and exact preview digest; preserve configured obligations, user bytes/modes/mtimes, flat-marker content and opt-in authority. Rollback derives ownership from the verified lock and refuses edited resources. Metadata installation never establishes enforcement parity. Keep real legacy-install and runtime-only wheel pilots aligned. Maintenance integration and actual legacy removal remain I09/I13.
+
+### Maintenance version facts
+
+`release_metadata.py` owns approved metadata, freshness and policy/runtime candidate selection; `maintenance_inventory.py` observes actual resource digests and composes protected previews through the existing pack store. `cmd_maintain.py` alone owns explicit cache output outside the target. See ADR 0009 and `docs/MAINTENANCE_INVENTORY.md`. Keep inventory/preview offline, source refresh data-only and anonymous, customizations protected, unknown freshness explicit and source/lookup timestamps separate. I09a supplies facts; I09b still owns the consolidated four-dimensional assessment and migration integration. Do not infer enforcement or newest-version certification from inventory.

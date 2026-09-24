@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "kind": "release-metadata",
+  "source_id": "team",
+  "source_url": "https://releases.example.invalid/govkit.json",
+  "as_of": "2026-09-24T12:00:00Z",
+  "retrieved_at": "2026-09-24T12:00:00Z",
+  "lookup_status": "bundled",
+  "releases": [
+    {
+      "component": "govkit",
+      "version": "0.22.0",
+      "channel": "stable",
+      "requires_govkit": "",
+      "requires_python": ">=3.11",
+      "dependencies": {}
+    },
+    {
+      "component": "application-governance",
+      "version": "1.2.0",
+      "channel": "stable",
+      "requires_govkit": ">=0.21.1",
+      "requires_python": ">=3.11",
+      "dependencies": {}
+    },
+    {
+      "component": "application-governance",
+      "version": "9.0.0",
+      "channel": "stable",
+      "requires_govkit": ">=9",
+      "requires_python": ">=3.11",
+      "dependencies": {}
+    }
+  ]
+}

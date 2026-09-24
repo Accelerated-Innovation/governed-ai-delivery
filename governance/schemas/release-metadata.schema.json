@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Approved release metadata",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "release-metadata"
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "as_of": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "retrieved_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "lookup_status": {
+      "enum": [
+        "bundled",
+        "cached",
+        "refreshed",
+        "failed",
+        "unavailable"
+      ]
+    },
+    "releases": {
+      "type": "array",
+      "maxItems": 2000,
+      "items": {
+        "type": "object",
+        "properties": {
+          "component": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "channel": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requires_govkit": {
+            "type": "string"
+          },
+          "requires_python": {
+            "type": "string"
+          },
+          "dependencies": {
+            "type": "object",
+            "maxProperties": 100,
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "component",
+          "version",
+          "channel",
+          "requires_govkit",
+          "requires_python",
+          "dependencies"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "source_id",
+    "source_url",
+    "as_of",
+    "retrieved_at",
+    "lookup_status",
+    "releases"
+  ],
+  "additionalProperties": false
+}
