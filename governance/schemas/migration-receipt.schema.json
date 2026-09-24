@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "migration-receipt"
+    },
+    "migration_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "profile_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "created": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "mode": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4095
+          }
+        },
+        "required": [
+          "digest",
+          "mode"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "original_marker": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "enum": [
+            ".govkit",
+            ".govkit/marker.json"
+          ]
+        },
+        "content": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4095
+        },
+        "mtime_ns": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "content",
+        "mode",
+        "mtime_ns"
+      ],
+      "additionalProperties": false
+    },
+    "original_directories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "preserved": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "mode": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4095
+          },
+          "mtime_ns": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "digest",
+          "mode",
+          "mtime_ns"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "migration_id",
+    "profile_digest",
+    "created",
+    "original_marker",
+    "original_directories",
+    "preserved"
+  ],
+  "additionalProperties": false
+}
