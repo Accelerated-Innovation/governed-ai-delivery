@@ -1,0 +1,1220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "posture-export"
+    },
+    "repository_ref": {
+      "type": "string",
+      "pattern": "^ref:[a-f0-9]{64}$"
+    },
+    "assessment_ref": {
+      "type": "string",
+      "pattern": "^ref:[a-f0-9]{64}$"
+    },
+    "as_of": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "revision_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dirty_digest_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profile_digest_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resolution_digest_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pack_lock_digest_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "input_digest_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "inventory_digest_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "discovery_digest_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baseline_digest_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ci_report_digest_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "revision_ref",
+        "dirty_digest_ref",
+        "profile_digest_ref",
+        "resolution_digest_ref",
+        "pack_lock_digest_ref",
+        "input_digest_ref",
+        "inventory_digest_ref",
+        "discovery_digest_ref",
+        "baseline_digest_ref",
+        "ci_report_digest_ref"
+      ],
+      "additionalProperties": false
+    },
+    "coverage": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "enum": [
+            "present",
+            "missing"
+          ]
+        },
+        "git_complete": {
+          "type": "boolean"
+        },
+        "discovery_complete": {
+          "type": "boolean"
+        },
+        "change_results": {
+          "const": "not-supplied"
+        },
+        "controls": {
+          "const": "maintenance-dimensions-only"
+        },
+        "origin": {
+          "const": "unauthenticated-snapshot"
+        }
+      },
+      "required": [
+        "profile",
+        "git_complete",
+        "discovery_complete",
+        "change_results",
+        "controls",
+        "origin"
+      ],
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "configured": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capability"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capability"
+          }
+        },
+        "recorded": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capability"
+          }
+        },
+        "lock_verification": {
+          "enum": [
+            "verified",
+            "unverified",
+            "unknown"
+          ]
+        }
+      },
+      "required": [
+        "configured",
+        "required",
+        "recorded",
+        "lock_verification"
+      ],
+      "additionalProperties": false
+    },
+    "configured_controls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          },
+          "applies_when": {
+            "enum": [
+              "repository",
+              "workflow"
+            ]
+          },
+          "execution": {
+            "const": "not-assessed"
+          }
+        },
+        "required": [
+          "ref",
+          "applies_when",
+          "execution"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "architecture": {
+      "type": "object",
+      "properties": {
+        "observed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "scope_ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "category": {
+                "enum": [
+                  "manifest",
+                  "architecture",
+                  "decision",
+                  "guidance",
+                  "documentation",
+                  "reference",
+                  "code",
+                  "test",
+                  "ci",
+                  "inventory"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "observed",
+                  "unavailable",
+                  "missing",
+                  "limited"
+                ]
+              },
+              "confidence": {
+                "enum": [
+                  "high",
+                  "medium",
+                  "low"
+                ]
+              }
+            },
+            "required": [
+              "source_ref",
+              "scope_ref",
+              "category",
+              "status",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "accepted_contracts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "scope_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                }
+              }
+            },
+            "required": [
+              "source_ref",
+              "scope_refs"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/transition"
+          }
+        }
+      },
+      "required": [
+        "observed",
+        "accepted_contracts",
+        "transitions"
+      ],
+      "additionalProperties": false
+    },
+    "versions": {
+      "type": "object",
+      "properties": {
+        "running_cli": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recorded_install": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resolved_govkit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "locked": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "component_ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "version": {
+                "$ref": "#/$defs/version"
+              }
+            },
+            "required": [
+              "component_ref",
+              "version"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/candidate"
+          }
+        },
+        "metadata": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "lookup_status": {
+                "enum": [
+                  "refreshed",
+                  "cached",
+                  "bundled",
+                  "failed",
+                  "unavailable"
+                ]
+              },
+              "as_of": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "retrieved_at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "source_ref",
+              "lookup_status",
+              "as_of",
+              "retrieved_at"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "running_cli",
+        "recorded_install",
+        "resolved_govkit",
+        "locked",
+        "candidates",
+        "metadata"
+      ],
+      "additionalProperties": false
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          },
+          "component_ref": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          },
+          "state": {
+            "enum": [
+              "matching",
+              "missing",
+              "modified",
+              "unavailable"
+            ]
+          },
+          "action": {
+            "enum": [
+              "none",
+              "refresh-resources",
+              "reconcile-customizations",
+              "inspect-resources"
+            ]
+          },
+          "local_ref": {
+            "type": "string",
+            "pattern": "^/(recommendations/[0-9]+|inventory/(candidates|resources)/[0-9]+)$"
+          }
+        },
+        "required": [
+          "ref",
+          "component_ref",
+          "state",
+          "action",
+          "local_ref"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "maintenance": {
+      "type": "object",
+      "properties": {
+        "dimensions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "enum": [
+                  "maintenance:releases",
+                  "maintenance:resources",
+                  "maintenance:repository-fit",
+                  "maintenance:ci"
+                ]
+              },
+              "state": {
+                "enum": [
+                  "pass",
+                  "fail",
+                  "warn",
+                  "unknown",
+                  "skipped",
+                  "not-applicable",
+                  "waived"
+                ]
+              },
+              "execution": {
+                "enum": [
+                  "executed",
+                  "not-run",
+                  "error"
+                ]
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "finding_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "state",
+              "execution",
+              "required",
+              "finding_refs"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "summary": {
+          "type": "object",
+          "properties": {
+            "pass": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "fail": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "warn": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unknown": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "skipped": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "not-applicable": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "waived": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "required": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "required_satisfied": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "executed": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "pass",
+            "fail",
+            "warn",
+            "unknown",
+            "skipped",
+            "not-applicable",
+            "waived",
+            "required",
+            "required_satisfied",
+            "executed"
+          ],
+          "additionalProperties": false
+        },
+        "state": {
+          "enum": [
+            "pass",
+            "fail",
+            "warn",
+            "unknown",
+            "skipped",
+            "not-applicable",
+            "waived"
+          ]
+        },
+        "exit_code": {
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "recommendations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/recommendation"
+          }
+        }
+      },
+      "required": [
+        "dimensions",
+        "summary",
+        "state",
+        "exit_code",
+        "recommendations"
+      ],
+      "additionalProperties": false
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "repository_ref",
+    "assessment_ref",
+    "as_of",
+    "identity",
+    "coverage",
+    "capabilities",
+    "configured_controls",
+    "architecture",
+    "versions",
+    "resources",
+    "maintenance",
+    "digest"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "version": {
+      "type": "object",
+      "properties": {
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 80,
+              "pattern": "^[0-9]+(?:![0-9]+)?(?:\\.[0-9]+)*(?:(?:a|b|rc)[0-9]+)?(?:\\.post[0-9]+)?(?:\\.dev[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "display",
+        "ref"
+      ],
+      "additionalProperties": false
+    },
+    "capability": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "label": {
+          "enum": [
+            "application-governance",
+            "gherkin-delivery",
+            "llm-evaluation",
+            "custom"
+          ]
+        }
+      },
+      "required": [
+        "ref",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "exception": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "source_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "scope_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ref",
+        "source_ref",
+        "scope_refs",
+        "expires_at"
+      ],
+      "additionalProperties": false
+    },
+    "transition": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "mode": {
+          "enum": [
+            "retain",
+            "improve",
+            "migrate"
+          ]
+        },
+        "applies_to": {
+          "enum": [
+            "new",
+            "new-and-changed",
+            "all"
+          ]
+        },
+        "source_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "scope_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "current_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "target_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "exceptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/exception"
+          }
+        }
+      },
+      "required": [
+        "ref",
+        "mode",
+        "applies_to",
+        "source_ref",
+        "scope_refs",
+        "current_refs",
+        "target_refs",
+        "exceptions"
+      ],
+      "additionalProperties": false
+    },
+    "candidate": {
+      "type": "object",
+      "properties": {
+        "component_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "source_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "channel_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "compatibility_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "installed": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "newest_known": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selected_target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "compatible_candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/version"
+          }
+        },
+        "excluded": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "$ref": "#/$defs/version"
+              },
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "channel",
+                    "prerelease-channel",
+                    "profile-pack-pin",
+                    "policy-compatibility",
+                    "pin",
+                    "govkit",
+                    "python",
+                    "dependency"
+                  ]
+                }
+              },
+              "reason_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                }
+              }
+            },
+            "required": [
+              "version",
+              "reasons",
+              "reason_refs"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "current_policy_state": {
+          "enum": [
+            "unknown",
+            "compliant",
+            "outside-policy"
+          ]
+        },
+        "freshness": {
+          "enum": [
+            "fresh",
+            "stale",
+            "unknown"
+          ]
+        },
+        "age_hours": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lookup_status": {
+          "enum": [
+            "refreshed",
+            "cached",
+            "bundled",
+            "failed",
+            "unavailable"
+          ]
+        },
+        "latest_verified": {
+          "const": false
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retrieved_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "local_ref": {
+          "type": "string",
+          "pattern": "^/(recommendations/[0-9]+|inventory/(candidates|resources)/[0-9]+)$"
+        }
+      },
+      "required": [
+        "component_ref",
+        "source_ref",
+        "channel_ref",
+        "compatibility_ref",
+        "installed",
+        "pin",
+        "newest_known",
+        "selected_target",
+        "compatible_candidates",
+        "excluded",
+        "current_policy_state",
+        "freshness",
+        "age_hours",
+        "lookup_status",
+        "latest_verified",
+        "as_of",
+        "retrieved_at",
+        "local_ref"
+      ],
+      "additionalProperties": false
+    },
+    "recommendation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^maintenance:[a-f0-9]{64}$"
+        },
+        "dimension": {
+          "enum": [
+            "releases",
+            "resources",
+            "repository-fit",
+            "ci"
+          ]
+        },
+        "action": {
+          "enum": [
+            "inspect-metadata",
+            "upgrade-cli",
+            "upgrade-pack",
+            "review-policy",
+            "inspect-resources",
+            "refresh-resources",
+            "reconcile-customizations",
+            "migrate-legacy",
+            "review-capability",
+            "repair-ci"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "urgency": {
+          "enum": [
+            "required",
+            "recommended",
+            "informational"
+          ]
+        },
+        "severity": {
+          "enum": [
+            "error",
+            "warning",
+            "info"
+          ]
+        },
+        "component_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target_version": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "source_policy_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "resource_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "control_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "customization_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "prerequisite_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "uncertainty_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "finding_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          }
+        },
+        "preview_operation": {
+          "enum": [
+            "metadata-review",
+            "package-manager",
+            "govkit-pack-preview",
+            "govkit-migrate-preview",
+            "govkit-discover",
+            "ci-integration-review",
+            "inspect-metadata",
+            "upgrade-cli",
+            "upgrade-pack",
+            "review-policy",
+            "inspect-resources",
+            "refresh-resources",
+            "reconcile-customizations",
+            "migrate-legacy",
+            "review-capability",
+            "repair-ci"
+          ]
+        },
+        "local_ref": {
+          "type": "string",
+          "pattern": "^/(recommendations/[0-9]+|inventory/(candidates|resources)/[0-9]+)$"
+        }
+      },
+      "required": [
+        "id",
+        "dimension",
+        "action",
+        "required",
+        "urgency",
+        "severity",
+        "component_ref",
+        "target_version",
+        "reason_ref",
+        "source_policy_ref",
+        "scope_refs",
+        "resource_refs",
+        "control_refs",
+        "customization_refs",
+        "prerequisite_refs",
+        "uncertainty_refs",
+        "evidence_refs",
+        "finding_refs",
+        "preview_operation",
+        "local_ref"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
