@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "migration-preview"
+    },
+    "target": {
+      "type": "string"
+    },
+    "migration_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "input_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "acceptance": {
+      "enum": [
+        "proposed",
+        "supplied"
+      ]
+    },
+    "proposed_profile": {
+      "type": "object"
+    },
+    "profile_source_digest": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ready": {
+      "type": "boolean"
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "action": {
+            "enum": [
+              "create",
+              "preserve",
+              "protected",
+              "update",
+              "remove",
+              "relocate"
+            ]
+          },
+          "from": {
+            "type": "string"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "before_digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "proposed_digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "path",
+          "action"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "controls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "configured": {
+            "const": true
+          },
+          "active": {
+            "const": "unknown"
+          },
+          "local_state": {
+            "enum": [
+              "pass",
+              "fail",
+              "warn",
+              "unknown",
+              "not-applicable",
+              "skipped",
+              "waived"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "configured",
+          "active",
+          "local_state"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "enforcement_parity": {
+      "const": false
+    },
+    "discovery": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "discovery_coverage": {
+      "type": "object",
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "complete",
+        "limitations"
+      ],
+      "additionalProperties": false
+    },
+    "local_verification": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "target",
+    "migration_id",
+    "input_digest",
+    "acceptance",
+    "proposed_profile",
+    "profile_source_digest",
+    "ready",
+    "decisions",
+    "operations",
+    "controls",
+    "enforcement_parity",
+    "discovery",
+    "digest",
+    "discovery_coverage",
+    "local_verification"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "acceptance": {
+            "const": "proposed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ready": {
+            "const": false
+          }
+        }
+      }
+    }
+  ]
+}

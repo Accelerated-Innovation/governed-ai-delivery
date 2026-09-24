@@ -110,3 +110,7 @@ A change is rarely one file. Changing a schema means updating starter templates 
 ### Actual-change conformance
 
 `change_scope.py` captures bounded Git observations; `change_policy.py` reads accepted provider configuration; `change_architecture.py` measures scoped literal constraints; `change_defects.py` adapts existing eligibility/red-green execution. `change_conformance.py` recomputes request requirements and composes I04 checks. See ADR 0007 and `docs/CHANGE_CONFORMANCE.md`. Keep accepted policy outside the inspected tree, commands explicitly opted in, missing semantic/platform evidence unknown, and synthetic seven-pilot wheel coverage aligned. Legacy migration and consolidated maintenance remain I08/I09.
+
+### Safe legacy migration
+
+`migration.py` composes existing legacy/profile/pack/discovery/check boundaries in an isolated preview; `migration_store.py` owns bounded snapshots and reversible writes. See ADR 0008 and `docs/LEGACY_MIGRATION.md`. Default preview is read-only. Apply requires an explicitly accepted profile and exact preview digest; preserve configured obligations, user bytes/modes/mtimes, flat-marker content and opt-in authority. Rollback derives ownership from the verified lock and refuses edited resources. Metadata installation never establishes enforcement parity. Keep real legacy-install and runtime-only wheel pilots aligned. Maintenance integration and actual legacy removal remain I09/I13.

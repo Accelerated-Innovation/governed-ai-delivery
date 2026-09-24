@@ -39,6 +39,7 @@ from .cmd_fix import register as _register_fix
 from .cmd_init import register as _register_init
 from .cmd_inspect_package import register as _register_inspect_package
 from .cmd_list import register as _register_list
+from .cmd_migrate import register as _register_migrate
 from .cmd_pack import register as _register_pack
 from .cmd_profile import register as _register_profile
 from .cmd_request import register as _register_request
@@ -63,6 +64,7 @@ _REGISTRARS = (
     _register_conform,
     _register_discover,
     _register_request,
+    _register_migrate,
     _register_stack,
     _register_extension,
     _register_init,
@@ -93,7 +95,9 @@ def main() -> None:
     # The version action resolves during parsing, so it answers even though
     # the subparser below is `required=True` and a bare `govkit` is an error.
     parser.add_argument(
-        "--version", action="version", version=f"%(prog)s {GOVKIT_VERSION}",
+        "--version",
+        action="version",
+        version=f"%(prog)s {GOVKIT_VERSION}",
         help="print the installed govkit version and exit",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)

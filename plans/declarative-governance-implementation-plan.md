@@ -1,7 +1,7 @@
 # Declarative governance implementation plan
 
-Status: I00–I06 merged; I07 delivered in PR #187 with review remediation, awaiting re-review/merge.
-Plan version: 1.20.
+Status: I00–I07 merged; I08 safe legacy migration verified locally, awaiting delivery/review.
+Plan version: 1.21.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
 Primary epic: [#142 — Declarative, composable GovKit governance](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/142).
@@ -596,8 +596,8 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 | I04 | complete | [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184), initial implementation 78b1069; five review bugs remediated with 23 additional regressions; 3943 fast-suite passes; runtime-only wheel smoke passed | Merged 5426abe; final-head Tests run 35920010148 passed; #146 stays open for I07/I09 |
 | I05 | complete | [PR #185](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/185), implementation 09a1de3; three Qodo bugs remediated with 13 regressions; 3995 fast-suite passes; runtime-only wheel smoke passed | Merged 21ccef2; final-head Tests run 35926710002 passed; #178 remains open for I07 |
 | I06 | complete | [PR #186](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/186), merged b938a3b; three review bugs fixed in 9325749; 4,036 fast tests and clean-wheel smoke passed | Final-head Tests run 35929565253 passed; #179 remains open for I07 |
-| I07 | delivered; awaiting merge | [PR #187](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/187), implementation 9e40330; 39 new tests, 4,075 fast-suite passes, runtime-only wheel smoke passed | Review/merge; Qodo local review remains blocked by recorded repo_not_connected |
-| I08 | not started | — | Wait for I02–I03, I05, I07 |
+| I07 | complete | [PR #187](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/187) merged as 9466c79; review fixes 2ba06e1; 4,098 fast tests, 63 final focused tests and seven wheel pilots passed | Final-head Tests run 35978562236 passed; #178/#179 closed |
+| I08 | in progress | feat/149-safe-legacy-migration; 38 migration tests, 124 focused passes, 4,137 fast-suite passes and three runtime-only wheel pilots | Commit/push/open PR; Qodo local review unavailable under the recorded integration blocker |
 | I09 | not started | — | Wait for I02–I03, I05, I07 |
 | I10 | not started | — | Wait for core prerequisites; integrate I09 |
 | I11 | not started | — | Core reporting after I07; full report after I09–I10 |
@@ -606,12 +606,13 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 
 Current handoff:
 
-- Completed: I00–I06 merged. PR #186 merged as `b938a3b515e44cc73acb9dbe4b6bbe530cd824a8`; final-head [Tests run 35929565253](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/35929565253) passed for `9325749`. Individual logs/artifacts were not re-audited; no Qodo clean verdict is inferred from the merge.
-- Current increment: I07 (#146 core) is delivered in [PR #187](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/187), implementation `9e40330`, on `feat/146-request-conformance`. 39 new tests; **4,075 fast-suite passes**, 2 existing skips, 150 e2e tests deselected. Runtime-only wheel smoke passes all seven actual-change pilots, plus existing request/check smokes. This source repo has no consumer installation.
-- Next action: review PR #187. After its merge, confirm/synchronize/clean up and begin I08 safe legacy migration test first. Preserve `.venv`; the current known I07 temporary artifacts are `/private/tmp/govkit-i07-dist`, `govkit-i07-wheel-venv`, `govkit-i07-examples.py` and `govkit-i07-schemas.py`.
-- Review limitation: the user reported Qodo reconnected on 2026-09-24. Fresh verification confirmed CLI 1.0.3 authentication and 49 managed tools, but repository search returned no matches and a direct public-repository read failed `MT-WORKSPACE-NO-REPOS` / `WORKSPACE_HAS_NO_AUTHORIZED_REPOS` (HTTP 403). The authenticated CLI workspace still has no authorized repositories. Resolve its GitHub installation/workspace association before another local-review attempt. No I07 local review or clean Qodo verdict is claimed; existing PR work uses the structured review resolver.
-- Issue tracking: #151/#143/#144 are closed. I07 demonstrates the remaining #178/#179 criteria; keep both open until the integration PR merges. The first nine #146 conformance criteria are locally demonstrated; its maintenance criteria and closure remain I09. #145 awaits I09; #142 remains open.
-- Open product input: FeaturePeers definition, representative team repos, pilot participants and the actual legacy-retirement release boundary remain later decisions; none blocks I07.
+- Completed: I00–I07 merged. PR #187 merged as `9466c7996b3825b758f35942c2e4bd0041073540`; final-head [Tests run 35978562236](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/35978562236) passed for `2ba06e1`. Individual logs/artifacts were not re-audited; no Qodo clean verdict is inferred from the merge.
+- Current increment: I08 (#149 migration) on `feat/149-safe-legacy-migration`. Preview translates existing selections and preserves unknown enforcement. Accepted-profile and digest-bound application adds protected metadata/packs, with reversible layout conversion and rollback.
+- Cleanup: fetched/pruned, fast-forwarded main, verified identical merged trees and deleted the old local branch. Removed exactly the six known I07/review temporary artifacts; preserved `.venv`. New tests use isolated fixtures, never a consumer installation in this source repository.
+- Next action: deliver the locally verified I08 increment for review. I09 maintenance intelligence follows its integration and supplies canonical actions to migration. #149 remains open for that integration, self-hosting and the release retirement boundary.
+- Review limitation: the user reported Qodo reconnected on 2026-09-24. Fresh verification confirmed CLI 1.0.3 authentication and 49 managed tools, but repository search returned no matches and a direct public-repository read failed `MT-WORKSPACE-NO-REPOS` / `WORKSPACE_HAS_NO_AUTHORIZED_REPOS` (HTTP 403). The authenticated CLI workspace still has no authorized repositories. Resolve its GitHub installation/workspace association before another local-review attempt. The user is handling the integration with support. No I07/I08 local-review retry or clean Qodo verdict is claimed; existing PR work uses the structured review resolver.
+- Issue tracking: #151/#143/#144/#178/#179 are closed. #149 is in progress for migration, remains open through I12–I13; #145/#146 await I09, #142 remains open.
+- Open product input: FeaturePeers definition, representative team repos, pilot participants and the actual legacy-removal release remain later decisions. I08 retains all old commands; no removal is scheduled or implied.
 
 Use this record after each session:
 
@@ -741,10 +742,23 @@ Next ready action:
 - **Verification:** **13 additional regressions**, with the expanded discovery/CLI/profile-store/pack-store/check selection passing **109 tests**. Final fast suite: **3995 passed, 2 existing format-specific skips, 150 e2e deselected**, in 32.10 seconds. Scoped Ruff lint/format and whitespace checks passed. A fresh runtime-only Python 3.12 wheel passed all four example/adoption scenarios plus real CLI incomplete-baseline, malformed-lock and reference-overflow regressions. Existing schemas remain unchanged.
 - **Delivery/status:** fixes are committed/pushed to existing PR #185 under the standing instruction; no new PR or merge. All three findings were reproduced and addressed; none dismissed or skipped. The authenticated Qodo catalog exposes only review reads, so manual `mark-implemented`/`dismiss` writes are unavailable. Re-review must verify/re-attribute the pushed fixes; no clean exact-head Qodo review is claimed. #178 remains open for I07's integrated transition criterion. The same local Python/platform, snapshot and explicit-profile-loader limitations apply.
 
+### I08 execution record — 2026-09-24
+
+- **Baseline/cleanup:** verified PR #187 merged as `9466c7996b3825b758f35942c2e4bd0041073540`, its final-head Tests workflow passed, and #178/#179 are closed. Pruned the deleted remote branch, fast-forwarded main, proved identical merged trees before deleting the old local branch, removed six known I07/review temporary artifacts and preserved `.venv`. Work uses isolated consumer fixtures on `feat/149-safe-legacy-migration`.
+- **Test first:** the existing profile/pack/conformance/discovery baseline passed **86 tests**. New migration tests failed collection before `cli/migration.py` existed. Subsequent failing regressions exposed partial flat-marker rollback, removal of unrelated new empty directories, unsupported legacy options being accepted, overwriting an excluded existing destination, missing local findings/coverage and disappearing unknown controls on repeat preview. Fixes followed those failures. A write-failure test was corrected to inject only into the real target, not the isolated preview writer; pilot fixtures use the shipped request contract rather than guessed fields.
+- **Implementation:** `govkit migrate` defaults to a no-write preview with proposed profile, decisions, operations, control inventory, discovery coverage and local conformance. Explicit accepted profile plus exact preview digest authorizes a recomputed protected application. Existing adapters preserve L3 application / L4 Gherkin / L5 LLM semantics; marker provenance, stack, agent/CI, contract references, local extensions, guidance, pipelines and opt-in authority remain intact. New profile/pack resources are composed using the existing resolvers in an isolated copy. Bundled schemas validate previews and ownership receipts; thin CLI dispatch delegates to `migration.py` and bounded reversible writes in `migration_store.py`.
+- **Preservation and enforcement:** always-applicable workflow obligations retain legacy/custom/CI/authority controls without weakening executable-pack provider requirements. Missing providers remain unknown and blocking in request conformance. Configured obligations, local check outcomes and unknown active enforcement are separate; `enforcement_parity` stays false before and after metadata installation. Broken extensions and other local findings remain visible. Apply is idempotent, detects stale inputs before writes, preserves original bytes/modes/mtimes, and reruns repository conformance. Rollback derives owned files from the verified lock, refuses changed owned resources, preserves unrelated additions, and restores flat markers with caught-failure undo.
+- **Green:** **38 new migration tests**, including the nine level/agent mappings and three real legacy installation pilots. Focused integration: **124 passed**. `source .venv/bin/activate && ./run_tests -q` → **4,137 passed, 2 existing format-specific skips, 150 e2e tests deselected**, in 137.73 seconds. Scoped Ruff `check --no-fix`, formatting and `git diff --check` passed.
+- **Wheel/CI:** a freshly built `govkit-0.21.1` wheel installed in a clean Python 3.12.14 environment with runtime dependencies only passed real CLI L3/Codex, L4/Claude Code and L5/Copilot migration pilots. They verify no-write preview, customized bytes/mtimes and authority, lock replay, ready request plans with retained obligations, native guidance, idempotence, edited-resource rollback rejection and exact restoration. `tests/wheel_migration_smoke.py` runs in installer CI; its final standalone invocation passed. Consumer provider templates are unchanged. Hosted I08 CI, Python 3.11, Windows, full local toolchain and live provider/agent enforcement are not claimed.
+- **Decisions/docs:** [ADR 0008](decisions/0008-safe-legacy-migration.md) and [migration guide](../docs/LEGACY_MIGRATION.md) describe profile acceptance, provenance, bounds/exclusions, preservation, rollback and CLI-package versus repository-resource updates. Snapshot limits fail closed; discovery has separately reported smaller limits. The current bundled manifest is reference evidence, not proof of an older installation's bytes. Digests/receipts are consistency records, not signed approval. Transactions handle caught failures, not concurrent writers or crash recovery; normal backups and quiescent targets remain required.
+- **Review:** reused Appendix B's loaded Qodo rules and inspected the final local diff. The pre-PR `qodo-review` workflow remains unavailable: the last authorized probe found `repo_not_connected`, and reconnection verification found HTTP 403 `MT-WORKSPACE-NO-REPOS` / `WORKSPACE_HAS_NO_AUTHORIZED_REPOS`. The user is working with support; no service retry, completed review, findings or clean verdict is claimed for I08.
+- **Acceptance/handoff:** nine #149 criteria are demonstrated locally; #149 remains open. Canonical maintenance proposal integration is I09, self-hosting is I12, and the concrete removal release/warning period is I13. Legacy commands and level inputs remain supported; no retirement release was invented. I08 is ready for commit/push/PR under the standing delivery instruction; review/merge remain pending. I09 follows integration.
+
 ### Decision log
 
 | Date | Decision | Basis |
 |---|---|---|
+| 2026-09-24 | Compose migration in an isolated copy; accept explicit profile/digest; keep enforcement gaps as obligations | I08 tests and [ADR 0008](decisions/0008-safe-legacy-migration.md); preserve legacy bytes and avoid claiming parity from installed metadata |
 | 2026-09-23 | Use this file as execution source of truth | Explicit user request |
 | 2026-09-23 | Use a test-first process for every implementation increment | Explicit user request; record failing tests before implementation and passing evidence afterward |
 | 2026-09-23 | Run Qodo local review with context before future PR creation | Explicit user instruction; record the actual review result and handle verified bugs test first |
@@ -837,7 +851,7 @@ Source: [[Feature 8] Brownfield discovery and focused governance setup](https://
 - [x] Every proposed rule is traceable to an accepted source or a clearly marked decision awaiting confirmation.
 - [x] Unrecognized stacks, including a representative Python MCP-server fixture, retain explicit unknowns instead of installing FastAPI assumptions as accepted architecture.
 - [x] Retain/improve/migrate choices can be scoped to different components; installation does not refactor application code.
-- [ ] A gradual-transition fixture distinguishes existing exceptions from new violations and states how the transition will be verified.
+- [x] A gradual-transition fixture distinguishes existing exceptions from new violations and states how the transition will be verified.
 - [x] Unresolved relevant decisions block dependent work only; unrelated hypothetical cleanup does not prevent first useful work.
 - [x] Proposed operations are reviewable; authorized writes respect edit protection and are idempotent.
 - [x] Repeated discovery reviews only stale/newly relevant decisions and does not repeat the entire setup ceremony.
@@ -847,33 +861,35 @@ Source: [[Feature 8] Brownfield discovery and focused governance setup](https://
 - [x] A current-version repository with changed governance needs receives a focused review/capability recommendation; unchanged relevant evidence does not repeat the setup ceremony.
 - [x] Incomplete or conflicting change evidence remains explicit, and a changed observation is not automatically treated as a violation or accepted replacement architecture.
 
-Evidence: [I05 execution record](#i05-execution-record--2026-09-23). Twelve criteria are demonstrated locally; the transition fixture preserves scopes, existing exceptions and verification/exit references, but actual-change classification/enforcement remains I07. #178 stays open.
+Evidence: I05 discovery and I07 actual-change transition execution, integrated through PR #187. All thirteen criteria are demonstrated; #178 is closed. Bounded syntactic coverage and provider limitations remain as documented.
 
 ### Feature #179
 
 Source: [[Feature 9] Per-request workflow selection and proportional evidence](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/179).
 
-- [ ] One unchanged project profile supports a qualifying defect, small enhancement, and full feature request with different applicable steps/artifacts.
-- [ ] A small enhancement inside accepted boundaries completes planning without a mandatory five-artifact feature package.
-- [ ] Application governance plus LLM development/evaluation works without mandatory Gherkin; Gherkin delivery works without LLM capabilities.
-- [ ] A small-looking security, public-contract, data, or architectural change still receives the applicable controls and decision requirements.
-- [ ] Existing accepted contracts/NFRs/evidence can be referenced; new requirements are made explicit rather than inferred away.
-- [ ] Normalized inputs resolve deterministically with inspectable reasons; ambiguity is visible and relevant mandatory requirements cannot be skipped.
-- [ ] A developer override or agent-authored record cannot waive team policy; widened actual scope invalidates/revises the prior plan.
-- [ ] Plans have versioned provenance and a documented conformance/CI consumption contract.
-- [ ] No network installation, broad repository reconfiguration, or external ticket write occurs as a side effect of resolving a request.
-- [ ] Worked examples cover a defect, bounded enhancement, behavior-preserving refactor, MCP tool change, LLM evaluation change, full Gherkin feature, and architecture migration.
-- [ ] Guidance invokes only skills actually shipped/available and verified for the selected agent.
+- [x] One unchanged project profile supports a qualifying defect, small enhancement, and full feature request with different applicable steps/artifacts.
+- [x] A small enhancement inside accepted boundaries completes planning without a mandatory five-artifact feature package.
+- [x] Application governance plus LLM development/evaluation works without mandatory Gherkin; Gherkin delivery works without LLM capabilities.
+- [x] A small-looking security, public-contract, data, or architectural change still receives the applicable controls and decision requirements.
+- [x] Existing accepted contracts/NFRs/evidence can be referenced; new requirements are made explicit rather than inferred away.
+- [x] Normalized inputs resolve deterministically with inspectable reasons; ambiguity is visible and relevant mandatory requirements cannot be skipped.
+- [x] A developer override or agent-authored record cannot waive team policy; widened actual scope invalidates/revises the prior plan.
+- [x] Plans have versioned provenance and a documented conformance/CI consumption contract.
+- [x] No network installation, broad repository reconfiguration, or external ticket write occurs as a side effect of resolving a request.
+- [x] Worked examples cover a defect, bounded enhancement, behavior-preserving refactor, MCP tool change, LLM evaluation change, full Gherkin feature, and architecture migration.
+- [x] Guidance invokes only skills actually shipped/available and verified for the selected agent.
+
+Evidence: I06 request planning and I07 actual-scope enforcement, integrated through PR #187. All eleven criteria are demonstrated; #179 is closed.
 
 ### Feature #146
 
 Source: [[Feature 4] Policy-aware conformance for repositories and individual changes](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/146).
 
-- [ ] Equivalent repository, policy, change, and evidence inputs yield equivalent local/CI findings for checks runnable in both environments.
-- [ ] A qualifying small enhancement is evaluated without requiring the full feature package; a policy-required Gherkin workflow still enforces its artifacts.
-- [ ] An LLM-related change executes its applicable evaluation checks regardless of workflow size.
-- [ ] A request label, modified plan, or path filter cannot waive mandatory controls; actual diff expansion triggers re-evaluation.
-- [ ] Existing violations/exceptions and newly introduced violations are distinguishable under scoped transition policy.
+- [x] Equivalent repository, policy, change, and evidence inputs yield equivalent local/CI findings for checks runnable in both environments.
+- [x] A qualifying small enhancement is evaluated without requiring the full feature package; a policy-required Gherkin workflow still enforces its artifacts.
+- [x] An LLM-related change executes its applicable evaluation checks regardless of workflow size.
+- [x] A request label, modified plan, or path filter cannot waive mandatory controls; actual diff expansion triggers re-evaluation.
+- [x] Existing violations/exceptions and newly introduced violations are distinguishable under scoped transition policy.
 - [x] Missing, unreadable, unconfigured, unknown, or skipped required evidence never becomes a silent pass.
 - [x] Findings/results validate against versioned schemas, preserve provenance, and use stable identifiers.
 - [x] Checks do not print/exit internally; compatibility and independent failure reporting are covered.
@@ -926,19 +942,21 @@ Source: [[Feature 6] Capability and control posture reporting](https://github.co
 
 Source: [[Feature 7] Safe legacy migration, level retirement, and GovKit self-hosting](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/149).
 
-- [ ] Representative L3/L4/L5 installations map to explicit capabilities and requirements with no silent loss of configured controls.
-- [ ] Active enforcement is distinguished from installed/inactive controls; unresolved gaps are visible and cannot be reported as successful enforcement parity.
-- [ ] Customized contracts, local extensions, agent guidance, and pipelines are preserved by default.
-- [ ] Preview performs no target writes; ambiguous decisions are explicit and scoped.
-- [ ] Authorized migration is deterministic/idempotent with documented rollback.
-- [ ] Migrated repositories can use the new per-request workflow model under accepted policy without broadening agent authority.
+- [x] Representative L3/L4/L5 installations map to explicit capabilities and requirements with no silent loss of configured controls.
+- [x] Active enforcement is distinguished from installed/inactive controls; unresolved gaps are visible and cannot be reported as successful enforcement parity.
+- [x] Customized contracts, local extensions, agent guidance, and pipelines are preserved by default.
+- [x] Preview performs no target writes; ambiguous decisions are explicit and scoped.
+- [x] Authorized migration is deterministic/idempotent with documented rollback.
+- [x] Migrated repositories can use the new per-request workflow model under accepted policy without broadening agent authority.
 - [ ] Legacy commands remain covered through the compatibility period; retirement names a release boundary and warning period.
 - [ ] GovKit resolves its own profile, executes conformance, and exercises pipeline/reporting contracts without the full consumer bundle.
-- [ ] Migration guidance demonstrates ordinary brownfield adoption separately from architecture migration.
+- [x] Migration guidance demonstrates ordinary brownfield adoption separately from architecture migration.
 
 - [ ] Upgrade/migration previews consume canonical maintenance findings and name the selected compatible target, impacted resources/controls, protected customizations, and any separate review or repair needed.
-- [ ] Stale proposals are detected before writes; completion checks report remaining findings and do not infer resolution from a version-marker update.
-- [ ] Documentation and examples distinguish a CLI/package update from a repository resource refresh and preserve the existing authorization, idempotency, and rollback guarantees.
+- [x] Stale proposals are detected before writes; completion checks report remaining findings and do not infer resolution from a version-marker update.
+- [x] Documentation and examples distinguish a CLI/package update from a repository resource refresh and preserve the existing authorization, idempotency, and rollback guarantees.
+
+Evidence: [I08 execution record](#i08-execution-record--2026-09-24). Nine criteria demonstrated locally; canonical maintenance integration, self-hosting and the concrete retirement boundary remain open. #149 is not complete.
 
 ### Epic #142
 
