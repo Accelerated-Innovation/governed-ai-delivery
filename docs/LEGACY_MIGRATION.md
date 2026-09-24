@@ -76,7 +76,10 @@ and `migration:authority` obligations preserve unmapped legacy semantics and
 provider enforcement as unknown. They are deliberately blocking when no trusted
 provider is configured. They are not executable-pack declarations, and a successful
 pack installation does not satisfy them. Retain and reconcile these controls under
-accepted policy; a task label cannot waive them. No PDG connection is made or enabled.
+accepted policy; a task label cannot waive them. An absent authority configuration
+or an explicit `source: none` adds no authority obligation; `source: pdg` retains it.
+Unknown nonempty legacy authority configurations remain unresolved obligations.
+No PDG connection is made or enabled.
 
 Migrated repositories can use `govkit request plan` and the verified installed
 request-planning guidance. Actual-change conformance still requires the independently
@@ -94,6 +97,8 @@ proposal digest. `.govkit/migration-source.json` preserves configuration provena
 and source references. Existing `.govkit/marker.json` is unchanged; a legacy flat
 `.govkit` file is relocated byte-for-byte into that directory without changing its
 stored version, authority, permissions or modification time.
+The receipt and source record, which duplicate marker data, use owner-only
+permissions instead of inheriting a potentially permissive default file mode.
 
 ```sh
 govkit migrate rollback --target /work/service \
@@ -105,7 +110,8 @@ created resource's bytes and modes, and removes only migration-created files and
 empty directories created for them. It restores a flat marker's original bytes and
 metadata when applicable. User edits to migrated resources block rollback; reconcile
 or back up those edits first. Other later user files and directories are preserved.
-A changed flat marker or additional metadata prevents destructive layout reversal.
+A changed flat marker (including permissions or modification time) or additional
+metadata prevents destructive layout reversal.
 
 Writes are atomic per file and roll back caught failures, including a failed flat
 marker restoration. This is not a concurrent-writer transaction or a crash-recovery

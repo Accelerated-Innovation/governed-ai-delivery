@@ -346,3 +346,129 @@ def test_snapshot_limits_block_without_writes(tmp_path):
     with pytest.raises(ValueError, match="limit"):
         preview_migration(target)
     assert snapshot(target) == before
+
+
+@pytest.mark.parametrize("mutation", ["mode", "mtime"])
+def test_flat_marker_rollback_refuses_metadata_edits(tmp_path, mutation):
+    import os
+
+    from cli.migration_store import capture
+
+    target = legacy(tmp_path, flat=True)
+    preview = preview_migration(target, profile_path=accepted(tmp_path, target))
+    apply_migration(preview)
+    marker = target / ".govkit/marker.json"
+    if mutation == "mode":
+        marker.chmod(marker.stat().st_mode ^ 0o040)
+    else:
+        changed = marker.stat().st_mtime_ns + 1_000_000_000
+        os.utime(marker, ns=(changed, changed))
+    before = capture(target)
+    with pytest.raises(ValueError, match="Legacy marker was changed"):
+        rollback_migration(target, expected_digest=preview.digest)
+    assert capture(target) == before
+
+
+@pytest.mark.parametrize("value", [None, 21, True, [], {}])
+def test_malformed_marker_version_is_an_explicit_cli_decision(tmp_path, monkeypatch, capsys, value):
+    import sys
+
+    from cli.govkit import main
+    from cli.migration_store import capture
+
+    target = legacy(tmp_path)
+    marker = target / ".govkit/marker.json"
+    document = json.loads(marker.read_text())
+    document["version"] = value
+    marker.write_text(json.dumps(document))
+    before = capture(target)
+    monkeypatch.setattr(sys, "argv", ["govkit", "migrate", "--target", str(target), "--json"])
+    main()
+    output = capsys.readouterr()
+    result = json.loads(output.out)
+    assert not result["ready"]
+    assert any("unknown legacy version" in d for d in result["decisions"])
+    assert not output.err
+    assert capture(target) == before
+
+
+@pytest.mark.parametrize("value", [[], {}])
+def test_malformed_marker_agent_has_a_controlled_cli_error(tmp_path, monkeypatch, capsys, value):
+    import sys
+
+    from cli.govkit import main
+    from cli.migration_store import capture
+
+    target = legacy(tmp_path)
+    marker = target / ".govkit/marker.json"
+    document = json.loads(marker.read_text())
+    document["agent"] = value
+    marker.write_text(json.dumps(document))
+    before = capture(target)
+    monkeypatch.setattr(sys, "argv", ["govkit", "migrate", "--target", str(target), "--json"])
+    with pytest.raises(SystemExit) as exit_info:
+        main()
+    assert exit_info.value.code == 1
+    output = capsys.readouterr()
+    assert "unsupported legacy agent" in output.err
+    assert not output.out and "Traceback" not in output.err
+    assert capture(target) == before
+
+
+@pytest.mark.parametrize(
+    "authority,required", [(None, False), ({"source": "none"}, False), ({"source": "pdg"}, True)]
+)
+def test_migration_retains_authority_opt_in_semantics(tmp_path, authority, required):
+    target = legacy(tmp_path)
+    path = target / ".govkit/marker.json"
+    marker = json.loads(path.read_text())
+    if authority is None:
+        marker.pop("authority")
+    else:
+        marker["authority"] = authority
+    path.write_text(json.dumps(marker))
+    before = snapshot(target)
+    preview = preview_migration(target, profile_path=accepted(tmp_path, target))
+    controls = {c["id"] for c in preview.document["controls"]}
+    assert ("migration:authority" in controls) == required
+    assert snapshot(target) == before
+    result = apply_migration(preview)
+    assert ("migration:authority" in result["remaining"]) == required
+    plan = plan_request(target, parse_request(request()))
+    assert ("migration:authority" in {c["id"] for c in plan.document["checks"]}) == required
+    assert json.loads(path.read_text()).get("authority") == authority
+
+
+@pytest.mark.parametrize("flat", [False, True])
+@pytest.mark.parametrize("umask", [0o022, 0o000])
+def test_migration_provenance_does_not_broaden_marker_permissions(tmp_path, flat, umask):
+    import os
+    import stat
+
+    target = legacy(tmp_path, flat=flat)
+    original = target / (".govkit" if flat else ".govkit/marker.json")
+    original.chmod(0o600)
+    previous = os.umask(umask)
+    try:
+        preview = preview_migration(target, profile_path=accepted(tmp_path, target))
+        assert preview.additions[".govkit/migration-source.json"].mode == 0o600
+        apply_migration(preview)
+    finally:
+        os.umask(previous)
+    for name in ("marker.json", "migration-source.json", "migration.json"):
+        assert stat.S_IMODE((target / ".govkit" / name).stat().st_mode) == 0o600
+
+
+def test_flat_marker_rollback_removes_relocated_marker_and_restores_exact_state(tmp_path):
+    from cli.migration_store import capture
+
+    target = legacy(tmp_path, flat=True)
+    (target / ".govkit").chmod(0o600)
+    before = capture(target)
+    preview = preview_migration(target, profile_path=accepted(tmp_path, target))
+    apply_migration(preview)
+    assert (target / ".govkit/marker.json").is_file()
+    result = rollback_migration(target, expected_digest=preview.digest)
+    assert result["rolled_back"]
+    assert (target / ".govkit").is_file()
+    assert capture(target) == before

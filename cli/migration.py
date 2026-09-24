@@ -61,7 +61,10 @@ class MigrationPreview:
 def _draft(target, snapshot, marker):
     decisions = []
     try:
-        if Version(marker.get("version", "")) < Version("0.7.0"):
+        version = marker.get("version", "")
+        if not isinstance(version, str):
+            raise InvalidVersion("Legacy version must be a string")
+        if Version(version) < Version("0.7.0"):
             decisions.append(
                 "Run the existing upgrade --migrate-levels flow before translating pre-0.7 level meanings."
             )
@@ -80,7 +83,7 @@ def _draft(target, snapshot, marker):
             "Reconcile the obsolete ui option with the existing legacy shape migration."
         )
     agent = marker.get("agent")
-    if agent not in {"codex", "claude-code", "copilot"}:
+    if not isinstance(agent, str) or agent not in {"codex", "claude-code", "copilot"}:
         raise DocumentError("Reconcile the unsupported legacy agent before migration")
     legacy = adapt_legacy_manifest(load_manifest(agent), options)
     checks = ["legacy:doctor", "legacy:approval-policy", "migration:legacy-controls"]
@@ -93,7 +96,10 @@ def _draft(target, snapshot, marker):
         for p in snapshot.files
     ):
         checks.append("migration:ci-enforcement")
-    if marker.get("authority"):
+    authority = marker.get("authority")
+    # Explicitly disabled authority is not an obligation. Preserve unknown
+    # nonempty legacy configurations as unresolved rather than dropping them.
+    if authority and not (isinstance(authority, dict) and authority.get("source") == "none"):
         checks.append("migration:authority")
     contracts = sorted(
         p
@@ -275,7 +281,9 @@ def preview_migration(target: Path, *, profile_path: Path | None = None) -> Migr
             "preserved_paths": sorted(snapshot.files),
             "limitations": "Accepted migration retains configured obligations; installation and local checks are not enforcement parity.",
         }
-        (shadow / SOURCE).write_text(canonical_json(source) + "\n")
+        source_path = shadow / SOURCE
+        source_path.touch(mode=0o600)
+        source_path.write_text(canonical_json(source) + "\n")
         accepted = Path(directory) / "profile.json"
         accepted.write_bytes(profile_bytes)
         metadata = preview_materialization(accepted, shadow)
@@ -413,12 +421,13 @@ def rollback_migration(target: Path, *, expected_digest: str):
     marker = record["original_marker"]
     if marker["path"] == ".govkit":
         content = base64.b64decode(marker["content"], validate=True)
-        if snapshot.files[".govkit/marker.json"].content != content:
+        original = store.FileState(content, marker["mode"], marker["mtime_ns"])
+        if snapshot.files[".govkit/marker.json"] != original:
             raise DocumentError("Legacy marker was changed; reconcile before rollback")
         removals.append(".govkit/marker.json")
         if any(p.startswith(".govkit/") and p not in removals for p in snapshot.files):
             raise DocumentError("New metadata must be reconciled before restoring a flat marker")
-        additions[".govkit"] = store.FileState(content, marker["mode"], marker["mtime_ns"])
+        additions[".govkit"] = original
     ancestors = {
         p.as_posix() for name in removals for p in Path(name).parents if p.as_posix() != "."
     }
