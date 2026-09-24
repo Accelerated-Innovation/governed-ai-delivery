@@ -63,3 +63,11 @@ Git stability, trusted-policy separation, workflow escalation and canonical
 posture. Installed-wheel and live source runs supplement those isolated tests.
 The pipeline contract checks declared topology and selected commands; it does
 not parse arbitrary shell semantics or authenticate a provider.
+
+PR #198 review refinement: the source wheel smoke receives an explicit full
+comparison SHA from the caller, with full-history checkout and the PR base/push
+`before` event binding in CI. It refuses HEAD-as-base and unavailable inputs,
+and verifies the canonical report contains exactly the captured comparison.
+The Python matrix control verifies the setup-python interpreter binding as well
+as the declared values. These improve measured coverage without changing the
+candidate-policy or unknown-enforcement boundaries above.

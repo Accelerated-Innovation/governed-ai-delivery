@@ -4,7 +4,9 @@ This is a local model demonstration using candidate policy, not protected PR
 admission. Its expected canonical outcome is unknown, never a conformance pass.
 """
 
+import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -27,11 +29,16 @@ def invoke(*args):
     )
 
 
-def run(root):
-    assert Path(change_conformance.__file__).is_relative_to(sys.prefix)
-    base = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+def run(root, base, *, observed_at=None):
+    if not isinstance(base, str) or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", base):
+        raise ValueError("Source smoke requires an explicit full comparison base SHA")
     before = capture_change(root, base)
-    assert before.complete, before.problems
+    if not before.complete:
+        raise ValueError(
+            "Cannot capture comparison base/tree; check history, observation limits and index/worktree consistency"
+        )
+    if before.base != base or before.revision == base:
+        raise ValueError("Source smoke requires an available comparison base different from HEAD")
     assert not (root / ".govkit/marker.json").exists()
     for action in (("profile", "preview"), ("pack", "verify"), ("pipeline", "catalog")):
         result = invoke(*action, "--target", root, "--json")
@@ -56,7 +63,7 @@ def run(root):
             "--base",
             base,
             "--observed-at",
-            datetime.now(timezone.utc).isoformat(),
+            datetime.now(timezone.utc).isoformat() if observed_at is None else observed_at,
             "--execute-check",
             "project:tests",
             "--execute-check",
@@ -67,6 +74,7 @@ def run(root):
         record = evidence / "change.json"
         record.write_text(result.stdout)
         report = change_conformance.load_change_report(record).document
+        assert report["change"] == before.document
         checks = {c["id"]: c for c in report["checks"]["results"]}
         for identifier in ("project:tests", "project:pipeline-contract", "change:stable-inputs"):
             assert checks[identifier]["state"] == "pass", checks[identifier]
@@ -89,10 +97,17 @@ def run(root):
     print(
         "Installed-wheel source self-hosting verified: model and empty lock resolved, "
         "both selected commands executed, inputs stable, canonical posture replayed. "
+        f"Comparison base {base}; {len(before.changes)} changed paths inspected. "
         "Conformance remains unknown: architecture and protected-caller evidence unmeasured. "
         "Candidate-policy smoke only; not protected admission."
     )
+    return report
 
 
 if __name__ == "__main__":
-    run(Path(sys.argv[1]).resolve())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("source", type=Path)
+    parser.add_argument("--base", required=True, help="Full comparison SHA from the caller's event")
+    arguments = parser.parse_args()
+    assert Path(change_conformance.__file__).is_relative_to(sys.prefix)
+    run(arguments.source.resolve(), arguments.base)

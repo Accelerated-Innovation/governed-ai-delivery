@@ -107,7 +107,23 @@ Keep the existing runtime-only consumer wheel pilots separate: source test
 dependencies must not become mandatory consumer runtime dependencies.
 
 The Tests workflow's wheel job runs `tests/wheel_source_self_hosting_smoke.py`
-in this separate environment. It checks that the two selected commands pass
+in this separate environment with `--base` from the PR event's base SHA or the
+push event's `before` SHA. Its checkout fetches full history so committed changes
+can be compared with that event base. The smoke requires an available full SHA
+different from `HEAD`; it refuses missing, symbolic, zero or unavailable bases
+instead of substituting the current tree. Its summary reports the comparison
+base and changed-path count, and its canonical report must match that snapshot.
+Use a clean checkout or align the index with the inspected content; canonical
+capture refuses conflicting staged/working-tree inputs. For a local run, supply
+the same explicit comparison base:
+
+```sh
+"$GOVKIT_PYTHON" -I -B tests/wheel_source_self_hosting_smoke.py "$PWD" --base "$GOVKIT_BASE"
+```
+
+The pipeline contract also verifies that exactly one `setup-python` step binds
+its interpreter to `matrix.python-version`; listing two matrix values alone
+does not show that two interpreters run. The smoke checks that both selected commands pass
 and that canonical conformance remains unknown for exactly the unmeasured
 architecture and protected-caller controls. The smoke's success means those
 assertions held; it does not turn the underlying conformance result into a pass.
