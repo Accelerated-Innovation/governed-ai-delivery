@@ -82,6 +82,20 @@ def _freshness(document, policy, as_of):
     return ("fresh" if age <= policy.metadata_max_age_hours else "stale"), age
 
 
+def _version_reasons(candidate, channel, compatibility, pin, pack_pin):
+    """Policy facts that do not depend on a publisher's release record."""
+    reasons = []
+    if channel == "stable" and (candidate.is_prerelease or candidate.is_devrelease):
+        reasons.append("prerelease-channel")
+    if pack_pin and candidate != Version(pack_pin["version"]):
+        reasons.append("profile-pack-pin")
+    if candidate not in compatibility:
+        reasons.append("policy-compatibility")
+    if pin is not None and candidate != pin:
+        reasons.append("pin")
+    return reasons
+
+
 def select_candidates(profile, document, *, installed, running_govkit, python_version, as_of):
     """Compare known releases to the current environment, never solve a hidden upgrade."""
     document = parse_metadata(document, profile)
@@ -108,16 +122,9 @@ def select_candidates(profile, document, *, installed, running_govkit, python_ve
             reasons = []
             if release["channel"] != constraint.channel:
                 reasons.append("channel")
-            if constraint.channel == "stable" and (
-                candidate.is_prerelease or candidate.is_devrelease
-            ):
-                reasons.append("prerelease-channel")
-            if pack_pin and candidate != Version(pack_pin["version"]):
-                reasons.append("profile-pack-pin")
-            if candidate not in compatibility:
-                reasons.append("policy-compatibility")
-            if pin is not None and candidate != pin:
-                reasons.append("pin")
+            reasons.extend(
+                _version_reasons(candidate, constraint.channel, compatibility, pin, pack_pin)
+            )
             if Version(running_govkit) not in SpecifierSet(release["requires_govkit"]):
                 reasons.append("govkit")
             if Version(python_version) not in SpecifierSet(release["requires_python"]):
@@ -140,12 +147,17 @@ def select_candidates(profile, document, *, installed, running_govkit, python_ve
             (v for v in allowed if current_version is not None and Version(v) > current_version),
             None,
         )
-        compliant = (
-            current_version is not None
-            and current_version in compatibility
-            and (pin is None or current_version == pin)
-            and (pack_pin is None or current_version == Version(pack_pin["version"]))
-        )
+        current_policy_state = "unknown"
+        if current_version is not None:
+            if _version_reasons(current_version, constraint.channel, compatibility, pin, pack_pin):
+                current_policy_state = "outside-policy"
+            elif freshness == "fresh":
+                # Reuse the complete candidate evaluation, including release channel,
+                # runtime and installed dependencies. Absence is not compatibility.
+                if any(Version(v) == current_version for v in allowed):
+                    current_policy_state = "compliant"
+                elif any(Version(r["version"]) == current_version for r in releases):
+                    current_policy_state = "outside-policy"
         results.append(
             {
                 "component": constraint.component,
@@ -159,11 +171,7 @@ def select_candidates(profile, document, *, installed, running_govkit, python_ve
                 "compatible_candidates": allowed,
                 "excluded": excluded,
                 "selected_target": target if freshness == "fresh" else None,
-                "current_policy_state": "unknown"
-                if current_version is None
-                else "compliant"
-                if compliant
-                else "outside-policy",
+                "current_policy_state": current_policy_state,
                 "freshness": freshness,
                 "age_hours": age,
                 "lookup_status": document["lookup_status"],

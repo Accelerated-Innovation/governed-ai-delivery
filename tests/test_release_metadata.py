@@ -263,3 +263,109 @@ def test_refresh_rejects_sensitive_source_url_before_transport_or_failure_record
     with pytest.raises(ValueError, match="URL"):
         refresh_metadata(parse_profile(doc), "team", as_of=AS_OF, fetch=calls.append)
     assert calls == []
+
+
+@pytest.mark.parametrize(
+    "installed_version,changes,reason",
+    [
+        ("1.0rc1", {}, "prerelease-channel"),
+        ("1.0.dev1", {}, "prerelease-channel"),
+        ("1.0", {"channel": "preview"}, "channel"),
+        ("1.0", {"requires_govkit": ">=9"}, "govkit"),
+        ("1.0", {"requires_python": ">=9"}, "python"),
+        ("1.0", {"dependencies": {"other": ">=1"}}, "dependency:other"),
+        ("1.0", {"dependencies": {"sample": ">=2"}}, "dependency:sample"),
+    ],
+)
+def test_installed_compliance_respects_every_release_constraint(installed_version, changes, reason):
+    result = select_candidates(
+        project(pin=installed_version, compatibility=f"=={installed_version}"),
+        metadata(release(installed_version, **changes)),
+        installed={"sample": installed_version},
+        running_govkit="0.21.1",
+        python_version="3.12.14",
+        as_of=AS_OF,
+    )[0]
+    assert result["current_policy_state"] == "outside-policy"
+    assert reason in result["excluded"][0]["reasons"]
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"releases": []},
+        {"releases": [release("2.0")]},
+        {"lookup_status": "failed"},
+        {"lookup_status": "unavailable"},
+        {"as_of": "2026-09-20T00:00:00Z"},
+        {"as_of": None},
+    ],
+)
+def test_installed_compliance_requires_fresh_matching_release_evidence(changes):
+    result = candidates(metadata(release("1.0"), **changes), project(pin="1.0"))[0]
+    assert result["current_policy_state"] == "unknown"
+    assert result["selected_target"] is None
+
+
+def test_stable_policy_rejects_installed_prerelease_even_without_release_evidence():
+    result = select_candidates(
+        project(pin="1.0rc1", compatibility="==1.0rc1"),
+        metadata(releases=[]),
+        installed={"sample": "1.0rc1"},
+        running_govkit="0.21.1",
+        python_version="3.12.14",
+        as_of=AS_OF,
+    )[0]
+    assert result["current_policy_state"] == "outside-policy"
+
+
+def test_installed_release_can_be_compliant_in_its_explicit_preview_channel():
+    policy = project(pin="1.0rc1", compatibility="==1.0rc1").document
+    policy["maintenance"]["constraints"][0]["channel"] = "preview"
+    result = select_candidates(
+        parse_profile(policy),
+        metadata(release("1.0rc1", channel="preview")),
+        installed={"sample": "1.0rc1"},
+        running_govkit="0.21.1",
+        python_version="3.12.14",
+        as_of=AS_OF,
+    )[0]
+    assert result["current_policy_state"] == "compliant"
+    assert result["selected_target"] is None
+
+
+def test_matching_stable_release_is_compliant_despite_other_channel_record():
+    result = candidates(metadata(release("1.0", channel="preview"), release("1.0")))[0]
+    assert result["current_policy_state"] == "compliant"
+
+
+@pytest.mark.parametrize("difference", ["source", "channel", "compatibility"])
+def test_profile_rejects_ambiguous_component_constraints_before_candidate_selection(difference):
+    policy = project().document
+    maintenance = policy["maintenance"]
+    duplicate = dict(maintenance["constraints"][0])
+    if difference == "source":
+        maintenance["sources"].append(
+            {"id": "other", "url": "https://other.invalid/releases.json", "channels": ["stable"]}
+        )
+        duplicate["source_id"] = "other"
+    elif difference == "channel":
+        duplicate["channel"] = "preview"
+    else:
+        duplicate["compatibility"] = ">=1,<2"
+    maintenance["constraints"].append(duplicate)
+    with pytest.raises(ValueError, match="maintenance/constraints: duplicate component 'sample'"):
+        parse_profile(policy)
+
+
+@pytest.mark.parametrize("policy", [{"compatibility": "invalid"}, {"pin": "invalid"}])
+def test_invalid_version_policy_is_rejected_even_without_installed_or_published_versions(policy):
+    with pytest.raises(ValueError):
+        select_candidates(
+            project(**policy),
+            metadata(releases=[]),
+            installed={},
+            running_govkit="0.21.1",
+            python_version="3.12.14",
+            as_of=AS_OF,
+        )

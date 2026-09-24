@@ -33,6 +33,9 @@ Accepted profile `maintenance.sources` and `maintenance.constraints` choose sour
 channels, exact pins and compatibility ranges. `metadata_max_age_hours` governs
 freshness. No configured source or no usable metadata means unknown freshness.
 An intentional compatible pin is not a requirement to upgrade.
+Each component can have only one maintenance constraint; profile validation rejects
+duplicates even when they name different sources or channels. Candidate previews
+therefore use that component's single accepted policy.
 
 Pass one or more explicitly supplied local JSON/YAML metadata files:
 
@@ -60,6 +63,14 @@ and profile pack pins. Missing/stale/future-dated metadata cannot select an upgr
 Without an age policy, freshness is unknown. Refreshing an old source document does
 not reset its publisher age. `latest_verified` remains false: a local record, even
 one recording a prior refresh, cannot certify the latest published release.
+
+Installed policy compliance applies the same version, channel, runtime and dependency
+checks as candidate eligibility. A known mismatch with accepted pins, ranges or the
+stable-channel prerelease restriction is `outside-policy` without needing release
+metadata. Otherwise, compliance requires a matching release in fresh usable metadata:
+an eligible match is `compliant`, an excluded match is `outside-policy`, and absent,
+stale or unavailable evidence is `unknown`. A numeric pin alone cannot establish
+runtime or dependency compatibility.
 
 ## Explicit metadata refresh
 
