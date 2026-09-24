@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from . import paths
+from .maintenance import read_assessment
 from .migration import apply_migration, preview_migration, rollback_migration
 from .schema_validation import canonical_json
 
@@ -21,7 +22,11 @@ def cmd_migrate(args):
             result = rollback_migration(target, expected_digest=args.expected_digest)
         else:
             preview = preview_migration(
-                target, profile_path=Path(args.profile) if args.profile else None
+                target,
+                profile_path=Path(args.profile) if args.profile else None,
+                assessment=read_assessment(Path(args.assessment)).document
+                if args.assessment
+                else None,
             )
             result = preview.document
             if args.action == "apply":
@@ -48,6 +53,8 @@ def cmd_migrate(args):
                 print("Review: " + decision)
             for operation in result["operations"]:
                 print(f"  {operation['action']}: {operation['path']}")
+            for item in result["maintenance"]["recommendations"]:
+                print(f"  Maintenance ({item['urgency']}): {item['action']} — {item['reason']}")
             print("Use --json to review proposed_profile, controls and observed evidence.")
         else:
             print(
@@ -58,6 +65,9 @@ def cmd_migrate(args):
             if args.action == "apply":
                 print(
                     "Enforcement parity remains unverified; inspect the verification report with --json."
+                )
+                print(
+                    f"Maintenance: {len(result['maintenance']['resolved'])} resolved; {len(result['maintenance']['remaining'])} remaining; {len(result['maintenance']['unverified'])} unverified."
                 )
     except (OSError, ValueError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
@@ -73,6 +83,10 @@ def register(subparsers):
     )
     parser.add_argument("--target", default=".", help=paths.TARGET_HELP)
     parser.add_argument("--profile", help="Explicit reviewed profile; never inferred acceptance")
+    parser.add_argument(
+        "--assessment",
+        help="Optional saved canonical maintenance assessment; rechecked before preview/apply",
+    )
     parser.add_argument(
         "--expected-digest", help="Exact reviewed preview digest required for writes"
     )

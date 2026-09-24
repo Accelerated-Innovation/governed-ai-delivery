@@ -41,6 +41,75 @@ def accepted(tmp_path, target):
     return write(tmp_path, "accepted.json", json.dumps(draft.document["proposed_profile"]))
 
 
+def test_migration_preview_includes_canonical_maintenance_actions(tmp_path):
+    target = legacy(tmp_path)
+    before = snapshot(target)
+    preview = preview_migration(target)
+    assessment = preview.document["maintenance"]
+    assert assessment["kind"] == "maintenance-assessment"
+    assert {"migrate-legacy", "inspect-metadata"} <= {
+        r["action"] for r in assessment["recommendations"]
+    }
+    assert any(r["dimension"] == "ci" for r in assessment["recommendations"])
+    assert snapshot(target) == before
+
+
+def test_migration_reruns_maintenance_and_preserves_unverified_findings(tmp_path):
+    target = legacy(tmp_path)
+    source = accepted(tmp_path, target)
+    preview = preview_migration(target, profile_path=source)
+    result = apply_migration(preview)
+    assert result["maintenance"]["assessment"]["kind"] == "maintenance-assessment"
+    assert any(
+        r["action"] == "repair-ci" for r in result["maintenance"]["assessment"]["recommendations"]
+    )
+    assert result["maintenance"]["unverified"]
+    assert result["maintenance"]["resolved"] == []
+
+
+def test_explicit_maintenance_record_is_rechecked_before_migration_preview(tmp_path):
+    from cli.maintenance import assess_repository
+    from tests.test_release_metadata import AS_OF
+
+    target = legacy(tmp_path)
+    assessment = assess_repository(target, as_of=AS_OF)
+    write(target, "model.py", "import openai\n")
+    before = snapshot(target)
+    with pytest.raises(ValueError, match="[Ss]tale"):
+        preview_migration(target, assessment=assessment.document)
+    assert snapshot(target) == before
+
+
+def test_cli_migration_consumes_explicit_maintenance_assessment(tmp_path, monkeypatch, capsys):
+    import sys
+
+    from cli.govkit import main
+    from cli.maintenance import assess_repository
+    from tests.test_release_metadata import AS_OF
+
+    target = legacy(tmp_path)
+    record = tmp_path / "assessment.json"
+    assessment = assess_repository(target, as_of=AS_OF)
+    record.write_text(assessment.to_json())
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "govkit",
+            "migrate",
+            "preview",
+            "--target",
+            str(target),
+            "--assessment",
+            str(record),
+            "--json",
+        ],
+    )
+    main()
+    report = json.loads(capsys.readouterr().out)
+    assert report["maintenance"]["digest"] == assessment.digest
+
+
 @pytest.mark.parametrize("level,count", [("3", 1), ("4", 2), ("5", 3)])
 @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
 def test_preview_derives_legacy_capabilities_without_writes(tmp_path, level, count, agent):

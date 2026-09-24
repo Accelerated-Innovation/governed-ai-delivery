@@ -1,0 +1,468 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "maintenance-assessment"
+    },
+    "target": {
+      "type": "string"
+    },
+    "repository": {
+      "type": "string"
+    },
+    "as_of": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dirty_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "git_complete": {
+          "type": "boolean"
+        },
+        "profile_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resolution_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pack_lock_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "input_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "inventory_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "discovery_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baseline_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ci_report_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "revision",
+        "dirty_digest",
+        "git_complete",
+        "profile_digest",
+        "resolution_digest",
+        "pack_lock_digest",
+        "input_digest",
+        "inventory_digest",
+        "discovery_digest",
+        "baseline_digest",
+        "ci_report_digest"
+      ],
+      "additionalProperties": false
+    },
+    "inputs": {
+      "type": "object",
+      "properties": {
+        "baseline": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ci_report": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metadata": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "profile": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "baseline",
+        "ci_report",
+        "metadata",
+        "profile"
+      ],
+      "additionalProperties": false
+    },
+    "inventory": {
+      "type": "object"
+    },
+    "discovery": {
+      "anyOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "checks": {
+      "type": "object"
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^maintenance:[a-f0-9]{64}$"
+          },
+          "dimension": {
+            "enum": [
+              "releases",
+              "resources",
+              "repository-fit",
+              "ci"
+            ]
+          },
+          "action": {
+            "enum": [
+              "inspect-metadata",
+              "upgrade-cli",
+              "upgrade-pack",
+              "review-policy",
+              "inspect-resources",
+              "refresh-resources",
+              "reconcile-customizations",
+              "migrate-legacy",
+              "review-capability",
+              "repair-ci"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "component": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "controls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "source_policy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "urgency": {
+            "enum": [
+              "required",
+              "recommended",
+              "informational"
+            ]
+          },
+          "severity": {
+            "enum": [
+              "error",
+              "warning",
+              "info"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "method": {
+                  "type": "string"
+                },
+                "origin": {
+                  "enum": [
+                    "local-check",
+                    "tool-execution",
+                    "agent",
+                    "user",
+                    "unverified"
+                  ]
+                },
+                "digest": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "limitations": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "source",
+                "scope",
+                "method",
+                "origin",
+                "digest",
+                "limitations"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1
+          },
+          "uncertainty": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "customizations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "prerequisites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "preview": {
+            "type": "object",
+            "properties": {
+              "operation": {
+                "type": "string"
+              },
+              "assessment_required": {
+                "const": true
+              }
+            },
+            "required": [
+              "operation",
+              "assessment_required"
+            ],
+            "additionalProperties": false
+          },
+          "finding_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "id",
+          "dimension",
+          "action",
+          "reason",
+          "component",
+          "target_version",
+          "scope",
+          "resources",
+          "controls",
+          "required",
+          "source_policy",
+          "urgency",
+          "severity",
+          "evidence",
+          "uncertainty",
+          "customizations",
+          "prerequisites",
+          "preview",
+          "finding_ids"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "required": {
+                  "const": true
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "source_policy": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "urgency": {
+                  "const": "required"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "source_policy": {
+                  "type": "null"
+                },
+                "urgency": {
+                  "enum": [
+                    "informational",
+                    "recommended"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "target",
+    "repository",
+    "as_of",
+    "identity",
+    "inputs",
+    "inventory",
+    "discovery",
+    "checks",
+    "recommendations",
+    "limitations",
+    "digest"
+  ],
+  "additionalProperties": false
+}
