@@ -9,6 +9,8 @@ from pathlib import Path
 
 from cli import change_conformance, paths
 from cli.change_conformance import load_change_report
+from cli.posture import reference
+from cli.posture_change import parse_change_posture
 
 PILOTS = ("defect", "enhancement", "refactor", "mcp", "llm", "feature", "architecture")
 
@@ -95,6 +97,48 @@ def run_pilot(workspace, name):
         }
 
     before = snapshot()
+
+    def posture(source, label):
+        saved = workspace / (label + "-change.json")
+        saved.write_text(json.dumps(source))
+        output = workspace / (label + "-posture.json")
+        before_export = snapshot()
+        exported = invoke(
+            [
+                "posture",
+                "change",
+                "--results",
+                str(saved),
+                "--target",
+                str(target),
+                "--output",
+                str(output),
+                "--json",
+            ]
+        )
+        assert parse_change_posture(exported).document == exported == json.loads(output.read_text())
+        assert exported["results"]["summary"] == source["checks"]["summary"]
+        assert exported["results"]["exit_code"] == source["exit_code"]
+        assert exported["workflow"]["selected"] == source["plan"]["workflow"]
+        assert [
+            (c["ref"], c["state"], c["execution"], c["required"])
+            for c in exported["results"]["controls"]
+        ] == [
+            (reference("control", c["id"]), c["state"], c["execution"], c["required"])
+            for c in source["checks"]["results"]
+        ]
+        human = subprocess.run(
+            command + ["posture", "change", "--results", str(saved)], capture_output=True, text=True
+        )
+        assert human.returncode == 0, human.stderr
+        for control in exported["results"]["controls"]:
+            assert control["ref"] in human.stdout and control["state"] in human.stdout
+            for finding in control["findings"]:
+                assert finding["ref"] in human.stdout and finding["action_ref"] in human.stdout
+        assert output.stat().st_mode & 0o777 == 0o600
+        assert str(target) not in output.read_text() and str(trusted) not in output.read_text()
+        assert snapshot() == before_export
+
     expected = 1 if name == "architecture" else 0
     local = invoke(args, expected=expected)
     ci = invoke(args, ci=True, expected=expected)
@@ -103,6 +147,7 @@ def run_pilot(workspace, name):
     record = workspace / "result.json"
     record.write_text(json.dumps(local))
     assert load_change_report(record).document == local
+    posture(local, "initial")
     checks = {r["id"]: r for r in local["checks"]["results"]}
     assert checks["change:architecture"]["state"] == "pass"
     if name == "architecture":
@@ -126,13 +171,17 @@ def run_pilot(workspace, name):
     assert (
         next(r for r in failed["checks"]["results"] if r["id"] == failed_check)["state"] == "fail"
     )
+    posture(failed, "failed")
 
 
 if __name__ == "__main__":
     assert Path(change_conformance.__file__).is_relative_to(sys.prefix)
+    example = json.loads((paths.GOVERNANCE_DIR / "examples/posture/change.json").read_text())
+    assert parse_change_posture(example).document == example
     for name in PILOTS:
         with tempfile.TemporaryDirectory(prefix="govkit-change-pilot-") as directory:
-            run_pilot(Path(directory), name)
+            # The create-only writer rejects symlink parents, including macOS /var.
+            run_pilot(Path(directory).resolve(), name)
     print(
-        "Seven actual-change pilots: passing measurements, real failures, replay and local/CI parity verified."
+        "Seven actual-change pilots: passing measurements, real failures, replay, local/CI parity and private canonical change posture verified."
     )

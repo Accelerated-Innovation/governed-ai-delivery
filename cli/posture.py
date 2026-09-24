@@ -171,13 +171,8 @@ class PostureReport:
         return canonical_json(self._document)
 
 
-def export_posture(assessment: dict) -> PostureReport:
-    """Replay canonical facts and project an allowlist; never inspect/fetch/execute."""
-    source = parse_assessment(assessment).document
-    inventory = source["inventory"]
-    profile = source["inputs"]["profile"] or {}
-    discovery = source["discovery"] or {}
-    checks = source["checks"]
+def configured_controls(profile: dict) -> list[dict]:
+    """Declared controls are distinct from recorded executions in either snapshot."""
     requirements = [
         {
             "ref": reference("control", c["id"]),
@@ -191,6 +186,16 @@ def export_posture(assessment: dict) -> PostureReport:
         for rule in profile.get("policy", {}).get("workflows", [])
         for c in rule.get("additional_checks", [])
     )
+    return sorted(requirements, key=canonical_json)
+
+
+def export_posture(assessment: dict) -> PostureReport:
+    """Replay canonical facts and project an allowlist; never inspect/fetch/execute."""
+    source = parse_assessment(assessment).document
+    inventory = source["inventory"]
+    profile = source["inputs"]["profile"] or {}
+    discovery = source["discovery"] or {}
+    checks = source["checks"]
     document = {
         "schema_version": 1,
         "kind": "posture-export",
@@ -218,7 +223,7 @@ def export_posture(assessment: dict) -> PostureReport:
             "recorded": _capabilities(c for p in inventory["locked_packs"] for c in p["provides"]),
             "lock_verification": inventory["lock_verification"],
         },
-        "configured_controls": sorted(requirements, key=canonical_json),
+        "configured_controls": configured_controls(profile),
         "architecture": _architecture(profile, discovery),
         "versions": {
             **{

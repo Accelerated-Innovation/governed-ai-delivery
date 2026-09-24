@@ -45,3 +45,8 @@ metrics with denominators, the full scenario set and a separate voluntary team
 pilot protocol. #148 remains open; no acceptance is waived. #147 remains open for
 protected-caller/path-coverage deployment evidence. Installer source is not yet
 self-hosted; use isolated consumer fixtures.
+
+Sequencing update: [ADR 0015](0015-change-posture-projection.md) delivers change
+projection in I11b and groups aggregation, the complete maintenance scenario set
+and the voluntary protocol into I11c. The separate snapshot contracts must be
+reviewed before their aggregation rules; the original acceptance scope is retained.

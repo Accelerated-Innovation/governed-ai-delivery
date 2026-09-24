@@ -1,13 +1,15 @@
 # Copyright 2026 Accelerated Innovation
 # Licensed under the Apache License, Version 2.0.
-"""Explicit local export of saved canonical maintenance facts."""
+"""Explicit local export of saved canonical maintenance or change facts."""
 
 import sys
 from pathlib import Path
 
 from .artifact_publication import publish_assessment
+from .change_conformance import load_change_report
 from .maintenance import read_assessment
 from .posture import export_posture, render_posture
+from .posture_change import export_change_posture, render_change_posture
 
 
 def cmd_posture(args):
@@ -33,9 +35,30 @@ def cmd_posture(args):
     sys.exit(0)
 
 
+def cmd_change_posture(args):
+    try:
+        if (args.output is None) != (args.target is None):
+            raise ValueError("Publication requires an explicit protected target")
+        source = load_change_report(Path(args.results))
+        report = export_change_posture(source.document)
+        display = report.to_json() if args.json else render_change_posture(report)
+        if args.output is not None:
+            if not args.output or not args.target or not Path(args.target).is_dir():
+                raise ValueError("Invalid publication paths")
+            publish_assessment(report.document, args.target, Path(args.output))
+    except (OSError, ValueError, RecursionError):
+        print(
+            "Unable to export change posture: invalid input or unsafe output; inspect the local results and destination.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    print(display)
+    sys.exit(0)
+
+
 def register(subparsers):
     parser = subparsers.add_parser(
-        "posture", help="Export privacy-filtered canonical maintenance facts"
+        "posture", help="Export privacy-filtered canonical maintenance or change facts"
     )
     actions = parser.add_subparsers(dest="action", required=True)
     export = actions.add_parser("export", help="Project a saved canonical assessment, offline")
@@ -47,3 +70,9 @@ def register(subparsers):
     )
     export.add_argument("--json", action="store_true", help="Print deterministic versioned JSON")
     export.set_defaults(func=cmd_posture)
+    change = actions.add_parser("change", help="Project saved canonical change results, offline")
+    change.add_argument("--results", required=True, help="Local canonical change-results JSON/YAML")
+    change.add_argument("--target", help="Protect this checkout when publishing with --output")
+    change.add_argument("--output", help="Create a new private JSON artifact outside --target")
+    change.add_argument("--json", action="store_true", help="Print deterministic versioned JSON")
+    change.set_defaults(func=cmd_change_posture)
