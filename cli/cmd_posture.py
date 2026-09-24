@@ -9,7 +9,9 @@ from .artifact_publication import publish_assessment
 from .change_conformance import load_change_report
 from .maintenance import read_assessment
 from .posture import export_posture, render_posture
+from .posture_aggregate import aggregate_posture, render_aggregate
 from .posture_change import export_change_posture, render_change_posture
+from .schema_validation import read_document
 
 
 def cmd_posture(args):
@@ -56,6 +58,25 @@ def cmd_change_posture(args):
     sys.exit(0)
 
 
+def cmd_aggregate_posture(args):
+    try:
+        report = aggregate_posture(
+            (read_document(Path(path)) for path in args.report),
+            repository_refs=args.repository_ref,
+            as_of=args.as_of,
+            max_age_hours=args.max_age_hours,
+        )
+        display = report.to_json() if args.json else render_aggregate(report)
+    except (OSError, ValueError, RecursionError):
+        print(
+            "Unable to aggregate posture: invalid exports, cohort or reporting window; inspect the local inputs.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    print(display)
+    sys.exit(0)
+
+
 def register(subparsers):
     parser = subparsers.add_parser(
         "posture", help="Export privacy-filtered canonical maintenance or change facts"
@@ -76,3 +97,27 @@ def register(subparsers):
     change.add_argument("--output", help="Create a new private JSON artifact outside --target")
     change.add_argument("--json", action="store_true", help="Print deterministic versioned JSON")
     change.set_defaults(func=cmd_change_posture)
+    aggregate = actions.add_parser(
+        "aggregate", help="Summarize an explicit cohort of saved exports, offline"
+    )
+    aggregate.add_argument(
+        "--report",
+        action="append",
+        default=[],
+        help="Selected posture JSON/YAML; repeat per snapshot",
+    )
+    aggregate.add_argument(
+        "--repository-ref",
+        action="append",
+        required=True,
+        help="Expected pseudonymous repository reference; repeat for the cohort",
+    )
+    aggregate.add_argument("--as-of", required=True, help="Explicit timezone-aware reporting time")
+    aggregate.add_argument(
+        "--max-age-hours",
+        type=int,
+        default=24,
+        help="Reporting freshness window (default: 24 hours)",
+    )
+    aggregate.add_argument("--json", action="store_true", help="Print deterministic versioned JSON")
+    aggregate.set_defaults(func=cmd_aggregate_posture)

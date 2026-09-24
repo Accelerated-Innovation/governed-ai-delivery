@@ -1,0 +1,2811 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govkit.dev/schemas/posture-aggregate.schema.json",
+  "title": "Selected posture cohort aggregate",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "posture-aggregate"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "max_age_hours": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "cohort": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^ref:[a-f0-9]{64}$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "snapshots": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/posture-export"
+          },
+          {
+            "$ref": "#/$defs/change-posture"
+          }
+        ]
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "enum": [
+              "posture-export",
+              "change-posture"
+            ]
+          },
+          "repository_ref": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          },
+          "snapshot_ref": {
+            "type": "string",
+            "pattern": "^ref:[a-f0-9]{64}$"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "age_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "freshness": {
+            "enum": [
+              "fresh",
+              "stale",
+              "unknown",
+              "future"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "repository_ref",
+          "snapshot_ref",
+          "as_of",
+          "age_hours",
+          "freshness"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "repositories": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maintenance": {
+          "type": "object",
+          "properties": {
+            "assessed_repositories": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missing_repositories": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "freshness": {
+              "type": "object",
+              "properties": {
+                "fresh": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "stale": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "unknown": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "future": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "fresh",
+                "stale",
+                "unknown",
+                "future"
+              ],
+              "additionalProperties": false
+            },
+            "capabilities": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "label": {
+                    "enum": [
+                      "application-governance",
+                      "gherkin-delivery",
+                      "llm-evaluation",
+                      "custom"
+                    ]
+                  },
+                  "configured": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "required": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "recorded": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "ref",
+                  "label",
+                  "configured",
+                  "required",
+                  "recorded"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "categories": {
+              "type": "object",
+              "properties": {
+                "compatible_updates": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "required_upgrades": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "resource_drift": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "governance_reviews": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "ci_repairs": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "compliant_pins": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "fresh_metadata": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "stale_metadata": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "unknown_metadata": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "compatible_updates",
+                "required_upgrades",
+                "resource_drift",
+                "governance_reviews",
+                "ci_repairs",
+                "compliant_pins",
+                "fresh_metadata",
+                "stale_metadata",
+                "unknown_metadata"
+              ],
+              "additionalProperties": false
+            },
+            "fresh_categories": {
+              "type": "object",
+              "properties": {
+                "compatible_updates": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "required_upgrades": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "resource_drift": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "governance_reviews": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "ci_repairs": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "compliant_pins": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "fresh_metadata": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "stale_metadata": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "unknown_metadata": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "compatible_updates",
+                "required_upgrades",
+                "resource_drift",
+                "governance_reviews",
+                "ci_repairs",
+                "compliant_pins",
+                "fresh_metadata",
+                "stale_metadata",
+                "unknown_metadata"
+              ],
+              "additionalProperties": false
+            },
+            "dimensions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "enum": [
+                      "maintenance:releases",
+                      "maintenance:resources",
+                      "maintenance:repository-fit",
+                      "maintenance:ci"
+                    ]
+                  },
+                  "counts": {
+                    "$ref": "#/$defs/counts"
+                  }
+                },
+                "required": [
+                  "id",
+                  "counts"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "assessed_repositories",
+            "missing_repositories",
+            "freshness",
+            "capabilities",
+            "categories",
+            "fresh_categories",
+            "dimensions"
+          ],
+          "additionalProperties": false
+        },
+        "changes": {
+          "type": "object",
+          "properties": {
+            "assessed_repositories": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missing_repositories": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "freshness": {
+              "type": "object",
+              "properties": {
+                "fresh": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "stale": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "unknown": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "future": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "fresh",
+                "stale",
+                "unknown",
+                "future"
+              ],
+              "additionalProperties": false
+            },
+            "capabilities": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "label": {
+                    "enum": [
+                      "application-governance",
+                      "gherkin-delivery",
+                      "llm-evaluation",
+                      "custom"
+                    ]
+                  },
+                  "configured": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "required": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "recorded": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "ref",
+                  "label",
+                  "configured",
+                  "required",
+                  "recorded"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "controls": {
+              "$ref": "#/$defs/counts"
+            },
+            "evaluations": {
+              "$ref": "#/$defs/counts"
+            }
+          },
+          "required": [
+            "assessed_repositories",
+            "missing_repositories",
+            "freshness",
+            "capabilities",
+            "controls",
+            "evaluations"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "repositories",
+        "maintenance",
+        "changes"
+      ],
+      "additionalProperties": false
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "as_of",
+    "max_age_hours",
+    "cohort",
+    "snapshots",
+    "observations",
+    "summary",
+    "digest"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "counts": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "applicable": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fresh_executed_passes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fresh_required_passes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "states": {
+          "type": "object",
+          "properties": {
+            "pass": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "fail": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "warn": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unknown": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "skipped": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "waived": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "not-applicable": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "pass",
+            "fail",
+            "warn",
+            "unknown",
+            "skipped",
+            "waived",
+            "not-applicable"
+          ],
+          "additionalProperties": false
+        },
+        "execution": {
+          "type": "object",
+          "properties": {
+            "executed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "not-run": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "error": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "executed",
+            "not-run",
+            "error"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "total",
+        "applicable",
+        "required",
+        "fresh_executed_passes",
+        "fresh_required_passes",
+        "states",
+        "execution"
+      ],
+      "additionalProperties": false
+    },
+    "posture-export": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "kind": {
+          "const": "posture-export"
+        },
+        "repository_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "assessment_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "identity": {
+          "type": "object",
+          "properties": {
+            "revision_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "dirty_digest_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "profile_digest_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "resolution_digest_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "pack_lock_digest_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "input_digest_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "inventory_digest_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "discovery_digest_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "baseline_digest_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "ci_report_digest_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "revision_ref",
+            "dirty_digest_ref",
+            "profile_digest_ref",
+            "resolution_digest_ref",
+            "pack_lock_digest_ref",
+            "input_digest_ref",
+            "inventory_digest_ref",
+            "discovery_digest_ref",
+            "baseline_digest_ref",
+            "ci_report_digest_ref"
+          ],
+          "additionalProperties": false
+        },
+        "coverage": {
+          "type": "object",
+          "properties": {
+            "profile": {
+              "enum": [
+                "present",
+                "missing"
+              ]
+            },
+            "git_complete": {
+              "type": "boolean"
+            },
+            "discovery_complete": {
+              "type": "boolean"
+            },
+            "change_results": {
+              "const": "not-supplied"
+            },
+            "controls": {
+              "const": "maintenance-dimensions-only"
+            },
+            "origin": {
+              "const": "unauthenticated-snapshot"
+            }
+          },
+          "required": [
+            "profile",
+            "git_complete",
+            "discovery_complete",
+            "change_results",
+            "controls",
+            "origin"
+          ],
+          "additionalProperties": false
+        },
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "configured": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/posture-export/$defs/capability"
+              }
+            },
+            "required": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/posture-export/$defs/capability"
+              }
+            },
+            "recorded": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/posture-export/$defs/capability"
+              }
+            },
+            "lock_verification": {
+              "enum": [
+                "verified",
+                "unverified",
+                "unknown"
+              ]
+            }
+          },
+          "required": [
+            "configured",
+            "required",
+            "recorded",
+            "lock_verification"
+          ],
+          "additionalProperties": false
+        },
+        "configured_controls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "applies_when": {
+                "enum": [
+                  "repository",
+                  "workflow"
+                ]
+              },
+              "execution": {
+                "const": "not-assessed"
+              }
+            },
+            "required": [
+              "ref",
+              "applies_when",
+              "execution"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "architecture": {
+          "type": "object",
+          "properties": {
+            "observed": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "source_ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "scope_ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "category": {
+                    "enum": [
+                      "manifest",
+                      "architecture",
+                      "decision",
+                      "guidance",
+                      "documentation",
+                      "reference",
+                      "code",
+                      "test",
+                      "ci",
+                      "inventory"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "observed",
+                      "unavailable",
+                      "missing",
+                      "limited"
+                    ]
+                  },
+                  "confidence": {
+                    "enum": [
+                      "high",
+                      "medium",
+                      "low"
+                    ]
+                  }
+                },
+                "required": [
+                  "source_ref",
+                  "scope_ref",
+                  "category",
+                  "status",
+                  "confidence"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "accepted_contracts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "source_ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "scope_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^ref:[a-f0-9]{64}$"
+                    }
+                  }
+                },
+                "required": [
+                  "source_ref",
+                  "scope_refs"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "transitions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/posture-export/$defs/transition"
+              }
+            }
+          },
+          "required": [
+            "observed",
+            "accepted_contracts",
+            "transitions"
+          ],
+          "additionalProperties": false
+        },
+        "versions": {
+          "type": "object",
+          "properties": {
+            "running_cli": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/posture-export/$defs/version"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "recorded_install": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/posture-export/$defs/version"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "resolved_govkit": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/posture-export/$defs/version"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "locked": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "component_ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "version": {
+                    "$ref": "#/$defs/posture-export/$defs/version"
+                  }
+                },
+                "required": [
+                  "component_ref",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "candidates": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/posture-export/$defs/candidate"
+              }
+            },
+            "metadata": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "source_ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "lookup_status": {
+                    "enum": [
+                      "refreshed",
+                      "cached",
+                      "bundled",
+                      "failed",
+                      "unavailable"
+                    ]
+                  },
+                  "as_of": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retrieved_at": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "source_ref",
+                  "lookup_status",
+                  "as_of",
+                  "retrieved_at"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "running_cli",
+            "recorded_install",
+            "resolved_govkit",
+            "locked",
+            "candidates",
+            "metadata"
+          ],
+          "additionalProperties": false
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "component_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "state": {
+                "enum": [
+                  "matching",
+                  "missing",
+                  "modified",
+                  "unavailable"
+                ]
+              },
+              "action": {
+                "enum": [
+                  "none",
+                  "refresh-resources",
+                  "reconcile-customizations",
+                  "inspect-resources"
+                ]
+              },
+              "local_ref": {
+                "type": "string",
+                "pattern": "^/(recommendations/[0-9]+|inventory/(candidates|resources)/[0-9]+)$"
+              }
+            },
+            "required": [
+              "ref",
+              "component_ref",
+              "state",
+              "action",
+              "local_ref"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "maintenance": {
+          "type": "object",
+          "properties": {
+            "dimensions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "enum": [
+                      "maintenance:releases",
+                      "maintenance:resources",
+                      "maintenance:repository-fit",
+                      "maintenance:ci"
+                    ]
+                  },
+                  "state": {
+                    "enum": [
+                      "pass",
+                      "fail",
+                      "warn",
+                      "unknown",
+                      "skipped",
+                      "not-applicable",
+                      "waived"
+                    ]
+                  },
+                  "execution": {
+                    "enum": [
+                      "executed",
+                      "not-run",
+                      "error"
+                    ]
+                  },
+                  "required": {
+                    "type": "boolean"
+                  },
+                  "finding_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^ref:[a-f0-9]{64}$"
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "state",
+                  "execution",
+                  "required",
+                  "finding_refs"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "pass": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "fail": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "warn": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "unknown": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "skipped": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "not-applicable": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "waived": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "required": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "required_satisfied": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "executed": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "pass",
+                "fail",
+                "warn",
+                "unknown",
+                "skipped",
+                "not-applicable",
+                "waived",
+                "required",
+                "required_satisfied",
+                "executed"
+              ],
+              "additionalProperties": false
+            },
+            "state": {
+              "enum": [
+                "pass",
+                "fail",
+                "warn",
+                "unknown",
+                "skipped",
+                "not-applicable",
+                "waived"
+              ]
+            },
+            "exit_code": {
+              "enum": [
+                0,
+                1
+              ]
+            },
+            "recommendations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/posture-export/$defs/recommendation"
+              }
+            }
+          },
+          "required": [
+            "dimensions",
+            "summary",
+            "state",
+            "exit_code",
+            "recommendations"
+          ],
+          "additionalProperties": false
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "repository_ref",
+        "assessment_ref",
+        "as_of",
+        "identity",
+        "coverage",
+        "capabilities",
+        "configured_controls",
+        "architecture",
+        "versions",
+        "resources",
+        "maintenance",
+        "digest"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "version": {
+          "type": "object",
+          "properties": {
+            "display": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80,
+                  "pattern": "^[0-9]+(?:![0-9]+)?(?:\\.[0-9]+)*(?:(?:a|b|rc)[0-9]+)?(?:\\.post[0-9]+)?(?:\\.dev[0-9]+)?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "display",
+            "ref"
+          ],
+          "additionalProperties": false
+        },
+        "capability": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "label": {
+              "enum": [
+                "application-governance",
+                "gherkin-delivery",
+                "llm-evaluation",
+                "custom"
+              ]
+            }
+          },
+          "required": [
+            "ref",
+            "label"
+          ],
+          "additionalProperties": false
+        },
+        "exception": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "source_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "scope_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "expires_at": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "ref",
+            "source_ref",
+            "scope_refs",
+            "expires_at"
+          ],
+          "additionalProperties": false
+        },
+        "transition": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "mode": {
+              "enum": [
+                "retain",
+                "improve",
+                "migrate"
+              ]
+            },
+            "applies_to": {
+              "enum": [
+                "new",
+                "new-and-changed",
+                "all"
+              ]
+            },
+            "source_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "scope_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "current_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "target_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "exceptions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/posture-export/$defs/exception"
+              }
+            }
+          },
+          "required": [
+            "ref",
+            "mode",
+            "applies_to",
+            "source_ref",
+            "scope_refs",
+            "current_refs",
+            "target_refs",
+            "exceptions"
+          ],
+          "additionalProperties": false
+        },
+        "candidate": {
+          "type": "object",
+          "properties": {
+            "component_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "source_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "channel_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "compatibility_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "installed": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/posture-export/$defs/version"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "pin": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/posture-export/$defs/version"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "newest_known": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/posture-export/$defs/version"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "selected_target": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/posture-export/$defs/version"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "compatible_candidates": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/posture-export/$defs/version"
+              }
+            },
+            "excluded": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "$ref": "#/$defs/posture-export/$defs/version"
+                  },
+                  "reasons": {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "channel",
+                        "prerelease-channel",
+                        "profile-pack-pin",
+                        "policy-compatibility",
+                        "pin",
+                        "govkit",
+                        "python",
+                        "dependency"
+                      ]
+                    }
+                  },
+                  "reason_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^ref:[a-f0-9]{64}$"
+                    }
+                  }
+                },
+                "required": [
+                  "version",
+                  "reasons",
+                  "reason_refs"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "current_policy_state": {
+              "enum": [
+                "unknown",
+                "compliant",
+                "outside-policy"
+              ]
+            },
+            "freshness": {
+              "enum": [
+                "fresh",
+                "stale",
+                "unknown"
+              ]
+            },
+            "age_hours": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "lookup_status": {
+              "enum": [
+                "refreshed",
+                "cached",
+                "bundled",
+                "failed",
+                "unavailable"
+              ]
+            },
+            "latest_verified": {
+              "const": false
+            },
+            "as_of": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "retrieved_at": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "local_ref": {
+              "type": "string",
+              "pattern": "^/(recommendations/[0-9]+|inventory/(candidates|resources)/[0-9]+)$"
+            }
+          },
+          "required": [
+            "component_ref",
+            "source_ref",
+            "channel_ref",
+            "compatibility_ref",
+            "installed",
+            "pin",
+            "newest_known",
+            "selected_target",
+            "compatible_candidates",
+            "excluded",
+            "current_policy_state",
+            "freshness",
+            "age_hours",
+            "lookup_status",
+            "latest_verified",
+            "as_of",
+            "retrieved_at",
+            "local_ref"
+          ],
+          "additionalProperties": false
+        },
+        "recommendation": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^maintenance:[a-f0-9]{64}$"
+            },
+            "dimension": {
+              "enum": [
+                "releases",
+                "resources",
+                "repository-fit",
+                "ci"
+              ]
+            },
+            "action": {
+              "enum": [
+                "inspect-metadata",
+                "upgrade-cli",
+                "upgrade-pack",
+                "review-policy",
+                "inspect-resources",
+                "refresh-resources",
+                "reconcile-customizations",
+                "migrate-legacy",
+                "review-capability",
+                "repair-ci"
+              ]
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "urgency": {
+              "enum": [
+                "required",
+                "recommended",
+                "informational"
+              ]
+            },
+            "severity": {
+              "enum": [
+                "error",
+                "warning",
+                "info"
+              ]
+            },
+            "component_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "target_version": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/posture-export/$defs/version"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reason_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "source_policy_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "scope_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "resource_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "control_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "customization_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "prerequisite_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "uncertainty_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "evidence_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "finding_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "preview_operation": {
+              "enum": [
+                "metadata-review",
+                "package-manager",
+                "govkit-pack-preview",
+                "govkit-migrate-preview",
+                "govkit-discover",
+                "ci-integration-review",
+                "inspect-metadata",
+                "upgrade-cli",
+                "upgrade-pack",
+                "review-policy",
+                "inspect-resources",
+                "refresh-resources",
+                "reconcile-customizations",
+                "migrate-legacy",
+                "review-capability",
+                "repair-ci"
+              ]
+            },
+            "local_ref": {
+              "type": "string",
+              "pattern": "^/(recommendations/[0-9]+|inventory/(candidates|resources)/[0-9]+)$"
+            }
+          },
+          "required": [
+            "id",
+            "dimension",
+            "action",
+            "required",
+            "urgency",
+            "severity",
+            "component_ref",
+            "target_version",
+            "reason_ref",
+            "source_policy_ref",
+            "scope_refs",
+            "resource_refs",
+            "control_refs",
+            "customization_refs",
+            "prerequisite_refs",
+            "uncertainty_refs",
+            "evidence_refs",
+            "finding_refs",
+            "preview_operation",
+            "local_ref"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "change-posture": {
+      "title": "GovKit change-posture v1",
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "kind": {
+          "const": "change-posture"
+        },
+        "repository_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "report_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "identity": {
+          "type": "object",
+          "properties": {
+            "revision_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "tree_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "profile_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "request_plan_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "pack_lock_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "change_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "base_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^ref:[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "revision_ref",
+            "tree_ref",
+            "profile_ref",
+            "request_plan_ref",
+            "pack_lock_ref",
+            "change_ref",
+            "base_ref"
+          ],
+          "additionalProperties": false
+        },
+        "running_cli": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/change-posture/$defs/version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "coverage": {
+          "type": "object",
+          "properties": {
+            "origin": {
+              "const": "unauthenticated-snapshot"
+            },
+            "git_complete": {
+              "type": "boolean"
+            },
+            "maintenance": {
+              "const": "not-supplied"
+            },
+            "discovery": {
+              "const": "not-supplied"
+            },
+            "provider_enforcement": {
+              "const": "not-supplied"
+            },
+            "controls": {
+              "const": "recorded-change-results"
+            },
+            "lock": {
+              "enum": [
+                "recorded",
+                "unknown"
+              ]
+            }
+          },
+          "required": [
+            "origin",
+            "git_complete",
+            "maintenance",
+            "discovery",
+            "provider_enforcement",
+            "controls",
+            "lock"
+          ],
+          "additionalProperties": false
+        },
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "configured": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/change-posture/$defs/capability"
+              }
+            },
+            "repository_required": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/change-posture/$defs/capability"
+              }
+            },
+            "recorded": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/change-posture/$defs/capability"
+              }
+            },
+            "change_required": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/change-posture/$defs/capability"
+              }
+            }
+          },
+          "required": [
+            "configured",
+            "repository_required",
+            "recorded",
+            "change_required"
+          ],
+          "additionalProperties": false
+        },
+        "configured_controls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ref": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              },
+              "applies_when": {
+                "enum": [
+                  "repository",
+                  "workflow"
+                ]
+              },
+              "execution": {
+                "const": "not-assessed"
+              }
+            },
+            "required": [
+              "ref",
+              "applies_when",
+              "execution"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "architecture": {
+          "type": "object",
+          "properties": {
+            "observed": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "source_ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "scope_ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "category": {
+                    "enum": [
+                      "manifest",
+                      "architecture",
+                      "decision",
+                      "guidance",
+                      "documentation",
+                      "reference",
+                      "code",
+                      "test",
+                      "ci",
+                      "inventory"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "observed",
+                      "unavailable",
+                      "missing",
+                      "limited"
+                    ]
+                  },
+                  "confidence": {
+                    "enum": [
+                      "high",
+                      "medium",
+                      "low"
+                    ]
+                  }
+                },
+                "required": [
+                  "source_ref",
+                  "scope_ref",
+                  "category",
+                  "status",
+                  "confidence"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "accepted_contracts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "source_ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "scope_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^ref:[a-f0-9]{64}$"
+                    }
+                  }
+                },
+                "required": [
+                  "source_ref",
+                  "scope_refs"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "transitions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/change-posture/$defs/transition"
+              }
+            }
+          },
+          "required": [
+            "observed",
+            "accepted_contracts",
+            "transitions"
+          ],
+          "additionalProperties": false
+        },
+        "workflow": {
+          "type": "object",
+          "properties": {
+            "selected": {
+              "enum": [
+                "defect",
+                "bounded",
+                "full-feature",
+                "architecture"
+              ]
+            },
+            "request_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "scope_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "impacts": {
+              "type": "object",
+              "properties": {
+                "bounded": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "within-contracts": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "new-behavior": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "security": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "auth": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "data": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "public-contract": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "nfr": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "ownership": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "architecture": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "cross-service": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "llm": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "mcp": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "bounded",
+                "within-contracts",
+                "new-behavior",
+                "security",
+                "auth",
+                "data",
+                "public-contract",
+                "nfr",
+                "ownership",
+                "architecture",
+                "cross-service",
+                "llm",
+                "mcp"
+              ],
+              "additionalProperties": false
+            },
+            "requirements": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "required": {
+                    "type": "boolean"
+                  },
+                  "reason_ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "policy_ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "scope_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^ref:[a-f0-9]{64}$"
+                    }
+                  }
+                },
+                "required": [
+                  "ref",
+                  "required",
+                  "reason_ref",
+                  "policy_ref",
+                  "scope_refs"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "reason_ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "local_ref": {
+                    "type": "string",
+                    "pattern": "^/plan/artifacts/(0|[1-9][0-9]*)$"
+                  }
+                },
+                "required": [
+                  "ref",
+                  "reason_ref",
+                  "local_ref"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "decisions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "code_ref": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  },
+                  "blocking": {
+                    "type": "boolean"
+                  },
+                  "affected_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^ref:[a-f0-9]{64}$"
+                    }
+                  },
+                  "local_ref": {
+                    "type": "string",
+                    "pattern": "^/plan/decisions/(0|[1-9][0-9]*)$"
+                  }
+                },
+                "required": [
+                  "ref",
+                  "code_ref",
+                  "blocking",
+                  "affected_refs",
+                  "local_ref"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "reassessment": {
+              "type": "object",
+              "properties": {
+                "required": {
+                  "type": "boolean"
+                },
+                "previous_plan_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^ref:[a-f0-9]{64}$"
+                },
+                "reason_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  }
+                },
+                "added_control_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^ref:[a-f0-9]{64}$"
+                  }
+                }
+              },
+              "required": [
+                "required",
+                "previous_plan_ref",
+                "reason_refs",
+                "added_control_refs"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "selected",
+            "request_ref",
+            "scope_refs",
+            "impacts",
+            "requirements",
+            "artifacts",
+            "decisions",
+            "reassessment"
+          ],
+          "additionalProperties": false
+        },
+        "results": {
+          "type": "object",
+          "properties": {
+            "controls": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/change-posture/$defs/control"
+              }
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "pass": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "fail": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "warn": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "unknown": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "skipped": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "not-applicable": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "waived": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "required": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "required_satisfied": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "executed": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "pass",
+                "fail",
+                "warn",
+                "unknown",
+                "skipped",
+                "not-applicable",
+                "waived",
+                "required",
+                "required_satisfied",
+                "executed"
+              ],
+              "additionalProperties": false
+            },
+            "state": {
+              "enum": [
+                "pass",
+                "fail",
+                "warn",
+                "unknown",
+                "skipped",
+                "not-applicable",
+                "waived"
+              ]
+            },
+            "exit_code": {
+              "enum": [
+                0,
+                1
+              ]
+            }
+          },
+          "required": [
+            "controls",
+            "summary",
+            "state",
+            "exit_code"
+          ],
+          "additionalProperties": false
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "repository_ref",
+        "report_ref",
+        "as_of",
+        "identity",
+        "running_cli",
+        "coverage",
+        "capabilities",
+        "configured_controls",
+        "architecture",
+        "workflow",
+        "results",
+        "digest"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "version": {
+          "type": "object",
+          "properties": {
+            "display": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80,
+                  "pattern": "^[0-9]+(?:![0-9]+)?(?:\\.[0-9]+)*(?:(?:a|b|rc)[0-9]+)?(?:\\.post[0-9]+)?(?:\\.dev[0-9]+)?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "display",
+            "ref"
+          ],
+          "additionalProperties": false
+        },
+        "capability": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "label": {
+              "enum": [
+                "application-governance",
+                "gherkin-delivery",
+                "llm-evaluation",
+                "custom"
+              ]
+            }
+          },
+          "required": [
+            "ref",
+            "label"
+          ],
+          "additionalProperties": false
+        },
+        "exception": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "source_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "scope_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "expires_at": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "ref",
+            "source_ref",
+            "scope_refs",
+            "expires_at"
+          ],
+          "additionalProperties": false
+        },
+        "transition": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "mode": {
+              "enum": [
+                "retain",
+                "improve",
+                "migrate"
+              ]
+            },
+            "applies_to": {
+              "enum": [
+                "new",
+                "new-and-changed",
+                "all"
+              ]
+            },
+            "source_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "scope_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "current_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "target_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "exceptions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/change-posture/$defs/exception"
+              }
+            }
+          },
+          "required": [
+            "ref",
+            "mode",
+            "applies_to",
+            "source_ref",
+            "scope_refs",
+            "current_refs",
+            "target_refs",
+            "exceptions"
+          ],
+          "additionalProperties": false
+        },
+        "evidence": {
+          "type": "object",
+          "properties": {
+            "source_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "scope_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "method_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "origin": {
+              "enum": [
+                "local-check",
+                "tool-execution",
+                "unverified-artifact",
+                "agent-assertion"
+              ]
+            },
+            "digest_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "limitation_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            }
+          },
+          "required": [
+            "source_ref",
+            "scope_refs",
+            "method_ref",
+            "origin",
+            "digest_ref",
+            "limitation_refs"
+          ],
+          "additionalProperties": false
+        },
+        "finding": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "code_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "severity": {
+              "enum": [
+                "info",
+                "warning",
+                "error"
+              ]
+            },
+            "category_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "message_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "action_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "location_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/change-posture/$defs/evidence"
+              }
+            }
+          },
+          "required": [
+            "ref",
+            "code_ref",
+            "severity",
+            "category_ref",
+            "message_ref",
+            "action_ref",
+            "location_ref",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "control": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "reason_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "policy_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "scope_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^ref:[a-f0-9]{64}$"
+              }
+            },
+            "label": {
+              "enum": [
+                "llm-exact-match",
+                "custom"
+              ]
+            },
+            "state": {
+              "enum": [
+                "pass",
+                "fail",
+                "warn",
+                "unknown",
+                "skipped",
+                "not-applicable",
+                "waived"
+              ]
+            },
+            "execution": {
+              "enum": [
+                "not-run",
+                "executed",
+                "error"
+              ]
+            },
+            "summary_ref": {
+              "type": "string",
+              "pattern": "^ref:[a-f0-9]{64}$"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/change-posture/$defs/evidence"
+              }
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/change-posture/$defs/finding"
+              }
+            },
+            "local_ref": {
+              "type": "string",
+              "pattern": "^/checks/results/(0|[1-9][0-9]*)$"
+            }
+          },
+          "required": [
+            "ref",
+            "required",
+            "reason_ref",
+            "policy_ref",
+            "scope_refs",
+            "label",
+            "state",
+            "execution",
+            "summary_ref",
+            "evidence",
+            "findings",
+            "local_ref"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

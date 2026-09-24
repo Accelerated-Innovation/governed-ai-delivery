@@ -9,7 +9,8 @@ from pathlib import Path
 import cli
 from cli import paths
 from cli.maintenance import assess_repository
-from cli.posture import export_posture, parse_posture
+from cli.posture import export_posture, parse_posture, reference
+from cli.posture_aggregate import aggregate_posture, parse_aggregate
 
 AS_OF = "2026-09-24T12:00:00Z"
 
@@ -84,6 +85,41 @@ def run_pilot(workspace, agent, provider):
     }
     assert before == after
 
+    # This real installed consumer has overlapping update, drift and CI facts.
+    # An expected repository without a report remains missing in both cohorts.
+    missing = reference("repository", "synthetic-unassessed")
+    fleet = command(
+        "posture",
+        "aggregate",
+        "--report",
+        output,
+        "--repository-ref",
+        actual["repository_ref"],
+        "--repository-ref",
+        missing,
+        "--as-of",
+        AS_OF,
+        "--json",
+    )
+    assert fleet.returncode == 0, fleet.stderr
+    summary = parse_aggregate(json.loads(fleet.stdout)).document["summary"]
+    assert summary["repositories"] == 2
+    assert summary["maintenance"]["missing_repositories"] == 1
+    assert summary["changes"]["missing_repositories"] == 2
+    assert summary["changes"]["controls"]["fresh_executed_passes"] == 0
+    categories = summary["maintenance"]["categories"]
+    assert (
+        categories["compatible_updates"]
+        == categories["resource_drift"]
+        == categories["ci_repairs"]
+        == 1
+    )
+    assert before == {
+        p.relative_to(target).as_posix(): (p.read_bytes(), p.stat().st_mtime_ns)
+        for p in target.rglob("*")
+        if p.is_file()
+    }
+
     # Partial lock damage is a reportable unknown, including modified resources.
     lock_path = target / ".govkit/pack-lock.json"
     lock = json.loads(lock_path.read_text())
@@ -122,10 +158,22 @@ if __name__ == "__main__":
     assert "site-packages" in str(Path(cli.__file__).resolve()), cli.__file__
     example = json.loads((paths.GOVERNANCE_DIR / "examples/posture/maintenance.json").read_text())
     assert parse_posture(example).document == example
+    examples = paths.GOVERNANCE_DIR / "examples/posture"
+    scenarios = [json.loads(p.read_text()) for p in sorted((examples / "scenarios").glob("*.json"))]
+    assert len(scenarios) == 10
+    for doc in scenarios:
+        assert parse_posture(doc).document == doc
+    fleet = json.loads((examples / "fleet.json").read_text())
+    assert parse_aggregate(fleet).document == fleet
+    selected = [*scenarios, json.loads((examples / "change.json").read_text())]
+    assert (
+        aggregate_posture(selected, repository_refs=fleet["cohort"], as_of=AS_OF).document == fleet
+    )
+    assert fleet["summary"]["changes"]["evaluations"]["execution"]["executed"] == 1
     with tempfile.TemporaryDirectory() as directory:
         for agent in ("claude-code", "codex", "copilot"):
             for provider in ("github", "azure"):
                 run_pilot(Path(directory).resolve() / agent / provider, agent, provider)
     print(
-        "Three agents, both CI profiles: private deterministic posture, canonical action parity, explicit protected publication, unknown CI and missing lock owners verified."
+        "Three agents, both CI profiles: private posture, canonical actions, protected publication, unknown CI/owners, offline cohort counts, ten scenarios and aggregate replay verified."
     )
