@@ -215,6 +215,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The source smoke compares committed PR/push changes with their
+          # event base; a shallow HEAD-only checkout omits that input.
+          fetch-depth: 0
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -381,6 +385,18 @@ jobs:
         run: |
           cd /tmp
           /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_posture_smoke.py"
+
+      - name: Source self-hosting works from the wheel with test dependencies
+        # Separate from the runtime-only consumer environment. This candidate-
+        # policy smoke expects unknown enforcement, not protected PR admission.
+        env:
+          GOVKIT_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          python -m venv /tmp/source-self-hosting-venv
+          /tmp/source-self-hosting-venv/bin/pip install dist/govkit-*.whl pytest
+          cd /tmp
+          /tmp/source-self-hosting-venv/bin/python -I -B "$GITHUB_WORKSPACE/tests/wheel_source_self_hosting_smoke.py" "$GITHUB_WORKSPACE" --base "$GOVKIT_BASE"
 
       - name: Apply against a fresh tmp dir from the wheel install
         # End-to-end: the wheel-installed `govkit apply` writes the marker,

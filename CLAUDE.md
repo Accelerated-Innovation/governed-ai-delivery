@@ -4,12 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is (read this first)
 
-This repo is the **source for `govkit`**, a Python CLI that installs governance artifacts into *other people's* projects. It is **not** a govkit-governed project itself — there is no `features/` workflow, no `/govkit-*` skills, and no `.govkit/` marker governing development here.
+This repo is the **source for `govkit`**, a Python CLI that installs governance artifacts into *other people's* projects. It now demonstrates limited self-hosting through the explicit `.govkit/profile.yaml`, source policy, generated resolution and empty pack lock. It selects no consumer packs or agent skills, has no legacy marker, and does not use the consumer `features/` workflow. Follow [source self-hosting](plans/SOURCE_SELF_HOSTING.md); do not run blanket `govkit apply` here.
 
-That distinction drives everything. The tree splits into two kinds of content:
+The installer/payload distinction still governs development. The tree splits into two kinds of product content:
 
 - **The installer** — `cli/*.py`. Real Python source. This is the code you test and lint.
 - **The payload** — `agents/`, `docs/`, `governance/`, `ci/`, `features/`, `extensions/`. Markdown specs, YAML configs, Gherkin, and JSON schemas that `govkit apply` copies into a target project. Editing these changes what *users* receive, not how the CLI behaves.
+
+`.govkit/`, `plans/` and the source Tests workflow are source-specific configuration/guidance. Local self-hosting executes a bounded profile-test suite and source pipeline contract through canonical conformance; protected-caller and semantic architecture evidence remain unknown. Select a separately reviewed policy snapshot, request and base explicitly. The recurring maintenance request must not relabel arbitrary implementation work as low impact. Keep test-first development and the full delivery checks below.
 
 When a task says "fix the API conventions" or "update the spec-planning skill," you are almost always editing **payload**, not the installer. When it says "apply is writing the wrong marker" or "doctor crashes," you are editing the **installer**.
 
@@ -125,7 +127,7 @@ A change is rarely one file. Changing a schema means updating starter templates 
 
 ### Maintenance posture projection
 
-`posture.py` projects replayed canonical maintenance assessments through a strict export allowlist; `cmd_posture.py` renders or explicitly publishes the result through the existing artifact writer. See ADR 0014 and `docs/POSTURE_REPORTING.md`. Preserve canonical findings/actions and reuse check aggregation; do not inspect a target or derive new upgrade decisions during export. Free text, paths, URLs and custom identifiers become pseudonymous references, not authenticated evidence. Public version displays omit local labels; exact values remain referenced. Maintenance execution is not project-control execution, and export success is not a conformance pass. Keep strict schemas, the bundled example and runtime-only three-agent/both-provider pilot aligned. I11c retains fleet aggregation and the voluntary pilot; no source consumer installation yet.
+`posture.py` projects replayed canonical maintenance assessments through a strict export allowlist; `cmd_posture.py` renders or explicitly publishes the result through the existing artifact writer. See ADR 0014 and `docs/POSTURE_REPORTING.md`. Preserve canonical findings/actions and reuse check aggregation; do not inspect a target or derive new upgrade decisions during export. Free text, paths, URLs and custom identifiers become pseudonymous references, not authenticated evidence. Public version displays omit local labels; exact values remain referenced. Maintenance execution is not project-control execution, and export success is not a conformance pass. Keep strict schemas, the bundled example and runtime-only three-agent/both-provider pilot aligned. I11c delivered fleet aggregation and the voluntary pilot protocol. I12's source self-hosting selects no consumer payload.
 
 ### Change posture projection
 

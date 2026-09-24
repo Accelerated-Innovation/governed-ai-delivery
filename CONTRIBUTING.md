@@ -35,6 +35,11 @@ When a change affects behavior, contributors should update the relevant document
 
 ## Project Structure
 
+The source repository uses a [minimal self-hosting profile](plans/SOURCE_SELF_HOSTING.md)
+with no consumer packs or agent skills. Use its documented explicit conformance
+commands and keep their unmeasured controls unknown. Do not run `govkit apply`
+against this source checkout or treat bundled `features/` as its development workflow.
+
 ```text
 governed-ai-delivery/
 ├── agents/
