@@ -37,6 +37,7 @@ class GateRequirement:
     scope: tuple[str, ...]
     source: str
     blocking: bool
+    capability_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -93,6 +94,9 @@ def parse_catalog(document):
         Version(pack["version"])
     if len({p["id"] for p in pins["packs"]}) != len(pins["packs"]):
         raise DocumentError("Duplicate pack version pins")
+    provided = {capability for pack in pins["packs"] for capability in pack["provides"]}
+    if set(document["capabilities"]) != provided:
+        raise DocumentError("Catalog capabilities differ from pinned pack capabilities")
     gates = {g["id"]: g for g in document["gates"]}
     if len(gates) != len(document["gates"]):
         raise DocumentError("Duplicate gate IDs")
@@ -147,7 +151,7 @@ def compose_catalog(profile, packs, *, govkit_version):
         ENGINE: [GateRequirement("repository", (), (".",), "bundled:change-conformance", True)]
     }
 
-    def add(identifier, kind, selectors, source, blocking=True, scope=(".",)):
+    def add(identifier, kind, selectors, source, blocking=True, scope=(".",), capability_id=None):
         requirements.setdefault(identifier, []).append(
             GateRequirement(
                 kind,
@@ -155,11 +159,18 @@ def compose_catalog(profile, packs, *, govkit_version):
                 tuple(sorted({_scope(p) for p in scope})),
                 source,
                 blocking,
+                capability_id,
             )
         )
 
     for check in profile.repository.policy.required_checks:
-        add(check.id, "repository", (), profile.repository.policy.source.reference)
+        add(
+            check.id,
+            "repository",
+            (),
+            profile.repository.policy.source.reference,
+            capability_id=check.capability_id,
+        )
     for pack in resolution.packs:
         for check in pack.checks:
             add(
@@ -208,6 +219,10 @@ def compose_catalog(profile, packs, *, govkit_version):
         "provider": profile.repository.integrations.ci,
         "pins": {"govkit": govkit_version, "packs": [p.summary() for p in resolution.packs]},
         "capabilities": sorted({c for p in resolution.packs for c in p.provides}),
+        "capability_requirements": [
+            {"id": capability, "source": profile.repository.policy.source.reference}
+            for capability in sorted(profile.required_capabilities)
+        ],
         "workflow_requirements": [
             {
                 "id": r.id,

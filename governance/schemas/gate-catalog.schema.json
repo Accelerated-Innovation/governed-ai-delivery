@@ -11,6 +11,7 @@
     "provider",
     "pins",
     "capabilities",
+    "capability_requirements",
     "workflow_requirements",
     "gates",
     "decisions",
@@ -91,7 +92,6 @@
                   "minLength": 1
                 },
                 "minItems": 0,
-                "maxItems": 1024,
                 "uniqueItems": true
               },
               "legacy": {
@@ -100,7 +100,6 @@
             }
           },
           "minItems": 0,
-          "maxItems": 1024,
           "uniqueItems": true
         }
       }
@@ -112,7 +111,6 @@
         "minLength": 1
       },
       "minItems": 0,
-      "maxItems": 1024,
       "uniqueItems": true
     },
     "workflow_requirements": {
@@ -138,7 +136,6 @@
               "minLength": 1
             },
             "minItems": 0,
-            "maxItems": 1024,
             "uniqueItems": true
           },
           "required_capabilities": {
@@ -148,7 +145,6 @@
               "minLength": 1
             },
             "minItems": 0,
-            "maxItems": 1024,
             "uniqueItems": true
           },
           "source": {
@@ -158,7 +154,6 @@
         }
       },
       "minItems": 0,
-      "maxItems": 1024,
       "uniqueItems": true
     },
     "gates": {
@@ -195,7 +190,8 @@
                 "selectors",
                 "scope",
                 "source",
-                "blocking"
+                "blocking",
+                "capability_id"
               ],
               "properties": {
                 "kind": {
@@ -213,7 +209,6 @@
                     "minLength": 1
                   },
                   "minItems": 0,
-                  "maxItems": 1024,
                   "uniqueItems": true
                 },
                 "scope": {
@@ -223,7 +218,6 @@
                     "minLength": 1
                   },
                   "minItems": 1,
-                  "maxItems": 1024,
                   "uniqueItems": true
                 },
                 "source": {
@@ -232,11 +226,17 @@
                 },
                 "blocking": {
                   "type": "boolean"
+                },
+                "capability_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1
                 }
               }
             },
             "minItems": 1,
-            "maxItems": 1024,
             "uniqueItems": true
           },
           "dependencies": {
@@ -246,7 +246,6 @@
               "minLength": 1
             },
             "minItems": 0,
-            "maxItems": 1024,
             "uniqueItems": true
           },
           "commands": {
@@ -333,7 +332,6 @@
         }
       },
       "minItems": 1,
-      "maxItems": 1024,
       "uniqueItems": true
     },
     "decisions": {
@@ -358,7 +356,6 @@
               "minLength": 1
             },
             "minItems": 0,
-            "maxItems": 1024,
             "uniqueItems": true
           },
           "message": {
@@ -368,7 +365,6 @@
         }
       },
       "minItems": 0,
-      "maxItems": 1024,
       "uniqueItems": true
     },
     "ready": {
@@ -393,6 +389,28 @@
     "digest": {
       "type": "string",
       "pattern": "^[a-f0-9]{64}$"
+    },
+    "capability_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "uniqueItems": true
     }
   }
 }

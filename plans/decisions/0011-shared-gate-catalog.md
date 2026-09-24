@@ -32,6 +32,12 @@ permissions/secrets remain null. Record validation rejects conflicting IDs/pins,
 invalid scopes, changed blocking policy, missing dependencies and cycles without
 recursive graph traversal.
 
+Preserve policy check capability prerequisites and global required-capability
+sources in the catalog. A missing prerequisite remains unresolved under the
+existing resolver; it is not an optional-control waiver. Validate the capability
+union against pinned pack summaries. Output cardinalities follow accepted source
+contracts instead of imposing smaller limits on derived gates/requirements.
+
 The identical CI dimensions in the three bundled agent manifests move to one
 bounded `governance/ci/legacy-selection.json`. An explicit named reference expands
 at the manifest I/O boundary before the existing pure adapter. Custom inline CI
@@ -39,6 +45,8 @@ tables retain precedence by using their existing format; mixed inline/reference
 input is invalid. There is no arbitrary file/URL lookup. Existing templates and
 all 258 frozen ordered selections remain unchanged, including legacy quirks.
 New-mode gate selection does not interpret the legacy table's maturity levels.
+Shared references also reject flat or mixed flat/variant manifests before writes;
+ordinary custom flat manifests continue through their existing installer.
 
 The first CLI surface is read-only `govkit pipeline catalog`. The wheel must ship
 the shared table, schema and example, and runtime pilots must cover all agents,

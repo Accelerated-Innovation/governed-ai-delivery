@@ -24,7 +24,7 @@ The versioned `gate-catalog` record contains immutable `GateSpec` declarations:
 | Field | Meaning |
 |---|---|
 | `id` | Stable logical control ID, normally the common engine's check ID |
-| `requirements` | Additive repository, capability, workflow or architecture requirements, with policy sources, selectors, scopes and blocking policy |
+| `requirements` | Additive repository, capability, workflow or architecture requirements, with policy sources, selectors, scopes, optional `capability_id` prerequisites and blocking policy |
 | `blocking` | At least one requirement is blocking when applicable; individual conditions remain in `requirements` |
 | `dependencies` | Logical relationships; controls depend on the shared conformance entry point |
 | `commands` | The single entry point's argument contract with explicit trusted-input placeholders |
@@ -44,6 +44,15 @@ conditional workflow requirement. Architecture scopes remain control scopes and
 do not become pipeline path filters. Unknown providers or missing capabilities are
 not silently removed. Gate dependencies, scopes, unique IDs, exact version pins
 and blocking-policy consistency are validated when parsing a record.
+
+A policy check's `capability_id` remains a prerequisite, not permission to skip
+the mandatory check when that capability is missing. Such profiles retain the
+resolver's explicit unresolved decisions. Top-level `capability_requirements`
+records global required capabilities and their accepted policy sources even when
+already satisfied; `capabilities` separately records the union supplied by pinned
+packs. Parsing rejects contradictions between that union and the capability list.
+Derived arrays accept the cardinalities allowed by the source profiles and packs,
+including more than 1,024 gates or workflow declarations.
 
 The catalog is stable across individual requests. It lists known controls and
 accepted workflow capability requirements; it is **not a complete runtime check
@@ -76,6 +85,9 @@ Bundled agent manifests reference `builtin:legacy-ci-v1`. The loader expands
 the pure adapter runs. The three agents no longer maintain duplicate CI dispatch
 tables. Custom manifests with inline `variants.ci` keep their behavior; an inline
 table and shared reference together are rejected rather than ambiguously merged.
+The reference requires a variant-format manifest without top-level flat `files`.
+Flat manifests retain their existing installation path without this reference;
+combining the formats fails before any installation writes instead of losing files.
 Only the named bundled reference is supported; no arbitrary URL/path is loaded.
 
 The shared legacy table retains level/type/stack selection, categories, ordering,

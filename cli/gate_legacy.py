@@ -12,6 +12,8 @@ def expand_legacy_ci(manifest):
     result = deepcopy(manifest)
     if "ci_catalog" not in result:
         return result
+    if not isinstance(result.get("variants"), dict) or "files" in result:
+        raise DocumentError("Shared CI catalog requires a variant manifest without flat files")
     if result["ci_catalog"] != "builtin:legacy-ci-v1" or "ci" in result.get("variants", {}):
         raise DocumentError("Unknown or ambiguous shared CI catalog reference")
     try:
@@ -40,6 +42,6 @@ def expand_legacy_ci(manifest):
         )
     except (OSError, ValueError) as exc:
         raise DocumentError(f"Cannot load shared CI catalog: {exc}") from exc
-    result.setdefault("variants", {})["ci"] = document["variants"]
+    result["variants"]["ci"] = document["variants"]
     del result["ci_catalog"]
     return result

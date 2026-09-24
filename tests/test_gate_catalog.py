@@ -165,6 +165,7 @@ def test_architecture_scope_is_retained_without_becoming_a_pipeline_path_filter(
             "scope": ["services/core"],
             "source": "adr.md",
             "blocking": True,
+            "capability_id": None,
         }
     ]
     assert gate["path_filters"] == []
@@ -209,3 +210,90 @@ def test_catalog_pins_are_exact_and_unambiguous(change):
     )
     with pytest.raises(ValueError, match="[Vv]ersion|[Pp]in|[Dd]uplicate"):
         parse_catalog(document)
+
+
+@pytest.mark.parametrize("selected", [False, True])
+def test_policy_check_retains_capability_prerequisite_and_missing_input_stays_blocked(selected):
+    document = profile(["llm-evaluation"] if selected else []).document
+    document["policy"]["required_checks"] = [
+        {"id": "llm-exact-match", "capability_id": "llm-evaluation"}
+    ]
+    catalog = compose(parse_profile(document)).document
+    gate = next(g for g in catalog["gates"] if g["id"] == "llm-exact-match")
+    requirement = next(r for r in gate["requirements"] if r["kind"] == "repository")
+    assert requirement["capability_id"] == "llm-evaluation"
+    assert requirement["blocking"] and requirement["source"] == "policy.md"
+    assert catalog["ready"] == selected
+    if not selected:
+        assert "unavailable-capability" in {d["code"] for d in catalog["decisions"]}
+
+
+@pytest.mark.parametrize("selected", [False, True])
+def test_global_required_capability_keeps_accepted_source_even_when_satisfied(selected):
+    document = profile(["application-governance"] if selected else []).document
+    document["policy"]["required_capabilities"] = ["application-governance"]
+    document["policy"]["source"]["reference"] = "accepted-team-policy.md"
+    record = compose(parse_profile(document)).document
+    assert record["capability_requirements"] == [
+        {"id": "application-governance", "source": "accepted-team-policy.md"}
+    ]
+    assert record["ready"] == selected
+    if not selected:
+        assert "missing-required-capability" in {d["code"] for d in record["decisions"]}
+
+
+@pytest.mark.parametrize("count", [1024, 1025])
+def test_large_valid_policy_preserves_all_gates_and_decisions(count):
+    checks = [f"control-{index}" for index in range(count)]
+    record = compose(profile([], checks=checks)).document
+    assert len(record["gates"]) == count + 1
+    assert {g["id"] for g in record["gates"]} == {*checks, "govkit:change-conformance"}
+    assert len(record["decisions"]) == count
+    assert not record["ready"]
+    assert parse_catalog(record).document == record
+
+
+@pytest.mark.parametrize("mutation", ["remove", "replace", "add", "pack-provides"])
+def test_recomputed_digest_cannot_hide_contradictory_capability_claims(mutation):
+    record = compose(profile(["llm-evaluation"])).document
+    if mutation == "remove":
+        record["capabilities"] = []
+    elif mutation == "replace":
+        record["capabilities"] = ["application-governance"]
+    elif mutation == "add":
+        record["capabilities"].append("unselected-capability")
+    else:
+        record["pins"]["packs"][0]["provides"] = ["different-capability"]
+    record["digest"] = content_digest(
+        canonical_json({k: v for k, v in record.items() if k != "digest"}).encode()
+    )
+    with pytest.raises(ValueError, match="[Cc]apabilit"):
+        parse_catalog(record)
+
+
+def test_large_workflow_policy_preserves_each_requirement():
+    document = profile([]).document
+    document["policy"]["workflows"] = [
+        {
+            "id": f"rule-{index}",
+            "source": {"reference": f"rule-{index}.md", "authority": "accepted"},
+            "when": ["small-change"],
+            "additional_checks": ["review:owner"],
+        }
+        for index in range(1025)
+    ]
+    record = compose(parse_profile(document)).document
+    assert record["ready"]
+    assert len(record["workflow_requirements"]) == 1025
+    assert (
+        len(next(g for g in record["gates"] if g["id"] == "review:owner")["requirements"]) == 1025
+    )
+
+
+def test_pack_capability_union_is_not_truncated_by_catalog_output_bounds(tmp_path):
+    capabilities = [f"capability-{index}" for index in range(1025)]
+    pack = load_pack(make_pack(tmp_path / "many", capabilities[0], provides=capabilities))
+    record = compose(profile([capabilities[0]]), (pack,)).document
+    assert record["ready"]
+    assert set(record["capabilities"]) == set(capabilities)
+    assert record["capability_requirements"] == []

@@ -6,6 +6,7 @@
   "capabilities": [{"id": "application-governance"}, {"id": "llm-evaluation"}],
   "policy": {
     "source": {"reference": "team-policy.md", "authority": "accepted"},
-    "required_checks": []
+    "required_capabilities": ["application-governance"],
+    "required_checks": [{"id": "llm-exact-match", "capability_id": "llm-evaluation"}]
   }
 }

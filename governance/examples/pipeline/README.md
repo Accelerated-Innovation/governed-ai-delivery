@@ -5,6 +5,10 @@ The example declares application governance and LLM evaluation independently of
 Gherkin delivery. Change the accepted provider to `azure` to see the same logical
 gate declarations. The example is a schema/selection fixture, not team approval.
 
+The policy requires application governance and names LLM evaluation as a check
+prerequisite. Both declarations and the policy source survive in the catalog;
+removing a required capability produces unresolved decisions, not a silent waiver.
+
 The result records the common conformance invocation, selected pack check,
 composition version pins and unresolved configuration limits. It executes nothing,
 generates no workflow and claims no enforcement. The catalog's command placeholders

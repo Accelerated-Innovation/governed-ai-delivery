@@ -27,6 +27,15 @@ def run_pilot(root, agent):
         ["gherkin-delivery"],
     ):
         profile = {**example, "capabilities": [{"id": c} for c in capabilities]}
+        profile["policy"] = {
+            **example["policy"],
+            "required_capabilities": [capabilities[0]],
+            "required_checks": (
+                [{"id": "llm-exact-match", "capability_id": "llm-evaluation"}]
+                if "llm-evaluation" in capabilities
+                else []
+            ),
+        }
         previous_gates = None
         for provider in ("github", "azure"):
             profile["integrations"]["ci"] = provider
@@ -61,8 +70,17 @@ def run_pilot(root, agent):
             assert record == expected.document
             assert parse_catalog(record).to_json() == expected.to_json()
             assert record["execution"] == "not-run" and record["enforcement"] == "unknown"
+            assert record["capability_requirements"] == [
+                {"id": capabilities[0], "source": profile["policy"]["source"]["reference"]}
+            ]
             ids = {g["id"] for g in record["gates"]}
             assert ("llm-exact-match" in ids) == ("llm-evaluation" in capabilities)
+            if "llm-evaluation" in capabilities:
+                gate = next(g for g in record["gates"] if g["id"] == "llm-exact-match")
+                assert any(
+                    r["kind"] == "repository" and r["capability_id"] == "llm-evaluation"
+                    for r in gate["requirements"]
+                )
             if previous_gates is not None:
                 assert record["gates"] == previous_gates
             previous_gates = record["gates"]
