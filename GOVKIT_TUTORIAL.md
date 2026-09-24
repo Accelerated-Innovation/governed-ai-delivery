@@ -4,6 +4,23 @@ This document synthesizes the govkit repository into an introductory tutorial.
 The reference material near the end serves as an appendix and source map for
 later video, PDF, or slide-deck production.
 
+## Choose an adoption path
+
+For new adoption, use [capability-based onboarding](docs/CAPABILITY_ONBOARDING.md):
+inspect existing evidence, review an explicit profile, preview/apply selected packs,
+and execute controls with real passing and failing inputs. Level flags and a full
+calibration are not prerequisites for that path. Skill names come from the selected
+packs; do not assume that every legacy skill described later is installed.
+
+Existing level-based installations remain supported. Use
+[legacy migration](docs/LEGACY_MIGRATION.md) to preview a conversion, preserve
+configured requirements and customizations, and retain rollback. No retirement
+release or warning period has been announced.
+
+The bundle setup, calibration and feature lifecycle below describe the legacy
+consumer installation. They remain useful for those installations; they are not
+mandatory steps for the capability-based path.
+
 ## What GovKit Is
 
 GovKit is a guardrail toolkit for teams using AI coding agents. It puts the
@@ -23,7 +40,7 @@ skills, feature templates, schemas, approval policies, and CI gates. In short:
 GovKit does not govern people; it gives people a way to govern the delivery
 conditions around AI-assisted software changes.
 
-## Brownfield and Greenfield Workflows
+## Legacy Bundle Brownfield and Greenfield Workflows
 
 GovKit can be used in greenfield and brownfield repositories. The delivery
 loops are the same, but the adoption problem is different. Brownfield starts by
@@ -80,16 +97,16 @@ gradually.
    `govkit fix init <id>`. If it introduces new behavior, use the feature lane
    with `govkit init <feature>`.
 
-6. Slice the work into a ready-to-deploy increment. Use
-   `govkit-incremental-planning` to make that explicit: the first slice should
-   be small enough to validate and ship on its own, while still improving the
-   system. In brownfield systems, this often means finding an increment that
-   exercises the workflow without forcing a large architecture cleanup.
+6. Work with the agent to slice the work into a ready-to-deploy increment.
+   The first slice should be small enough to validate and ship on its own,
+   while still improving the system. In brownfield systems, this often means
+   finding an increment that exercises the workflow without forcing a large
+   architecture cleanup.
 
 7. Run backend or UI preflight for the chosen slice. For claims about coupling,
-   ownership, or hotspots, use `govkit-evidence-tools` inside preflight, ADR
-   authoring, planning, or review so the decision rests on evidence instead of
-   guesswork.
+   ownership, or hotspots, run the project's configured analysis tools during
+   preflight, ADR authoring, planning, or review and retain their actual output.
+   GovKit does not bundle a separate skill that runs those tools.
 
 8. If the slice exposes a real architecture decision or exception, draft the ADR
    with the relevant ADR skill and keep implementation waiting on human
@@ -140,17 +157,16 @@ the first useful code, and that first code quietly becomes the standard.
    ```
 
 4. Work with the agent to clarify intent and choose the first ready-to-deploy
-   increment. Use `govkit-incremental-planning` as the default slicing
-   discipline: it helps identify the smallest independently demonstrable change
-   that can be built, reviewed, validated, and shipped without waiting for the
-   whole feature to be complete.
+   increment. Choose the smallest independently demonstrable change that can
+   be built, reviewed, validated, and shipped without waiting for the whole
+   feature to be complete.
 
 5. Run preflight before implementation. For backend/API/CLI/data work, use
    `govkit-architecture-preflight`. For UI work, use
    `govkit-ui-architecture-preflight`. For claims about boundaries, coupling,
-   duplication, or hotspots, use the subordinate `govkit-evidence-tools` skill
-   to bring in deterministic evidence from tools such as `terrier` or
-   `scenter`.
+   duplication, or hotspots, use actual output from the project's configured
+   deterministic analysis tools. Tool installation and invocation are separate
+   from the shipped planning skills.
 
 6. If preflight identifies a new architectural decision, exception, or boundary
    change, use `govkit-adr-author` or `govkit-ui-adr-author` to draft a
@@ -183,9 +199,9 @@ the first useful code, and that first code quietly becomes the standard.
 
 12. Ship the increment if it is safe and useful. After shipping, feed learning
     back into contracts, tests, examples, ADRs, thresholds, templates, or the
-    next slice. The `govkit-papercuts` skill is subordinate throughout the
-    workflow: it records small tool or process frictions when they force a
-    retry or workaround.
+    next slice. Record tool or process friction in the team's issue tracker
+    when it forces a retry or workaround; this is a team practice, not an
+    installed GovKit skill or automatic telemetry.
 
 | Question | Brownfield | Greenfield |
 | --- | --- | --- |
@@ -499,7 +515,7 @@ needs explicit acceptance criteria and NFRs.
 
 ### 7. Drive The First Brownfield Increment
 
-Use `govkit-incremental-planning` to choose the next ready-to-deploy increment.
+Work with the agent to choose the next ready-to-deploy increment.
 In existing systems, the same default discipline is especially useful because
 design pressure can make the slice hard to see. Then run the relevant preflight
 and planning skills:
@@ -510,9 +526,9 @@ and planning skills:
 /govkit-implementation-plan customer-search
 ```
 
-For UI work, use the `govkit-ui-*` equivalents. Use `govkit-evidence-tools`
-inside the work for structural claims. Use ADR skills when the slice exposes a
-real decision or exception.
+For UI work, use the `govkit-ui-*` equivalents. Support structural claims with
+output from the project's configured analysis tools. Use ADR skills when the
+slice exposes a real decision or exception.
 
 ### 8. Validate, Inspect Evidence, And Tighten Gradually
 
@@ -598,13 +614,11 @@ For a UI feature:
 /govkit-ui-implementation-plan customer-search
 ```
 
-Use `govkit-incremental-planning` before spec planning to choose the next
-ready-to-deploy increment. The skill is the normal discipline of keeping each
-slice independently demonstrable, reviewable, and shippable. Use
-`govkit-adr-author` or `govkit-ui-adr-author` when preflight exposes a new
-decision, exception, or boundary change. Use `govkit-evidence-tools` inside
-preflight, planning, ADRs, or review for deterministic evidence about coupling,
-hotspots, or duplication.
+Before spec planning, choose an increment that is independently demonstrable,
+reviewable and shippable. Use `govkit-adr-author` or `govkit-ui-adr-author` when
+preflight exposes a new decision, exception or boundary change. Collect actual
+analysis-tool output during preflight, planning, ADRs or review when making
+claims about coupling, hotspots or duplication.
 
 ### 6. Validate, Inspect Evidence, And Ship The Slice
 
@@ -799,10 +813,13 @@ Backend and data shapes can use stack overlays from `cli/stacks/`:
 UI framework selections are standalone project types, not overlays. This avoids
 mixing UI framework governance with backend/data stack governance.
 
-## Appendix: Full Skills Inventory
+## Appendix: Legacy Bundle Skills Inventory
 
 The Codex skill set is the clearest compact inventory because it mirrors the
-same governed workflow across the agent payloads.
+same governed workflow across the agent payloads. This is the union of available
+legacy skills, not the skill set of every installation: selection depends on
+project type and level. Capability packs have a separate inventory; see
+[capability-based onboarding](docs/CAPABILITY_ONBOARDING.md).
 
 | Skill | Location | Use |
 | --- | --- | --- |
@@ -818,6 +835,4 @@ same governed workflow across the agent payloads.
 | `govkit-ui-spec-planning` | `agents/codex/skills/ui/spec-planning/SKILL.md` | Generate UI `plan.md` and `eval_criteria.yaml` from UI specs and preflight. |
 | `govkit-ui-implementation-plan` | `agents/codex/skills/ui/implementation-plan/SKILL.md` | Produce an ordered UI implementation checklist. |
 | `govkit-ui-adr-author` | `agents/codex/skills/ui/adr-author/SKILL.md` | Author UI ADRs. |
-| `govkit-evidence-tools` | `agents/codex/skills/otter/evidence-tools/SKILL.md` | Bring deterministic tool evidence from `terrier` and `scenter` into structural claims about coupling, hotspots, cycles, co-change, or duplication. |
-| `govkit-incremental-planning` | `agents/codex/skills/otter/incremental-planning/SKILL.md` | Split work into the smallest independently demonstrable increments before coding. |
-| `govkit-papercuts` | `agents/codex/skills/otter/papercuts/SKILL.md` | Record small workflow/tooling frictions in `PAPERCUTS.json`. |
+| `govkit-pr-author` | `agents/codex/skills/backend/pr-author/SKILL.md` | Draft a pull request from recorded changes, validation and limitations. |

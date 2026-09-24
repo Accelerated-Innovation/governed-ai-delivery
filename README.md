@@ -9,13 +9,16 @@ AI coding agents are powerful — but without constraints, they drift. They inve
 
 ```bash
 pip install govkit
-govkit apply --agent claude-code --target .
-govkit calibrate
+govkit discover --target .
 ```
 
-Install govkit, apply it to your project, then calibrate the defaults to match your repo. From there the governance workflow your team follows is what keeps the agent aligned — every feature, every time.
+The capability workflow below describes this development build. Verify that your
+installed CLI exposes `discover`, `profile` and `pack`; the guide explains source
+installation when those commands are not yet in your published package.
 
-New to govkit? The [GovKit Introductory Tutorial](GOVKIT_TUTORIAL.md) walks through the concepts, workflows, and adoption paths end to end.
+Start by inspecting existing repository evidence. Review an explicit capability profile, preview its selected resources, then apply only the accepted changes. Follow the [capability-based onboarding guide](docs/CAPABILITY_ONBOARDING.md) for executable examples, installed skill names and a control that demonstrates both passing and failing results. Existing legacy installations have a separate [migration and rollback path](docs/LEGACY_MIGRATION.md).
+
+New to govkit? Start with [capability-based onboarding](docs/CAPABILITY_ONBOARDING.md). The [introductory tutorial](GOVKIT_TUTORIAL.md) also explains the supported legacy bundle and feature workflows.
 
 > govkit works with any project language — Python, C#, Java, Go, TypeScript, or anything else. It copies Markdown specs, YAML configs, and Gherkin feature files into your project directory. Python is a dev-machine tool requirement only; it is not added as a project dependency.
 
@@ -23,7 +26,34 @@ New to govkit? The [GovKit Introductory Tutorial](GOVKIT_TUTORIAL.md) walks thro
 
 ---
 
-## Get started in 4 steps
+## Get started with capabilities
+
+You need Python 3.11+ and an agent integration: Claude Code, Copilot or Codex.
+Inspect first with `govkit discover --target .`; observed code is not accepted policy.
+Then follow [the onboarding recipe](docs/CAPABILITY_ONBOARDING.md) to:
+
+1. Review a profile referencing the team's accepted sources and required controls.
+2. Preview profile metadata and selected pack resources without writing to the project.
+3. Apply the accepted profile, install the reviewed packs, and verify their lock.
+4. Execute the required controls explicitly and inspect evidence before planning a change.
+
+Capabilities such as application governance, Gherkin delivery and LLM evaluation
+can be selected independently. New adoption does not require level flags, a full
+architecture library or mandatory calibration. A skill, installed file or ready
+plan does not prove that a control ran. CI generation and protected enforcement
+remain separate, explicit steps.
+
+Already have a legacy `.govkit/marker.json`? Start with the
+[migration preview](docs/LEGACY_MIGRATION.md), preserving configured requirements,
+customizations and rollback. Legacy flags and manifests remain supported; no
+retirement release or warning period has been announced.
+
+## Legacy bundle setup in 4 steps
+
+This section describes the existing level-based installer. Choose it when you
+intend to install that consumer bundle; it is separate from the capability-based
+onboarding above. Its generic contracts need calibration before they govern a
+real project.
 
 You need **Python 3.11+** on your machine (govkit is a dev tool, never a project dependency) and **an AI coding agent** — Claude Code, GitHub Copilot, or OpenAI Codex. govkit ships the governance configuration; you bring the agent.
 
@@ -74,6 +104,9 @@ You're ready to build. See [The feature lifecycle](#the-feature-lifecycle) for h
 ---
 
 ## Choose your options
+
+These options belong to the legacy bundle installer. New profiles select explicit
+capabilities and policy through the onboarding guide above.
 
 Each `govkit apply` configures **one project shape**. Pick one value per flag:
 
@@ -186,7 +219,9 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 
 | Command | What it does |
 |---|---|
-| `govkit apply` | Install / scaffold governance into your project. Detects your stack, writes the `.govkit` marker. |
+| `govkit profile preview/apply` | Preview or save explicit capability/policy metadata without installing resources. |
+| `govkit request template/plan` | Propose a request and resolve its workflow against accepted policy. See [request workflows](docs/REQUEST_WORKFLOWS.md). |
+| `govkit apply` | Install / scaffold a legacy governance bundle into your project. Detects your stack, writes the `.govkit` marker. |
 | `govkit calibrate` | Guided, type-aware review to make installed defaults match your repo. UI reviews include brand readiness; `--non-interactive` writes a checklist file and `--only <step>` revisits one decision. |
 | `govkit doctor` | Read-only **governance-fit** checks (rule globs, CI/stack/language/framework fit, stale baselines, extensions, and the Next.js database boundary). Run once you have source code, and in CI. Monorepo-aware. |
 | `govkit validate` | Level-aware compliance check over **features** (artifact existence, Gherkin structure, NFR coverage, eval-criteria schema, prediction thresholds), **fix records** (schema, eligibility conditions) and **ADR approval attestation** (the policy is well-formed and names a real approver; ADRs claiming `Accepted` without an approval record). No-op at L3. |
