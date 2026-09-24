@@ -478,7 +478,10 @@
             "pattern": "^ref:[a-f0-9]{64}$"
           },
           "component_ref": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "pattern": "^ref:[a-f0-9]{64}$"
           },
           "state": {

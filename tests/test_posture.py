@@ -23,6 +23,52 @@ def assessed(tmp_path, *, releases=None):
     ).document
 
 
+def assessed_with_missing_owners(tmp_path, *, all_owners=False):
+    target, _ = installed(tmp_path)
+    lock_path = target / ".govkit/pack-lock.json"
+    lock = json.loads(lock_path.read_text())
+    missing = sorted(lock["owners"])
+    assert len(missing) > 1  # Partial loss must retain a known-owner control.
+    if not all_owners:
+        missing = missing[:1]
+    for path in missing:
+        del lock["owners"][path]
+    lock_path.write_text(json.dumps(lock))
+    source = assess_repository(target, as_of=AS_OF, metadata=(metadata(),)).document
+    assert source["inventory"]["lock_verification"] == "unverified"
+    assert [r["path"] for r in source["inventory"]["resources"] if r["owner"] is None] == missing
+    return target, source, missing
+
+
+@pytest.mark.parametrize("all_owners", [False, True])
+def test_projection_preserves_unknown_resource_owners_and_canonical_outcomes(tmp_path, all_owners):
+    target, source, missing = assessed_with_missing_owners(tmp_path, all_owners=all_owners)
+    before = snapshot(target)
+
+    report = export_posture(source)
+
+    document = report.document
+    assert document["capabilities"]["lock_verification"] == "unverified"
+    assert len(document["resources"]) == len(source["inventory"]["resources"])
+    for actual, original in zip(
+        document["resources"], source["inventory"]["resources"], strict=True
+    ):
+        if original["path"] in missing:
+            assert actual["component_ref"] is None
+        else:
+            assert actual["component_ref"].startswith("ref:")
+        assert (actual["state"], actual["action"]) == (original["state"], original["action"])
+    assert [(r["id"], r["state"]) for r in document["maintenance"]["dimensions"]] == [
+        (r["id"], r["state"]) for r in source["checks"]["results"]
+    ]
+    assert [(r["id"], r["action"]) for r in document["maintenance"]["recommendations"]] == [
+        (r["id"], r["action"]) for r in source["recommendations"]
+    ]
+    assert document["maintenance"]["exit_code"] == source["checks"]["exit_code"]
+    assert parse_posture(json.loads(report.to_json())).document == document
+    assert snapshot(target) == before
+
+
 def test_projection_preserves_canonical_dimensions_and_actions_without_writes(tmp_path):
     target, source = assessed(tmp_path)
     before = snapshot(target)

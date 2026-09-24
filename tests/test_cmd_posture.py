@@ -8,7 +8,7 @@ import pytest
 from cli.govkit import main
 from cli.posture import export_posture
 from tests.test_pack_store import snapshot
-from tests.test_posture import assessed
+from tests.test_posture import assessed, assessed_with_missing_owners
 
 
 def saved(tmp_path):
@@ -16,6 +16,48 @@ def saved(tmp_path):
     path = tmp_path / "assessment.json"
     path.write_text(json.dumps(source))
     return target, source, path
+
+
+@pytest.mark.parametrize("json_output", [False, True])
+def test_cli_exports_and_publishes_assessment_with_unknown_resource_owner(
+    tmp_path, monkeypatch, capsys, json_output
+):
+    target, source, _ = assessed_with_missing_owners(tmp_path)
+    path = tmp_path / "assessment.json"
+    path.write_text(json.dumps(source))
+    output = tmp_path / "posture.json"
+    before = snapshot(target)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "govkit",
+            "posture",
+            "export",
+            "--assessment",
+            str(path),
+            "--output",
+            str(output),
+            *(["--json"] if json_output else []),
+        ],
+    )
+
+    with pytest.raises(SystemExit) as error:
+        main()
+
+    result = capsys.readouterr()
+    assert error.value.code == 0
+    assert result.err == ""
+    document = json.loads(output.read_text())
+    assert document["resources"][0]["component_ref"] is None
+    assert document["capabilities"]["lock_verification"] == "unverified"
+    if json_output:
+        assert json.loads(result.out) == document
+    else:
+        for item in source["recommendations"]:
+            assert item["id"] in result.out and item["action"] in result.out
+    assert output.stat().st_mode & 0o777 == 0o600
+    assert snapshot(target) == before
 
 
 @pytest.mark.parametrize("json_output", [False, True])

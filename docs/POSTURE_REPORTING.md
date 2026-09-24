@@ -45,6 +45,10 @@ provider, policy author or the original assessment.
 | `maintenance` | The canonical four dimensions, all findings/actions, required status, urgency, target, affected resources/controls/customizations, prerequisites and preview references |
 | `coverage` | Profile/Git/discovery coverage and the explicit `maintenance-dimensions-only` reporting boundary |
 
+If a pack lock omits a resource's owner, `resources[].component_ref` is `null`.
+The resource observation and the lock's unverified status remain in the export;
+reporting does not infer ownership or discard the resource.
+
 `coverage.change_results` is `not-supplied`. This increment does not export a
 change's selected workflow, actual evaluation results or applicability. The
 maintenance dimension's `execution: executed` means the **maintenance assessment**

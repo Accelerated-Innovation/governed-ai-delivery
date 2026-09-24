@@ -84,6 +84,39 @@ def run_pilot(workspace, agent, provider):
     }
     assert before == after
 
+    # Partial lock damage is a reportable unknown, including modified resources.
+    lock_path = target / ".govkit/pack-lock.json"
+    lock = json.loads(lock_path.read_text())
+    del lock["owners"][skill.relative_to(target).as_posix()]
+    lock_path.write_text(json.dumps(lock))
+    assessment = assess_repository(target, as_of=AS_OF, metadata=(metadata,)).document
+    saved.write_text(json.dumps(assessment))
+    assert assessment["inventory"]["lock_verification"] == "unverified"
+    before = {
+        p.relative_to(target).as_posix(): (p.read_bytes(), p.stat().st_mtime_ns)
+        for p in target.rglob("*")
+        if p.is_file()
+    }
+    result = command("posture", "export", "--assessment", saved, "--json")
+    assert result.returncode == 0, result.stderr
+    actual = parse_posture(json.loads(result.stdout)).document
+    assert actual["capabilities"]["lock_verification"] == "unverified"
+    assert sum(r["component_ref"] is None for r in actual["resources"]) == 1
+    for projected, original in zip(
+        actual["resources"], assessment["inventory"]["resources"], strict=True
+    ):
+        assert (projected["component_ref"] is None) == (original["owner"] is None)
+        assert (projected["state"], projected["action"]) == (original["state"], original["action"])
+    human = command("posture", "export", "--assessment", saved)
+    assert human.returncode == 0, human.stderr
+    for item in assessment["recommendations"]:
+        assert item["id"] in human.stdout and item["action"] in human.stdout
+    assert before == {
+        p.relative_to(target).as_posix(): (p.read_bytes(), p.stat().st_mtime_ns)
+        for p in target.rglob("*")
+        if p.is_file()
+    }
+
 
 if __name__ == "__main__":
     assert "site-packages" in str(Path(cli.__file__).resolve()), cli.__file__
@@ -94,5 +127,5 @@ if __name__ == "__main__":
             for provider in ("github", "azure"):
                 run_pilot(Path(directory).resolve() / agent / provider, agent, provider)
     print(
-        "Three agents, both CI profiles: private deterministic posture, canonical action parity, explicit protected publication and unknown CI verified."
+        "Three agents, both CI profiles: private deterministic posture, canonical action parity, explicit protected publication, unknown CI and missing lock owners verified."
     )
