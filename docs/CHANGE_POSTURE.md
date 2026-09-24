@@ -89,7 +89,12 @@ release candidates, resource drift and discovery are not supplied here; use
 `posture export` for maintenance facts. Local results do not establish provider
 enforcement. Old observations remain old when exported again.
 
-I11c retains fleet aggregation, freshness/coverage denominators, the complete
-maintenance scenario set and the separate voluntary team adoption protocol.
+[Offline aggregation](POSTURE_AGGREGATION.md) supplies freshness/coverage
+denominators and the scenario set. The separate
+[voluntary team pilot](ADOPTION_PILOT.md) evaluates effort and usefulness.
 No collector, automatic telemetry, individual tracking or productivity metric is
 introduced.
+
+[Offline aggregation](POSTURE_AGGREGATION.md) accepts selected maintenance and change
+exports with an explicit repository cohort, clock, missing coverage and separate
+denominators. A shared repository reference never joins their evidence identities.

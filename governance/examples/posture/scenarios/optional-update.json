@@ -1,0 +1,269 @@
+{
+  "schema_version": 1,
+  "kind": "posture-export",
+  "repository_ref": "ref:cdd206944c771eeee9003663ec51debe54c3ea4738f413293204fc2c68487318",
+  "assessment_ref": "ref:6b9e58c85d9472bf770e46e9a2d6180a4b7655f92986d6e01736fbb3032112ca",
+  "as_of": "2026-09-24T12:00:00+00:00",
+  "identity": {
+    "baseline_digest_ref": "ref:edc53d7b4012210a320e2529101f5631c6fd238bd0e4b773224c298ccc557b3f",
+    "ci_report_digest_ref": "ref:bc6a58697218ecbf1bea8765cc6daa6ee5760c5ae9f2333c6636ae8217cf9d97",
+    "dirty_digest_ref": "ref:eb27b6925a8ab640809f0a4ba090e4492a323c6a50ad3c14444d33e00762b781",
+    "discovery_digest_ref": "ref:c476eaae0cb2f9f3f30c00527a16e9e0beafd0067c01562f16c646faf7ab7069",
+    "input_digest_ref": "ref:8fe5bb0dc7ec7f857371b88b84fca0ca0863d653a11cb42dd1ab586ff07309ca",
+    "inventory_digest_ref": "ref:6662ad1271fe901bd0b1e2301b04dfa8ec341ec3d79e8b946c4b97d9e2b0a157",
+    "pack_lock_digest_ref": "ref:9e98d549dbc9b3379f50464e69160821bc2ecebeae3f8a50075718b854ae58ca",
+    "profile_digest_ref": "ref:67794dea69b0a06505d8fdf2c09ca423a1ebaa63c5676fe92c0e3100fe5e834a",
+    "resolution_digest_ref": null,
+    "revision_ref": "ref:6d42c5990eb7cd525e9d7e2e6887a1cc19e3eff2c691446cf72e4996ecc2a0a8"
+  },
+  "coverage": {
+    "profile": "present",
+    "git_complete": true,
+    "discovery_complete": true,
+    "change_results": "not-supplied",
+    "controls": "maintenance-dimensions-only",
+    "origin": "unauthenticated-snapshot"
+  },
+  "capabilities": {
+    "configured": [
+      {
+        "ref": "ref:e4a5703460c15369b1e3860834a621e115ff8845e5abc00272d03054c69a23d8",
+        "label": "custom"
+      }
+    ],
+    "required": [],
+    "recorded": [
+      {
+        "ref": "ref:e4a5703460c15369b1e3860834a621e115ff8845e5abc00272d03054c69a23d8",
+        "label": "custom"
+      }
+    ],
+    "lock_verification": "verified"
+  },
+  "configured_controls": [],
+  "architecture": {
+    "observed": [
+      {
+        "source_ref": "ref:cbd7b374eaba0fa971520f84fdc0ad804baf7d2a6345f8761f661757a7768ea8",
+        "scope_ref": "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b",
+        "category": "documentation",
+        "status": "observed",
+        "confidence": "medium"
+      }
+    ],
+    "accepted_contracts": [],
+    "transitions": []
+  },
+  "versions": {
+    "running_cli": {
+      "display": "0.21.1",
+      "ref": "ref:d5817740033875c88c6c65a96e5427f94d3f50aa2435edf829cae3f1dc163f7a"
+    },
+    "recorded_install": null,
+    "resolved_govkit": {
+      "display": "0.21.1",
+      "ref": "ref:d5817740033875c88c6c65a96e5427f94d3f50aa2435edf829cae3f1dc163f7a"
+    },
+    "locked": [
+      {
+        "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+        "version": {
+          "display": "1.0.0",
+          "ref": "ref:87d186cbf51c5d0f7d3a53d3837d432ea98118d919f8ddcee33122c38eeba09a"
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+        "source_ref": "ref:c2eefdbd000693cf547f4525bdc20045cd11e8717dd87c78d24b74c648ba254b",
+        "channel_ref": "ref:97dd80b626144c3a3505e13ec588a4406719d274b302bcc871cb74dee91b6e25",
+        "compatibility_ref": "ref:8ac99a932ad1180084d7bf7b08af3b2a299746d246044d5354ab4839ffb86a0e",
+        "installed": {
+          "display": "1.0.0",
+          "ref": "ref:87d186cbf51c5d0f7d3a53d3837d432ea98118d919f8ddcee33122c38eeba09a"
+        },
+        "pin": null,
+        "newest_known": {
+          "display": "1.1",
+          "ref": "ref:62403e66253455a9e78651b21a3c8d9ccab424d7d98ae0f1a041a571fdacc900"
+        },
+        "selected_target": {
+          "display": "1.1",
+          "ref": "ref:62403e66253455a9e78651b21a3c8d9ccab424d7d98ae0f1a041a571fdacc900"
+        },
+        "compatible_candidates": [
+          {
+            "display": "1.1",
+            "ref": "ref:62403e66253455a9e78651b21a3c8d9ccab424d7d98ae0f1a041a571fdacc900"
+          },
+          {
+            "display": "1.0",
+            "ref": "ref:6298b09801954afab5ddbf40ba7a677f8c927a5946ff8e1f4bdc472e870d925d"
+          }
+        ],
+        "excluded": [],
+        "current_policy_state": "compliant",
+        "freshness": "fresh",
+        "age_hours": 0.0,
+        "lookup_status": "cached",
+        "latest_verified": false,
+        "as_of": "2026-09-24T12:00:00+00:00",
+        "retrieved_at": "2026-09-24T12:00:00+00:00",
+        "local_ref": "/inventory/candidates/0"
+      }
+    ],
+    "metadata": [
+      {
+        "source_ref": "ref:c2eefdbd000693cf547f4525bdc20045cd11e8717dd87c78d24b74c648ba254b",
+        "lookup_status": "cached",
+        "as_of": "2026-09-24T12:00:00+00:00",
+        "retrieved_at": "2026-09-24T12:00:00+00:00"
+      }
+    ]
+  },
+  "resources": [
+    {
+      "ref": "ref:bda20b8ac8fb8376570f51f6907a697fbf11074c2576140815305847a430c700",
+      "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+      "state": "matching",
+      "action": "none",
+      "local_ref": "/inventory/resources/0"
+    },
+    {
+      "ref": "ref:2b3d0d88449881a7a2c460d5c00979bdb1c301bde2a52488caf27ab236a301bd",
+      "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+      "state": "matching",
+      "action": "none",
+      "local_ref": "/inventory/resources/1"
+    },
+    {
+      "ref": "ref:dec8912c911d114618d97e6853d301775e44e3b6d9432197b4fc53a5ba8ac2e3",
+      "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+      "state": "matching",
+      "action": "none",
+      "local_ref": "/inventory/resources/2"
+    },
+    {
+      "ref": "ref:e42b4cc0e27805c9233accec66618eca8f20bb3cf0c0eba998b2d34c02321670",
+      "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+      "state": "matching",
+      "action": "none",
+      "local_ref": "/inventory/resources/3"
+    },
+    {
+      "ref": "ref:e005a81848583bc9e61fc599d57f288ce3b55a17c454408f0d549f6994fc8552",
+      "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+      "state": "matching",
+      "action": "none",
+      "local_ref": "/inventory/resources/4"
+    },
+    {
+      "ref": "ref:c7da0caa784df62d684e0bac72a86fdeab41c2f42c83116bab4b7e74a1a69edf",
+      "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+      "state": "matching",
+      "action": "none",
+      "local_ref": "/inventory/resources/5"
+    }
+  ],
+  "maintenance": {
+    "dimensions": [
+      {
+        "id": "maintenance:releases",
+        "state": "warn",
+        "execution": "executed",
+        "required": false,
+        "finding_refs": [
+          "ref:2f1567897f6530d6c049e0b73d4ed6a92bdb0f8f3cec51309be1145ea44aa08d"
+        ]
+      },
+      {
+        "id": "maintenance:resources",
+        "state": "pass",
+        "execution": "executed",
+        "required": true,
+        "finding_refs": [
+          "ref:8b137beca18693cab16b3a167080270c06fe2dfaae4836a3ace5ea92b813e278"
+        ]
+      },
+      {
+        "id": "maintenance:repository-fit",
+        "state": "pass",
+        "execution": "executed",
+        "required": false,
+        "finding_refs": [
+          "ref:07fcf70a043711da022b79edde241b7eaa5dfbb00f63d2fdf851b72981a7159d"
+        ]
+      },
+      {
+        "id": "maintenance:ci",
+        "state": "pass",
+        "execution": "executed",
+        "required": true,
+        "finding_refs": [
+          "ref:bfdb4198349ab3c4845381af9ede10939acb074714258c591aa41ba3b82459a2"
+        ]
+      }
+    ],
+    "summary": {
+      "executed": 4,
+      "fail": 0,
+      "not-applicable": 0,
+      "pass": 3,
+      "required": 2,
+      "required_satisfied": 2,
+      "skipped": 0,
+      "unknown": 0,
+      "waived": 0,
+      "warn": 1
+    },
+    "state": "warn",
+    "exit_code": 0,
+    "recommendations": [
+      {
+        "id": "maintenance:ec4a7ae93b03c5ff9b5e2ac10e6b3797694847833fd41e4fce042876bc51f033",
+        "dimension": "releases",
+        "action": "upgrade-pack",
+        "required": false,
+        "urgency": "informational",
+        "severity": "info",
+        "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+        "target_version": {
+          "display": "1.1",
+          "ref": "ref:62403e66253455a9e78651b21a3c8d9ccab424d7d98ae0f1a041a571fdacc900"
+        },
+        "reason_ref": "ref:54b87715cfc5315cf71b9fa293d3072743d78ab1214e775882e1da9e676e263d",
+        "source_policy_ref": null,
+        "scope_refs": [
+          "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+        ],
+        "resource_refs": [
+          "ref:bda20b8ac8fb8376570f51f6907a697fbf11074c2576140815305847a430c700",
+          "ref:2b3d0d88449881a7a2c460d5c00979bdb1c301bde2a52488caf27ab236a301bd",
+          "ref:dec8912c911d114618d97e6853d301775e44e3b6d9432197b4fc53a5ba8ac2e3",
+          "ref:e42b4cc0e27805c9233accec66618eca8f20bb3cf0c0eba998b2d34c02321670",
+          "ref:e005a81848583bc9e61fc599d57f288ce3b55a17c454408f0d549f6994fc8552",
+          "ref:c7da0caa784df62d684e0bac72a86fdeab41c2f42c83116bab4b7e74a1a69edf"
+        ],
+        "control_refs": [],
+        "customization_refs": [],
+        "prerequisite_refs": [
+          "ref:6dd9bbbda809cf03d3aa3bac94675d2ad9b4adc4b1186f9b6d1437b6faf994ed"
+        ],
+        "uncertainty_refs": [
+          "ref:1d8932d692e0dd90efbd757ba59aabd383f120ff223f7fe17dbd804b7ff2d00f",
+          "ref:d2e6a17aaa7873a41399d4ca879c78b41e9ccc552a2f60ee77fca04740658707"
+        ],
+        "evidence_refs": [
+          "ref:7018ded7a45a64cb2e55bea85bf567bc0d43d4b56d78946601a3718ba34feae2"
+        ],
+        "finding_refs": [
+          "ref:2f1567897f6530d6c049e0b73d4ed6a92bdb0f8f3cec51309be1145ea44aa08d"
+        ],
+        "preview_operation": "govkit-pack-preview",
+        "local_ref": "/recommendations/0"
+      }
+    ]
+  },
+  "digest": "5acbc992c5a7c058a8defedd093d1560b91dd907f069dd0df4d65c8d82db8767"
+}

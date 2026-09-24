@@ -55,8 +55,9 @@ maintenance dimension's `execution: executed` means the **maintenance assessment
 ran, not that every application/security/evaluation control ran. CI unknowns remain
 unknown, including unauthenticated positive provider exports from `pipeline assess`.
 Change-specific reporting has a separate [change posture](CHANGE_POSTURE.md)
-snapshot. Fleet aggregation and the voluntary adoption pilot remain I11c; this
-report is neither a maturity score nor a productivity measure.
+snapshot. [Offline aggregation](POSTURE_AGGREGATION.md) keeps their evidence
+separate. The [voluntary pilot protocol](ADOPTION_PILOT.md) evaluates usefulness
+and effort; this report is neither a maturity score nor a productivity measure.
 
 ## Privacy and references
 

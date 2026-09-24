@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "kind": "posture-export",
+  "repository_ref": "ref:c9783151797f6a076ac386a63dcaec9508a61dc326558445443e6e224310c66e",
+  "assessment_ref": "ref:cddc0f1764e4c55b5aba1e4e65f29f0b7ff1719df2f094d6d94d7a3ff04dd27d",
+  "as_of": "2026-09-24T12:00:00+00:00",
+  "identity": {
+    "baseline_digest_ref": "ref:a8b948d31d02e508d60365e065e3d7ef7163dc4145a6ae24bf51e21fc8fc0828",
+    "ci_report_digest_ref": "ref:5a9a319c2f98e3bd1b6ee02f84acdab0da3aa995f9d2a0593e8f0d79d66d614d",
+    "dirty_digest_ref": "ref:0fb7a9f8b863c343f27a748f92cc271fda08941e6c0e6ae251cdfda31af0283c",
+    "discovery_digest_ref": "ref:e033538fa86d3f95f03ad162d6cc0807961b7cda097df35efd85922f0c34f0f7",
+    "input_digest_ref": "ref:2740e06972b7e4485d89100fa43fb4f814b0c08a2f8c85be6ff593095ed8b8a3",
+    "inventory_digest_ref": "ref:f865cbee34dd43c8096407479cd6a27ffdd333fbcd4a8753261ad45c4cdc778a",
+    "pack_lock_digest_ref": "ref:d79dd029180123f7fa4875c3603c96cd39f139216c150ab749797299c00df84e",
+    "profile_digest_ref": "ref:441c1c4ef83a3a74ebc0519e5570e60e9eb3a3c365e62337d799cd03aeaeec7f",
+    "resolution_digest_ref": null,
+    "revision_ref": "ref:b2457bd9fe4ea125b190f7c1126dbf45193e8b1a2142c1c78f6ed976c4318a6a"
+  },
+  "coverage": {
+    "profile": "present",
+    "git_complete": true,
+    "discovery_complete": true,
+    "change_results": "not-supplied",
+    "controls": "maintenance-dimensions-only",
+    "origin": "unauthenticated-snapshot"
+  },
+  "capabilities": {
+    "configured": [
+      {
+        "ref": "ref:e4a5703460c15369b1e3860834a621e115ff8845e5abc00272d03054c69a23d8",
+        "label": "custom"
+      }
+    ],
+    "required": [],
+    "recorded": [
+      {
+        "ref": "ref:e4a5703460c15369b1e3860834a621e115ff8845e5abc00272d03054c69a23d8",
+        "label": "custom"
+      }
+    ],
+    "lock_verification": "verified"
+  },
+  "configured_controls": [],
+  "architecture": {
+    "observed": [
+      {
+        "source_ref": "ref:cbd7b374eaba0fa971520f84fdc0ad804baf7d2a6345f8761f661757a7768ea8",
+        "scope_ref": "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b",
+        "category": "documentation",
+        "status": "observed",
+        "confidence": "medium"
+      }
+    ],
+    "accepted_contracts": [],
+    "transitions": []
+  },
+  "versions": {
+    "running_cli": {
+      "display": "0.21.1",
+      "ref": "ref:d5817740033875c88c6c65a96e5427f94d3f50aa2435edf829cae3f1dc163f7a"
+    },
+    "recorded_install": null,
+    "resolved_govkit": {
+      "display": "0.21.1",
+      "ref": "ref:d5817740033875c88c6c65a96e5427f94d3f50aa2435edf829cae3f1dc163f7a"
+    },
+    "locked": [
+      {
+        "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+        "version": {
+          "display": "1.0.0",
+          "ref": "ref:87d186cbf51c5d0f7d3a53d3837d432ea98118d919f8ddcee33122c38eeba09a"
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+        "source_ref": "ref:c2eefdbd000693cf547f4525bdc20045cd11e8717dd87c78d24b74c648ba254b",
+        "channel_ref": "ref:97dd80b626144c3a3505e13ec588a4406719d274b302bcc871cb74dee91b6e25",
+        "compatibility_ref": "ref:8ac99a932ad1180084d7bf7b08af3b2a299746d246044d5354ab4839ffb86a0e",
+        "installed": {
+          "display": "1.0.0",
+          "ref": "ref:87d186cbf51c5d0f7d3a53d3837d432ea98118d919f8ddcee33122c38eeba09a"
+        },
+        "pin": null,
+        "newest_known": {
+          "display": "2.0",
+          "ref": "ref:036149ad28e66ec6993597c1dbacd53b2e21ac2c4652b62654116993003059f9"
+        },
+        "selected_target": null,
+        "compatible_candidates": [
+          {
+            "display": "1.0",
+            "ref": "ref:6298b09801954afab5ddbf40ba7a677f8c927a5946ff8e1f4bdc472e870d925d"
+          }
+        ],
+        "excluded": [
+          {
+            "version": {
+              "display": "2.0",
+              "ref": "ref:036149ad28e66ec6993597c1dbacd53b2e21ac2c4652b62654116993003059f9"
+            },
+            "reasons": [
+              "govkit"
+            ],
+            "reason_refs": [
+              "ref:4c4788225cdcb98da70eb8e4ef07c84350c00938c467e326a81806f956628001"
+            ]
+          }
+        ],
+        "current_policy_state": "compliant",
+        "freshness": "fresh",
+        "age_hours": 0.0,
+        "lookup_status": "cached",
+        "latest_verified": false,
+        "as_of": "2026-09-24T12:00:00+00:00",
+        "retrieved_at": "2026-09-24T12:00:00+00:00",
+        "local_ref": "/inventory/candidates/0"
+      }
+    ],
+    "metadata": [
+      {
+        "source_ref": "ref:c2eefdbd000693cf547f4525bdc20045cd11e8717dd87c78d24b74c648ba254b",
+        "lookup_status": "cached",
+        "as_of": "2026-09-24T12:00:00+00:00",
+        "retrieved_at": "2026-09-24T12:00:00+00:00"
+      }
+    ]
+  },
+  "resources": [
+    {
+      "ref": "ref:bda20b8ac8fb8376570f51f6907a697fbf11074c2576140815305847a430c700",
+      "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+      "state": "matching",
+      "action": "none",
+      "local_ref": "/inventory/resources/0"
+    },
+    {
+      "ref": "ref:2b3d0d88449881a7a2c460d5c00979bdb1c301bde2a52488caf27ab236a301bd",
+      "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+      "state": "matching",
+      "action": "none",
+      "local_ref": "/inventory/resources/1"
+    },
+    {
+      "ref": "ref:dec8912c911d114618d97e6853d301775e44e3b6d9432197b4fc53a5ba8ac2e3",
+      "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+      "state": "matching",
+      "action": "none",
+      "local_ref": "/inventory/resources/2"
+    },
+    {
+      "ref": "ref:e42b4cc0e27805c9233accec66618eca8f20bb3cf0c0eba998b2d34c02321670",
+      "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+      "state": "matching",
+      "action": "none",
+      "local_ref": "/inventory/resources/3"
+    },
+    {
+      "ref": "ref:e005a81848583bc9e61fc599d57f288ce3b55a17c454408f0d549f6994fc8552",
+      "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+      "state": "matching",
+      "action": "none",
+      "local_ref": "/inventory/resources/4"
+    },
+    {
+      "ref": "ref:c7da0caa784df62d684e0bac72a86fdeab41c2f42c83116bab4b7e74a1a69edf",
+      "component_ref": "ref:3e4d1085bb0410cbc39b9fc78b020969a638dd49c4e6094994629bef23bae631",
+      "state": "matching",
+      "action": "none",
+      "local_ref": "/inventory/resources/5"
+    }
+  ],
+  "maintenance": {
+    "dimensions": [
+      {
+        "id": "maintenance:releases",
+        "state": "pass",
+        "execution": "executed",
+        "required": false,
+        "finding_refs": [
+          "ref:66c07ce3d0891734642a23e04a8d7a5c841db8f7c713d2ee24a7bf81aa42246e"
+        ]
+      },
+      {
+        "id": "maintenance:resources",
+        "state": "pass",
+        "execution": "executed",
+        "required": true,
+        "finding_refs": [
+          "ref:8b137beca18693cab16b3a167080270c06fe2dfaae4836a3ace5ea92b813e278"
+        ]
+      },
+      {
+        "id": "maintenance:repository-fit",
+        "state": "pass",
+        "execution": "executed",
+        "required": false,
+        "finding_refs": [
+          "ref:07fcf70a043711da022b79edde241b7eaa5dfbb00f63d2fdf851b72981a7159d"
+        ]
+      },
+      {
+        "id": "maintenance:ci",
+        "state": "pass",
+        "execution": "executed",
+        "required": true,
+        "finding_refs": [
+          "ref:bfdb4198349ab3c4845381af9ede10939acb074714258c591aa41ba3b82459a2"
+        ]
+      }
+    ],
+    "summary": {
+      "executed": 4,
+      "fail": 0,
+      "not-applicable": 0,
+      "pass": 4,
+      "required": 2,
+      "required_satisfied": 2,
+      "skipped": 0,
+      "unknown": 0,
+      "waived": 0,
+      "warn": 0
+    },
+    "state": "pass",
+    "exit_code": 0,
+    "recommendations": []
+  },
+  "digest": "edaf991f220344abd22f99d751798073ec44146b8d7576aa811b71fac802a8ae"
+}
