@@ -606,5 +606,7 @@ requests. Without the token the gate fails closed rather than passing blind.
 see [gate catalogs](../docs/GATE_CATALOG.md). Bundled legacy CI selection now lives
 once in `governance/ci/legacy-selection.json`, referenced by all three agent
 manifests. The templates and legacy install selections documented above are
-preserved. New provider rendering, protected generation and runtime/maintenance
-evidence follow in I10b; catalog presence alone does not prove enforcement.
+preserved. [Protected pipeline generation](../docs/PIPELINE_GENERATION.md) supplies
+reusable GitHub/Azure entry points over caller-prepared inputs. Event admission,
+trusted checkout selection and maintenance/provider evidence follow in I10c;
+catalog or generated-file presence alone does not prove enforcement.

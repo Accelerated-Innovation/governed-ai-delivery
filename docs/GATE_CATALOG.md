@@ -73,10 +73,12 @@ installed resources, publisher authenticity or package availability on a server.
 means that the control's provider needs are unmeasured. Schema and digest validation
 do not authenticate policy or turn metadata into execution evidence.
 
-I10b adds pinned GitHub/Azure renderers, protected preview/check/generate,
-trusted execution wiring, configuration drift, maintenance integration and provider
-evidence. This increment neither changes branch protection nor publishes artifacts.
-External enforcement and reviewer requirements remain separate platform settings.
+[Pipeline generation](PIPELINE_GENERATION.md) adds reusable GitHub/Azure entry
+points, protected preview/check/generate, configuration drift and prepared-input
+execution with runtime/profile/pack pins. I10c retains event/trusted-checkout
+admission, maintenance integration and provider evidence. Neither catalog nor
+generation changes branch protection or publishes artifacts. External enforcement
+and reviewer requirements remain separate platform settings.
 
 ## Legacy compatibility
 

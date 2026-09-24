@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "pipeline-settings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "govkit_version",
+    "execute_checks"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "govkit_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "execute_checks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+      },
+      "uniqueItems": true,
+      "maxItems": 128
+    }
+  }
+}

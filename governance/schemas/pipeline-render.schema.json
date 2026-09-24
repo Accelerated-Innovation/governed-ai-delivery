@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "pipeline-render",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "provider",
+    "catalog",
+    "settings",
+    "binding",
+    "path",
+    "content",
+    "execution",
+    "enforcement",
+    "requirements",
+    "digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "pipeline-render"
+    },
+    "provider": {
+      "enum": [
+        "github",
+        "azure"
+      ]
+    },
+    "catalog": {
+      "type": "object"
+    },
+    "settings": {
+      "type": "object"
+    },
+    "binding": {
+      "type": "object"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1
+    },
+    "execution": {
+      "const": "not-run"
+    },
+    "enforcement": {
+      "const": "unknown"
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
