@@ -17,4 +17,12 @@ describe the common-engine boundary; they are not a ready-to-run shell script.
 The runtime-only wheel pilot runs application-only, application-plus-LLM and
 Gherkin-only profiles for all three agents and both providers, plus an unresolved
 capability control. It also verifies every frozen legacy install selection.
-Provider rendering, protected generation and actual CI evidence are I10b.
+`settings.json` leaves executable checks disabled until explicitly accepted.
+`github-entrypoint.yml` and `azure-entrypoint.yml` are paired golden examples for
+this exact fixture profile and settings. Regenerate for a real accepted profile;
+their bindings are not portable team policy. See [protected pipeline generation](../../../docs/PIPELINE_GENERATION.md).
+
+The additional provider wheel pilot generates both integrations and runs their
+actual scripts for all agents, bounded/full-feature/LLM requests and a failing
+evaluation. I10b supplies protected generation and prepared-input execution;
+event/trusted-checkout admission, maintenance and actual provider evidence remain I10c.

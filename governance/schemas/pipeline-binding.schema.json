@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "pipeline-binding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "govkit_version",
+    "execute_checks",
+    "profile_digest",
+    "packs_digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "govkit_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "execute_checks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+      },
+      "uniqueItems": true,
+      "maxItems": 128
+    },
+    "profile_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "packs_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

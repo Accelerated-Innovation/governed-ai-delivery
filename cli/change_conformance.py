@@ -252,11 +252,14 @@ def inspect_change(
     observed_at: str | None = None,
     execute_checks=(),
     pack_arguments=None,
+    allow_inapplicable_checks=False,
 ) -> ChangeReport:
     """Inspect without writes by default. Execution is explicit, trusted, unsandboxed.
 
     Use a separately controlled policy checkout, never policy edited by the change.
     Both local and CI callers supply that checkout, accepted intent and base.
+    Reusable pipelines may supply a configured execution allowlist; intersect it
+    with requirements only after resolving trusted policy and actual changes.
     """
     target, policy_target = target.absolute(), policy_target.absolute()
     if target.resolve().is_relative_to(
@@ -413,19 +416,33 @@ def inspect_change(
     executable = (
         commands.keys()
         | packs.keys()
-        | ({"defect:eligibility"} if "defect:eligibility" in required else set())
+        | (
+            {"defect:eligibility"}
+            if allow_inapplicable_checks or "defect:eligibility" in required
+            else set()
+        )
     )
-    if selected - executable or selected - required:
+    if selected - executable or (not allow_inapplicable_checks and selected - required):
         raise ValueError("Execution is not a selected configured check")
     if any(
         k not in packs
-        or k not in required
+        or (not allow_inapplicable_checks and k not in required)
         or k not in selected
         or not isinstance(v, (tuple, list))
         or not all(isinstance(a, str) for a in v)
         for k, v in (pack_arguments or {}).items()
     ):
         raise ValueError("Pack arguments must map selected pack IDs to string arrays")
+    if allow_inapplicable_checks:
+        selected &= required
+        context = replace(
+            context,
+            execute_pack_checks=tuple(
+                identifier for identifier in execute_checks if identifier in selected
+            ),
+            pack_arguments={k: v for k, v in (pack_arguments or {}).items() if k in selected},
+        )
+        trusted_context = replace(context, target=policy_target)
 
     def executable_check(check):
         if policy_error:

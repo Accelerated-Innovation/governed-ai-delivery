@@ -52,3 +52,40 @@ def test_human_catalog_names_limits_and_controls(tmp_path, monkeypatch, capsys):
     output = capsys.readouterr().out
     assert "llm-exact-match" in output
     assert "not-run" in output and "unknown" in output
+
+
+def test_pipeline_cli_requires_reviewed_digest_and_reports_configuration_only(
+    tmp_path, monkeypatch, capsys
+):
+    from tests.test_pipeline_store import setup
+
+    source, target, config = setup(tmp_path)
+    common = [
+        "--target",
+        str(target),
+        "--profile",
+        str(source),
+        "--settings",
+        str(config),
+        "--json",
+    ]
+
+    def invoke(action, *extra, failed=False):
+        monkeypatch.setattr(sys, "argv", ["govkit", "pipeline", action, *common, *extra])
+        if failed:
+            with pytest.raises(SystemExit) as error:
+                main()
+            assert error.value.code == 1
+        else:
+            main()
+        return capsys.readouterr()
+
+    initial = snapshot(target)
+    assert json.loads(invoke("check", failed=True).out)["configuration"] == "missing"
+    preview = json.loads(invoke("preview").out)
+    assert snapshot(target) == initial
+    assert "digest" in invoke("generate", failed=True).err
+    invoke("generate", "--accept-digest", preview["digest"])
+    checked = json.loads(invoke("check").out)
+    assert checked["configuration"] == "current"
+    assert checked["execution"] == "unknown" and checked["enforcement"] == "unknown"
