@@ -1,0 +1,398 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Provider-neutral gate catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "repository",
+    "profile_digest",
+    "provider",
+    "pins",
+    "capabilities",
+    "workflow_requirements",
+    "gates",
+    "decisions",
+    "ready",
+    "execution",
+    "enforcement",
+    "limitations",
+    "digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "gate-catalog"
+    },
+    "repository": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profile_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "provider": {
+      "enum": [
+        null,
+        "github",
+        "azure"
+      ]
+    },
+    "pins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "govkit",
+        "packs"
+      ],
+      "properties": {
+        "govkit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "packs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "version",
+              "digest",
+              "source",
+              "provides",
+              "legacy"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "provides": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 0,
+                "maxItems": 1024,
+                "uniqueItems": true
+              },
+              "legacy": {
+                "type": "object"
+              }
+            }
+          },
+          "minItems": 0,
+          "maxItems": 1024,
+          "uniqueItems": true
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0,
+      "maxItems": 1024,
+      "uniqueItems": true
+    },
+    "workflow_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "when",
+          "required_capabilities",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "when": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 0,
+            "maxItems": 1024,
+            "uniqueItems": true
+          },
+          "required_capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 0,
+            "maxItems": 1024,
+            "uniqueItems": true
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 1024,
+      "uniqueItems": true
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "requirements",
+          "dependencies",
+          "commands",
+          "triggers",
+          "path_filters",
+          "permissions",
+          "secrets",
+          "configuration",
+          "evidence",
+          "blocking",
+          "runner"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "requirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "selectors",
+                "scope",
+                "source",
+                "blocking"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "repository",
+                    "capability",
+                    "workflow",
+                    "architecture"
+                  ]
+                },
+                "selectors": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 0,
+                  "maxItems": 1024,
+                  "uniqueItems": true
+                },
+                "scope": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1,
+                  "maxItems": 1024,
+                  "uniqueItems": true
+                },
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "blocking": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "minItems": 1,
+            "maxItems": 1024,
+            "uniqueItems": true
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 0,
+            "maxItems": 1024,
+            "uniqueItems": true
+          },
+          "commands": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "maxItems": 1024,
+              "uniqueItems": true
+            },
+            "minItems": 0,
+            "maxItems": 1024,
+            "uniqueItems": true
+          },
+          "triggers": {
+            "const": [
+              "pull-request",
+              "push",
+              "manual"
+            ]
+          },
+          "path_filters": {
+            "const": []
+          },
+          "permissions": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 0,
+                "maxItems": 1024,
+                "uniqueItems": true
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "secrets": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 0,
+                "maxItems": 1024,
+                "uniqueItems": true
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "configuration": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 0,
+            "maxItems": 1024,
+            "uniqueItems": true
+          },
+          "evidence": {
+            "const": [
+              "change-results/v1"
+            ]
+          },
+          "blocking": {
+            "type": "boolean"
+          },
+          "runner": {
+            "const": "common-conformance"
+          }
+        }
+      },
+      "minItems": 1,
+      "maxItems": 1024,
+      "uniqueItems": true
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "subjects",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 0,
+            "maxItems": 1024,
+            "uniqueItems": true
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 1024,
+      "uniqueItems": true
+    },
+    "ready": {
+      "type": "boolean"
+    },
+    "execution": {
+      "const": "not-run"
+    },
+    "enforcement": {
+      "const": "unknown"
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "maxItems": 1024,
+      "uniqueItems": true
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

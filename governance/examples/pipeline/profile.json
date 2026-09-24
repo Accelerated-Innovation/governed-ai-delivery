@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "source": {"reference": "team-policy.md", "authority": "accepted"},
+  "repository": {"id": "example-service", "project_type": "api", "stack": null},
+  "integrations": {"agent": "codex", "ci": "github"},
+  "capabilities": [{"id": "application-governance"}, {"id": "llm-evaluation"}],
+  "policy": {
+    "source": {"reference": "team-policy.md", "authority": "accepted"},
+    "required_checks": []
+  }
+}

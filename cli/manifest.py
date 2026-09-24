@@ -19,6 +19,7 @@ import json
 import sys
 
 from . import paths
+from .gate_legacy import expand_legacy_ci
 from .legacy_resolution import adapt_legacy_manifest, legacy_file_lists
 from .resolution import resolve_repository
 
@@ -43,7 +44,11 @@ def load_manifest(agent: str) -> dict:
             f"'variants' (variant format) or 'files' (legacy flat format)."
         )
         sys.exit(1)
-    return manifest
+    try:
+        return expand_legacy_ci(manifest)
+    except ValueError as exc:
+        print(f"Error: invalid shared CI catalog: {exc}")
+        sys.exit(1)
 
 
 def resolve_options(manifest: dict, args: argparse.Namespace) -> dict:
@@ -88,4 +93,6 @@ def resolve_variant_files(manifest: dict, options: dict) -> tuple[list, list, li
     manifest interpretation is isolated in the adapter; explicit requirements
     pass through the same core as future declarative consumers.
     """
-    return legacy_file_lists(resolve_repository(adapt_legacy_manifest(manifest, options)))
+    return legacy_file_lists(
+        resolve_repository(adapt_legacy_manifest(expand_legacy_ci(manifest), options))
+    )

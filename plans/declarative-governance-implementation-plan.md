@@ -1,7 +1,7 @@
 # Declarative governance implementation plan
 
-Status: I00–I09a merged; I09b implemented and locally verified, awaiting PR review/integration.
-Plan version: 1.26.
+Status: I00–I09 merged; I10a shared gate contract/catalog in progress.
+Plan version: 1.27.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
 Primary epic: [#142 — Declarative, composable GovKit governance](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/142).
@@ -391,6 +391,8 @@ Exit evidence:
 
 Prerequisites: I02–I03, I06–I07; maintenance integration uses I09.
 
+Execution split (2026-09-24): **I10a** establishes the shared provider-neutral GateSpec/catalog and removes duplicated legacy CI selection from agent manifests behind a compatibility adapter. **I10b** delivers pinned provider renderers, protected preview/check/generate, trusted execution integration, and maintenance/provider evidence. The issue explicitly calls for small reviewable increments; separating the catalog/compatibility boundary from generated executable workflows preserves focused review. Every original exit/acceptance criterion remains required; #147 stays open until both parts are integrated.
+
 Deliver:
 
 - Shared GateSpec/catalog and compatibility adapter instead of duplicated agent-owned CI selection.
@@ -600,20 +602,20 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 | I06 | complete | [PR #186](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/186), merged b938a3b; three review bugs fixed in 9325749; 4,036 fast tests and clean-wheel smoke passed | Final-head Tests run 35929565253 passed; #179 remains open for I07 |
 | I07 | complete | [PR #187](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/187) merged as 9466c79; review fixes 2ba06e1; 4,098 fast tests, 63 final focused tests and seven wheel pilots passed | Final-head Tests run 35978562236 passed; #178/#179 closed |
 | I08 | complete | [PR #189](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/189) merged fc8218c; review fixes 579202a; 4,154 local fast-suite passes and runtime-only wheel pilots | No final-head CI run returned by connector or gh; no Qodo clean verdict inferred |
-| I09 | in progress | [I09a PR #190](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/190); installed-compliance review fix, 21 additional regression/control cases, 4,215 fast-suite passes and final three-agent runtime wheel pilot | I09a merged as 8601b53; final-head CI passed; I09b delivered in [PR #191](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/191): four Qodo bugs remediated, 4,272 fast-suite passes and six runtime wheel pilots; review/integration pending |
-| I10 | not started | — | Wait for core prerequisites; integrate I09 |
+| I09 | complete | [I09a PR #190](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/190); installed-compliance review fix, 21 additional regression/control cases, 4,215 fast-suite passes and final three-agent runtime wheel pilot | I09a merged as 8601b53; final-head CI passed; I09b delivered in [PR #191](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/191): four Qodo bugs remediated, 4,272 fast-suite passes and six runtime wheel pilots; I09b merged 851ec80; final-head Tests run 35997245561 passed; #145/#146 closed |
+| I10 | in progress | I10a shared gate contract/catalog on `feat/147-shared-gate-catalog`; 33 new cases, 4,305 fast-suite passes, runtime-only catalog/migration pilots and 258 frozen selections | I10a delivery/review pending; I10b provider generation/execution/evidence follows; all original acceptance retained |
 | I11 | not started | — | Core reporting after I07; full report after I09–I10 |
 | I12 | not started | — | Wait for I08, I10–I11 |
 | I13 | not started | — | Pilot observations may begin at I07 |
 
 Current handoff:
 
-- Completed: I00–I09a merged. PR #190 merged as `8601b537326ff07256461dfc8279276210f72c38`, identical to final-head tree `1a692a1`. [Final-head Tests run 35990251066](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/35990251066) succeeded. The merged focused baseline passed 165 tests. Merge does not dismiss Qodo's unreproduced duplicate-policy finding or establish an exact-head clean review.
-- Current increment: I09b delivered in [PR #191](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/191), implemented as `5d29e2a` on `feat/146-maintenance-assessment-report`: canonical four-dimensional maintenance assessment for #146, protected operation previews and #149 migration/post-operation verification. Four Qodo findings are remediated and pushed as `59a307a`; the final fast suite passed 4,272 tests and runtime-only wheel assessment and migration pilots passed for Codex, Claude Code and Copilot. Unavailable CI provider evidence stays unknown; I10 owns live provider collection/repair.
-- Cleanup: fetched/pruned, fast-forwarded main, verified identical merged trees and deleted the I09a local branch. Removed exactly six known artifacts from `/private/tmp`: `govkit-i09a-dist`, `govkit-i09a-wheel-venv`, `govkit-pr190-review-dist`, `govkit-pr190-review-venv`, `govkit-pr190-review-tests.log`, `govkit-pr190-review-body.md`. Preserved `.venv`; no consumer assets installed into the source repository.
-- Review limitation: authenticated Qodo local-review integration previously failed `repo_not_connected` / `MT-WORKSPACE-NO-REPOS` / HTTP 403 `WORKSPACE_HAS_NO_AUTHORIZED_REPOS`. The user is working with support; do not retry until reconnection is confirmed. Structured PR review reads remain available. No clean local-review verdict is claimed.
-- Issue tracking: #145 now joins #151/#143/#144/#178/#179 as integrated and closed. #146 stays open until I09b is verified/integrated; #149 remains open for I12–I13; #142 remains open. All issue bodies record PR #190 integration and I09b start.
-- Next action: await Qodo re-review and integration of PR #191 after remediation commit `59a307a`; structured PR reviews remain available despite the local-review integration blocker. No merge without separate authorization. I10 follows integration.
+- Completed: I00–I09 merged. PR #191 merged as `851ec80649ec1d364a054d1a68b41bed7a59a261`, identical to final-head tree `996c9eb`. [Final-head Tests run 35997245561](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/35997245561) passed Python 3.11/3.12 fast suites, e2e/toolchains and wheel-smoke. #146 is verified closed with all fifteen criteria integrated. Merge does not establish an exact-head clean Qodo review.
+- Current increment: I10a shared provider-neutral gate contracts/catalog and legacy compatibility adapter implemented test first on `feat/147-shared-gate-catalog`. The merged baseline passed 497 tests; final fast suite passed 4,305 tests. Runtime-only wheel pilots cover all three agents, both providers, independent capabilities, unresolved input and all 258 frozen legacy selections; actual migration/rollback pilots also pass. I10b owns renderers, protected generation, trusted execution wiring and maintenance/provider evidence.
+- Cleanup: fetched/pruned, fast-forwarded main, verified identical merged trees and removed the merged I09b branch and 23 known I09b/PR191 artifacts from `/private/tmp`. Preserved `.venv`; no consumer bundle installed into the source repository.
+- Review limitation: authenticated Qodo local review previously failed `repo_not_connected` / `MT-WORKSPACE-NO-REPOS` / HTTP 403 `WORKSPACE_HAS_NO_AUTHORIZED_REPOS`. The user is working with support; do not retry until reconnection is confirmed. Structured PR-review reads remain available. No clean local-review verdict is claimed.
+- Issue tracking: #146 joins #151/#143/#144/#145/#178/#179 as integrated and closed. #147/#149/#142 remain open; their bodies record PR #191 integration and I10a start. #149 awaits I12/I13.
+- Next action: commit/push verified I10a and open a PR under standing authorization. No merge without separate authorization. I10b follows integration.
 - Open product input: FeaturePeers definition, representative team repos, pilot participants and the actual legacy-removal release remain later decisions. Legacy commands remain supported.
 
 Use this record after each session:
@@ -815,10 +817,21 @@ Next ready action:
 - **Worktree fingerprint:** SHA-256 `cb177ec20268171f340794f1e6191d31a44b9674b3027cc54ef8f2ee7c4d1cd9` over compact sorted-key JSON mapping the eleven non-plan remediation paths to their file-content SHA-256. Final local diff review found no unrelated changes.
 - **Delivery/status:** committed and pushed all four fixes as `59a307a872608a33d1789104583e69e6afeae33e` to existing [PR #191](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/191); verified the PR head and updated its description plus #146/#149/#142 status bodies. The post-push structured response still reports completed run `1245750` at pre-fix `5d29e2a`, with all four attributions `pending`; no completed fix-head review or clean verdict is claimed. This plan-only follow-up records delivery without rerunning unchanged implementation checks. No findings were skipped or manually closed. #146/#149/#142 remain open with unchanged acceptance scope; I10 remains next after integration. Fix-head hosted CI is unverified.
 
+### I10a execution record — 2026-09-24
+
+- **Scope:** added typed logical GateSpec declarations and a strict versioned catalog from explicit profiles/local pack resolution, exposed through read-only `govkit pipeline catalog`. Repository, capability, workflow and scoped architecture requirements remain additive. One repository-wide common-engine invocation carries trusted request/base/policy placeholders; catalog conditions cannot become a runtime allowlist or bypass filter. Exact composition pins, dependency validation, unresolved decisions and explicit `not-run`/`unknown` status do not claim executable CI or authenticated evidence. [ADR 0011](decisions/0011-shared-gate-catalog.md), the guide, schema and bundled example document the boundary.
+- **Compatibility:** moved the identical CI dimension from all three agent manifests into one named, bounded bundled table. Expansion happens at the manifest loading boundary; the legacy adapter remains pure, custom inline tables retain behavior, and mixed/unknown references fail. Existing templates, category/order behavior and all 258 frozen selections are unchanged. Preserved original manifest/schema formatting; parsed JSON objects were asserted equal to their fully tested versions.
+- **Test-first evidence:** the merged baseline passed 497 tests. New catalog/adapter tests first failed on missing modules and four CLI tests failed on the absent command. Follow-up red regressions covered malformed shared-provider/version envelopes, missing runtime-pilot support, stack exhaustion on a 1,021-gate acyclic graph, range-valued CLI pins and duplicate pack pins. Implemented bounded validation and iterative dependency traversal, then passed the regressions. Added 33 cases overall; the invalid colon in a synthetic pack-check ID was corrected as a test-fixture error.
+- **Validation:** `PATH="$PWD/.venv/bin:$PATH" ./run_tests -q` passed **4,305 tests**, with 2 existing skips and 150 e2e tests deselected (153.71s). Earlier focused compatibility/payload checks passed 1,064 tests. A freshly built runtime-only Python 3.12 wheel passed catalog pilots for all agents across application-only, application-plus-LLM and Gherkin-only profiles and both providers, plus unresolved-capability controls and all 258 frozen selections. Actual legacy migration/preservation/request-planning/drift-rejection/rollback pilots passed for all three agents. Scoped Ruff/format and whitespace checks pass; CI now invokes the installed-wheel catalog pilot.
+- **Acceptance/status:** #147's equivalent provider-neutral gate-set criterion is locally demonstrated. Its ten remaining criteria, including complete renderer/golden, protected-generation, trusted execution, integration-drift and maintenance/provider evidence, remain open for I10b. I10 stays in progress and #147/#149/#142 stay open. #149 still awaits self-hosting/retirement. No consumer bundle was installed into this source repository.
+- **Review/limits:** reused the already loaded Qodo rules for inward boundaries, live bundled paths, explicit deterministic fixtures, meaningful real-path assertions and installed-wheel verification. Reviewed the local diff. The existing Qodo local-review blocker remains `repo_not_connected` / `MT-WORKSPACE-NO-REPOS` / HTTP 403 `WORKSPACE_HAS_NO_AUTHORIZED_REPOS`; the user is working with support, so it was not retried and no clean verdict is claimed. Local validation is Python 3.12; no new hosted CI, full local toolchain, Python 3.11, Windows or live provider enforcement result is claimed. I10a pins describe supplied composition inputs, not published availability or execution authorization.
+- **Final verification/delivery:** after preserving original manifest/schema formatting with parsed-object equality assertions, 408 focused catalog/CLI/legacy/schema checks passed. The rebuilt wheel again passed all catalog and real migration pilots. All 25 non-plan delivery paths were recorded in a tested implementation fingerprint; whitespace checks pass and remote main remains `851ec80`. Verified implementation awaits commit/push and PR creation under standing authorization. No merge is authorized by this record.
+
 ### Decision log
 
 | Date | Decision | Basis |
 |---|---|---|
+| 2026-09-24 | Split I10 into shared declarations/legacy compatibility and executable provider integration | [ADR 0011](decisions/0011-shared-gate-catalog.md); one common-engine invocation, additive policy and frozen legacy selection, with every original renderer/evidence criterion retained for I10b |
 | 2026-09-24 | Compose independent maintenance dimensions and replay evidence before operation previews | [ADR 0010](decisions/0010-canonical-maintenance-assessment.md); preserve accepted-policy authority, protected resource writes and explicit unknown CI evidence |
 | 2026-09-24 | Split I09 into version/resource facts and consolidated maintenance composition | [ADR 0009](decisions/0009-maintenance-version-facts.md); preserve all original acceptance while separating data retrieval/resource previews from cross-domain advice |
 | 2026-09-24 | Compose migration in an isolated copy; accept explicit profile/digest; keep enforcement gaps as obligations | I08 tests and [ADR 0008](decisions/0008-safe-legacy-migration.md); preserve legacy bytes and avoid claiming parity from installed metadata |
@@ -967,13 +980,13 @@ Source: [[Feature 4] Policy-aware conformance for repositories and individual ch
 - [x] Output identifies the assessed repository/profile/resolution, time and release-metadata source/as-of status, and does not label unavailable freshness information as current.
 - [x] Assessment leaves code, profile, locks, installed resources, and CI unchanged, and can produce partial useful results when an integration is unavailable.
 
-Evidence: [I04 execution record](#i04-execution-record--2026-09-23) demonstrates the four foundation criteria locally, delivered in [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184). I07 integrated change-scoped conformance; the [I09b execution record](#i09b-execution-record--2026-09-24) demonstrates all six maintenance criteria. #146 stays open pending I09b review/integration.
+Evidence: [I04 execution record](#i04-execution-record--2026-09-23) demonstrates the four foundation criteria locally, delivered in [PR #184](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/184). I07 integrated change-scoped conformance; the [I09b execution record](#i09b-execution-record--2026-09-24) demonstrates all six maintenance criteria. #146 is complete after verified PR #191 integration as `851ec80` and successful final-head CI.
 
 ### Feature #147
 
 Source: [[Feature 5] Capability- and policy-driven pipeline contracts](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/147).
 
-- [ ] Equivalent profiles/capabilities/policies yield equivalent provider-neutral gate sets.
+- [x] Equivalent profiles/capabilities/policies yield equivalent provider-neutral gate sets.
 - [ ] Different request workflows in one repository select applicable checks without a pipeline rewrite.
 - [ ] Required security, architecture, evaluation, and approval controls cannot be bypassed by a workflow label or path-filter omission.
 - [ ] Both renderers cover the same intended gate IDs/policy; unavoidable platform differences are explicit and tested.
@@ -985,6 +998,8 @@ Source: [[Feature 5] Capability- and policy-driven pipeline contracts](https://g
 - [ ] A current CLI with stale pipeline pins or missing/drifted generated gates produces an actionable integration finding; static workflow presence alone is not reported as executed/enforced.
 - [ ] Local and CI maintenance assessments agree for the same explicit inputs; provider evidence gaps are visible and report publication causes no automatic upgrade or workflow rewrite.
 - [ ] A selected upgrade's integration preview identifies affected gates and configuration changes while preserving existing workflows until the proposed changes are authorized.
+
+Evidence: I10a demonstrates equivalent logical gate sets for both providers and all three agents with independent application/LLM/Gherkin combinations, additive policy and explicit unresolved inputs. The ten remaining criteria require I10b; no executable renderer or live provider evidence is claimed. #147 remains open.
 
 ### Feature #148
 
