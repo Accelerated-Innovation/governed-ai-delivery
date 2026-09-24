@@ -5,8 +5,10 @@ import sys
 
 import pytest
 
+from cli.change_conformance import parse_change_report
 from cli.govkit import main
 from tests.test_change_conformance import inspect, setup
+from tests.test_change_posture import replace_recorded_spec
 from tests.test_discovery import write
 from tests.test_pack_store import snapshot
 
@@ -18,6 +20,50 @@ def saved_change(tmp_path):
     path = tmp_path / "change-results.json"
     path.write_text(json.dumps(source))
     return target, trusted, source, path
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"scope": ("src/narrow",)},
+        {"source_policy": "substituted-policy.md"},
+        {"reason": "substituted obligation"},
+    ],
+)
+def test_cli_refuses_weakened_control_metadata_before_publication(
+    tmp_path, monkeypatch, capsys, changes
+):
+    target, trusted, source, path = saved_change(tmp_path)
+    changed = replace_recorded_spec(parse_change_report(source), **changes).document
+    path.write_text(json.dumps(changed))
+    assert parse_change_report(changed).document == changed
+    output = tmp_path / "posture.json"
+    before = snapshot(target), snapshot(trusted)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "govkit",
+            "posture",
+            "change",
+            "--results",
+            str(path),
+            "--target",
+            str(target),
+            "--output",
+            str(output),
+            "--json",
+        ],
+    )
+
+    with pytest.raises(SystemExit) as error:
+        main()
+
+    captured = capsys.readouterr()
+    assert error.value.code == 1 and not captured.out
+    assert "Unable to export change posture" in captured.err
+    assert not output.exists()
+    assert (snapshot(target), snapshot(trusted)) == before
 
 
 @pytest.mark.parametrize("json_output", [False, True])

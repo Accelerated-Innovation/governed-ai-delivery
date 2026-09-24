@@ -61,6 +61,100 @@ def redigest(document):
     return document
 
 
+def replace_recorded_spec(source, **changes):
+    return replace(
+        source,
+        checks=replace(
+            source.checks,
+            results=tuple(
+                replace(c, spec=replace(c.spec, **changes)) if c.spec.id == "project:tests" else c
+                for c in source.checks.results
+            ),
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("scope", ("src/narrow",)),
+        ("source_policy", "substituted-policy.md"),
+        ("reason", "a different obligation"),
+    ],
+)
+def test_export_rejects_narrowed_or_substituted_planned_control_metadata(tmp_path, field, value):
+    target, trusted, source = changed(tmp_path)
+    source = replace_recorded_spec(source, **{field: value})
+    assert parse_change_report(source.document).document == source.document
+    before = snapshot(target), snapshot(trusted)
+
+    with pytest.raises(ValueError, match="planned control"):
+        export_change_posture(source.document)
+
+    assert (snapshot(target), snapshot(trusted)) == before
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("scope_refs", [reference("scope", "src/narrow")]),
+        ("policy_ref", reference("source", "substituted-policy.md")),
+        ("reason_ref", reference("reason", "a different obligation")),
+    ],
+)
+def test_replay_rejects_redigested_narrowed_or_substituted_control_metadata(tmp_path, field, value):
+    _, _, source = changed(tmp_path)
+    doc = export_change_posture(source.document).document
+    control = next(
+        c for c in doc["results"]["controls"] if c["ref"] == reference("control", "project:tests")
+    )
+    control[field] = value
+    redigest(doc)
+
+    with pytest.raises(ValueError, match="planned control"):
+        parse_change_posture(doc)
+
+
+def test_export_accepts_canonical_scope_union_without_losing_planned_metadata(tmp_path):
+    _, _, source = changed(tmp_path)
+    original = next(c.spec for c in source.checks.results if c.spec.id == "project:tests")
+    source = replace_recorded_spec(source, scope=tuple(sorted({*original.scope, "additional"})))
+    assert parse_change_report(source.document).document == source.document
+
+    doc = export_change_posture(source.document).document
+
+    control = next(
+        c for c in doc["results"]["controls"] if c["ref"] == reference("control", "project:tests")
+    )
+    assert set(control["scope_refs"]) == {
+        reference("scope", s) for s in (*original.scope, "additional")
+    }
+    assert control["policy_ref"] == reference("source", original.source_policy)
+    assert control["reason_ref"] == reference("reason", original.reason)
+    assert parse_change_posture(doc).document == doc
+
+
+@pytest.mark.parametrize("section", ["controls", "artifacts", "decisions"])
+@pytest.mark.parametrize("tamper", ["section", "index", "leading-zero"])
+def test_replay_rejects_source_pointers_that_do_not_match_the_record(tmp_path, section, tamper):
+    target, trusted, base = setup(tmp_path)
+    write(target, "src/service.py", "# good changed\n")
+    source = inspect(target, trusted, base, request(llm=True))
+    doc = export_change_posture(source.document).document
+    records = doc["results"]["controls"] if section == "controls" else doc["workflow"][section]
+    assert records
+    prefix = "/checks/results" if section == "controls" else "/plan/" + section
+    records[0]["local_ref"] = {
+        "section": "/plan/checks/0",
+        "index": prefix + "/1",
+        "leading-zero": prefix + "/00",
+    }[tamper]
+    redigest(doc)
+
+    with pytest.raises(ValueError):
+        parse_change_posture(doc)
+
+
 @pytest.mark.parametrize("kind,workflow", [("enhancement", "bounded"), ("feature", "full-feature")])
 def test_projection_preserves_actual_workflow_controls_and_findings_without_writes(
     tmp_path, kind, workflow

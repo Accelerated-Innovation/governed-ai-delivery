@@ -37,6 +37,10 @@ conditional rule applied or a check executed. `workflow.requirements` records
 selected obligations; `results.controls` contains actual recorded outcomes,
 including additional conformance guards. Export rejects missing/weakened planned
 controls and repository identity that contradicts the replayed profile.
+Recorded controls must retain their planned required status, policy reference,
+reason and every planned scope entry. Canonical scope unions may add entries;
+narrowing or substituting the planned specification is rejected in both direct
+projection and saved-export replay.
 
 Canonical `pass`, `fail`, `warn`, `unknown`, `skipped`, `waived` and
 `not-applicable` remain distinct from `executed`, `not-run` and `error`. Execution
@@ -63,6 +67,9 @@ read its full reasons, findings, evidence and suggested actions. Human output
 includes the same control states and finding/action references as JSON. Keep the
 source private and inspect exports before sharing. Schema/digest/replay validation
 establishes consistency, not authenticity, approval or current health.
+Pointers must identify the same section and index as their projected control,
+artifact or decision. Replay rejects cross-section, shifted or noncanonical index
+pointers even when the export digest has been recomputed.
 
 ## Publication and separate snapshots
 

@@ -472,7 +472,7 @@
               },
               "local_ref": {
                 "type": "string",
-                "pattern": "^/(checks/results/[0-9]+|plan/(decisions|checks|artifacts)/[0-9]+)$"
+                "pattern": "^/plan/artifacts/(0|[1-9][0-9]*)$"
               }
             },
             "required": [
@@ -508,7 +508,7 @@
               },
               "local_ref": {
                 "type": "string",
-                "pattern": "^/(checks/results/[0-9]+|plan/(decisions|checks|artifacts)/[0-9]+)$"
+                "pattern": "^/plan/decisions/(0|[1-9][0-9]*)$"
               }
             },
             "required": [
@@ -1011,7 +1011,7 @@
         },
         "local_ref": {
           "type": "string",
-          "pattern": "^/(checks/results/[0-9]+|plan/(decisions|checks|artifacts)/[0-9]+)$"
+          "pattern": "^/checks/results/(0|[1-9][0-9]*)$"
         }
       },
       "required": [

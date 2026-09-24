@@ -43,6 +43,17 @@ def _requirement(c):
     }
 
 
+def _preserves_requirement(planned, recorded):
+    """Canonical merging may add scopes, but retains the planned specification."""
+    return (
+        recorded is not None
+        and (not planned["required"] or recorded["required"])
+        and planned["policy_ref"] == recorded["policy_ref"]
+        and planned["reason_ref"] == recorded["reason_ref"]
+        and set(planned["scope_refs"]) <= set(recorded["scope_refs"])
+    )
+
+
 def _control(c, index):
     return {
         **_requirement(c),
@@ -77,12 +88,6 @@ def export_change_posture(document: dict) -> PostureReport:
     profile, context = plan["inputs"]["profile"], plan["inputs"]["context"]
     if checks["identity"]["repository"] != profile["repository"]["id"]:
         raise DocumentError("Change repository does not match its replayed profile")
-    actual = {c["id"]: c for c in checks["results"]}
-    if any(
-        c["id"] not in actual or (c["required"] and not actual[c["id"]]["required"])
-        for c in plan["checks"]
-    ):
-        raise DocumentError("Missing or weakened planned control in recorded change results")
     identity = checks["identity"]
     result = {
         "schema_version": 1,
@@ -156,6 +161,8 @@ def export_change_posture(document: dict) -> PostureReport:
         },
     }
     result["digest"] = content_digest(canonical_json(result).encode())
+    # Projection and saved-export replay enforce the same obligation/pointer
+    # contract in the privacy-filtered representation.
     return parse_change_posture(result)
 
 
@@ -175,6 +182,13 @@ def parse_change_posture(document: dict) -> PostureReport:
     by_ref = {c["ref"]: c for c in controls}
     if len(by_ref) != len(controls):
         raise DocumentError("Duplicate change control")
+    for records, prefix in (
+        (controls, "/checks/results"),
+        (document["workflow"]["artifacts"], "/plan/artifacts"),
+        (document["workflow"]["decisions"], "/plan/decisions"),
+    ):
+        if any(r["local_ref"] != f"{prefix}/{i}" for i, r in enumerate(records)):
+            raise DocumentError("Source pointer does not match its record")
     for c in controls:
         if (c["label"] == "llm-exact-match") != (
             c["ref"] == reference("control", "llm-exact-match")
@@ -195,8 +209,7 @@ def parse_change_posture(document: dict) -> PostureReport:
             raise DocumentError("Invalid change control outcome")
     requirements = document["workflow"]["requirements"]
     if len({r["ref"] for r in requirements}) != len(requirements) or any(
-        r["ref"] not in by_ref or (r["required"] and not by_ref[r["ref"]]["required"])
-        for r in requirements
+        not _preserves_requirement(r, by_ref.get(r["ref"])) for r in requirements
     ):
         raise DocumentError("Missing or weakened planned control")
     replay = CheckReport(
