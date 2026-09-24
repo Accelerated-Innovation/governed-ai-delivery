@@ -599,3 +599,12 @@ is why the policy names logins rather than teams.
 On Azure DevOps the equivalent is `System.AccessToken`: leave *"Allow scripts to
 access the OAuth token"* enabled and give the build service read access to pull
 requests. Without the token the gate fails closed rather than passing blind.
+
+## Shared gate catalog
+
+`govkit pipeline catalog` provides the new read-only provider-neutral contract;
+see [gate catalogs](../docs/GATE_CATALOG.md). Bundled legacy CI selection now lives
+once in `governance/ci/legacy-selection.json`, referenced by all three agent
+manifests. The templates and legacy install selections documented above are
+preserved. New provider rendering, protected generation and runtime/maintenance
+evidence follow in I10b; catalog presence alone does not prove enforcement.

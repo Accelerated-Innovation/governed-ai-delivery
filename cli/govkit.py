@@ -42,6 +42,7 @@ from .cmd_list import register as _register_list
 from .cmd_maintain import register as _register_maintain
 from .cmd_migrate import register as _register_migrate
 from .cmd_pack import register as _register_pack
+from .cmd_pipeline import register as _register_pipeline
 from .cmd_profile import register as _register_profile
 from .cmd_request import register as _register_request
 from .cmd_stack import register as _register_stack
@@ -67,6 +68,7 @@ _REGISTRARS = (
     _register_request,
     _register_migrate,
     _register_maintain,
+    _register_pipeline,
     _register_stack,
     _register_extension,
     _register_init,

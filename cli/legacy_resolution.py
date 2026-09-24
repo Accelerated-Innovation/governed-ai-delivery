@@ -181,6 +181,8 @@ def adapt_legacy_manifest(
     authority for legacy resource selection. Flat-manifest apply remains on its
     existing separate path, and command validation continues at its boundary.
     """
+    if "ci_catalog" in manifest:
+        raise ValueError("Expand the shared CI catalog at the manifest loading boundary first")
     agent = manifest.get("agent")
     reference = manifest_reference or (
         f"agents/{agent}/manifest.json" if agent else "legacy-manifest"

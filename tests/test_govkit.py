@@ -4170,11 +4170,7 @@ class TestNoUiDimensionInManifests:
 
     @pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
     def test_nextjs_type_is_isolated_and_complete(self, agent):
-        from cli.paths import AGENTS_DIR
-
-        manifest = json.loads(
-            (AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8")
-        )
+        manifest = load_manifest(agent)
         variant = manifest["variants"]["type"]["ui-nextjs"]
 
         assert "docs/ui/architecture/nextjs/" in variant["governed"]
@@ -4319,9 +4315,7 @@ class TestDataCiContract:
     def test_data_ci_contract_is_explicit_in_manifest(
         self, agent, platform, repo_scope, data_common,
     ):
-        from cli.paths import AGENTS_DIR
-
-        manifest = json.loads((AGENTS_DIR / agent / "manifest.json").read_text(encoding="utf-8"))
+        manifest = load_manifest(agent)
         ci_block = manifest["variants"]["ci"][platform]
         expected = [repo_scope, data_common]
 

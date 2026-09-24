@@ -25,6 +25,10 @@
         "$ref": "#/$defs/option"
       }
     },
+    "ci_catalog": {
+      "const": "builtin:legacy-ci-v1",
+      "description": "Shared legacy CI selection expanded by the loader; cannot coexist with variants.ci."
+    },
     "variants": {
       "type": "object",
       "description": "Variant dimensions (type, ci) mapping option values to file lists. The `level` option drives level_4/level_5 overrides inside each variant rather than its own top-level dimension.",
@@ -190,5 +194,11 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": { "required": ["ci_catalog"] },
+      "then": { "properties": { "variants": { "not": { "required": ["ci"] } } } }
+    }
+  ]
 }

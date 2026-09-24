@@ -199,6 +199,7 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 | `govkit discover` | Inspect bounded repository evidence, pending decisions and profile/pack previews; compare an explicit reviewed baseline. See [brownfield discovery](docs/BROWNFIELD_DISCOVERY.md). |
 | `govkit migrate` | Preview legacy-to-profile migration, explicitly apply a reviewed digest, or reverse unchanged owned additions. See [safe legacy migration](docs/LEGACY_MIGRATION.md). |
 | `govkit maintain` | Assess releases, resources, repository fit and CI independently; preview a recommendation and verify subsequent repairs. Inventory and explicit metadata refresh remain available. See [maintenance assessment](docs/MAINTENANCE_ASSESSMENT.md). |
+| `govkit pipeline catalog` | Inspect shared logical gate contracts and composition pins without generating workflows or claiming CI execution. See [gate catalogs](docs/GATE_CATALOG.md). |
 | `govkit conform` | Collect local/JSON check results with required-control, execution and evidence states. See [check reports](docs/CONFORMANCE.md) for scope, explicit pack execution and limitations. |
 | `govkit extension` | `extension list` shows bundled extension packs; `extension add <id> --target <path>` copies one into your project's `extensions/<id>/`. |
 | `govkit upgrade` | Refresh the files govkit owns (contracts, CI gates, templates) to a new version without touching the files you own. |
