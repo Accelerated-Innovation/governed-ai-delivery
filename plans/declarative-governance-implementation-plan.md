@@ -1,6 +1,6 @@
 # Declarative governance implementation plan
 
-Status: I00–I10a merged; I10b reusable provider entry points and protected generation verified locally, delivery pending.
+Status: I00–I10a merged; I10b delivered in PR #193; review/integration pending; I10c follows.
 Plan version: 1.29.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
@@ -605,7 +605,7 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 | I07 | complete | [PR #187](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/187) merged as 9466c79; review fixes 2ba06e1; 4,098 fast tests, 63 final focused tests and seven wheel pilots passed | Final-head Tests run 35978562236 passed; #178/#179 closed |
 | I08 | complete | [PR #189](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/189) merged fc8218c; review fixes 579202a; 4,154 local fast-suite passes and runtime-only wheel pilots | No final-head CI run returned by connector or gh; no Qodo clean verdict inferred |
 | I09 | complete | [I09a PR #190](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/190); installed-compliance review fix, 21 additional regression/control cases, 4,215 fast-suite passes and final three-agent runtime wheel pilot | I09a merged as 8601b53; final-head CI passed; I09b delivered in [PR #191](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/191): four Qodo bugs remediated, 4,272 fast-suite passes and six runtime wheel pilots; I09b merged 851ec80; final-head Tests run 35997245561 passed; #145/#146 closed |
-| I10 | in progress | [I10a PR #192](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/192), implementation 48b94c7; review fixes f2ff05d address five findings with 20 regressions/controls, 4,325 fast-suite passes, runtime-only catalog/migration pilots and 258 frozen selections | I10a merged ab2837a; final-head Tests run 36001631233 passed. I10b locally verified: 51 added cases, 4,376 fast-suite passes, real scripts for three agents/both providers from the fresh wheel; delivery pending. I10c retains provider authority/maintenance evidence |
+| I10 | in progress | [I10a PR #192](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/192), implementation 48b94c7; review fixes f2ff05d address five findings with 20 regressions/controls, 4,325 fast-suite passes, runtime-only catalog/migration pilots and 258 frozen selections | I10a merged ab2837a; final-head Tests run 36001631233 passed. I10b [PR #193](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/193), implementation cc06e4e: 51 added cases, 4,376 fast-suite passes, real scripts for three agents/both providers from the fresh wheel; review/integration pending. I10c retains provider authority/maintenance evidence |
 | I11 | not started | — | Core reporting after I07; full report after I09–I10 |
 | I12 | not started | — | Wait for I08, I10–I11 |
 | I13 | not started | — | Pilot observations may begin at I07 |
@@ -613,11 +613,11 @@ Allowed statuses: not started, in progress, blocked, complete. Complete requires
 Current handoff:
 
 - Completed: I00–I10a merged. PR #192 merged as `ab2837aa665469897fb58d1389b168e920ff8e76`, identical to final head `0e0f079`. [Final-head Tests run 36001631233](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/36001631233) passed Python 3.11/3.12 fast suites, e2e/toolchains and wheel-smoke. Merge does not establish a clean Qodo review.
-- Current increment: I10b on `feat/147-provider-pipeline-generation`; reusable GitHub/Azure entry points, explicit runtime/policy/pack pins and protected preview/generate/check. I10c retains event/trusted-checkout admission and maintenance/provider evidence. All original acceptance remains required.
+- Current increment: I10b delivered as implementation `cc06e4e` in [PR #193](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/193) on `feat/147-provider-pipeline-generation`; reusable GitHub/Azure entry points, explicit runtime/policy/pack pins and protected preview/generate/check. I10c retains event/trusted-checkout admission and maintenance/provider evidence. All original acceptance remains required.
 - Cleanup: fetched/pruned, fast-forwarded main, proved identical merged trees, removed the merged I10a branch and 27 known I10a/PR192 temporary artifacts. Preserved `.venv`; no consumer bundle installed into the source repository.
 - Review limitation: Qodo local review retains `repo_not_connected` / `MT-WORKSPACE-NO-REPOS` / HTTP 403 `WORKSPACE_HAS_NO_AUTHORIZED_REPOS`; user support work is ongoing, so do not retry before reconnection confirmation. Structured PR-review reads work; no clean verdict is inferred.
 - Issue tracking: #147/#149/#142 remain open. One #147 criterion is integrated and five further criteria are demonstrated locally in I10b; five remain for I10c. #149 awaits I12/I13.
-- Next action: commit/push I10b and open its PR under standing authorization, then review/integrate. No merge without separate authorization; I10c follows integration.
+- Next action: review/integrate PR #193, then implement I10c test first. New hosted CI is pending. No merge without separate authorization.
 - Open product input: FeaturePeers definition, representative team repos, pilot participants and the actual legacy-removal release remain later decisions. Legacy commands remain supported.
 
 Use this record after each session:
@@ -853,6 +853,8 @@ Next ready action:
 - **Acceptance/status:** five further #147 criteria are demonstrated locally: stable request-dependent execution, equivalent renderer gates/policy, deterministic protected generation, missing/drift check mode and contract/golden controls. Together with integrated I10a this is six of eleven criteria. The five remaining criteria retain provider admission/enforcement, complete integration/maintenance facts, publication and selected-upgrade integration preview for I10c. #147/#149/#142 stay open; #149 awaits self-hosting/retirement.
 - **Pre-delivery verification:** all 23 non-plan delivery paths match the recorded reviewed/tested fingerprint; the 24-path change has no unrelated edits. Only plan delivery metadata will change after validation.
 - **Review/limits:** reused Appendix B's already loaded Qodo rules for inward boundaries, bounded inputs, isolated meaningful real-path tests, live bundled paths and installed-wheel verification. Reviewed the local diff. Qodo local review retains `repo_not_connected` / `MT-WORKSPACE-NO-REPOS` / HTTP 403 `WORKSPACE_HAS_NO_AUTHORIZED_REPOS`; support work is ongoing, so no retry or clean verdict is claimed. Local validation uses Python 3.12 and synthetic Bash/Git fixtures, not hosted provider enforcement. No new hosted CI, full local toolchain, Python 3.11 or Windows pass is claimed. The example runtime pin identifies this source build, not publication availability.
+
+- **Delivery:** committed/pushed implementation `cc06e4e092e4c9f41f5d75b47272cd01ff61656f` on `feat/147-provider-pipeline-generation` and opened [PR #193](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/193) against main with `Refs #147, #149, #142`. Updated all three issue status bodies and the five newly demonstrated #147 criteria; all three issues stay open. This plan-only follow-up records delivery after verifying all 23 non-plan paths still match the tested fingerprint. Unchanged implementation tests were not repeated. No merge was performed; review and hosted CI remain pending.
 
 ### Decision log
 
