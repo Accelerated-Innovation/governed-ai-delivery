@@ -198,6 +198,7 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 | `govkit pack` | `pack list`, `preview`, `apply`, `verify`, and `check` compose explicit capabilities, install pinned resources/native skills, and run independent controls. |
 | `govkit discover` | Inspect bounded repository evidence, pending decisions and profile/pack previews; compare an explicit reviewed baseline. See [brownfield discovery](docs/BROWNFIELD_DISCOVERY.md). |
 | `govkit migrate` | Preview legacy-to-profile migration, explicitly apply a reviewed digest, or reverse unchanged owned additions. See [safe legacy migration](docs/LEGACY_MIGRATION.md). |
+| `govkit maintain` | Inventory versions/resource drift, inspect policy-allowed release candidates, and explicitly refresh an external metadata cache. See [maintenance inventory](docs/MAINTENANCE_INVENTORY.md). |
 | `govkit conform` | Collect local/JSON check results with required-control, execution and evidence states. See [check reports](docs/CONFORMANCE.md) for scope, explicit pack execution and limitations. |
 | `govkit extension` | `extension list` shows bundled extension packs; `extension add <id> --target <path>` copies one into your project's `extensions/<id>/`. |
 | `govkit upgrade` | Refresh the files govkit owns (contracts, CI gates, templates) to a new version without touching the files you own. |
