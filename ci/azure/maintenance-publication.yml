@@ -1,0 +1,15 @@
+# Optional Azure DevOps Services steps AFTER an explicitly requested assessment.
+# The protected caller selects one newly created file and publication opt-in.
+parameters:
+  - name: publishAssessment
+    type: boolean
+    default: false
+  - name: assessmentFile
+    type: string
+steps:
+  - task: PublishPipelineArtifact@1
+    displayName: Publish selected GovKit maintenance assessment
+    condition: and(always(), ${{ parameters.publishAssessment }})
+    inputs:
+      targetPath: ${{ parameters.assessmentFile }}
+      artifact: govkit-maintenance-assessment

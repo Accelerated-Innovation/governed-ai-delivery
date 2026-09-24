@@ -1,0 +1,27 @@
+{
+  "event_name": "pull_request",
+  "payload": {
+    "action": "synchronize",
+    "repository": {
+      "full_name": "example/service"
+    },
+    "pull_request": {
+      "number": 7,
+      "state": "open",
+      "draft": false,
+      "base": {
+        "ref": "main",
+        "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "repo": {
+          "full_name": "example/service"
+        }
+      },
+      "head": {
+        "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "repo": {
+          "full_name": "example/service"
+        }
+      }
+    }
+  }
+}

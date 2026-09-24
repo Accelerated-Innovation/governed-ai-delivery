@@ -24,5 +24,13 @@ their bindings are not portable team policy. See [protected pipeline generation]
 
 The additional provider wheel pilot generates both integrations and runs their
 actual scripts for all agents, bounded/full-feature/LLM requests and a failing
-evaluation. I10b supplies protected generation and prepared-input execution;
-event/trusted-checkout admission, maintenance and actual provider evidence remain I10c.
+evaluation. I10c adds `*-admission-settings.json`, native `*-event.json`,
+`*-admitted-entrypoint.yml` goldens and strict `*-observation.json` records. All
+observation enforcement facts start as null: these examples are not live CI proof.
+The provider evidence pilot admits clean source/policy commits and accepted request
+bytes, checks canonical maintenance parity, and keeps missing or unauthenticated
+exports unknown even when every supplied enforcement value is true. Explicit
+failures survive mismatched runtime reports; no-lock CLI upgrades use available
+pack snapshots only for a read-only proposal.
+See [provider evidence](../../../docs/PROVIDER_EVIDENCE.md) for collection authority,
+explicit publication, optional metadata refresh and protected upgrade previews.

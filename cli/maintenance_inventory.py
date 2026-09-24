@@ -16,6 +16,7 @@ from . import version
 from .change_scope import capture_change
 from .pack_loading import contained_file, load_pack, safe_relative
 from .pack_store import preview_install, verify_lock
+from .pipeline_layout import DESTINATIONS, LOCK
 from .profiles import load_resolution, parse_profile
 from .release_metadata import parse_metadata, select_candidates, timestamp, validate_source_url
 from .schema_validation import (
@@ -175,6 +176,8 @@ def inventory_repository(target: Path, *, as_of=None, metadata=()):
                 }
         except ValueError:
             problems.append(f"{kind}:invalid")
+    for name in (LOCK, *DESTINATIONS.values()):
+        _, inputs[name] = _observe(target, name)
     resources, total = [], 0
     if lock:
         for name, expected in sorted(lock["files"].items()):

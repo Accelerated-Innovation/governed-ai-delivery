@@ -11,12 +11,11 @@ from .gate_catalog import compose_catalog
 from .pack_loading import load_pack
 from .pack_store import _destination
 from .pipeline_files import bound_pipeline_files
+from .pipeline_layout import LOCK
 from .pipeline_render import PipelineArtifact, parse_render, parse_settings, render_pipeline
 from .pipeline_runtime import read_input
 from .profiles import parse_profile
 from .schema_validation import DocumentError, canonical_json, content_digest, parse_document
-
-LOCK = ".govkit/pipeline-lock.json"
 
 
 @dataclass(frozen=True)
@@ -93,6 +92,21 @@ def preview_pipeline(source, target, settings_source, packs):
     artifact = render_pipeline(catalog, settings)
     if len((artifact.to_json() + "\n").encode()) > 4 * 1024 * 1024:
         raise DocumentError("Proposed generated pipeline metadata is too large to read back")
+    operations = preview_artifact_operations(target, artifact)
+    return PipelinePreview(
+        source,
+        target,
+        settings_source,
+        tuple(packs),
+        source_content,
+        settings_content,
+        artifact,
+        operations,
+    )
+
+
+def preview_artifact_operations(target, artifact):
+    """Compare a proposed render against managed originals, retaining all protection rules."""
     old_bytes, _, _ = _state(target, LOCK)
     old = None
     if old_bytes is not None:
@@ -124,16 +138,7 @@ def preview_pipeline(source, target, settings_source, packs):
         else:
             action = "preserve" if before == content else "update"
         operations.append(PipelineOperation(relative, action, before, content, mode, mtime))
-    return PipelinePreview(
-        source,
-        target,
-        settings_source,
-        tuple(packs),
-        source_content,
-        settings_content,
-        artifact,
-        tuple(operations),
-    )
+    return tuple(operations)
 
 
 def check_pipeline(preview):

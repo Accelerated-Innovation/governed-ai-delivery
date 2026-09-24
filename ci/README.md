@@ -607,6 +607,7 @@ see [gate catalogs](../docs/GATE_CATALOG.md). Bundled legacy CI selection now li
 once in `governance/ci/legacy-selection.json`, referenced by all three agent
 manifests. The templates and legacy install selections documented above are
 preserved. [Protected pipeline generation](../docs/PIPELINE_GENERATION.md) supplies
-reusable GitHub/Azure entry points over caller-prepared inputs. Event admission,
-trusted checkout selection and maintenance/provider evidence follow in I10c;
-catalog or generated-file presence alone does not prove enforcement.
+reusable GitHub/Azure entry points over caller-prepared inputs. [Provider admission and evidence](../docs/PROVIDER_EVIDENCE.md) add paired PR
+context checks, explicit maintenance inputs and opt-in publication examples. The
+publication files are caller snippets, not automatically installed workflows.
+Catalog or generated-file presence alone does not prove enforcement.
