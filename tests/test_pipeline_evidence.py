@@ -111,15 +111,10 @@ def states(report):
 @pytest.mark.parametrize("provider", ["github", "azure"])
 def test_provider_facts_feed_the_same_read_only_maintenance_assessment(tmp_path, provider):
     target, config, runtime, observation = configured(tmp_path, provider)
-    before = snapshot(target)
     report = collect(target, config, runtime, observation)
-    assert set(states(report).values()) == {"pass"}
-    assert (
-        dimensions(assess_repository(target, as_of=AS_OF, ci_report=report.to_document()))["ci"][
-            "state"
-        ]
-        == "pass"
-    )
+    before = snapshot(target)
+    assessment = assess_repository(target, as_of=AS_OF, ci_report=report.to_document())
+    assert dimensions(assessment)["ci"]["state"] == "unknown"
     assert snapshot(target) == before
     assert any(
         "authenticate" in limit
@@ -181,9 +176,8 @@ def test_pipeline_drift_is_an_actionable_configuration_failure(tmp_path, change)
     assert states(report)["ci:integration"] == "fail"
 
 
-def test_saved_pass_is_invalidated_by_ignored_pipeline_edit(tmp_path):
-    target, config, runtime, observation = configured(tmp_path)
-    evidence = collect(target, config, runtime, observation).to_document()
+def test_saved_evidence_is_invalidated_by_ignored_pipeline_edit(tmp_path):
+    target, config, _, _ = configured(tmp_path)
     # Remove the generated files from the index and ignore them before collecting again.
     git(target, "rm", "--cached", ".github/actions/govkit-conformance/action.yml")
     (target / ".gitignore").write_text(".github/actions/govkit-conformance/action.yml\n")
@@ -198,7 +192,7 @@ def test_saved_pass_is_invalidated_by_ignored_pipeline_edit(tmp_path):
     assert any("inputs" in s for s in ci["uncertainty"])
 
 
-def test_recollection_preserves_oldest_runtime_time_instead_of_renewing_a_pass(tmp_path):
+def test_recollection_preserves_oldest_runtime_time_instead_of_renewing_evidence(tmp_path):
     target, config, runtime, observation = configured(tmp_path)
     oldest = "2026-09-23T13:00:00Z"
     runtime["checks"]["identity"]["observed_at"] = oldest
@@ -206,7 +200,7 @@ def test_recollection_preserves_oldest_runtime_time_instead_of_renewing_a_pass(t
 
     observation["report_digest"] = content_digest(canonical_json(runtime).encode())
     report = collect(target, config, runtime, observation)
-    assert states(report)["ci:integration"] == "pass"
+    assert states(report)["ci:integration"] == "unknown"
     assert report.identity.observed_at == oldest
 
 

@@ -22,11 +22,11 @@ class Admission:
 def _sha(value):
     if (
         not isinstance(value, str)
-        or not re.fullmatch(r"(?:[a-f0-9]{40}|[a-f0-9]{64})", value)
+        or not re.fullmatch(r"(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})", value)
         or set(value) == {"0"}
     ):
         raise DocumentError("Provider admission requires full nonzero commit SHAs")
-    return value
+    return value.lower()
 
 
 def parse_event(policy, event):

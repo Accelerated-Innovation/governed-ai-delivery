@@ -23,7 +23,11 @@ credentials or network calls. Report configuration, runtime and enforcement
 separately as canonical checks; reuse them through `assess_repository`. Preserve
 null, freshness, identities and source limitations. Track fixed generated paths
 in maintenance inventory even when Git ignores them. Collection does not
-authenticate exported JSON or install external branch/reviewer controls.
+authenticate exported JSON or install external branch/reviewer controls. Imported
+runtime/enforcement evidence is marked `unverified-artifact`; positive claims stay
+unknown, while explicit negative observations remain actionable even when a
+separate runtime report mismatches. A local consistency check cannot promote an
+unauthenticated export to independently executed evidence.
 
 Publish only a caller-selected new file outside inspected/trusted checkouts,
 using no-follow directory handles and create-only atomic linking. Native artifact

@@ -14,6 +14,7 @@ from cli import paths
 from cli.maintenance import assess_repository
 from cli.pack_loading import bundled_catalog
 from cli.pack_store import apply_install, preview_install
+from cli.pipeline_assessment import upgrade_integration_preview
 from cli.pipeline_evidence import collect_evidence
 from cli.pipeline_store import apply_pipeline, preview_pipeline
 from cli.schema_validation import canonical_json, content_digest
@@ -91,12 +92,12 @@ def run_pilot(workspace, agent, provider):
         "GOVKIT_PYTHON": sys.executable,
         "GOVKIT_TARGET": str(target),
         "GOVKIT_POLICY_TARGET": str(trusted),
-        "GOVKIT_BASE": base,
+        "GOVKIT_BASE": base.upper(),
         "GOVKIT_REQUEST": str(req),
         "GOVKIT_PACK_ARGUMENTS": str(arguments),
         "GOVKIT_OBSERVED_AT": AS_OF,
         "GOVKIT_PROVIDER_EVENT": str(event_path),
-        "GOVKIT_POLICY_REVISION": git(trusted, "rev-parse", "HEAD"),
+        "GOVKIT_POLICY_REVISION": git(trusted, "rev-parse", "HEAD").upper(),
         "GOVKIT_REQUEST_DIGEST": content_digest(req.read_bytes()),
         "GOVKIT_CHANGE_OUTPUT": str(output),
     }
@@ -133,7 +134,13 @@ def run_pilot(workspace, agent, provider):
         change_report=runtime,
         observation=observation,
     )
-    assert evidence.exit_code == 0
+    assert evidence.exit_code == 1 and evidence.state.value == "unknown"
+    assert all(
+        result.outcome.state.value == "unknown"
+        and {proof.origin for proof in result.outcome.evidence} == {"unverified-artifact"}
+        for result in evidence.results
+        if result.spec.id in {"ci:runtime", "ci:enforcement"}
+    )
     expected = assess_repository(target, as_of=AS_OF, ci_report=evidence.to_document()).document
     assessment_path = workspace / "assessment.json"
     assessment = subprocess.run(
@@ -166,10 +173,83 @@ def run_pilot(workspace, agent, provider):
     assert json.loads(assessment.stdout) == json.loads(assessment_path.read_text()) == expected
     assert (
         next(r for r in expected["checks"]["results"] if r["id"] == "maintenance:ci")["state"]
-        == "pass"
+        == "unknown"
     )
     missing = collect_evidence(target, settings_path, bundled_catalog(), as_of=AS_OF)
     assert missing.exit_code == 1 and missing.state.value == "unknown"
+    failure = collect_evidence(
+        target,
+        settings_path,
+        bundled_catalog(),
+        as_of=AS_OF,
+        change_report=runtime,
+        observation={**observation, "required_check": False, "report_digest": "d" * 64},
+    )
+    assert failure.state.value == "fail"
+    assert (
+        next(r for r in failure.results if r.spec.id == "ci:enforcement").outcome.state.value
+        == "fail"
+    )
+    assert (
+        next(r for r in failure.results if r.spec.id == "ci:runtime").outcome.state.value
+        == "unknown"
+    )
+
+    uninstalled = workspace / "uninstalled"
+    desired = {
+        **profile,
+        "maintenance": {
+            "sources": [
+                {
+                    "id": "team",
+                    "url": "https://example.invalid/releases.json",
+                    "channels": ["stable"],
+                }
+            ],
+            "constraints": [
+                {
+                    "component": "govkit",
+                    "source_id": "team",
+                    "channel": "stable",
+                    "compatibility": ">=0.21,<1",
+                }
+            ],
+            "metadata_max_age_hours": 24,
+        },
+    }
+    write(uninstalled, ".govkit/profile.yaml", json.dumps(desired))
+    metadata = {
+        "schema_version": 1,
+        "kind": "release-metadata",
+        "source_id": "team",
+        "source_url": "https://example.invalid/releases.json",
+        "as_of": AS_OF,
+        "retrieved_at": AS_OF,
+        "lookup_status": "cached",
+        "releases": [
+            {
+                "component": "govkit",
+                "version": "0.22.0",
+                "channel": "stable",
+                "requires_govkit": ">=0.21",
+                "requires_python": ">=3.11",
+                "dependencies": {},
+            }
+        ],
+    }
+    before_upgrade = assess_repository(uninstalled, as_of=AS_OF, metadata=(metadata,)).document
+    selected = next(
+        r["id"] for r in before_upgrade["recommendations"] if r["action"] == "upgrade-cli"
+    )
+    upgrade = upgrade_integration_preview(
+        uninstalled, before_upgrade, selected, settings_path, catalog=bundled_catalog(), as_of=AS_OF
+    )
+    assert upgrade["integration"]["artifact"]["catalog"]["ready"]
+    assert upgrade["integration"]["artifact"]["binding"]["govkit_version"] == "0.22.0"
+    assert not upgrade["integration"]["writes_authorized"]
+    assert sorted(
+        p.relative_to(uninstalled).as_posix() for p in uninstalled.rglob("*") if p.is_file()
+    ) == [".govkit/profile.yaml"]
     # Unsupported events reject before executing or publishing a second artifact.
     event["event_name"] = "push"
     event_path.write_text(json.dumps(event))
@@ -193,5 +273,5 @@ if __name__ == "__main__":
             for provider in ("github", "azure"):
                 run_pilot(Path(directory).resolve() / agent / provider, agent, provider)
     print(
-        "Three agents, both providers: admitted scripts, explicit publication, canonical maintenance parity and unknown/rejected controls verified; provider exports are synthetic."
+        "Three agents, both providers: uppercase admission, explicit publication, canonical unknown evidence, preserved failures and no-lock upgrade previews verified; provider exports are synthetic."
     )

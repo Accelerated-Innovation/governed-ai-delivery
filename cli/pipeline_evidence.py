@@ -101,14 +101,14 @@ def collect_evidence(
         if bound:
             observed_at = observation["observed_at"]
             values = [observation[key] for key in ENFORCEMENT]
-            state = (
-                State.FAIL if False in values else State.UNKNOWN if None in values else State.PASS
-            )
+            # Negative observations are actionable, but caller assertions cannot
+            # independently establish that external controls are enforced.
+            state = State.FAIL if False in values else State.UNKNOWN
             facts["enforcement"] = (
                 state,
                 "Provider export: "
                 + ", ".join(f"{key}={observation[key]}" for key in ENFORCEMENT)
-                + ". Verify protected caller and provider settings.",
+                + ". Provider origin is unauthenticated; verify protected caller and provider settings.",
             )
     if change_report is not None:
         runtime = parse_change_report(change_report)
@@ -132,7 +132,7 @@ def collect_evidence(
         )
         if matched:
             observed_at = min((observed_at, runtime.checks.identity.observed_at), key=timestamp)
-            state = runtime.state
+            state = State.FAIL if runtime.state is State.FAIL else State.UNKNOWN
             if (
                 observation["runtime_version"] != settings.govkit_version
                 or runtime.checks.govkit_version != settings.govkit_version
@@ -140,12 +140,12 @@ def collect_evidence(
                 state = State.FAIL
             facts["runtime"] = (
                 state,
-                "Bound change results: "
-                + state.value
-                + "; check runtime pin and required conformance outcomes.",
+                "Reported change results: "
+                + runtime.state.value
+                + "; execution origin is unauthenticated. Check runtime pin and required conformance outcomes.",
             )
         elif bound:
-            facts["enforcement"] = (
+            facts["runtime"] = (
                 State.UNKNOWN,
                 "Provider run and change report identities disagree; collect matching evidence.",
             )
@@ -192,7 +192,9 @@ def collect_evidence(
                             "pipeline:" + name,
                             (".",),
                             "bounded-local-and-provider-export-comparison",
-                            "local-check",
+                            "unverified-artifact"
+                            if name in {"runtime", "enforcement"}
+                            else "local-check",
                             proofs.get(name),
                             LIMITATIONS,
                         ),

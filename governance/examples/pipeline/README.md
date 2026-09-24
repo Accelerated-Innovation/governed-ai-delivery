@@ -28,6 +28,9 @@ evaluation. I10c adds `*-admission-settings.json`, native `*-event.json`,
 `*-admitted-entrypoint.yml` goldens and strict `*-observation.json` records. All
 observation enforcement facts start as null: these examples are not live CI proof.
 The provider evidence pilot admits clean source/policy commits and accepted request
-bytes, checks canonical maintenance parity, and preserves unknown missing exports.
+bytes, checks canonical maintenance parity, and keeps missing or unauthenticated
+exports unknown even when every supplied enforcement value is true. Explicit
+failures survive mismatched runtime reports; no-lock CLI upgrades use available
+pack snapshots only for a read-only proposal.
 See [provider evidence](../../../docs/PROVIDER_EVIDENCE.md) for collection authority,
 explicit publication, optional metadata refresh and protected upgrade previews.

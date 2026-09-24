@@ -33,7 +33,9 @@ def upgrade_integration_preview(
         )
     settings = parse_settings(parse_document(read_input(Path(settings_source))))
     lock = document["inventory"]["locked_packs"]
-    packs = []
+    # Before installation, a CLI upgrade proposal can resolve the accepted profile
+    # from explicit available snapshots. Existing locks retain their pinned closure.
+    packs = list(catalog) if not lock and selected["component"] == "govkit" else []
     for entry in lock:
         if entry["id"] == selected["component"]:
             candidates = [

@@ -25,6 +25,17 @@ from .version import GOVKIT_VERSION
 
 def cmd_pipeline(args):
     try:
+        incompatible = {
+            "evidence": ("assessment", "recommendation", "metadata", "release_source"),
+            "assess": ("assessment", "recommendation"),
+            "upgrade-preview": ("change_report", "observation", "metadata", "release_source"),
+        }
+        for name in incompatible.get(args.action, ()):
+            value = getattr(args, name)
+            if value is not None and value != []:
+                raise ValueError(
+                    f"--{name.replace('_', '-')} is not valid for pipeline {args.action}"
+                )
         target = Path(args.target).absolute()
         source = (
             Path(args.profile) if args.profile else contained_file(target, ".govkit/profile.yaml")
@@ -62,8 +73,6 @@ def cmd_pipeline(args):
                     else None,
                 )
                 if args.action == "evidence":
-                    if args.release_source or args.metadata:
-                        raise ValueError("Release metadata belongs to pipeline assess")
                     output = evidence.to_document()
                 else:
                     metadata = tuple(parse_document(read_input(Path(p))) for p in args.metadata)

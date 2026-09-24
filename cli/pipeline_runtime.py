@@ -58,6 +58,7 @@ def run_bound(
         raise DocumentError("Pipeline checkout/request paths must be absolute")
     if not isinstance(base, str) or not re.fullmatch(r"(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})", base):
         raise DocumentError("Pipeline base must be a full trusted Git commit SHA")
+    base = base.lower()
     request_content = read_input(request_path)
     if "admission" in binding:
         if content_digest(request_content) != request_digest:
