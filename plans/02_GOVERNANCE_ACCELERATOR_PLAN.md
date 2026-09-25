@@ -621,7 +621,7 @@ Bundles A1, A2, A11 because they share the marker/copy code paths and would be e
 ### PR 6b — Externalize claude-code skills + rule globs
 - Audit and rewrite the four claude-code skills (architecture-preflight, spec-planning, implementation-plan, adr-author) to read `skill_context.yaml` and installed governance docs (per A4 — file references allowed, vocabulary not).
 - Convert `.claude/rules/*.md` glob frontmatter to load from `skill_context.layers.*`.
-- **Preserve existing extension contracts** (per R4): the architecture-preflight skill's §2.6 Extension Discovery block at [SKILL.md:28-44](agents/claude-code/skills/backend/architecture-preflight/SKILL.md#L28-L44) and the extension manifest's `agent_guidance.architecture_preflight` contract must keep working.
+- **Preserve existing extension contracts** (per R4): the architecture-preflight skill's [§2.6 Extension Discovery block](../agents/claude-code/skills/backend/govkit-architecture-preflight/SKILL.md#26-extension-discovery) and the extension manifest's `agent_guidance.architecture_preflight` contract must keep working.
 - Validates the externalization pattern in one agent before fanning out.
 
 ### PR 6c — Replicate to copilot + codex + split TECH_STACK
