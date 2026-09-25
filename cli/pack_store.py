@@ -22,6 +22,7 @@ from packaging.version import InvalidVersion, Version
 from . import version
 from .agent_layout import AGENT_LAYOUTS
 from .fs import stage_bytes
+from .native_skills import SKILL_RENDERING, render_skill, skill_aliases
 from .pack_loading import PackError, load_pack, safe_relative
 from .pack_models import PackDecision, PackResolution, PackSnapshot
 from .pack_resolution import resolve_packs
@@ -108,24 +109,42 @@ def _existing(target: Path, relative: str) -> bytes | None:
     return path.read_bytes() if path.exists() else None
 
 
-def _resources(profile: ProjectProfile, resolution: PackResolution):
+def _resources(
+    profile: ProjectProfile,
+    resolution: PackResolution,
+    *,
+    skill_rendering: str | None = SKILL_RENDERING,
+):
     """Derive every owned destination from verified manifests, never lock paths."""
     files, owners, checks = {}, {}, {}
     agent = profile.repository.integrations.agent
+    native_skills = False
     for pack in resolution.packs:
         prefix = f".govkit/packs/{pack.id}/{pack.digest}"
         for item in pack.files:
             relative = f"{prefix}/{item.path}"
             files[relative], owners[relative] = item.content, pack.id
+        source_files = {item.path: item.content for item in pack.files}
+        aliases = (
+            skill_aliases(
+                (skill.install_as, source_files[f"{skill.path}/SKILL.md"]) for skill in pack.skills
+            )
+            if skill_rendering
+            else {}
+        )
         for skill in pack.skills:
             if agent not in AGENT_LAYOUTS:
                 continue  # Resolution reports missing/unsupported integration.
+            native_skills = True
             for item in pack.files:
                 if not item.path.startswith(skill.path + "/"):
                     continue
                 suffix = item.path[len(skill.path) + 1 :]
                 relative = f"{AGENT_LAYOUTS[agent].skills_dir}/{skill.install_as}/{suffix}"
-                files[relative] = item.content.replace(b"{{pack_root}}", prefix.encode())
+                content = item.content
+                if skill_rendering and suffix == "SKILL.md":
+                    content = render_skill(content, skill.install_as, aliases)
+                files[relative] = content.replace(b"{{pack_root}}", prefix.encode())
                 owners[relative] = pack.id
         for check in pack.checks:
             checks[check.id] = {
@@ -148,6 +167,8 @@ def _resources(profile: ProjectProfile, resolution: PackResolution):
         "owners": dict(sorted(owners.items())),
         "execution": "not-run",
     }
+    if native_skills and skill_rendering:
+        lock["skill_rendering"] = skill_rendering
     return files, owners, lock
 
 
@@ -176,7 +197,9 @@ def _read_lock(target: Path):
     resolution = resolve_packs(profile, tuple(catalog), govkit_version=document["govkit_version"])
     if not resolution.ready:
         raise PackError("Pinned lock has unresolved requirements")
-    files, owners, expected = _resources(profile, resolution)
+    files, owners, expected = _resources(
+        profile, resolution, skill_rendering=document.get("skill_rendering")
+    )
     if canonical_json(document) != canonical_json(expected):
         raise PackError(
             "Lock does not match its pinned manifests/profile/ownership; reconcile it explicitly"

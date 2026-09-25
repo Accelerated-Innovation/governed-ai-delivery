@@ -217,7 +217,9 @@ class TestExtensionAddSkills:
         cmd_extension_add(_add_args("craft-pack", target))
 
         installed = target / skills_dir / "craft-unit-testing"
-        assert (installed / "SKILL.md").read_text(encoding="utf-8") == self.SKILL_BODY
+        assert (installed / "SKILL.md").read_text(encoding="utf-8") == self.SKILL_BODY.replace(
+            "name: unit-testing", "name: craft-unit-testing"
+        )
         assert (installed / "references" / "notes.md").is_file()
 
     def test_existing_skill_dir_is_skipped_not_clobbered(self, tmp_path, monkeypatch, capsys):
@@ -243,7 +245,9 @@ class TestExtensionAddSkills:
 
         cmd_extension_add(_add_args("craft-pack", target, force=True))
 
-        assert (team_copy / "SKILL.md").read_text(encoding="utf-8") == self.SKILL_BODY
+        assert (team_copy / "SKILL.md").read_text(encoding="utf-8") == self.SKILL_BODY.replace(
+            "name: unit-testing", "name: craft-unit-testing"
+        )
 
     def test_no_marker_warns_and_installs_pack_but_not_skills(
         self, tmp_path, monkeypatch, capsys

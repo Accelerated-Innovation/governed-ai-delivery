@@ -89,6 +89,26 @@ Frontmatter is identical across agents. Relative references inside a skill remai
 
 Preview reports `create`, `preserve`, `update`, `remove`, or `protected` per file, including its owner and before/proposed digests. A prior valid lock must prove ownership before an existing file can be replaced or removed. User-authored files, modified native skills and edited lock metadata are protected. There is no force option. Reapplying unchanged inputs preserves bytes and modification times. Removing a capability removes only its unedited owned files; other files in those directories remain untouched. Empty directories can remain.
 
+Native `SKILL.md` copies use the manifest's `install_as` as their frontmatter
+`name`. Their descriptions and bodies use the same aliases for standalone
+hyphenated sibling identifiers, code-formatted identifiers, and `/name` or
+`$name` invocations. Ordinary one-word prose, URLs, Markdown link destinations,
+file paths and longer identifiers are preserved. References map only within the
+same pack; ambiguous sibling names are not guessed. Each skill's own identity
+remains explicit. Other files, including `SOURCE_NOTES.md`, supporting resources
+and licenses, retain their upstream content. This does not infer invocation
+policy or rewrite resource links. Packs should supply valid frontmatter;
+historical files without a valid name remain unchanged.
+
+New skill-bearing locks record `skill_rendering: install-as-v1` and hash the
+rendered native bytes separately from the unchanged pinned source bytes.
+Historical locks without this field still verify offline using their original
+byte-copy renderer. An explicit `pack preview` / `pack apply` refresh upgrades
+unedited native copies and the lock together; customized copies block that
+refresh. Older GovKit runtimes whose strict lock schema lacks this field cannot
+read the new lock: upgrade those runtimes, or restore the entire prior committed
+lock/resource set to roll back. Locks without native skills remain unchanged.
+
 Missing or modified pinned resources invalidate the lock; restore the committed lock/resource set before attempting an update. Native skill edits can be moved to a separate user-owned skill or represented by a reviewed local pack. Reconcile ownership explicitly rather than deleting a lock to claim existing files. Symlinks, path escapes, stale previews and incompatible requirements fail before installation. Writes are staged, replaced per file, and rolled back on caught failures; this is not a cross-process transaction or crash-recovery journal. Avoid concurrent writers.
 
 `pack verify` replays manifests and the accepted profile, checks owned paths/hashes, and validates the running GovKit minimum. It needs no original local source directory. Previewing a change to a local selection requires its explicit source again; the pinned `.govkit/packs/<id>/<digest>` directory can be supplied as that local source for offline work. Ownership/digests prove consistency, not source authenticity or approval.

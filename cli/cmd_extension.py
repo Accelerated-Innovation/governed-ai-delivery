@@ -43,6 +43,7 @@ from .extensions import (
     validate_extension,
 )
 from .marker import read_govkit_marker
+from .native_skills import render_skill, skill_aliases
 
 
 def _bundled_packs() -> list:
@@ -182,6 +183,7 @@ def _install_pack_skills(
     skills_base = target / layout.skills_dir
     skills_root = skills_base.resolve()
     declared_now: set[str] = set()
+    sources = []
     for entry in skills:
         if not isinstance(entry, dict):
             continue
@@ -197,6 +199,12 @@ def _install_pack_skills(
         if not source.is_relative_to(pack_copy.resolve()) or not (source / "SKILL.md").is_file():
             print(f"  WARN: skipping skills entry with unsafe or empty path {path!r}")
             continue
+        if (source / "SKILL.md").is_symlink():
+            print(f"  WARN: skipping skills entry with symlink SKILL.md {path!r}")
+            continue
+        sources.append((install_as, source, (source / "SKILL.md").read_bytes()))
+    aliases = skill_aliases((name, content) for name, _, content in sources)
+    for install_as, source, content in sources:
         # fs ops use the UNRESOLVED dest: resolving first would follow a
         # symlink and point rmtree at whatever the link targets. The resolved
         # form is only the containment check.
@@ -219,6 +227,7 @@ def _install_pack_skills(
         # Same symlink rule as the git fetch: never dereference a pack's
         # symlink into the project.
         shutil.copytree(source, dest, ignore=_ignore_git_and_symlinks)
+        (dest / "SKILL.md").write_bytes(render_skill(content, install_as, aliases))
         print(f"  installed: {layout.skills_dir}/{install_as}/")
     for stale in sorted((previously_declared or set()) - declared_now):
         if is_valid_extension_id(stale) and (skills_base / stale).exists():

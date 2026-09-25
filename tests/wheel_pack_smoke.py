@@ -69,6 +69,8 @@ for agent, layout in AGENT_LAYOUTS.items():
             assert verify_lock(target).ready
             for skill in pack.skills:
                 assert (target / layout.skills_dir / skill.install_as / "SKILL.md").is_file()
+                native = target / layout.skills_dir / skill.install_as / "SKILL.md"
+                assert yaml.safe_load(native.read_text().split("---", 2)[1])["name"] == skill.install_as
                 if pack.id in {"application-governance", "gherkin-delivery", "llm-evaluation"}:
                     assert skill.install_as.startswith("govkit-"), (pack.id, skill.install_as)
                     source = pack.root / skill.path / "SKILL.md"

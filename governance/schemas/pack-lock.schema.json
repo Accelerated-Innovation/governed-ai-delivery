@@ -10,6 +10,10 @@
     "kind": {
       "const": "pack-lock"
     },
+    "skill_rendering": {
+      "const": "install-as-v1",
+      "description": "Native skill identity rendering contract. Absent in historical locks, which replay byte-copy identities."
+    },
     "govkit_version": {
       "type": "string",
       "minLength": 1

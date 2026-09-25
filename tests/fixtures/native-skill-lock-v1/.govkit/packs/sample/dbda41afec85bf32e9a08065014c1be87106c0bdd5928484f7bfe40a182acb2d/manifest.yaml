@@ -1,0 +1,19 @@
+capability_pack:
+  checks: []
+  conflicts: []
+  provides:
+  - sample
+  requires: []
+  resources:
+  - kind: advisory
+    path: guide.md
+  schema_version: 1
+contract_sets: []
+extension_type: skills
+govkit_min_version: 0.0.0
+id: sample
+name: sample
+skills:
+- install_as: sample-help
+  path: skills/help
+version: 1.0.0
