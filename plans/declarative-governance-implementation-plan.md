@@ -1,6 +1,6 @@
 # Declarative governance implementation plan
 
-Status: I13e is delivered in PR #204; all six pre-fix-head checks passed. Its Qodo unknown-docs-area finding is reproduced and fixed test first; 4,897 fast, 793 focused, 24 parity and 93 isolated-wheel checks pass; new-head CI/Qodo attribution pending. I10 external-caller acceptance and remaining I13 inputs stay open.
+Status: I13e is delivered in PR #204; all six pre-fix-head checks passed. Its Qodo unknown-docs-area finding is reproduced and fixed test first; 4,897 fast, 793 focused, 24 parity and 93 isolated-wheel checks pass; Qodo reports implemented; new-head CI pending. I10 external-caller acceptance and remaining I13 inputs stay open.
 Plan version: 1.51.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
@@ -623,7 +623,7 @@ Current handoff:
 - Current branch: `fix/188-type-specific-skill-prose`. I13e addresses #188 item 3: select data/backend sections at install time, preserve data impact/evaluation guidance, omit data-only prose from API/CLI installs and keep UI skill selection intact. Initial regression run: 21 failures / 12 controls before implementation. Final focused checks pass 571 cases, parity passes 24, and an isolated wheel passes 84 instruction/type cases; all 4,888 final fast tests pass (two existing skips, 150 e2e deselected).
 - #188 remains open for item 8 (explicit invocation) and item 3 until this increment is integrated. #147/#149/#142 retain actual team pilot observations, protected caller deployments/path coverage, FeaturePeers definition and the maintainer-approved warning/removal boundary. No retirement clock or release is inferred.
 - Qodo local review retains the repository authorization blocker (`repo_not_connected` / `MT-WORKSPACE-NO-REPOS` / HTTP 403 `WORKSPACE_HAS_NO_AUTHORIZED_REPOS`) under the support/no-retry handoff. A new task-specific rules query was blocked by automatic approval review for external repository detail sharing; the general query succeeded, and cached first-party skill rules remain applicable. No clean local-review result is claimed.
-- Next action: await new-head CI and automatic Qodo attribution for the unknown-context fix in [PR #204](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/204). After integration, #188 item 8 is the next bounded instruction-surface item. Integration still requires separate merge authorization.
+- Next action: await new-head CI and any further Qodo review for the unknown-context fix in [PR #204](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/204). After integration, #188 item 8 is the next bounded instruction-surface item. Integration still requires separate merge authorization.
 
 
 Use this record after each session:
@@ -1463,3 +1463,5 @@ Applied ERROR **2297569** (real CLI/command/parser boundaries, no production-beh
 - **Final validation:** 793 focused, 24 parity and 93 fresh isolated-wheel checks pass. The isolated installed renderer matches the source bytes; scoped non-rewriting Ruff lint, format and whitespace checks pass. 4,897 fast tests pass (two existing Copilot-format skips, 150 e2e deselected; 362.08s (0:06:02)). No local full-toolchain/e2e, Python 3.11, Windows or new-head hosted result is claimed. This fix belongs to existing PR #204; #188 item 8 and #149/#142's external acceptance remain open. No new PR, merge or release publication.
 
 - **Delivery:** this validated remediation updates existing PR #204 under the standing commit/push instruction. Plan and #188/#149/#142 status retain the open integration and external acceptance items. New-head CI and automatic Qodo attribution are pending; no merge gate is manually cleared and no clean exact-head Qodo verdict is inferred.
+
+- **Post-push attribution:** fix `05c82478a41b48f565a936f8ac988e9f4b20dc68` is pushed. Qodo now reports raw `attribution_status: implemented` for `a03257df-d0fa-4bd2-b686-9e2c162df4e5`; its completed review remains run `1264882` at `705a4c1`. No completed exact-head clean review is claimed. New-head CI is running. This follow-up only records delivery/attribution; implementation and tested wheel bytes are unchanged.
