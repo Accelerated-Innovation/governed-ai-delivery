@@ -1,5 +1,6 @@
 """Seven bundled actual-change pilots, also run from a runtime-only wheel."""
 
+import difflib
 import json
 import os
 import subprocess
@@ -39,11 +40,15 @@ def run_pilot(workspace, name):
     command = [sys.executable, "-I", "-m", "cli.govkit"]
 
     def invoke(args, *, ci=False, expected=0):
+        env = dict(os.environ)
+        env.pop("CI", None)
+        if ci:
+            env["CI"] = "true"
         result = subprocess.run(
             command + args,
             capture_output=True,
             text=True,
-            env={**os.environ, **({"CI": "true"} if ci else {})},
+            env=env,
         )
         assert result.returncode == expected, (name, result.stdout, result.stderr)
         return json.loads(result.stdout)
@@ -203,7 +208,24 @@ def run_pilot(workspace, name):
     expected = 1 if name == "architecture" else 0
     local = invoke(args, expected=expected)
     ci = invoke(args, ci=True, expected=expected)
-    assert local == ci and snapshot() == before
+    assert local == ci, (
+        name,
+        "Local/CI reports differ",
+        "\n".join(
+            difflib.unified_diff(
+                json.dumps(local, sort_keys=True, indent=2).splitlines(),
+                json.dumps(ci, sort_keys=True, indent=2).splitlines(),
+                fromfile="local",
+                tofile="ci",
+            )
+        ),
+    )
+    after = snapshot()
+    assert after == before, (
+        name,
+        "Inspection changed files or mtimes",
+        [key for key in sorted(before.keys() | after.keys()) if before.get(key) != after.get(key)],
+    )
     assert not (target / ".govkit").exists()  # An isolated, initially ungoverned consumer.
     record = workspace / "result.json"
     record.write_text(json.dumps(local))
