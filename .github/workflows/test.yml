@@ -441,11 +441,11 @@ jobs:
           cd /tmp
           /tmp/source-self-hosting-venv/bin/python -I -B -m pytest --import-mode=importlib -p no:cacheprovider -o addopts= "$GITHUB_WORKSPACE/tests/test_capability_onboarding.py" -q
 
-      - name: Installed instruction scopes and UI contracts match the wheel
+      - name: Installed instruction scopes and type-specific skills match the wheel
         run: |
           set -euo pipefail
           cd /tmp
-          /tmp/source-self-hosting-venv/bin/python -I -B -m pytest --import-mode=importlib -p no:cacheprovider -o addopts= "$GITHUB_WORKSPACE/tests/test_instruction_surface.py" -q
+          /tmp/source-self-hosting-venv/bin/python -I -B -m pytest --import-mode=importlib -p no:cacheprovider -o addopts= "$GITHUB_WORKSPACE/tests/test_instruction_surface.py" "$GITHUB_WORKSPACE/tests/test_skill_type_prose.py" -q
 
       - name: Apply against a fresh tmp dir from the wheel install
         # End-to-end: the wheel-installed `govkit apply` writes the marker,
