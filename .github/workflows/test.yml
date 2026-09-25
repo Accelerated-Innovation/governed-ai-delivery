@@ -362,6 +362,7 @@ jobs:
           cd /tmp
           /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_pack_smoke.py"
           /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_skill_names_smoke.py"
+          /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_native_skills_smoke.py"
 
       - name: Check reports and explicit controls work from the wheel
         run: |

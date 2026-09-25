@@ -31,6 +31,14 @@ applied agent's skills directory under an `otter-` prefix — for Claude Code,
 `.github/skills/` for Copilot). The prefix keeps these clearly third-party and
 collision-free next to your own skills and govkit's `govkit-*` skills.
 
+The installed `SKILL.md` names and sibling skill identifiers also use `otter-`,
+so native invocations such as `/otter-unit-testing` match their metadata.
+Only native instructions are rendered: the vendored sources, the copy under
+`extensions/otter-skills/`, provenance notes, URLs and resource paths remain
+unchanged. Declarative `govkit pack` installs use the same rendering, recorded
+in their lock; see [lock compatibility](https://github.com/Accelerated-Innovation/governed-ai-delivery/blob/main/docs/CAPABILITY_PACKS.md).
+Explicit-invocation metadata from upstream `agents/` is not inferred here.
+
 A skill directory that already exists is **skipped, never overwritten** — your
 edits and independently-installed copies survive. Refresh everything to the
 bundled version with:

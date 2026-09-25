@@ -1,0 +1,8 @@
+id: craft-pack
+name: Craft Pack
+version: 0.1.0
+extension_type: skills
+contract_sets: []
+skills:
+  - path: skills/unit-testing
+    install_as: craft-unit-testing

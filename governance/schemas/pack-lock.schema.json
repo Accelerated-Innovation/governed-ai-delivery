@@ -10,6 +10,10 @@
     "kind": {
       "const": "pack-lock"
     },
+    "skill_rendering": {
+      "enum": ["install-as-v1", "install-as-v2"],
+      "description": "Native skill identity rendering contract. Absent in historical locks, which replay byte-copy identities. V2 preserves reference-style link destinations; v1 replays the original alias renderer."
+    },
     "govkit_version": {
       "type": "string",
       "minLength": 1

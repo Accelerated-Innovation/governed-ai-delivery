@@ -8,3 +8,6 @@ full_test text eol=lf
 .claude/skills/**/install text eol=lf
 .claude/skills/checks-0.1.0/check text eol=lf
 .claude/skills/checks-0.1.0/check-llm text eol=lf
+# Historical lock digests bind LF bytes even on Windows checkouts.
+tests/fixtures/native-skill-lock-v1/** text eol=lf
+tests/fixtures/native-skill-rendering-v1/** text eol=lf

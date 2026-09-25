@@ -73,8 +73,13 @@ def test_installed_first_party_skill_names_match_native_directories(tmp_path, ag
         assert skill.parent.name.startswith("govkit-")
 
 
-def install_previous_metadata(tmp_path, agent):
-    """Recreate PR 199's prefixed destinations with unprefixed source metadata."""
+def install_previous_pack_versions(tmp_path, agent):
+    """Install PR 199's source metadata with the current native renderer.
+
+    Actual historical byte-copy locks are covered by the captured fixture in
+    test_native_skill_installation; this setup exercises older pack versions
+    freshly installed by today's runtime.
+    """
     previous = []
     for pack in bundled_catalog():
         if pack.id not in PREVIOUS_VERSIONS:
@@ -106,12 +111,12 @@ def install_previous_metadata(tmp_path, agent):
 
 @pytest.mark.parametrize("agent", AGENT_LAYOUTS)
 @pytest.mark.parametrize("edited", [False, True], ids=["unchanged", "user-edited"])
-def test_metadata_upgrade_preserves_notes_and_protects_user_edits(tmp_path, agent, edited):
-    target, source = install_previous_metadata(tmp_path, agent)
+def test_older_pack_upgrade_preserves_notes_and_protects_user_edits(tmp_path, agent, edited):
+    target, source = install_previous_pack_versions(tmp_path, agent)
     assert verify_lock(target).ready, "Existing locks remain valid before a reviewed update"
     native = target / AGENT_LAYOUTS[agent].skills_dir
     skill = native / "govkit-application-governance/SKILL.md"
-    assert skill_name(skill) == "application-governance"
+    assert skill_name(skill) == "govkit-application-governance"
     notes = skill.parent / "notes.md"
     notes.write_text("Team-owned notes\n")
     if edited:
