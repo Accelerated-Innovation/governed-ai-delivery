@@ -202,7 +202,7 @@ def test_accepted_profile_cannot_silently_drop_legacy_obligations(tmp_path, drop
 
 def test_native_skill_collision_protects_existing_user_content(tmp_path):
     target = legacy(tmp_path)
-    write(target, ".agents/skills/application-governance/SKILL.md", "user-owned skill")
+    write(target, ".agents/skills/govkit-application-governance/SKILL.md", "user-owned skill")
     source = accepted(tmp_path, target)
     before = snapshot(target)
     preview = preview_migration(target, profile_path=source)
@@ -218,7 +218,11 @@ def test_rollback_refuses_modified_owned_content(tmp_path, flat):
     target = legacy(tmp_path, flat=flat)
     preview = preview_migration(target, profile_path=accepted(tmp_path, target))
     apply_migration(preview)
-    write(target, ".agents/skills/application-governance/SKILL.md", "user edited after migration")
+    write(
+        target,
+        ".agents/skills/govkit-application-governance/SKILL.md",
+        "user edited after migration",
+    )
     before = snapshot(target)
     with pytest.raises(ValueError):
         rollback_migration(target, expected_digest=preview.digest)

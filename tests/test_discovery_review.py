@@ -54,13 +54,13 @@ def break_install(target, source, kind):
             next((target / ".govkit/packs").glob("*/*/manifest.yaml")).unlink()
     elif kind == "symlink-destination":
         outside = write(target.parent, "external-skill.md", "Do not replace")
-        skill = target / ".agents/skills/llm-evaluation/SKILL.md"
+        skill = target / ".agents/skills/govkit-llm-evaluation/SKILL.md"
         skill.parent.mkdir(parents=True)
         skill.symlink_to(outside)
     elif kind == "parent-is-file":
         write(target, ".agents/skills", "Project-owned content")
     elif kind == "destination-is-directory":
-        (target / ".agents/skills/llm-evaluation/SKILL.md").mkdir(parents=True)
+        (target / ".agents/skills/govkit-llm-evaluation/SKILL.md").mkdir(parents=True)
     else:
         raise AssertionError(kind)
 

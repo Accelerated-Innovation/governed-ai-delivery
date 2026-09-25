@@ -93,6 +93,32 @@ Missing or modified pinned resources invalidate the lock; restore the committed 
 
 `pack verify` replays manifests and the accepted profile, checks owned paths/hashes, and validates the running GovKit minimum. It needs no original local source directory. Previewing a change to a local selection requires its explicit source again; the pinned `.govkit/packs/<id>/<digest>` directory can be supplied as that local source for offline work. Ownership/digests prove consistency, not source authenticity or approval.
 
+## Native skill namespace updates
+
+GovKit-owned capability packs install their native skills under `govkit-` names
+for every supported agent. The application-governance 1.1.1, gherkin-delivery 1.0.1
+and llm-evaluation 1.0.1 pack revisions correct previously unprefixed destinations:
+`govkit-application-governance`, `govkit-gherkin-delivery`, and
+`govkit-llm-evaluation`. The existing `govkit-request-planning` name is unchanged.
+Capability IDs and neutral source paths stay unchanged. Third-party/custom packs
+retain their explicitly declared namespaces (for example, `otter-`); these are not
+renamed by the runtime.
+
+An existing pinned lock still verifies its original files offline. Upgrading the
+CLI alone does not rename an installed skill. Review `govkit pack preview` and
+explicitly apply the reviewed update; an exact old pack pin must first be reconciled
+in the accepted profile if you intend to select the new version. Keep the prior
+lock/resource set in version control for rollback.
+
+The normal ownership rules remove an old native file only when the prior lock owns
+it and its content is unchanged. Modified old files or existing unowned namespaced
+destinations block apply without writes. Unrelated files under the old directory
+remain intact, so an empty or partially populated old directory can remain. A
+pre-existing user skill at an unprefixed name is left alone by a fresh installation.
+Do not delete locks or force an update to conceal a collision. Legacy `extension
+add` does not migrate pack locks or remove old skill copies; review its separate
+installed files before invoking an updated skill.
+
 ## Independent controls
 
 ```bash

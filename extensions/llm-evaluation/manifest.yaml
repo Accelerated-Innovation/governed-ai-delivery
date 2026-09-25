@@ -1,12 +1,12 @@
 id: llm-evaluation
 name: Llm Evaluation
-version: 1.0.0
+version: 1.0.1
 govkit_min_version: 0.21.1
 extension_type: skills
 contract_sets: []
 skills:
 - path: skills/llm-evaluation
-  install_as: llm-evaluation
+  install_as: govkit-llm-evaluation
 capability_pack:
   schema_version: 1
   provides:

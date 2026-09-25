@@ -44,7 +44,7 @@ def test_cli_json_human_and_repeat_do_not_write(tmp_path, monkeypatch, capsys):
 
 def test_cli_explicit_profile_prints_protected_operations(tmp_path, monkeypatch, capsys):
     source = accepted_profile(tmp_path)
-    write(tmp_path, ".agents/skills/llm-evaluation/SKILL.md", "user-edited content")
+    write(tmp_path, ".agents/skills/govkit-llm-evaluation/SKILL.md", "user-edited content")
     assert invoke(monkeypatch, ["--target", str(tmp_path), "--profile", str(source), "--json"]) == 0
     doc = json.loads(capsys.readouterr().out)
     assert not doc["install_ready"]

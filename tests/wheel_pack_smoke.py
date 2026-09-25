@@ -65,6 +65,10 @@ for agent, layout in AGENT_LAYOUTS.items():
                 command + ["apply"] + options, check=True, capture_output=True, text=True
             )
             assert verify_lock(target).ready
+            for skill in pack.skills:
+                assert (target / layout.skills_dir / skill.install_as / "SKILL.md").is_file()
+                if pack.id in {"application-governance", "gherkin-delivery", "llm-evaluation"}:
+                    assert skill.install_as.startswith("govkit-"), (pack.id, skill.install_as)
             assert not (target / ".govkit/marker.json").exists()
             assert not (target / "features").exists()
             before = {

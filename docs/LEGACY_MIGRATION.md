@@ -145,12 +145,13 @@ catalog. It does not refresh a repository. Migrating or running **profile/pack
 operations** changes repository metadata/resources; it does not update the CLI.
 Later resource refreshes need their own reviewed pack previews and verification.
 
-The current 0.21.x compatibility line and the first migration delivery retain
-`apply`, `upgrade`, level flags and legacy manifests. No removal release is scheduled
-by I08. I13 must announce a concrete removal release and warning period after the
-migration evidence and release criteria are met; until then legacy inputs remain
-supported. The retirement acceptance criterion remains open rather than inventing
-a release commitment.
+The current 0.21.x compatibility line retains `apply`, `upgrade`, level flags and
+legacy manifests. New adoption uses [explicit capabilities](CAPABILITY_ONBOARDING.md).
+No removal release or warning period has been announced. I13's documentation and
+compatibility work does not start a deprecation clock or remove a supported input.
+A maintainer must approve and announce both a concrete release boundary and warning
+period after migration and release evidence is reviewed. Until then legacy inputs
+remain supported and the retirement acceptance criterion stays open.
 
 The executable pilot is [tests/wheel_migration_smoke.py](../tests/wheel_migration_smoke.py).
 It installs real L3/Codex, L4/Claude Code and L5/Copilot bundles into isolated fixtures,
