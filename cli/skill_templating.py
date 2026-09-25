@@ -35,6 +35,11 @@ _PREFLIGHT_SKILLS = {
     "backend": "govkit-architecture-preflight",
     "data": "govkit-architecture-preflight",
 }
+_DOCS_AREA_SECTION = re.compile(
+    r"^<!-- govkit:docs-area (backend|data|ui) -->\r?\n"
+    r"(.*?)^<!-- /govkit:docs-area -->[ \t]*(?:\r?\n|$)",
+    re.MULTILINE | re.DOTALL,
+)
 _PII_KEYWORDS_TOKEN = "{{pii_keywords}}"
 
 
@@ -43,10 +48,15 @@ def expand_skill_tokens(text: str, docs_area: str) -> str:
 
     Empty `docs_area` leaves the token in place (unknown context must stay
     visible, not be guessed away). The preflight skill is selected only for
-    known docs areas. Other tokens pass through untouched.
+    known docs areas. Flat, whole-line govkit:docs-area sections retain only
+    the selected area's body; unknown context leaves all sections visible.
+    Other tokens pass through untouched. Apply/upgrade recopy source sections
+    before rendering, so changing the installed type does not lose guidance.
     """
     if not docs_area:
         return text
+    if docs_area in _PREFLIGHT_SKILLS:
+        text = _DOCS_AREA_SECTION.sub(lambda match: match[2] if match[1] == docs_area else "", text)
     text = text.replace(_DOCS_AREA_TOKEN, docs_area)
     preflight = _PREFLIGHT_SKILLS.get(docs_area)
     if preflight is not None:
@@ -68,7 +78,8 @@ def render_pii_keywords(keywords: list[str]) -> str:
 _PII_OPEN = "<!-- govkit:pii_keywords -->"
 _PII_CLOSE = "<!-- /govkit:pii_keywords -->"
 _PII_SPAN = re.compile(
-    re.escape(_PII_OPEN) + r".*?" + re.escape(_PII_CLOSE), re.DOTALL,
+    re.escape(_PII_OPEN) + r".*?" + re.escape(_PII_CLOSE),
+    re.DOTALL,
 )
 
 

@@ -54,11 +54,20 @@ passing.
 For each of the following, state which architectural rules apply (cite file and section):
 
 - Layering (from `docs/{{docs_area}}/architecture/ARCH_CONTRACT.md`)
+<!-- govkit:docs-area backend -->
 - API conventions (from `docs/{{docs_area}}/architecture/API_CONVENTIONS.md`)
 - Auth/security patterns (from `docs/{{docs_area}}/architecture/SECURITY_AUTH_PATTERNS.md`)
 - NFR section contract (from `docs/{{docs_area}}/architecture/NFRS_CONVENTIONS.md`)
 - Error model and response shape
 - Logging and observability expectations
+<!-- /govkit:docs-area -->
+<!-- govkit:docs-area data -->
+- Query conventions from the selected stack overlay, when installed
+- Data quality tiers (from `docs/{{docs_area}}/architecture/DATA_QUALITY_CONTRACT.md`)
+- PII handling (from `docs/{{docs_area}}/architecture/PII_HANDLING_CONTRACT.md`)
+- Lineage (from `docs/{{docs_area}}/architecture/LINEAGE_CONTRACT.md`)
+- Environments (from `docs/{{docs_area}}/architecture/ENVIRONMENTS.md`)
+<!-- /govkit:docs-area -->
 
 ## 2.6 Extension Discovery
 
@@ -118,16 +127,10 @@ This is informational and does not block planning.
 
 ---
 
-## 3.7 Data Impact  (data projects only)
+<!-- govkit:docs-area data -->
+## 3.7 Data Impact
 
-When the project type is data (the marker records `type: data` and the
-architecture contracts live under `docs/data/architecture/`), the standards
-set for Section 2 is the data one — layering (`BOUNDARIES.md`), query
-conventions (`QUERY_CONVENTIONS.md`, stack overlay), data quality tiers
-(`DATA_QUALITY_CONTRACT.md`), PII handling (`PII_HANDLING_CONTRACT.md`),
-lineage (`LINEAGE_CONTRACT.md`), and environments (`ENVIRONMENTS.md`) —
-rather than API conventions and auth/security patterns. Add the four
-sections below to the report. Backend and UI reports skip this section.
+Add these four sections to the report.
 
 ### Pipeline Impact
 
@@ -155,6 +158,7 @@ sections below to the report. Backend and UI reports skip this section.
 - Column-level lineage entries required for PII-tagged columns
 - Exposure or lineage-tool entries to add or update
 
+<!-- /govkit:docs-area -->
 ## 4. ADR Decision
 
 Choose one:

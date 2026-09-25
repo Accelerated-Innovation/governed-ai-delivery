@@ -105,7 +105,14 @@ Existing artifacts (read if present, update if needed):
      dependencies, and any infrastructure adapters the feature needs —
      using the project's own folder names, not generic ones.
 4. Flag any deviation from architecture contracts:
+<!-- govkit:docs-area backend -->
    - `ARCH_CONTRACT.md`, `BOUNDARIES.md`, `API_CONVENTIONS.md`, `SECURITY_AUTH_PATTERNS.md`
+<!-- /govkit:docs-area -->
+<!-- govkit:docs-area data -->
+   - `ARCH_CONTRACT.md`, `BOUNDARIES.md`, `DATA_QUALITY_CONTRACT.md`,
+     `PII_HANDLING_CONTRACT.md`, `LINEAGE_CONTRACT.md`, `ENVIRONMENTS.md`
+   - Query conventions from the selected stack overlay, when installed
+<!-- /govkit:docs-area -->
 5. Determine ADR need. Mark **ADR required** if any of these occur:
    - New outbound dependency or external integration
    - Boundary change or exception
@@ -131,9 +138,10 @@ Write or update `features/<feature_name>/eval_criteria.yaml` conforming to `docs
 
 Output A first, then Output B. No implementation code in this step.
 
+<!-- govkit:docs-area data -->
 ### Data projects
 
-For data projects (marker `type: data`), adjust the spec outputs:
+Use these data-specific output contracts:
 
 - NFR categories are `freshness`, `quality`, `pii`, `lineage`, `cost`
   (plus `reliability`, `observability`, `compliance` where relevant).
@@ -143,4 +151,5 @@ For data projects (marker `type: data`), adjust the spec outputs:
   `none`), and each criterion's `measurement` names a query or CI check
   with `threshold` as a predicate string. No LLM evaluator tools.
 - Cite the data quality, freshness, and lineage contracts under
-  `docs/data/architecture/` instead of API conventions and auth patterns.
+  `docs/data/architecture/`.
+<!-- /govkit:docs-area -->
