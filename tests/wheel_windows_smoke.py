@@ -5,6 +5,7 @@ uses only the standard library so the install environment starts with no govkit.
 """
 
 import argparse
+import errno
 import json
 import subprocess
 import sys
@@ -47,6 +48,29 @@ def check_wheel(wheel: Path) -> None:
     print(f"Windows wheel path budget: {windows_length(longest)}/{MEMBER_BUDGET}: {longest}")
 
 
+def verify_path_limit(environment: Path) -> None:
+    # A missing/unwritable parent must not be mistaken for a path-length error.
+    control = environment / "path-probe"
+    control.write_bytes(b"short path control")
+    control.unlink()
+    # Prove the new process actually enforces the setting. An enabled runner
+    # would otherwise make the original broken wheel pass this regression.
+    probe = environment / ("x" * (260 - windows_length(str(environment)) - 1))
+    try:
+        probe.write_bytes(b"limit probe")
+    except OSError as exc:
+        winerror = getattr(exc, "winerror", None)
+        expected = winerror in (2, 3, 206) or (
+            winerror is None and exc.errno in (errno.ENOENT, errno.ENAMETOOLONG)
+        )
+        if not expected:
+            raise
+    else:
+        probe.unlink()
+        raise RuntimeError("The 260-character probe unexpectedly succeeded")
+    print("Legacy path limit verified: short write succeeded; 260-character write rejected")
+
+
 def windows_install(wheel: Path) -> None:
     """Exercise pip and both pack catalogs with legacy Windows limits enabled."""
     if sys.platform != "win32":
@@ -69,17 +93,7 @@ def windows_install(wheel: Path) -> None:
         environment.mkdir()
         assert windows_length(str(environment)) == VENV_PATH_LENGTH
 
-        # Prove the new process actually enforces the setting. An enabled runner
-        # would otherwise make the original broken wheel pass this regression.
-        probe = environment / ("x" * (260 - VENV_PATH_LENGTH - 1))
-        try:
-            probe.write_bytes(b"limit probe")
-        except OSError as exc:
-            if exc.winerror not in (2, 3, 206):
-                raise
-        else:
-            probe.unlink()
-            raise RuntimeError("The 260-character probe unexpectedly succeeded")
+        verify_path_limit(environment)
 
         venv.EnvBuilder(with_pip=True).create(environment)
         python = environment / "Scripts/python.exe"
