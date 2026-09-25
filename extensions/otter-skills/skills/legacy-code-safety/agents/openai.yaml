@@ -1,0 +1,6 @@
+interface:
+  display_name: "Legacy Code Safety"
+  short_description: "Establish safe feedback before changing legacy code."
+  default_prompt: "Use $legacy-code-safety to establish a trustworthy test boundary and make this legacy-code change safely."
+policy:
+  allow_implicit_invocation: true

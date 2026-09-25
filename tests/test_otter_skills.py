@@ -93,10 +93,16 @@ def test_skill_frontmatter_is_open_skills_only():
         assert set(frontmatter) == {"name", "description"}, skill_md
 
 
-def test_upstream_agents_subdirs_not_vendored():
-    """Each upstream skill carries agents/openai.yaml (OpenAI agent-builder
-    config no govkit-supported agent consumes); the sync script drops it."""
-    assert not list(EXT_DIR.glob("skills/*/agents"))
+def test_upstream_openai_metadata_is_vendored_for_invocation_policy():
+    """Retain only the supported upstream sidecar, without rewriting its bytes."""
+    import yaml
+
+    configs = list(EXT_DIR.glob("skills/*/agents/openai.yaml"))
+    assert len(configs) == len(EXPECTED_SKILLS)
+    for config in configs:
+        assert list(config.parent.iterdir()) == [config]
+    manual = EXT_DIR / "skills/user-pov-sliced-stories/agents/openai.yaml"
+    assert yaml.safe_load(manual.read_text())["policy"]["allow_implicit_invocation"] is False
 
 
 def test_no_template_tokens_in_vendored_content():

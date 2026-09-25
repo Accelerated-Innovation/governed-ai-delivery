@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Preserve Otter's explicit-only user-POV story skill policy across native
+  Codex, Claude Code and Copilot installs, including namespaced default prompts
+  and protected refresh of historical pack locks (#188 item 8).
+
 - Shorten the wheel's private extension asset root from `cli/extension_packs/`
   to `cli/ext/` to address deep Windows virtualenv installation failures (#129).
   Public extension IDs, resource contents and consumer paths are unchanged.

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Code Object Naming"
+  short_description: "Improve code-object names with focused diagnostics."
+  default_prompt: "Use $code-object-naming to diagnose and improve these identifiers."
+policy:
+  allow_implicit_invocation: true

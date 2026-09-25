@@ -90,7 +90,7 @@ def test_explicit_refresh_repairs_reference_destination_and_preserves_pins(tmp_p
     assert "Use [craft-unit-testing][guide]." in native.read_text()
     assert (native.parent / "unit-testing").is_file()
     lock = json.loads((target / ".govkit/pack-lock.json").read_text())
-    assert lock["skill_rendering"] == "install-as-v2"
+    assert lock["skill_rendering"] == "install-as-v3"
     assert verify_lock(target).ready
     after = snapshot(target)
     for relative, value in before.items():
@@ -122,7 +122,7 @@ def test_original_mode_cannot_replay_corrected_resource_hashes(tmp_path):
     )
     lock_path = target / ".govkit/pack-lock.json"
     document = json.loads(lock_path.read_text())
-    assert document["skill_rendering"] == "install-as-v2"
+    assert document["skill_rendering"] == "install-as-v3"
     document["skill_rendering"] = "install-as-v1"
     lock_path.write_text(canonical_json(document) + "\n")
 

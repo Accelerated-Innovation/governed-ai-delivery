@@ -15,9 +15,11 @@ then the result ships in the wheel like any other bundled pack.
 What it does:
   1. Clones upstream into a temp dir and checks out the given SHA (verified
      against `git rev-parse HEAD` — a branch name or short SHA is refused).
+     Rejects symlinks in the plugin's ancestors or tree before changing the
+     vendored pack, so neither skill copies nor metadata follow host paths.
   2. Replaces the pack's skills/ with plugins/otter-skills/skills/*,
-     excluding each skill's agents/ subdir (OpenAI agent-builder config no
-     govkit-supported agent consumes).
+     retaining agents/openai.yaml for native invocation policy and metadata;
+     other upstream agent configuration remains excluded.
   3. Copies the plugin-level LICENSE and NOTICE to the pack root so the
      Apache-2.0 attribution travels with every copy `extension add` makes.
   4. Regenerates manifest.yaml (this script owns that file: provenance,
@@ -31,6 +33,7 @@ Idempotence check: running at the currently-pinned SHA must leave
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import shutil
 import subprocess
@@ -75,6 +78,27 @@ def _run(args: list[str], cwd: Path | None = None) -> str:
     ).stdout.strip()
 
 
+def _reject_source_symlinks(clone: Path, plugin: Path) -> None:
+    """Inspect links without following them, before reading or copying payloads."""
+
+    def reject(path: Path) -> None:
+        if path.is_symlink():
+            sys.exit(
+                f"Error: upstream source contains symlink {path.relative_to(clone)}. "
+                "Nothing was deleted."
+            )
+
+    current = clone
+    for part in plugin.relative_to(clone).parts:
+        current /= part
+        reject(current)
+    # os.walk does not descend into symlinked directories. Inspect directory
+    # entries as well as files, including dangling and within-checkout links.
+    for directory, subdirectories, files in os.walk(plugin, followlinks=False):
+        for name in sorted(subdirectories + files):
+            reject(Path(directory) / name)
+
+
 def sync(sha: str, upstream_version: str) -> None:
     if not re.fullmatch(r"[0-9a-f]{40}", sha):
         sys.exit("Error: --sha must be a full 40-hex commit SHA (the pin must be exact).")
@@ -88,6 +112,7 @@ def sync(sha: str, upstream_version: str) -> None:
             sys.exit(f"Error: checkout resolved to {head}, not the requested {sha}.")
 
         plugin = clone / UPSTREAM_PLUGIN
+        _reject_source_symlinks(clone, plugin)
         # Validate the upstream layout BEFORE deleting anything vendored —
         # a reshaped upstream must fail with the working tree intact, not
         # half-erased.
@@ -117,6 +142,11 @@ def sync(sha: str, upstream_version: str) -> None:
                 pack_skills / skill_dir.name,
                 ignore=shutil.ignore_patterns("agents"),
             )
+            config = skill_dir / "agents" / "openai.yaml"
+            if config.is_file() and not config.is_symlink():
+                destination = pack_skills / skill_dir.name / "agents" / "openai.yaml"
+                destination.parent.mkdir(parents=True)
+                shutil.copyfile(config, destination)
         for name in ("LICENSE", "NOTICE"):
             shutil.copyfile(plugin / name, PACK_DIR / name)
 

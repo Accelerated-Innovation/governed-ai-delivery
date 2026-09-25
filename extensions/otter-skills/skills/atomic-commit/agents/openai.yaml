@@ -1,0 +1,7 @@
+interface:
+  display_name: "Atomic Commit"
+  short_description: "Commit complete, tested, human-vetted states"
+  default_prompt: "Use $atomic-commit to prepare and commit this complete working state safely."
+
+policy:
+  allow_implicit_invocation: true

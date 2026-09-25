@@ -33,11 +33,18 @@ collision-free next to your own skills and govkit's `govkit-*` skills.
 
 The installed `SKILL.md` names and sibling skill identifiers also use `otter-`,
 so native invocations such as `/otter-unit-testing` match their metadata.
-Only native instructions are rendered: the vendored sources, the copy under
+Native OpenAI default prompts also use the installed names. Only native
+entrypoints are rendered: the vendored sources, the copy under
 `extensions/otter-skills/`, provenance notes, URLs and resource paths remain
 unchanged. Declarative `govkit pack` installs use the same rendering, recorded
 in their lock; see [lock compatibility](https://github.com/Accelerated-Innovation/governed-ai-delivery/blob/main/docs/CAPABILITY_PACKS.md).
-Explicit-invocation metadata from upstream `agents/` is not inferred here.
+The pinned upstream OpenAI policy makes `otter-user-pov-sliced-stories`
+explicit-only. Codex retains `policy.allow_implicit_invocation: false` in its
+native `agents/openai.yaml`; Claude Code and Copilot additionally receive
+`disable-model-invocation: true` in native frontmatter. Invoke it explicitly
+with `$otter-user-pov-sliced-stories` in Codex or
+`/otter-user-pov-sliced-stories` in Claude/Copilot. The other six skills retain
+their upstream automatic-invocation defaults.
 
 A skill directory that already exists is **skipped, never overwritten** — your
 edits and independently-installed copies survive. Refresh everything to the
@@ -72,5 +79,10 @@ project.
 
 `scripts/sync_otter_skills.py` refreshes this pack from a new upstream commit;
 it regenerates `manifest.yaml` and this file's provenance block. Each skill's
-upstream `agents/` subdir (OpenAI agent-builder config) is intentionally not
-vendored. See `origin` in [manifest.yaml](manifest.yaml) for the exact pin.
+upstream `agents/openai.yaml` is retained byte-for-byte for invocation policy
+and native metadata; other agent configuration remains excluded. See `origin`
+in [manifest.yaml](manifest.yaml) for the exact pin.
+
+Sync rejects symlinks in the upstream plugin's parent paths or contents before
+replacing any vendored files, including links to other checkout files and dangling
+links. Supply regular source files; a pinned commit does not make link targets safe.

@@ -1,0 +1,6 @@
+interface:
+  display_name: "User POV Sliced Stories"
+  short_description: "Express existing slices as user-visible outcomes."
+  default_prompt: "Use $user-pov-sliced-stories to restate this existing slice plan as user-visible outcomes."
+policy:
+  allow_implicit_invocation: false

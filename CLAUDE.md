@@ -71,6 +71,8 @@ Skills follow the **Open Skills** standard: frontmatter is `name`+`description` 
 
 For GovKit-owned skills, keep the source folder basename, `SKILL.md` frontmatter `name`, and manifest installation basename identical (including `govkit-` and any `ui-` qualifier). Preserve native installation paths when reorganizing sources. Vendored upstream skills have a separate provenance/sync contract; do not silently rewrite them as part of first-party payload maintenance.
 
+Native vendored skills may map an explicit upstream `agents/openai.yaml` policy into agent-specific metadata: boolean `allow_implicit_invocation: false` adds `disable-model-invocation: true` for Claude/Copilot, while Codex consumes the sidecar. This is a deliberate exception to the first-party frontmatter restriction. Preserve raw source/pinned bytes, alias native default prompts and keep historical renderer versions replayable; see `docs/CAPABILITY_PACKS.md`.
+
 Shared first-party skill bodies can select installed-type prose with flat, whole-line `<!-- govkit:docs-area data -->` / `<!-- /govkit:docs-area -->` sections (`backend`, `data`, or `ui`). `skill_templating.py` selects the known docs area before expanding path tokens; missing/unknown context leaves sections visible. Do not nest sections. Apply/upgrade recopy the bundled source before rendering. Keep all three agent sources aligned and exercise real installs plus the installed-wheel instruction tests.
 
 ### Variant manifests

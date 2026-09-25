@@ -43,7 +43,7 @@ from .extensions import (
     validate_extension,
 )
 from .marker import read_govkit_marker
-from .native_skills import render_skill, skill_aliases
+from .native_skills import render_native_skill, skill_aliases
 
 
 def _bundled_packs() -> list:
@@ -227,7 +227,14 @@ def _install_pack_skills(
         # Same symlink rule as the git fetch: never dereference a pack's
         # symlink into the project.
         shutil.copytree(source, dest, ignore=_ignore_git_and_symlinks)
-        (dest / "SKILL.md").write_bytes(render_skill(content, install_as, aliases))
+        native_files = {"SKILL.md": content}
+        config = dest / "agents/openai.yaml"
+        if config.is_file():
+            native_files["agents/openai.yaml"] = config.read_bytes()
+        for relative, rendered in render_native_skill(
+            native_files, install_as, aliases, agent
+        ).items():
+            (dest / relative).write_bytes(rendered)
         print(f"  installed: {layout.skills_dir}/{install_as}/")
     for stale in sorted((previously_declared or set()) - declared_now):
         if is_valid_extension_id(stale) and (skills_base / stale).exists():
