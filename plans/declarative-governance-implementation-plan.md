@@ -1,6 +1,6 @@
 # Declarative governance implementation plan
 
-Status: PR #205 has one Qodo security finding, reproduced and remediated test first. Upstream source symlinks are now refused before vendored files change; 117 focused and 4,968 fast checks pass; real pinned sync and fresh artifact verification pass. Delivery to the existing PR is in progress. I10 external-caller acceptance and remaining I13 inputs stay open.
+Status: PR #205 has one Qodo security finding, reproduced and remediated test first. Upstream source symlinks are now refused before vendored files change; 117 focused and 4,968 fast checks pass; real pinned sync and fresh artifact verification pass. Fix `cfaed0d` is pushed to PR #205; automatic Qodo attribution and new-head CI are pending. I10 external-caller acceptance and remaining I13 inputs stay open.
 Plan version: 1.53.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
@@ -622,7 +622,7 @@ Current handoff:
 - Current branch: `fix/188-explicit-skill-invocation`. I13f addresses #188 item 8 through both native installers. Preserve pinned upstream `agents/openai.yaml`, translate its explicit boolean false into Claude/Copilot native metadata, and alias native default prompts. Record v3 rendering while replaying v2/v1/unversioned locks exactly.
 - #188 items 1–7 are integrated; item 8 is implemented in PR #205 and awaits integration. #147/#149/#142 retain actual team pilots, protected caller deployments/path coverage, FeaturePeers definition and the maintainer-approved warning/removal boundary. No retirement clock or release is inferred.
 - Qodo local review retains the repository authorization blocker (`repo_not_connected` / `MT-WORKSPACE-NO-REPOS` / HTTP 403 `WORKSPACE_HAS_NO_AUTHORIZED_REPOS`) under the support/no-retry handoff. Reuse actual cached rules for native installation, source/user preservation and deterministic tests. No new blocked query or clean local-review result is claimed.
-- Next action: finish validation and push the reproduced Qodo symlink fix to existing PR #205, then inspect automatic attribution. After integration, #188 can close. Further I13 retirement/external acceptance requires the still-open maintainer/pilot/provider inputs. Integration requires separate merge authorization.
+- Next action: monitor new-head CI and Qodo attribution for the pushed symlink fix `cfaed0d` in existing PR #205. After integration, #188 can close. Further I13 retirement/external acceptance requires the still-open maintainer/pilot/provider inputs. Integration requires separate merge authorization.
 
 
 Use this record after each session:
@@ -1493,3 +1493,5 @@ Applied ERROR **2297569** (real CLI/command/parser boundaries, no production-beh
 - **Pinned-source/artifact verification:** the corrected script successfully synced the real upstream pin into an isolated pack copy; all 36 vendored files retained identical bytes. A fresh wheel differs from the previously smoke-tested artifact only in the maintainer README and its RECORD hash; runtime, native skill sources and sidecars are byte-identical. Final sync tests pass all 14 cases. The original PR head's e2e and both Windows jobs have passed; its fast jobs are still running, so no complete pre-fix or new-head CI outcome is claimed.
 
 - **Final validation/delivery:** 4,968 fast tests pass (two existing Copilot-format skips, 150 e2e deselected; 327.54s (0:05:27)). All 117 focused checks and the final 14-case sync run pass; real pinned sync preserves 36 vendored files, and the fresh wheel changes only the documented README/RECORD bytes. Scoped lint, test formatting and whitespace checks pass. The thirteen new cases exercise actual filesystem symlinks with no ERROR-rule deviation. Update existing PR #205 and #188/#149/#142 under the standing commit/push instruction; automatic attribution and new-head CI remain pending. No merge, new PR or release publication.
+
+- **Post-push:** remediation `cfaed0d36e609d56c30a27b4e9c1ee1786016bfc` is pushed to PR #205. Qodo still reports raw `pending` from completed run `1265741` at `049e577`; automatic attribution has not caught up. No exact-head clean verdict or manual gate clearance is claimed. This plan-only follow-up records delivery; tested script/payload bytes are unchanged.
