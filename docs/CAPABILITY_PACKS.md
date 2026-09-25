@@ -85,7 +85,7 @@ One neutral skill source installs at the agent's native directory:
 | Codex | `.agents/skills` |
 | Copilot | `.github/skills` |
 
-Frontmatter is identical across agents. Relative references inside a skill remain local to that skill. The optional `{{pack_root}}` token expands to the pinned pack's path relative to the repository root. No machine-specific absolute path is embedded.
+Native `name` and `description` are identical across agents; invocation policy uses each agent's supported metadata as described below. Relative references inside a skill remain local to that skill. The optional `{{pack_root}}` token expands to the pinned pack's path relative to the repository root. No machine-specific absolute path is embedded.
 
 Preview reports `create`, `preserve`, `update`, `remove`, or `protected` per file, including its owner and before/proposed digests. A prior valid lock must prove ownership before an existing file can be replaced or removed. User-authored files, modified native skills and edited lock metadata are protected. There is no force option. Reapplying unchanged inputs preserves bytes and modification times. Removing a capability removes only its unedited owned files; other files in those directories remain untouched. Empty directories can remain.
 
@@ -95,16 +95,31 @@ hyphenated sibling identifiers, code-formatted identifiers, and `/name` or
 `$name` invocations. Ordinary one-word prose, URLs, Markdown link destinations,
 file paths and longer identifiers are preserved. References map only within the
 same pack; ambiguous sibling names are not guessed. Each skill's own identity
-remains explicit. Other files, including `SOURCE_NOTES.md`, supporting resources
-and licenses, retain their upstream content. This does not infer invocation
-policy or rewrite resource links. Packs should supply valid frontmatter;
+remains explicit. Native `agents/openai.yaml` default prompts use the same
+aliases; other metadata fields, `SOURCE_NOTES.md`, supporting resources and
+licenses retain their upstream content. This does not rewrite resource links.
+Packs should supply valid frontmatter;
 historical files without a valid name remain unchanged.
 
-New skill-bearing locks record `skill_rendering: install-as-v2` and hash the
+For explicit-only skills, supply `policy.allow_implicit_invocation: false` as a
+YAML boolean in the skill's `agents/openai.yaml`. Codex consumes that native
+sidecar. Claude Code and Copilot native `SKILL.md` copies additionally receive
+`disable-model-invocation: true`. The sidecar stays available with the skill on
+all agents. No invocation setting is inferred from prose or names; missing,
+unrecognized or non-boolean policies add no restriction, and existing native
+frontmatter restrictions are preserved. This maps metadata, not a live agent
+execution test. See the official [Codex](https://learn.chatgpt.com/docs/build-skills),
+[Claude Code](https://code.claude.com/docs/en/skills) and
+[VS Code Copilot](https://code.visualstudio.com/docs/agent-customization/agent-skills)
+references.
+
+New skill-bearing locks record `skill_rendering: install-as-v3` and hash the
 rendered native bytes separately from the unchanged pinned source bytes.
+V3 adds the invocation mapping and native default-prompt aliases above.
 V2 preserves destinations in reference-style Markdown definitions such as
 `[guide]: unit-testing`, including angle brackets, continuation lines and block
 containers, while visible names and instruction text still receive aliases.
+The prior `install-as-v2` contract replays without interpreting sidecar metadata.
 The original `install-as-v1` contract remains available to replay its exact bytes,
 including its reference-destination bug. Historical locks without this field
 still use their original byte-copy renderer. An explicit `pack preview` / `pack apply` refresh upgrades

@@ -70,7 +70,31 @@ for agent, layout in AGENT_LAYOUTS.items():
             for skill in pack.skills:
                 assert (target / layout.skills_dir / skill.install_as / "SKILL.md").is_file()
                 native = target / layout.skills_dir / skill.install_as / "SKILL.md"
-                assert yaml.safe_load(native.read_text().split("---", 2)[1])["name"] == skill.install_as
+                assert (
+                    yaml.safe_load(native.read_text().split("---", 2)[1])["name"]
+                    == skill.install_as
+                )
+                if pack.id == "otter-skills":
+                    metadata = yaml.safe_load(native.read_text().split("---", 2)[1])
+                    config = yaml.safe_load((native.parent / "agents/openai.yaml").read_text())
+                    manual = skill.install_as == "otter-user-pov-sliced-stories"
+                    assert config["policy"]["allow_implicit_invocation"] is (not manual)
+                    assert f"${skill.install_as}" in config["interface"]["default_prompt"]
+                    assert metadata.get("disable-model-invocation", False) is (
+                        manual and agent != "codex"
+                    )
+                    pinned = (
+                        target
+                        / ".govkit/packs"
+                        / pack.id
+                        / pack.digest
+                        / skill.path
+                        / "agents/openai.yaml"
+                    )
+                    assert (
+                        pinned.read_bytes()
+                        == (pack.root / skill.path / "agents/openai.yaml").read_bytes()
+                    )
                 if pack.id in {"application-governance", "gherkin-delivery", "llm-evaluation"}:
                     assert skill.install_as.startswith("govkit-"), (pack.id, skill.install_as)
                     source = pack.root / skill.path / "SKILL.md"
@@ -96,7 +120,9 @@ for agent, layout in AGENT_LAYOUTS.items():
             for skill in (target / layout.skills_dir).glob("*/SKILL.md"):
                 content = skill.read_text()
                 assert "{{pack_root}}" not in content
-                header = content.split("---")[1]
+                header = content.split("---", 2)[1]
+                if skill.parent.name == "otter-user-pov-sliced-stories":
+                    header = header.replace("\ndisable-model-invocation: true\n", "\n")
                 assert frontmatter.setdefault(skill.parent.name, header) == header
                 for reference in re.findall(r"\]\((references/[^)]+)\)", content):
                     assert (skill.parent / reference).is_file(), reference

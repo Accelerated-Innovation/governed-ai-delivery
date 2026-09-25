@@ -1,0 +1,4 @@
+interface:
+  default_prompt: "Use $help to start."
+policy:
+  allow_implicit_invocation: false

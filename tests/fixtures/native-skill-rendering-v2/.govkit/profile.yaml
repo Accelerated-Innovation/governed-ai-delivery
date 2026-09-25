@@ -1,0 +1,18 @@
+capabilities:
+- id: sample
+integrations:
+  agent: claude-code
+  ci: github
+policy:
+  required_checks: []
+  source:
+    authority: accepted
+    reference: policy.md
+repository:
+  id: service
+  project_type: api
+  stack: null
+schema_version: 1
+source:
+  authority: accepted
+  reference: policy.md

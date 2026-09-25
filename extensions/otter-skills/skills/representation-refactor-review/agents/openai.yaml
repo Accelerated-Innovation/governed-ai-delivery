@@ -1,0 +1,6 @@
+interface:
+  display_name: "Representation Refactor Review"
+  short_description: "Review representation with the Eight Code Virtues."
+  default_prompt: "Use $representation-refactor-review to review this code's knowledge representation and propose evidence-based refactorings."
+policy:
+  allow_implicit_invocation: true

@@ -16,8 +16,8 @@ What it does:
   1. Clones upstream into a temp dir and checks out the given SHA (verified
      against `git rev-parse HEAD` — a branch name or short SHA is refused).
   2. Replaces the pack's skills/ with plugins/otter-skills/skills/*,
-     excluding each skill's agents/ subdir (OpenAI agent-builder config no
-     govkit-supported agent consumes).
+     retaining agents/openai.yaml for native invocation policy and metadata;
+     other upstream agent configuration remains excluded.
   3. Copies the plugin-level LICENSE and NOTICE to the pack root so the
      Apache-2.0 attribution travels with every copy `extension add` makes.
   4. Regenerates manifest.yaml (this script owns that file: provenance,
@@ -117,6 +117,11 @@ def sync(sha: str, upstream_version: str) -> None:
                 pack_skills / skill_dir.name,
                 ignore=shutil.ignore_patterns("agents"),
             )
+            config = skill_dir / "agents" / "openai.yaml"
+            if config.is_file() and not config.is_symlink():
+                destination = pack_skills / skill_dir.name / "agents" / "openai.yaml"
+                destination.parent.mkdir(parents=True)
+                shutil.copyfile(config, destination)
         for name in ("LICENSE", "NOTICE"):
             shutil.copyfile(plugin / name, PACK_DIR / name)
 

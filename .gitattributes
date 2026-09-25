@@ -11,3 +11,4 @@ full_test text eol=lf
 # Historical lock digests bind LF bytes even on Windows checkouts.
 tests/fixtures/native-skill-lock-v1/** text eol=lf
 tests/fixtures/native-skill-rendering-v1/** text eol=lf
+tests/fixtures/native-skill-rendering-v2/** text eol=lf

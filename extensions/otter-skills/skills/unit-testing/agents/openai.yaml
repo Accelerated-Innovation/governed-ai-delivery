@@ -1,0 +1,6 @@
+interface:
+  display_name: "Unit Testing"
+  short_description: "Build behavior test-first with fast microtests."
+  default_prompt: "Use $unit-testing to implement this behavior test-first in small red-green-refactor cycles."
+policy:
+  allow_implicit_invocation: true

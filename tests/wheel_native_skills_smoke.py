@@ -54,12 +54,21 @@ for agent, layout in AGENT_LAYOUTS.items():
             native = target / layout.skills_dir / entry["install_as"] / "SKILL.md"
             text = native.read_text()
             assert yaml.safe_load(text.split("---", 2)[1])["name"] == entry["install_as"]
+            metadata = yaml.safe_load(text.split("---", 2)[1])
+            config = yaml.safe_load((native.parent / "agents/openai.yaml").read_text())
+            manual = entry["install_as"] == "otter-user-pov-sliced-stories"
+            assert config["policy"]["allow_implicit_invocation"] is (not manual)
+            assert f"${entry['install_as']}" in config["interface"]["default_prompt"]
+            assert metadata.get("disable-model-invocation", False) is (manual and agent != "codex")
             for sibling in manifest["skills"]:
                 bare = Path(sibling["path"]).name
                 assert not re.search(rf"(?<![\w/-]){re.escape(bare)}(?![\w/-])", text)
             source = pack / entry["path"] / "SKILL.md"
             copied = target / "extensions/otter-skills" / entry["path"] / "SKILL.md"
             assert source.read_bytes() == copied.read_bytes()
+            assert (source.parent / "agents/openai.yaml").read_bytes() == (
+                copied.parent / "agents/openai.yaml"
+            ).read_bytes()
         customized = target / layout.skills_dir / "otter-unit-testing/SKILL.md"
         customized.write_text("User skill instructions\n")
         refused = subprocess.run(
@@ -113,7 +122,36 @@ with tempfile.TemporaryDirectory() as directory:
     assert "Use [craft-unit-testing][guide]." in native.read_text()
     assert (native.parent / "unit-testing").is_file()
     lock = json.loads((target / ".govkit/pack-lock.json").read_text())
-    assert lock["skill_rendering"] == "install-as-v2"
+    assert lock["skill_rendering"] == "install-as-v3"
+    run("pack", "verify", "--target", str(target))
+    after = snapshot(target)
+    run("pack", "apply", *options)
+    assert snapshot(target) == after
+    for relative, original in before.items():
+        if relative.as_posix().startswith(".govkit/packs/"):
+            assert after[relative] == original
+
+with tempfile.TemporaryDirectory() as directory:
+    target = Path(directory) / "consumer"
+    fixture = Path(__file__).parent / "fixtures/native-skill-rendering-v2"
+    shutil.copytree(fixture, target)
+    before = snapshot(target)
+    run("pack", "verify", "--target", str(target))
+    assert snapshot(target) == before
+    source = next((target / ".govkit/packs/sample").iterdir())
+    options = ["--target", str(target), "--source", str(source), "--json"]
+    run("pack", "apply", *options)
+    native = target / ".claude/skills/sample-help"
+    assert (
+        yaml.safe_load((native / "SKILL.md").read_text().split("---", 2)[1])[
+            "disable-model-invocation"
+        ]
+        is True
+    )
+    assert (
+        yaml.safe_load((native / "agents/openai.yaml").read_text())["interface"]["default_prompt"]
+        == "Use $sample-help to start."
+    )
     run("pack", "verify", "--target", str(target))
     after = snapshot(target)
     run("pack", "apply", *options)
@@ -123,5 +161,5 @@ with tempfile.TemporaryDirectory() as directory:
             assert after[relative] == original
 
 print(
-    "Native skill wheel smoke passed: 3 legacy agents, upstream preservation, protected refresh, historical and v1 lock upgrades"
+    "Native skill wheel smoke passed: 3 legacy agents, invocation policy, preserved sources, protected refresh, historical/v1/v2 lock upgrades"
 )

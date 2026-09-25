@@ -1,0 +1,6 @@
+interface:
+  display_name: "Story Splitting for Delivery"
+  short_description: "Split work safely through progressive admission."
+  default_prompt: "Use $story-splitting-for-delivery to split this work into a progressive admission sequence."
+policy:
+  allow_implicit_invocation: true
