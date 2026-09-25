@@ -46,7 +46,7 @@ src/
 │   ├── components/   # View — standalone Angular components
 │   ├── hooks/        # ViewModel — TanStack Angular Query inject functions
 │   ├── store/        # ViewModel — Signal store for client state
-│   ├── api/          # Model — API client services (including LLM-backed endpoints)
+│   ├── api/          # Model — API client functions (including LLM-backed endpoints)
 │   └── types/        # Feature-local TypeScript types
 ├── shared/
 │   ├── components/   # Shared UI primitives only
@@ -115,8 +115,8 @@ Layer rules load automatically via `.github/instructions/govkit/*.instructions.m
 * Feature-scoped stores — no global catch-all store
 
 ### Model — API (`src/features/*/api/`)
-* Plain Angular services with `HttpClient` — no components, no Query injection
-* Use shared `ApiService` from `src/shared/api/`
+* Plain async functions — no Angular decorators, `inject()` calls, or component lifecycle in feature API files
+* Receive the shared `ApiService` as an explicit parameter; do not use `HttpClient` directly in feature API files
 * LLM-backed calls go to backend endpoints only; the UI never imports an LLM provider SDK
 * Honour backend-emitted rate-limit and fallback signals; surface them to the ViewModel as typed errors
 * All requests and responses explicitly typed — no `any`

@@ -40,7 +40,7 @@ src/
 │       ├── components/   # View — standalone Angular components, no business logic
 │       ├── hooks/        # ViewModel — TanStack Angular Query inject functions
 │       ├── store/        # ViewModel — Signal store for client state
-│       ├── api/          # Model — API client services (HttpClient wrappers)
+│       ├── api/          # Model — API client functions via shared ApiService
 │       └── types/        # TypeScript types for this feature
 ├── shared/
 │   ├── components/       # Shared UI primitives only
@@ -89,7 +89,7 @@ Layer-specific rules load automatically via nested `AGENTS.md` files when workin
 
 - `src/features/components/AGENTS.md` — View layer (standalone components)
 - `src/features/hooks/AGENTS.md` — ViewModel (TanStack Angular Query inject functions + Signal stores)
-- `src/features/api/AGENTS.md` — Model layer (HttpClient-based services, including LLM-backed endpoints)
+- `src/features/api/AGENTS.md` — Model layer (functions via shared ApiService, including LLM-backed endpoints)
 - `src/shared/accessibility/AGENTS.md` — WCAG 2.1 AA requirements
 
 ### View — Components (`src/features/<feature>/components/`)
@@ -110,8 +110,8 @@ Layer-specific rules load automatically via nested `AGENTS.md` files when workin
 - Never store raw LLM responses — they belong in the query cache, scoped per request
 
 ### Model — API (`src/features/<feature>/api/`)
-- Plain Angular services with `HttpClient` — no components, no Query injection
-- Use shared `ApiService` from `src/shared/api/`
+- Plain async functions — no Angular decorators, `inject()` calls, or component lifecycle in feature API files
+- Receive the shared `ApiService` as an explicit parameter; do not use `HttpClient` directly in feature API files
 - LLM-backed calls go to backend endpoints only; the UI never imports an LLM provider SDK
 - Honour backend-emitted rate-limit and fallback signals; surface them to the ViewModel as typed errors
 

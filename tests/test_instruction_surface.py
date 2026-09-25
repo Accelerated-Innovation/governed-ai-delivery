@@ -133,6 +133,12 @@ def assert_ui_guidance(target: Path, agent: str) -> None:
         if "{{" in text:
             problems.append(f"{path.name} contains unexpanded tokens")
     compliance = rule(target, agent, "spec-compliance").read_text(encoding="utf-8")
+    prechecks = compliance.split("## Pre-Implementation Checks", 1)[1].split(
+        "## Plan Discipline", 1
+    )[0]
+    assert re.search(r"Verify.*Repository Scope.*`nfrs.md`.*complete", prechecks), (
+        "UI scope check must gate implementation"
+    )
     section = compliance.split("## Feature Artifacts", 1)[1].split("## Defect fixes", 1)[0]
     listed = set(re.findall(r"^[-*] `([^`]+)`", section, re.MULTILINE))
     if listed != COMMON_ARTIFACTS | {"design.md"}:
@@ -191,3 +197,55 @@ def test_backend_keeps_its_five_artifact_contract_and_native_preflight(tmp_path,
 )
 def test_preflight_skill_token_uses_known_context_or_stays_unresolved(area, expected):
     assert expand_skill_tokens("{{architecture_preflight_skill}}", area) == expected
+
+
+@pytest.mark.parametrize("agent", AGENTS)
+@pytest.mark.parametrize("level", ["3", "4", "5"])
+def test_angular_api_guidance_passes_shared_client_without_ambient_injection(
+    tmp_path, agent, level
+):
+    apply(tmp_path, agent, "ui-angular", level)
+    governance = tmp_path / "AGENTS.md" if agent == "codex" else rule(tmp_path, agent, "governance")
+    root_api = governance.read_text().split("### Model — API", 1)[1].split("\n---", 1)[0]
+    if agent == "claude-code":
+        details = (
+            rule(tmp_path, agent, "governance-src")
+            .read_text()
+            .split("## API (Model Layer)", 1)[1]
+            .split("## Accessibility", 1)[0]
+        )
+    elif agent == "codex":
+        details = (tmp_path / "src/features/api/AGENTS.md").read_text()
+    else:
+        details = rule(tmp_path, agent, "ui-api").read_text()
+    problems = []
+    for reference in re.findall(
+        r"`((?:\.claude/rules|\.github/instructions)/[^`]+\.md)`", root_api
+    ):
+        if not (tmp_path / reference).is_file():
+            problems.append(f"Angular API summary references missing {reference}")
+    for name, text in (("root API summary", root_api), ("API rules", details)):
+        if not re.search(r"ApiService.*(?:parameter|argument)", text):
+            problems.append(f"{name} must require an explicit shared ApiService argument")
+        if re.search(r"(?:take|wrapping|services with) `HttpClient`", text):
+            problems.append(f"{name} bypasses the shared client")
+    for snippet in re.findall(r"```typescript\n(.*?)```", details, re.DOTALL):
+        if "fetchUserProfile" in snippet:
+            if re.search(r"\binject\s*\(", snippet):
+                problems.append("API example depends on ambient Angular injection")
+            if not re.search(r"fetchUserProfile\(\s*api: ApiService,", snippet):
+                problems.append("API example must receive the shared client")
+    state = (tmp_path / "docs/ui/architecture/angular/STATE_MANAGEMENT.md").read_text()
+    for function, callback in (
+        ("injectUserProfile", "queryFn"),
+        ("injectUpdateUserProfile", "mutationFn"),
+    ):
+        factory = state.split(f"export function {function}", 1)[1].split("\n}", 1)[0]
+        if "const api = inject(ApiService);" not in factory.split("return inject", 1)[0]:
+            problems.append(f"{function} must resolve ApiService before deferred {callback}")
+    if (
+        "fetchUserProfile(api, userId())" not in state
+        or "updateUserProfile(api, userId, payload)" not in state
+    ):
+        problems.append("Query/mutation examples must pass the captured client to the API")
+    assert not problems, "\n".join(problems)

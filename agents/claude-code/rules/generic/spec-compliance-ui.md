@@ -53,6 +53,7 @@ Before writing any implementation code:
 - Verify `architecture_preflight.md` exists and its status is not Blocked
 - Verify `plan.md` exists with defined increments and tests
 - Verify `design.md` exists with complete UI states, interactions, and accessibility requirements
+- Verify "Repository Scope" section in `nfrs.md` is complete (see Repository Scope Enforcement rule)
 
 If any artifact is incomplete, stop and request completion before proceeding.
 

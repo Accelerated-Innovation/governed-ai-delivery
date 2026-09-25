@@ -95,10 +95,10 @@ Read before generating any code:
 
 ### Model — API (`src/features/<slice>/api/`)
 
-* Plain functions wrapping `HttpClient`
+* Plain async functions — no Angular decorators, `inject()` calls, or component lifecycle in feature API files
 * One file per backend resource
-* Use shared base from `src/shared/api/`
-* See `.github/instructions/govkit/api.instructions.md`
+* Receive the shared `ApiService` as an explicit parameter; do not use `HttpClient` directly in feature API files
+* See `.github/instructions/govkit/ui-api.instructions.md`
 
 ### Accessibility
 

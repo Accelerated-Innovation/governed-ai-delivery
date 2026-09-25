@@ -60,8 +60,8 @@ Read before generating any code:
 - See `.claude/rules/govkit/governance-src.md`
 
 ### Model — API (`src/features/<feature>/api/`)
-- Plain async functions using the shared `ApiService`
-- No Angular decorators, no DI — pure functions that take `HttpClient` or the shared service
+- Plain async functions — no Angular decorators, `inject()` calls, or component lifecycle in feature API files
+- Receive the shared `ApiService` as an explicit parameter; do not use `HttpClient` directly in feature API files
 - All request and response types explicitly typed — no `any`
 - See `.claude/rules/govkit/governance-src.md`
 

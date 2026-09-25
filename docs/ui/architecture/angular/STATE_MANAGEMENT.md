@@ -22,19 +22,25 @@ export const appConfig: ApplicationConfig = {
 
 ### Injection-Based Queries
 
-Use `injectQuery` and `injectMutation` inside services or components:
+Call query/mutation setup functions from an Angular injection context, such as a
+service or component field initializer. Capture the shared `ApiService` during
+setup and pass it explicitly into plain feature API functions. Deferred query and
+mutation callbacks must not call `inject()` or use `HttpClient` directly.
+See [Angular injection context](https://angular.dev/guide/di/dependency-injection-context).
 
 ```typescript
 // src/features/user/hooks/user.queries.ts
-import { inject } from '@angular/core';
+import { inject, type Signal } from '@angular/core';
 import { injectQuery, injectMutation, QueryClient } from '@tanstack/angular-query-experimental';
 import { userQueryKeys } from './user.query-keys';
 import { fetchUserProfile, updateUserProfile } from '../api/user.api';
+import { ApiService } from '../../../shared/api/api.service';
 
 export function injectUserProfile(userId: Signal<string>) {
+  const api = inject(ApiService);
   return injectQuery(() => ({
     queryKey: userQueryKeys.profile(userId()),
-    queryFn: () => fetchUserProfile(userId()),
+    queryFn: () => fetchUserProfile(api, userId()),
     select: (data): UserProfileViewModel => ({
       fullName: `${data.first_name} ${data.last_name}`,
       avatarUrl: data.avatar_url,
@@ -44,9 +50,10 @@ export function injectUserProfile(userId: Signal<string>) {
 }
 
 export function injectUpdateUserProfile() {
+  const api = inject(ApiService);
   const queryClient = inject(QueryClient);
   return injectMutation(() => ({
-    mutationFn: ({ userId, payload }: UpdateArgs) => updateUserProfile(userId, payload),
+    mutationFn: ({ userId, payload }: UpdateArgs) => updateUserProfile(api, userId, payload),
     onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: userQueryKeys.profile(userId) });
     },
