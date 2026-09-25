@@ -114,8 +114,10 @@ never establish that an unseen file was removed.
 
 JSON uses [the versioned discovery schema](../governance/schemas/discovery.schema.json).
 The loader validates shape and profile/digest consistency; it does not authenticate
-baseline authors or replay installer authorization. Neither reports nor baselines
-are input to an installer. The domain's `maintenance_outcome()` supplies shared check findings/evidence
+baseline authors or replay installer authorization.
+Installers do not consume discovery reports or baselines, and those records do not authorize writes.
+Discovery previews use an accepted profile; applying changes requires the separate
+protected profile/pack operations. The domain's `maintenance_outcome()` supplies shared check findings/evidence
 to [canonical maintenance assessment](MAINTENANCE_ASSESSMENT.md). These observations
 return warning/unknown/not-applicable, never a conformance pass or policy failure.
 `govkit discover` exits 0 when it produces a report (including pending/incomplete
