@@ -24,7 +24,7 @@ def test_every_path_on_main_reaches_the_source_workflow(workflow, event):
     )
 
 
-@pytest.mark.parametrize("job", ["fast", "e2e", "wheel-smoke"])
+@pytest.mark.parametrize("job", ["fast", "e2e", "wheel-smoke", "windows-wheel-smoke"])
 def test_required_source_jobs_do_not_skip_or_ignore_failures(workflow, job):
     definition = workflow["jobs"][job]
     assert "if" not in definition, f"{job} must run for every workflow invocation"
@@ -44,6 +44,19 @@ def test_both_supported_python_versions_run_the_fast_tier(workflow):
     assert setup[0].get("with", {}).get("python-version") == "${{ matrix.python-version }}"
     steps = {step.get("name"): step for step in fast["steps"]}
     assert steps["Run pytest (fast tier)"]["run"].strip() == 'pytest -m "not e2e"'
+
+
+def test_windows_wheel_job_exercises_legacy_limits_on_both_supported_pythons(workflow):
+    windows = workflow["jobs"]["windows-wheel-smoke"]
+    assert windows["runs-on"] == "windows-latest"
+    assert windows["strategy"]["matrix"] == {"python-version": ["3.11", "3.12"]}
+    steps = {step.get("name"): step for step in windows["steps"]}
+    assert "-Value 0" in steps["Enable legacy Windows path limits"]["run"]
+    assert "LongPathsEnabled" in steps["Enable legacy Windows path limits"]["run"]
+    smoke = steps["Install wheel at the regression depth"]["run"]
+    assert "tests/wheel_windows_smoke.py" in smoke
+    assert "--install" in smoke
+    assert "python -m build --wheel" in steps["Build wheel"]["run"]
 
 
 def test_e2e_tier_preserves_pytest_failure_through_tee(workflow):

@@ -18,7 +18,7 @@ def _add_args(ext_id, target, force=False):
 
 def test_extension_packs_dir_exists_and_has_bundled_packs():
     """EXTENSION_PACKS_DIR resolves to the bundled packs (repo: extensions/;
-    wheel: cli/extension_packs/). Both reference copies must be discoverable."""
+    wheel: cli/ext/). Both reference copies must be discoverable."""
     assert paths.EXTENSION_PACKS_DIR.is_dir(), f"{paths.EXTENSION_PACKS_DIR} should exist"
     ids = {
         p.name

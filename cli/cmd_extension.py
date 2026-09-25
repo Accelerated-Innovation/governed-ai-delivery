@@ -5,7 +5,7 @@
 # you may not use this file except in compliance with the License.
 """govkit extension — list bundled extension packs and add one to a project.
 
-Extension packs ship with the wheel (cli/extension_packs/, force-included from
+Extension packs ship with the wheel (cli/ext/, force-included from
 the repo's extensions/). `extension add` copies a pack into the target's
 extensions/<id>/ folder, where govkit's existing discovery/validate already
 operates. Mirrors the shape of `cmd_stack` (list + apply over a bundled set).
