@@ -50,6 +50,21 @@ Already have a legacy `.govkit/marker.json`? Start with the
 customizations and rollback. Legacy flags and manifests remain supported; no
 retirement release or warning period has been announced.
 
+### Windows installation paths
+
+Use a short virtualenv path, such as `C:\venvs\govkit`, especially on machines
+where Windows long paths are disabled. The unreleased wheel layout reserves room
+for a **124-character absolute virtualenv path**: its longest bundled member is
+116 characters, plus `\Lib\site-packages\` (19), leaving the terminating NUL
+within the legacy 260-character limit. This is a GovKit payload budget, not a
+guarantee for arbitrary dependencies or deeply nested consumer projects.
+
+For deeper environments, shorten the path or have your administrator enable
+[Windows long-path support](https://docs.python.org/3/using/windows.html#removing-the-max-path-limitation)
+before installation. If an earlier install failed partway through with a path
+error, retry in a fresh, shorter virtualenv. Existing published wheels may still
+use the longer layout; see [#129](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/129).
+
 ## Legacy bundle setup in 4 steps
 
 This section describes the existing level-based installer. Choose it when you

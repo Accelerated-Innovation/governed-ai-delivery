@@ -26,15 +26,11 @@ _HERE = Path(__file__).parent
 AGENTS_DIR = _HERE / "agents" if (_HERE / "agents").exists() else _HERE.parent / "agents"
 REPO_ROOT = AGENTS_DIR.parent
 
-# Bundled extension packs. In the wheel these ship at cli/extension_packs/
+# Bundled extension packs. In the wheel these ship at the compact cli/ext/
 # (force-included from the repo's extensions/); running from the repo we read
 # extensions/ directly. The destination is NOT cli/extensions/ — that name is
 # the discovery module (cli/extensions.py).
-EXTENSION_PACKS_DIR = (
-    _HERE / "extension_packs"
-    if (_HERE / "extension_packs").exists()
-    else _HERE.parent / "extensions"
-)
+EXTENSION_PACKS_DIR = _HERE / "ext" if (_HERE / "ext").exists() else _HERE.parent / "extensions"
 
 # Bundled governance assets — schemas and the conformance fixtures that ship
 # with them. Same dev/wheel duality as AGENTS_DIR: the wheel force-includes

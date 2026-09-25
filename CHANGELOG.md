@@ -8,6 +8,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Shorten the wheel's private extension asset root from `cli/extension_packs/`
+  to `cli/ext/` to address deep Windows virtualenv installation failures (#129).
+  Public extension IDs, resource contents and consumer paths are unchanged.
+  Check the built wheel's path budget and exercise a 124-character virtualenv
+  root with long paths disabled in Windows CI on Python 3.11 and 3.12.
+
 ## [0.21.1] — 2026-09-19
 
 ### Fixed

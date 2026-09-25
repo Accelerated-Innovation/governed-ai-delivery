@@ -24,6 +24,26 @@ When a change affects behavior, contributors should update the relevant document
 4. Install in development mode: `pip install -e ".[test]"`
 5. Run the CLI: `govkit list`
 
+On Windows, keep the checkout and virtualenv paths short or enable
+[long-path support](https://docs.python.org/3/using/windows.html#removing-the-max-path-limitation).
+An editable install does not exercise the packaged resource layout. After changing
+bundled assets or packaging, build a wheel and check its actual paths:
+
+```bash
+python -m build --wheel
+python tests/wheel_windows_smoke.py dist/govkit-<version>-py3-none-any.whl
+```
+
+The 116-character member budget follows from a 124-character absolute Windows
+virtualenv root, 19 characters for `\Lib\site-packages\`, and the legacy
+[MAX_PATH limit including its terminator](https://learn.microsoft.com/windows/win32/fileio/maximum-file-path-limitation).
+The check includes bytecode paths for Python 3.11 and 3.12. Do not raise the budget
+to accommodate a new asset without revisiting this compatibility boundary.
+Source CI also installs the wheel on both Windows Python versions at that depth,
+with long paths disabled and a failing over-limit probe. It checks the native
+entrypoint, both pack-loading paths and copied contract bytes. This bounded
+install smoke does not certify every GovKit command on Windows.
+
 ### Maintainers
 
 1. Clone the repository
