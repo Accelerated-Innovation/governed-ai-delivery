@@ -1,6 +1,6 @@
 # Local check and evidence reports
 
-`govkit conform` collects profile, installed-resource and legacy check results in a shared report. It preserves required controls even when their provider or evidence is missing. This is the I04 check foundation: it does not yet select a workflow from a request/diff, enforce architecture transitions, generate pipelines, or assess release freshness and maintenance.
+`govkit conform` collects profile, installed-resource and legacy check results in a shared report. It preserves required controls even when their provider or evidence is missing. The plain repository invocation inspects configured resources and checks. Use [actual-change conformance](CHANGE_CONFORMANCE.md) for request/diff routing and scoped architecture checks, [pipeline generation](PIPELINE_GENERATION.md) for reusable provider entry points, and [maintenance assessment](MAINTENANCE_ASSESSMENT.md) for release/resource/fit/CI findings.
 
 ```sh
 govkit conform --target ./service
@@ -21,7 +21,7 @@ Inspection is offline and read-only. The command prints its report; shell redire
 | `legacy:approval-policy` | Local policy/ADR attestation structure; cannot authenticate reviews or prove a CI gate is active |
 | Pack check IDs | Pinned Python entry points; configured controls stay skipped until explicitly executed |
 
-The profile's accepted `policy.required_checks` are always selected and retain their policy reference. A missing provider reports unknown. Pack-declared required checks also remain required. The foundation evaluates these requirements across the explicit project target; conditional change/workflow applicability comes later. It provides no caller filter to remove mandatory controls.
+The profile's accepted `policy.required_checks` are always selected and retain their policy reference. A missing provider reports unknown. Pack-declared required checks also remain required. The plain repository invocation evaluates these requirements across the explicit project target. Request-specific applicability is resolved by the separate `--request` path described below. It provides no caller filter to remove mandatory controls.
 
 Approval evidence includes the policy and each in-scope ADR actually read, with its repository-relative source, scope and content digest. Templates and out-of-scope ADRs are excluded. Symlinks may reference files within the assessed repository; external targets cannot supply local approval evidence. Unreadable inventories stay unknown, and unreadable files retain their location and an unverified evidence record without a digest.
 
@@ -47,7 +47,7 @@ Each execution ID must belong to the selected pinned pack lock. Built-in or unin
 
 Execution (`not-run`, `executed`, `error`) is separate from the outcome (`pass`, `fail`, `warn`, `unknown`, `skipped`, `not-applicable`, `waived`). A pass requires an executed result with evidence from a local check or tool execution. Agent assertions and unverified artifacts cannot independently establish a pass. Missing or unreadable inputs, unavailable schema coverage, exceptions and invalid check results stay visible. One broken check does not suppress unrelated results.
 
-Only `pass` counts in `required_satisfied`. Every required check contributes to the `required` denominator, including unknown, skipped, not-applicable and waived entries. This foundation represents waived state but has no waiver authorization engine; it cannot satisfy a required check. State counts include both required and advisory checks; `executed` counts checks attempted successfully enough to return a result, including failures. A protocol error has execution `error` and is excluded from that count.
+Only `pass` counts in `required_satisfied`. Every required check contributes to the `required` denominator, including unknown, skipped, not-applicable and waived entries. The report represents waived state but has no waiver authorization engine; it cannot satisfy a required check. State counts include both required and advisory checks; `executed` counts checks attempted successfully enough to return a result, including failures. A protocol error has execution `error` and is excluded from that count.
 
 Exit **1** means at least one failure, an unsatisfied required check, or no passing checks at all. Exit **0** means the named required checks passed and there are no failures; advisory uncertainty may still yield an overall `warn`. Any failure makes the overall state `fail`; otherwise blocked/inconclusive runs are `unknown`. This exit status does not certify the whole repository or authenticate policy/evidence.
 
@@ -61,7 +61,7 @@ Evidence names source, scope, method, origin, digest when available, and limitat
 
 Worked reports demonstrate [a structural profile pass](../governance/examples/check-results/profile-pass.json), [an unconfigured required control](../governance/examples/check-results/required-unknown.json), and [a real exact-match failure](../governance/examples/check-results/evaluation-fail.json). They use synthetic repository/revision annotations and temporary consumer fixtures. A profile pass alone says nothing about unselected application controls.
 
-`cli.check_runner.load_report` validates schema, canonical finding identities and recomputed totals for inspection. It does not authenticate a report or accept it as gate evidence. Run the checks again against the relevant inputs. Local and CI callers can use the same engine; the wheel smoke test demonstrates parity for the same explicit fixtures. Provider evidence, actual-change routing and enforcement parity remain later work.
+`cli.check_runner.load_report` validates schema, canonical finding identities and recomputed totals for inspection. It does not authenticate a report or accept it as gate evidence. Run the checks again against the relevant inputs. Local and CI callers can use the same engine; the wheel smoke test demonstrates parity for the same explicit fixtures. The [provider evidence adapter](PROVIDER_EVIDENCE.md) binds explicitly supplied observations to canonical results; imported success claims remain unverified. Neither local inspection nor generated workflow files establish live enforcement parity.
 
 ## Actual-change conformance
 

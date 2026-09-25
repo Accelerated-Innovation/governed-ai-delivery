@@ -87,7 +87,9 @@ Profile transitions can independently retain, improve or migrate components.
 Their source, current/target contracts, new/new-and-changed/all applicability and
 existing exception scopes stay intact. The monorepo example's target references
 state verification and exit criteria. Discovery does not classify actual changes
-as compliant/violating or execute those exit checks; I07 supplies that enforcement.
+as compliant/violating or execute those exit checks. Use
+[actual-change conformance](CHANGE_CONFORMANCE.md) for configured scoped
+constraints and explicit check execution; unmeasured semantic rules remain unknown.
 
 ## Repeat only the relevant review
 
@@ -112,9 +114,11 @@ never establish that an unseen file was removed.
 
 JSON uses [the versioned discovery schema](../governance/schemas/discovery.schema.json).
 The loader validates shape and profile/digest consistency; it does not authenticate
-baseline authors or replay installer authorization. Neither reports nor baselines
-are input to an installer. The domain's `maintenance_outcome()` exposes I04-compatible
-maintenance findings/evidence for later integrated assessment. These observations
+baseline authors or replay installer authorization.
+Installers do not consume discovery reports or baselines, and those records do not authorize writes.
+Discovery previews use an accepted profile; applying changes requires the separate
+protected profile/pack operations. The domain's `maintenance_outcome()` supplies shared check findings/evidence
+to [canonical maintenance assessment](MAINTENANCE_ASSESSMENT.md). These observations
 return warning/unknown/not-applicable, never a conformance pass or policy failure.
 `govkit discover` exits 0 when it produces a report (including pending/incomplete
 findings), 1 on invalid input, and 2 on argument errors. It is not a CI gate.
@@ -125,5 +129,7 @@ fixture contains repository files and, where explicitly accepted, a profile.
 Tests materialize them in isolated directories; the wheel smoke exercises real
 CLI adoption, source preservation and repeat discovery. No source text is included
 in observation records or transmitted; paths, digests, indicators and explicitly
-supplied profile references remain local. Hosted reporting/privacy aggregation
-and release/resource maintenance are later increments.
+supplied profile references remain local. [Maintenance assessment](MAINTENANCE_ASSESSMENT.md) adds release/resource/CI
+facts. [Posture exports](POSTURE_REPORTING.md) and
+[offline aggregation](POSTURE_AGGREGATION.md) provide privacy-filtered reporting;
+they do not add hosted collection or automatic transmission.

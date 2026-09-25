@@ -75,8 +75,9 @@ do not authenticate policy or turn metadata into execution evidence.
 
 [Pipeline generation](PIPELINE_GENERATION.md) adds reusable GitHub/Azure entry
 points, protected preview/check/generate, configuration drift and prepared-input
-execution with runtime/profile/pack pins. I10c retains event/trusted-checkout
-admission, maintenance integration and provider evidence. Neither catalog nor
+execution with runtime/profile/pack pins.
+[Provider admission and evidence](PROVIDER_EVIDENCE.md) add supported PR-context
+checks, maintenance integration and explicit observation inputs. Neither catalog nor
 generation changes branch protection or publishes artifacts. External enforcement
 and reviewer requirements remain separate platform settings.
 

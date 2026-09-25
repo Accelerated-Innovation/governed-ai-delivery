@@ -1,6 +1,6 @@
 # Conformance for an actual change
 
-I07 adds an opt-in request path to `govkit conform`. It combines the accepted
+`govkit conform --request` selects the actual-change inspection path. It combines the accepted
 profile, normalized request, pinned checks and actual Git changes. Plain
 `govkit conform --target ...` retains the repository inspection behavior described
 in [CONFORMANCE.md](CONFORMANCE.md). Request normalization and planning remain in
@@ -39,8 +39,11 @@ The trusted caller must select this checkout, base, normalized intent and execut
 flags. In CI use protected configuration or a separately fetched accepted revision,
 not files or arguments controlled by the proposed change. Do not run untrusted
 project code with privileged credentials. Local paths, digests and the word
-`accepted` do not authenticate authority. This increment supplies a shared command
-and JSON contract; provider enforcement and generated pipelines are I10 work.
+`accepted` do not authenticate authority. The shared command and JSON contract are used by
+[generated provider entry points](PIPELINE_GENERATION.md).
+[Provider admission and evidence](PROVIDER_EVIDENCE.md) check caller-supplied
+PR context and bind exported observations; protected-caller configuration and
+authenticated enforcement evidence remain separate requirements.
 No local result manufactures reviewer/platform approval. Architecture requests
 retain required `approval:architecture = unknown` until a future platform adapter
 can supply independently verified approval.
@@ -164,9 +167,12 @@ another change. Explicit time/base/request/policy/check inputs yield equivalent
 local and CI results; environment-dependent commands remain the caller's concern.
 
 [The bundled pilot](../governance/examples/change-conformance/README.md) composes
-I06's seven requests with an isolated ungoverned Git repository and separately
+the seven normalized request examples with an isolated ungoverned Git repository and separately
 accepted policy. Tests exercise passing measurements, real failures, unchanged
 source bytes/mtimes, and JSON replay with runtime-only dependencies. Architecture
 measurements pass while unavailable platform approval remains unknown. These are
 synthetic contract tests, not live team adoption or provider-enforcement evidence.
-Legacy migration waits for I08; consolidated maintenance waits for I09.
+For existing installations, use [legacy migration](LEGACY_MIGRATION.md).
+[Maintenance assessment](MAINTENANCE_ASSESSMENT.md) separately evaluates release,
+resource, repository-fit and CI facts; a passing change does not establish
+maintenance currency.

@@ -58,7 +58,7 @@ is an observation, not an authenticated approval. Invalid/unavailable repository
 discovery leaves the other dimensions useful. Malformed supplied provider documents
 are rejected; an absent provider or canonical unknown/error result stays unknown.
 
-CI input uses the existing `check-results` contract and replay validator. I09b
+CI input uses the existing `check-results` contract and replay validator. Assessment
 consumes accepted required check IDs beginning `ci:` and the legacy migration
 obligation `migration:ci-enforcement`. An accepted GitHub/Azure integration also
 requires `ci:integration`. When an accepted profile specifies neither, this
@@ -75,8 +75,10 @@ remain required when they pass. Canonical pass/fail/unknown/skipped outcomes are
 reused; workflow presence is never substituted for execution.
 
 These checks establish consistency, not provider authenticity. The caller must
-choose trusted evidence. I10 owns provider collection, generated integration
-contracts and repair previews; this command does not contact GitHub/Azure or infer
+choose trusted evidence. [Provider admission and evidence](PROVIDER_EVIDENCE.md)
+compare explicit provider exports and generated configuration, feed the same
+assessment, and preview a selected upgrade's integration changes. The caller
+collects those exports; this command does not contact GitHub/Azure or infer
 active enforcement from workflow files. Synthetic provider fixtures in the pilots
 demonstrate both passing and failing paths, not live platform enforcement.
 
@@ -97,7 +99,10 @@ protected pack preview from the supplied local snapshot and other locked packs.
 It names the compatible target, resources, controls and protected customizations.
 A CLI upgrade points to the existing package manager. Other recommendations show
 the owning review/setup/repair workflow and its prerequisites with `ready: false`;
-they are not executable changes or generated CI repair patches.
+they are not executable changes or generated CI repair patches. For a selected
+CLI/pack upgrade, use the separate
+[integration preview](PROVIDER_EVIDENCE.md#preview-the-selected-upgrades-integration)
+to inspect affected gates, settings and follow-up validation without writing workflows.
 
 Apply reviewed pack/profile/migration operations through their existing commands.
 An assessment, a digest and `ready` do not independently authorize writes. Then
