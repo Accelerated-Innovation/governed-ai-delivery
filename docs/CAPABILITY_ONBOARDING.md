@@ -15,9 +15,12 @@ or warning period has been announced.
 ## Try the commands in an isolated example
 
 Install the CLI with Python 3.11+ using `python -m pip install govkit`. The examples
-below require a build that includes `govkit profile` and `govkit pack`; check their
-`--help` output first. Repository development installs use `python -m pip install
--e ".[test]"` from the source checkout. This guide is verified against the built
+below require a build that includes `discover`, `profile` and `pack`. Start with
+`govkit --help`; do not invoke those commands if the installed package does not
+list them. To use this development build, inspect a GovKit source checkout and
+select the revision you intend to trust, then run `python -m pip install -e .`
+**from that GovKit checkout**, not from the adopting project. Contributor test
+environments use `python -m pip install -e ".[test]"` instead. This guide is verified against the built
 wheel from this implementation, not a claim that an unreleased change is on PyPI.
 
 Use Bash for this recipe (including on Windows via a Bash environment). The CLI
@@ -119,19 +122,24 @@ legacy `--force` to bypass a protected pack operation. See
 [capability packs](CAPABILITY_PACKS.md) for explicit pins and reviewed updates.
 
 This profile installs the following skill directories, each containing `SKILL.md`.
-Use the exact names; a `govkit-` prefix is present only where shown.
+Use the exact names; GovKit-owned native skill directories use the `govkit-` namespace.
 
 | Installed skill | Purpose |
 |---|---|
-| `application-governance` | Guidance for accepted application contracts |
+| `govkit-application-governance` | Guidance for accepted application contracts |
 | `govkit-request-planning` | Normalize a request for deterministic workflow planning |
-| `llm-evaluation` | Guidance for the independent evaluation control |
+| `govkit-llm-evaluation` | Guidance for the independent evaluation control |
 
 | Agent | Native skill root |
 |---|---|
 | Claude Code | `.claude/skills/` |
 | Codex | `.agents/skills/` |
 | Copilot | `.github/skills/` |
+
+Existing preview builds may have installed unprefixed skill directories. Use a
+reviewed `govkit pack preview` / `apply` to update them; modified old copies or
+pre-existing namespaced destinations stay protected. See the
+[namespace compatibility note](CAPABILITY_PACKS.md#native-skill-namespace-updates).
 
 The profile does not install the legacy spec-planning/preflight skill suite,
 consumer architecture contracts, a legacy marker, `features/`, or CI workflows.

@@ -9,12 +9,14 @@ AI coding agents are powerful — but without constraints, they drift. They inve
 
 ```bash
 pip install govkit
-govkit discover --target .
+govkit --help
 ```
 
 The capability workflow below describes this development build. Verify that your
-installed CLI exposes `discover`, `profile` and `pack`; the guide explains source
-installation when those commands are not yet in your published package.
+installed CLI lists `discover`, `profile` and `pack` in its help before invoking
+them. If they are absent, use the guide's reviewed-source installation path or
+continue with the supported legacy commands; installing from PyPI alone does not
+guarantee these development commands are available.
 
 Start by inspecting existing repository evidence. Review an explicit capability profile, preview its selected resources, then apply only the accepted changes. Follow the [capability-based onboarding guide](docs/CAPABILITY_ONBOARDING.md) for executable examples, installed skill names and a control that demonstrates both passing and failing results. Existing legacy installations have a separate [migration and rollback path](docs/LEGACY_MIGRATION.md).
 
