@@ -46,7 +46,7 @@ src/
 │   ├── components/   # View — standalone Angular components
 │   ├── hooks/        # ViewModel — TanStack Angular Query inject functions
 │   ├── store/        # ViewModel — Signal store for client state
-│   ├── api/          # Model — API client services (including LLM-backed endpoints)
+│   ├── api/          # Model — API client functions (including LLM-backed endpoints)
 │   └── types/        # Feature-local TypeScript types
 ├── shared/
 │   ├── components/   # Shared UI primitives only
@@ -75,12 +75,12 @@ Implementation must not begin unless all artifacts exist and are complete.
 
 ## 4. Feature Lifecycle (Mandatory Order)
 
-0. **Multi-agent features only:** run `/govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
+0. **Multi-agent features only:** document the model-owning service’s agent topology and the UI integration contract in `agent_topology.md` before architecture preflight
 1. UI Architecture Preflight — `/govkit-ui-architecture-preflight`
-2. LLM Application Preflight — run the GenAI preflight skill only when this repository owns model execution
+2. LLM Application Preflight — review the model-execution service’s accepted preflight and the UI integration boundary; if this repository owns model execution, complete the LLM application preflight contract before proceeding
 3. ADR creation (if required)
 4. UI Spec Planning — `/govkit-ui-spec-planning`
-5. Evaluation Suite Planning — `/govkit-eval-suite-planning` (plans configured quality/adversarial/retrieval evaluators suites)
+5. Evaluation Suite Planning — plan configured quality, adversarial, and retrieval evaluator suites wherever the UI exercises LLM behavior; record datasets, rubrics, and thresholds in `eval_criteria.yaml` and `plan.md`
 6. Evaluation Compliance Summary in `plan.md`
 7. UI Implementation Planning — `/govkit-ui-implementation-plan`
 8. Incremental implementation (API → ViewModel → View)
@@ -115,8 +115,8 @@ Layer rules load automatically via `.github/instructions/govkit/*.instructions.m
 * Feature-scoped stores — no global catch-all store
 
 ### Model — API (`src/features/*/api/`)
-* Plain Angular services with `HttpClient` — no components, no Query injection
-* Use shared `ApiService` from `src/shared/api/`
+* Plain async functions — no Angular decorators, `inject()` calls, or component lifecycle in feature API files
+* Receive the shared `ApiService` as an explicit parameter; do not use `HttpClient` directly in feature API files
 * LLM-backed calls go to backend endpoints only; the UI never imports an LLM provider SDK
 * Honour backend-emitted rate-limit and fallback signals; surface them to the ViewModel as typed errors
 * All requests and responses explicitly typed — no `any`

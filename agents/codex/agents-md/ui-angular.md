@@ -79,9 +79,9 @@ working in each layer:
 
 ### Model — API (`src/features/<slice>/api/`)
 
-- Plain functions wrapping `HttpClient`
+- Plain async functions — no Angular decorators, `inject()` calls, or component lifecycle in feature API files
 - One file per backend resource
-- Use shared base from `src/shared/api/`
+- Receive the shared `ApiService` as an explicit parameter; do not use `HttpClient` directly in feature API files
 
 ### Accessibility
 

@@ -100,8 +100,8 @@ Steps may not be skipped.
 * Never call API services from a store
 
 ### Model — API (`api/`)
-* Plain async functions using the shared `ApiService`
-* No Angular decorators in feature API files
+* Plain async functions — no Angular decorators, `inject()` calls, or component lifecycle in feature API files
+* Receive the shared `ApiService` as an explicit parameter; do not use `HttpClient` directly in feature API files
 * All types explicit — no `any`
 
 ---

@@ -64,8 +64,8 @@ Layer-specific rules load automatically via nested `AGENTS.md` files when workin
 - Never call API services directly from a store
 
 ### Model — API (`src/features/<feature>/api/`)
-- Plain async functions using the shared `ApiService`
-- No Angular decorators, no DI — pure functions that take `HttpClient` or the shared service
+- Plain async functions — no Angular decorators, `inject()` calls, or component lifecycle in feature API files
+- Receive the shared `ApiService` as an explicit parameter; do not use `HttpClient` directly in feature API files
 - All request and response types explicitly typed — no `any`
 
 ---

@@ -124,6 +124,14 @@ def verify_legacy(baseline):
         selection = resolve_variant_files(load_manifest(agent), options)
         for entry in selection[0]:
             entry["src"] = aliases.get(entry["src"], entry["src"])
+            # Issue #188 deliberately selects corrected six-artifact UI sources.
+            # Preserve original digests for destinations/order/attributes, with
+            # only this type/level-bounded payload substitution normalized.
+            variant = document["payload_source_variants"].get(entry["src"])
+            if variant is not None:
+                assert kind in {"ui-react", "ui-angular", "ui-nextjs"}
+                assert level in {"4", "5"}
+                entry["src"] = variant
         actual = hashlib.sha256(
             json.dumps(selection, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest()

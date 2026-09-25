@@ -275,5 +275,9 @@
     "skills/ui/architecture-preflight/": "skills/ui/govkit-ui-architecture-preflight/",
     "skills/ui/implementation-plan/": "skills/ui/govkit-ui-implementation-plan/",
     "skills/ui/spec-planning/": "skills/ui/govkit-ui-spec-planning/"
+  },
+  "payload_source_variants": {
+    "rules/generic/spec-compliance-ui.md": "rules/generic/spec-compliance.md",
+    "instructions/generic/spec-compliance-ui.instructions.md": "instructions/generic/spec-compliance.instructions.md"
   }
 }

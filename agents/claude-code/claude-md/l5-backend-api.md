@@ -139,6 +139,7 @@ Layer-specific rules load automatically from `.claude/rules/govkit/` when editin
 - `guardrails.md` — `**/adapters/guardrails/**` and `**/rails/**`
 - `llm-evaluation.md` — `**/tests/eval/**` and `**/eval_sets/**`
 - `llm-observability.md` — `**/adapters/observability/**`
+- `multi-agent.md` — `**/services/graphs/**`
 
 ---
 

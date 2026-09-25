@@ -40,7 +40,7 @@ src/
 │       ├── components/   # View — standalone Angular components, no business logic
 │       ├── hooks/        # ViewModel — TanStack Angular Query inject functions
 │       ├── store/        # ViewModel — Signal store for client state
-│       ├── api/          # Model — API client services (HttpClient wrappers)
+│       ├── api/          # Model — API client functions via shared ApiService
 │       └── types/        # TypeScript types for this feature
 ├── shared/
 │   ├── components/       # Shared UI primitives only
@@ -69,12 +69,12 @@ Implementation must not begin unless all six artifacts exist.
 
 ## Feature Lifecycle (Mandatory Order — no steps may be skipped)
 
-0. **Multi-agent features only:** invoke `$govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
+0. **Multi-agent features only:** document the model-owning service’s agent topology and the UI integration contract in `agent_topology.md` before architecture preflight
 1. UI Architecture Preflight → invoke `$govkit-ui-architecture-preflight`
-2. LLM Application Preflight — run the GenAI preflight skill only when this repository owns model execution
+2. LLM Application Preflight — review the model-execution service’s accepted preflight and the UI integration boundary; if this repository owns model execution, complete the LLM application preflight contract before proceeding
 3. ADR creation (if required by preflight)
 4. UI Spec Planning → invoke `$govkit-ui-spec-planning`
-5. Evaluation Suite Planning → invoke `$govkit-eval-suite-planning` (plans configured quality/adversarial/retrieval evaluators suites where the UI exercises LLM behavior)
+5. Evaluation Suite Planning — plan configured quality, adversarial, and retrieval evaluator suites wherever the UI exercises LLM behavior; record datasets, rubrics, and thresholds in `eval_criteria.yaml` and `plan.md`
 6. Evaluation Compliance Summary (must be in `plan.md`)
 7. UI Implementation Planning → invoke `$govkit-ui-implementation-plan`
 8. Incremental implementation — API → ViewModel → View
@@ -89,7 +89,7 @@ Layer-specific rules load automatically via nested `AGENTS.md` files when workin
 
 - `src/features/components/AGENTS.md` — View layer (standalone components)
 - `src/features/hooks/AGENTS.md` — ViewModel (TanStack Angular Query inject functions + Signal stores)
-- `src/features/api/AGENTS.md` — Model layer (HttpClient-based services, including LLM-backed endpoints)
+- `src/features/api/AGENTS.md` — Model layer (functions via shared ApiService, including LLM-backed endpoints)
 - `src/shared/accessibility/AGENTS.md` — WCAG 2.1 AA requirements
 
 ### View — Components (`src/features/<feature>/components/`)
@@ -110,8 +110,8 @@ Layer-specific rules load automatically via nested `AGENTS.md` files when workin
 - Never store raw LLM responses — they belong in the query cache, scoped per request
 
 ### Model — API (`src/features/<feature>/api/`)
-- Plain Angular services with `HttpClient` — no components, no Query injection
-- Use shared `ApiService` from `src/shared/api/`
+- Plain async functions — no Angular decorators, `inject()` calls, or component lifecycle in feature API files
+- Receive the shared `ApiService` as an explicit parameter; do not use `HttpClient` directly in feature API files
 - LLM-backed calls go to backend endpoints only; the UI never imports an LLM provider SDK
 - Honour backend-emitted rate-limit and fallback signals; surface them to the ViewModel as typed errors
 

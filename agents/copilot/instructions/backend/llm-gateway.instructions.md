@@ -1,3 +1,8 @@
+---
+applyTo_template: layers.llm_gateway
+applyTo: "**/adapters/llm/**"
+---
+
 # LLM Gateway Instructions
 
 These instructions apply when editing model gateway ports and adapters.

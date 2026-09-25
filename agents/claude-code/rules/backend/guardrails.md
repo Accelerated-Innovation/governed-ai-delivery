@@ -1,3 +1,10 @@
+---
+paths_template: layers.guardrails
+paths:
+  - "**/adapters/guardrails/**"
+  - "**/rails/**"
+---
+
 # Model Guardrail Rules
 
 These rules apply when editing model input, context, output, or tool-call controls.

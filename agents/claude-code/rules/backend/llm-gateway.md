@@ -1,3 +1,9 @@
+---
+paths_template: layers.llm_gateway
+paths:
+  - "**/adapters/llm/**"
+---
+
 # LLM Gateway Rules
 
 These rules apply when editing model gateway ports and adapters.

@@ -1,3 +1,8 @@
+---
+applyTo_template: layers.guardrails
+applyTo: "**/adapters/guardrails/**,**/rails/**"
+---
+
 # Model Guardrail Instructions
 
 These instructions apply when editing model input, context, output, or tool-call controls.

@@ -1,3 +1,8 @@
+---
+applyTo_template: layers.llm_observability
+applyTo: "**/adapters/observability/**"
+---
+
 # LLM Observability Instructions
 
 These instructions apply when editing model telemetry and observability adapters.

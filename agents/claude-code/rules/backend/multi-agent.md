@@ -1,3 +1,9 @@
+---
+paths_template: layers.multi_agent
+paths:
+  - "**/services/graphs/**"
+---
+
 # Multi-Agent Rules
 
 These rules apply when editing agent runtimes, task controllers, delegation, orchestration, or shared agent state.

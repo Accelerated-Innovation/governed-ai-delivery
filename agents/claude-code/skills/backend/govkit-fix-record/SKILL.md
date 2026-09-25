@@ -7,7 +7,7 @@ description: Author a fix record for a defect that restores already-established 
 
 Author the fix record for a reported defect. When invoked, determine the defect from the user's request; if it is not described, ask before proceeding.
 
-A defect that restores behavior something already established carries one record — `fixes/<id>/fix.yaml` — instead of the five-artifact feature contract. A change that introduces behavior does not qualify, however small it looks.
+A defect that restores behavior something already established carries one record — `fixes/<id>/fix.yaml` — instead of the feature-artifact contract. A change that introduces behavior does not qualify, however small it looks.
 
 ## Check eligibility first
 
@@ -18,7 +18,7 @@ All four conditions must hold. Decide this **before** writing any code or any re
 3. **It introduces no new intended behavior.** Fixing a defect by adding a capability is not a fix.
 4. **It does not change** architecture, security or auth, data handling, a public contract, an NFR, or cross-service ownership.
 
-If any condition fails, stop and say which one, then direct the user to `/govkit-architecture-preflight` and the feature lane. Do not author a fix record for a change that does not qualify — the lane is narrow on purpose, and widening it by assertion is the failure mode it exists to prevent.
+If any condition fails, stop and say which one, then direct the user to `/{{architecture_preflight_skill}}` and the feature lane. Do not author a fix record for a change that does not qualify — the lane is narrow on purpose, and widening it by assertion is the failure mode it exists to prevent.
 
 ## Inputs to read
 
