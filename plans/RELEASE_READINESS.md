@@ -8,20 +8,21 @@ it does not change release scope, approve publication or start a deprecation clo
 
 ## Verified baseline
 
-PR [#206](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/206)
-merged as `e7aa31e16f17b3192e65953165c42e9ce5d1580a`, tree-identical to its final
-head `9f8a26cd6122e307777a2e6b812bafdd478d2171`.
+PR [#207](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/207)
+merged as `6bc40fc4ecc1481c84eb263d386dccd9c87eaea7`, tree-identical to its final
+head `b086bf56456e621621dad758faa5ea85475cae85`.
 All six final-head checks passed in
-[Tests run 36174991398](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/36174991398):
+[Tests run 36186637989](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/36186637989):
 Python 3.11/3.12 fast suites, the e2e/toolchain tier, the Linux wheel job and both
 Windows deep-path wheel jobs. This verifies the source build labeled `0.21.1`;
 it does not establish that a published package with that version contains these changes.
 New commits require their own applicable checks before release.
 
-Qodo's completed run `1266256` records zero findings at implementation
-`4f83a02eff433fc64f0bde9a8236ffa4e10abdc7`. The final head adds only plan metadata;
-no exact-final-head review is claimed. Local pre-PR review retains the recorded
-repository authorization blocker under the support/no-retry handoff.
+Qodo's completed run `1267555` reviews implementation
+`23354bb6a2baa9688b0acc5b873ca6684796a697`. Its one documentation finding now has
+attribution `implemented` after clarification `b086bf5`; this is not a completed
+review of the final head. Local pre-PR review retains the recorded repository
+authorization blocker under the support/no-retry handoff.
 
 PR #205's intermittent defect-pilot comparison failure remains unexplained.
 PR #206 fixes the separately reproduced inherited-`CI` test gap and preserves
@@ -37,7 +38,7 @@ provider authentication. The implementation plan owns the checkboxes.
 
 | Plan criterion | Evidence and current limit |
 |---|---|
-| I00–I13 exit criteria | Open: the [execution ledger](declarative-governance-implementation-plan.md#11-execution-ledger-and-handoff) records delivered increments; I10 external enforcement and I13 retirement/pilot inputs remain incomplete. |
+| I00–I13 exit criteria | Open: the [execution ledger](declarative-governance-implementation-plan.md#11-execution-ledger-and-handoff) records delivered increments; I10 external enforcement and I13 retirement/pilot inputs are blocked on the records below. |
 | Included feature acceptance reconciled and satisfied | Open: [#147](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/147), [#149](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/149) and epic [#142](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/142) retain their unchecked criteria. |
 | Legacy compatibility and customization preservation | Verified for frozen selections and representative real L3/L4/L5 installs: [migration tests](../tests/test_migration.py), [wheel migration pilot](../tests/wheel_migration_smoke.py), historical native-lock replay and [migration/rollback guidance](../docs/LEGACY_MIGRATION.md). Unsupported legacy inputs require reconciliation. |
 | Independent capability/workflow combinations across agents | Verified by [workflow tests](../tests/test_workflows.py), [pack tests](../tests/test_capability_packs.py), [three-agent pack wheel pilot](../tests/wheel_pack_smoke.py) and [request wheel pilot](../tests/wheel_workflow_smoke.py). This is fixture coverage, not a claim about every custom pack combination. |
@@ -65,9 +66,11 @@ A caller-supplied all-true provider JSON does not close the enforcement criterio
 
 ## Scope and next action
 
-Continue focused fixes for verified defects and refresh this evidence record when
-new inputs arrive. Keep the original parity flake visible. Once external records
-are available, review them against the exact remaining criteria and update the
+The next implementation needs the maintainer to provide the legacy warning/removal
+policy or identify an authorized consumer repository for provider/pilot validation.
+That input has been requested. Continue focused fixes for verified defects and
+refresh this evidence record when new inputs arrive. Keep the original parity flake
+visible. Once external records are available, review them against the exact remaining criteria and update the
 plan and issues together; never infer acceptance from an issue or PR being closed.
 
 The adjacent Langfuse/evidence-authoring issues and undefined FeaturePeers work
