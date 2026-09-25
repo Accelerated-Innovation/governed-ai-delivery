@@ -119,11 +119,11 @@ For high-confidence verification of the loader behavior, open a UI sandbox in ea
 The backend planning skills are the ones a `--type data` install receives, so
 they carry data-awareness in two enforced-identical blocks per agent:
 
-- `## 3.7 Data Impact` in `skills/backend/architecture-preflight/SKILL.md` —
+- `## 3.7 Data Impact` in `skills/backend/govkit-architecture-preflight/SKILL.md` —
   the Pipeline / Contract / PII / Lineage Impact sections a data preflight
   report adds (backend/UI reports skip them). Byte-identical across the 3
   agents: `tests/test_agent_skills.py::test_data_impact_block_parity_across_agents`.
-- `### Data projects` in `skills/backend/spec-planning/SKILL.md` — data NFR
+- `### Data projects` in `skills/backend/govkit-spec-planning/SKILL.md` — data NFR
   categories + deterministic eval-criteria guidance. Byte-identical across
   the 3 agents:
   `tests/test_agent_skills.py::test_spec_planning_data_note_parity_across_agents`.

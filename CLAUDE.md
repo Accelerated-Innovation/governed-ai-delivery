@@ -69,6 +69,8 @@ The payload ships for three agents — `agents/{claude-code,codex,copilot}/` —
 
 Skills follow the **Open Skills** standard: frontmatter is `name`+`description` only (no `argument-hint:`, no `user-invocable:`, no `$ARGUMENTS`). Feature names are derived from natural language. Skills install with a `govkit-` prefix (`.claude/skills/govkit-spec-planning/`) so they never collide with a user's own skills.
 
+For GovKit-owned skills, keep the source folder basename, `SKILL.md` frontmatter `name`, and manifest installation basename identical (including `govkit-` and any `ui-` qualifier). Preserve native installation paths when reorganizing sources. Vendored upstream skills have a separate provenance/sync contract; do not silently rewrite them as part of first-party payload maintenance.
+
 ### Variant manifests
 
 Each agent's `manifest.json` declares install sets as **variants** keyed by options (`level` ∈ {3,4,5}, `type` ∈ {api,cli,ui-react,ui-angular,ui-nextjs,data}, `ci` ∈ {github,azure}). `manifest.py` expands the bundled `ci_catalog` reference from `governance/ci/legacy-selection.json`, then merges/replaces variant declarations (`by_type`, `by_stack`) into a concrete `(files, shared, governed)` list. Keep shared CI dispatch in that table; custom inline `variants.ci` manifests remain supported. Never combine inline CI and a shared reference. A flat `files` format is retained for legacy/custom agents (`_apply_legacy_install`). The chosen options are recorded in the target's `.govkit/marker.json` so later commands (`calibrate`, `doctor`, `validate`, `upgrade`) need no re-specification.

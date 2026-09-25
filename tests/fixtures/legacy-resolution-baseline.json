@@ -260,5 +260,20 @@
     "copilot|data|3|azure|databricks-lakehouse": "cf601625d33c6fbeb42e139a1955d5da047c440a440dadb4ed36d6d4b63af76f",
     "copilot|data|4|azure|python-dbt": "fe616dc07e78ec8a43ed1067290a026069efd03bdd0f10c14380065a3f08f823",
     "copilot|data|4|azure|databricks-lakehouse": "2042ae285fb7fb0e647f47c7acff3a662d8e3a55c907fa252c2b75abd9ba47ee"
+  },
+  "source_relocations": {
+    "skills/backend/adr-author/": "skills/backend/govkit-adr-author/",
+    "skills/backend/architecture-preflight/": "skills/backend/govkit-architecture-preflight/",
+    "skills/backend/eval-suite-planning/": "skills/backend/govkit-eval-suite-planning/",
+    "skills/backend/fix-record/": "skills/backend/govkit-fix-record/",
+    "skills/backend/genai-preflight/": "skills/backend/govkit-genai-preflight/",
+    "skills/backend/implementation-plan/": "skills/backend/govkit-implementation-plan/",
+    "skills/backend/multi-agent-design/": "skills/backend/govkit-multi-agent-design/",
+    "skills/backend/pr-author/": "skills/backend/govkit-pr-author/",
+    "skills/backend/spec-planning/": "skills/backend/govkit-spec-planning/",
+    "skills/ui/adr-author/": "skills/ui/govkit-ui-adr-author/",
+    "skills/ui/architecture-preflight/": "skills/ui/govkit-ui-architecture-preflight/",
+    "skills/ui/implementation-plan/": "skills/ui/govkit-ui-implementation-plan/",
+    "skills/ui/spec-planning/": "skills/ui/govkit-ui-spec-planning/"
   }
 }

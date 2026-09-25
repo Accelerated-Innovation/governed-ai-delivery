@@ -113,13 +113,17 @@ def run_pilot(root, agent):
 
 
 def verify_legacy(baseline):
-    cases = json.loads(baseline.read_text())["cases"]
+    document = json.loads(baseline.read_text())
+    cases = document["cases"]
+    aliases = {new: old for old, new in document["source_relocations"].items()}
     for case, expected in cases.items():
         agent, kind, level, provider, stack = case.split("|")
         options = {"level": level, "type": kind, "ci": provider}
         if stack != "-":
             options["stack"] = stack
         selection = resolve_variant_files(load_manifest(agent), options)
+        for entry in selection[0]:
+            entry["src"] = aliases.get(entry["src"], entry["src"])
         actual = hashlib.sha256(
             json.dumps(selection, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest()

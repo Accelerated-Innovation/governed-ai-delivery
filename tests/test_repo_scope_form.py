@@ -33,24 +33,34 @@ STALE_PHRASES = [
     'One box is checked: "This repository only"',
 ]
 
-RULE_PATHS = [
-    REPO_ROOT / "agents" / "claude-code" / "rules" / "generic" / f"repo-scope-{layer}.md"
-    for layer in ("backend", "ui")
-] + [
-    REPO_ROOT / "agents" / "codex" / "rules" / "generic" / f"repo-scope-{layer}.md"
-    for layer in ("backend", "ui")
-] + [
-    REPO_ROOT
-    / "agents"
-    / "copilot"
-    / "instructions"
-    / "generic"
-    / f"repo-scope-{layer}.instructions.md"
-    for layer in ("backend", "ui")
-]
+RULE_PATHS = (
+    [
+        REPO_ROOT / "agents" / "claude-code" / "rules" / "generic" / f"repo-scope-{layer}.md"
+        for layer in ("backend", "ui")
+    ]
+    + [
+        REPO_ROOT / "agents" / "codex" / "rules" / "generic" / f"repo-scope-{layer}.md"
+        for layer in ("backend", "ui")
+    ]
+    + [
+        REPO_ROOT
+        / "agents"
+        / "copilot"
+        / "instructions"
+        / "generic"
+        / f"repo-scope-{layer}.instructions.md"
+        for layer in ("backend", "ui")
+    ]
+)
 
 PREFLIGHT_PATHS = [
-    REPO_ROOT / "agents" / agent / "skills" / layer / "architecture-preflight" / "SKILL.md"
+    REPO_ROOT
+    / "agents"
+    / agent
+    / "skills"
+    / layer
+    / ("govkit-ui-architecture-preflight" if layer == "ui" else "govkit-architecture-preflight")
+    / "SKILL.md"
     for agent in ("claude-code", "codex", "copilot")
     for layer in ("backend", "ui")
 ]
@@ -111,9 +121,7 @@ def test_no_stale_scope_vocabulary(doc_path: Path):
     the payload never emits — that produces a false HALT on a correct file."""
     text = doc_path.read_text(encoding="utf-8")
     found = [phrase for phrase in STALE_PHRASES if phrase in text]
-    assert not found, (
-        f"{_rel(doc_path)} references a repo-scope form nothing emits: {found}"
-    )
+    assert not found, f"{_rel(doc_path)} references a repo-scope form nothing emits: {found}"
 
 
 @pytest.mark.parametrize("doc_path", RULE_PATHS + PREFLIGHT_PATHS, ids=_rel)
@@ -142,6 +150,5 @@ def test_rule_scope_check_is_identical_across_agents():
     for layer, sections in by_layer.items():
         distinct = set(sections.values())
         assert len(distinct) == 1, (
-            f"{layer} repo-scope checklist differs across agents: "
-            f"{[_rel(p) for p in sections]}"
+            f"{layer} repo-scope checklist differs across agents: {[_rel(p) for p in sections]}"
         )

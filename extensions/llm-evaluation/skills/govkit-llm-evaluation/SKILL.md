@@ -1,5 +1,5 @@
 ---
-name: llm-evaluation
+name: govkit-llm-evaluation
 description: Run the selected exact-match evaluation check on recorded model outputs.
 ---
 

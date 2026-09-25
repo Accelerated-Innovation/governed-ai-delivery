@@ -95,12 +95,27 @@ Missing or modified pinned resources invalidate the lock; restore the committed 
 
 ## Native skill namespace updates
 
+GovKit-owned skill source folders, `SKILL.md` frontmatter `name`, and manifest
+installation names must agree. For example, `skills/govkit-application-governance/`
+contains `name: govkit-application-governance` and installs into the agent's
+`skills/govkit-application-governance/` directory. This also applies to the shared
+request-planning skill and the backend/UI agent payloads. Tests validate both the
+source declarations and real installed-wheel copies.
+
+Application Governance 1.1.2, Gherkin Delivery 1.0.2 and LLM Evaluation 1.0.2
+align this metadata. Their native installation paths remain the same as in the
+preceding patch versions; only the owned content and pinned pack resources change.
+Existing locks still verify offline. Preview and accept the normal pack update
+to receive the corrected metadata; edited skills remain protected. The source
+folder renames for legacy agent payloads preserve their installed names and bytes.
+
 GovKit-owned capability packs install their native skills under `govkit-` names
 for every supported agent. The application-governance 1.1.1, gherkin-delivery 1.0.1
 and llm-evaluation 1.0.1 pack revisions correct previously unprefixed destinations:
 `govkit-application-governance`, `govkit-gherkin-delivery`, and
 `govkit-llm-evaluation`. The existing `govkit-request-planning` name is unchanged.
-Capability IDs and neutral source paths stay unchanged. Third-party/custom packs
+Those namespace-only revisions kept neutral source paths; the subsequent metadata
+alignment patches above rename them. Capability IDs remain unchanged. Third-party/custom packs
 retain their explicitly declared namespaces (for example, `otter-`); these are not
 renamed by the runtime.
 

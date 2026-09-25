@@ -23,8 +23,15 @@ def test_supported_legacy_selection_matches_before_refactor(case, expected):
     manifest = load_manifest(agent)
     original = copy.deepcopy(manifest)
     result = resolve_variant_files(manifest, options)
+    # The reviewed source-only renames preserve installed paths, ordering and
+    # attributes. Keep the original pre-refactor digests; normalize only these
+    # explicitly recorded aliases, not arbitrary future source changes.
+    comparable = copy.deepcopy(result)
+    aliases = {new: old for old, new in BASELINE["source_relocations"].items()}
+    for entry in comparable[0]:
+        entry["src"] = aliases.get(entry["src"], entry["src"])
     digest = hashlib.sha256(
-        json.dumps(result, sort_keys=True, separators=(",", ":")).encode()
+        json.dumps(comparable, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
     assert digest == expected, f"{case} changed its ordered install selection: {result!r}"
     assert manifest == original

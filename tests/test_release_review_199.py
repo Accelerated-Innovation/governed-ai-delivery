@@ -62,7 +62,18 @@ def install_previous_layout(tmp_path, agent):
         manifest = yaml.safe_load((root / "manifest.yaml").read_text())
         manifest["version"] = FIRST_PARTY[pack.id]
         for skill in manifest["skills"]:
-            if skill["path"] == f"skills/{pack.id}":
+            old_name = skill["install_as"].removeprefix("govkit-")
+            current = root / skill["path"]
+            old = root / "skills" / old_name
+            current.rename(old)
+            skill["path"] = f"skills/{old_name}"
+            metadata = old / "SKILL.md"
+            metadata.write_text(
+                metadata.read_text().replace(
+                    f"name: {skill['install_as']}\n", f"name: {old_name}\n"
+                )
+            )
+            if old_name == pack.id:
                 skill["install_as"] = pack.id
         (root / "manifest.yaml").write_text(yaml.safe_dump(manifest))
         previous.append(load_pack(root, source_kind="bundled"))

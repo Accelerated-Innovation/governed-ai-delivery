@@ -1,5 +1,5 @@
 ---
-name: gherkin-delivery
+name: govkit-gherkin-delivery
 description: Use Gherkin scenarios when accepted workflow policy calls for them.
 ---
 
