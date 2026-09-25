@@ -95,8 +95,10 @@ Migrated repositories can use `govkit request plan` and the verified installed
 request-planning guidance. Actual-change conformance still requires the independently
 accepted policy checkout and providers described in
 [CHANGE_CONFORMANCE.md](CHANGE_CONFORMANCE.md). Missing providers stay unknown.
-I09 will integrate canonical maintenance findings; I10 supplies provider contracts.
-Neither integration is claimed by this increment.
+[Canonical maintenance](MAINTENANCE_ASSESSMENT.md) already feeds migration
+preview and post-operation verification. [Provider admission and evidence](PROVIDER_EVIDENCE.md)
+can supply CI observations to that assessment, while imported success claims
+and absent protected-caller evidence remain unknown.
 
 ## Idempotence and rollback
 
@@ -147,7 +149,7 @@ Later resource refreshes need their own reviewed pack previews and verification.
 
 The current 0.21.x compatibility line retains `apply`, `upgrade`, level flags and
 legacy manifests. New adoption uses [explicit capabilities](CAPABILITY_ONBOARDING.md).
-No removal release or warning period has been announced. I13's documentation and
+No removal release or warning period has been announced. Documentation and
 compatibility work does not start a deprecation clock or remove a supported input.
 A maintainer must approve and announce both a concrete release boundary and warning
 period after migration and release evidence is reviewed. Until then legacy inputs

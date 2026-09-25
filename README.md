@@ -778,7 +778,7 @@ govkit extension add --from-git https://github.com/someone/their-pack --target .
 govkit extension add --from-git https://github.com/someone/their-pack --ref <sha> --target .
 ```
 
-This is govkit's only network access, and only on this explicit opt-in — `apply` and the bundled packs stay offline. The resolved commit is recorded in the installed manifest's `origin.upstream_ref`, and the fetched copy under `extensions/<id>/` is what you commit — so your project holds the pin, teammates and CI never re-fetch, and pulling upstream updates later (`--from-git ... --force`) lands as an ordinary reviewable diff in your repo.
+This fetch requires the explicit `--from-git` opt-in; `apply` and bundled-pack installation stay offline. [Release metadata refresh](docs/MAINTENANCE_INVENTORY.md#explicit-metadata-refresh) is a separate, policy-approved data lookup that does not install code. Explicitly executed project/pack checks are unsandboxed and may also contact services. The resolved commit is recorded in the installed manifest's `origin.upstream_ref`, and the fetched copy under `extensions/<id>/` is what you commit — so your project holds the pin, teammates and CI never re-fetch, and pulling upstream updates later (`--from-git ... --force`) lands as an ordinary reviewable diff in your repo.
 
 ### Packs that carry agent skills
 
@@ -875,13 +875,13 @@ A: In the primary owner repo's `features/<feature>/nfrs.md`, add a "Repository S
 A: No — this violates ownership and creates duplication. Each repo implements its own portion against the shared contract. See [CROSS_REPO_FEATURES.md#common-pitfalls](docs/CROSS_REPO_FEATURES.md#common-pitfalls).
 
 **Q: Should we wait for Repo A to finish before Repo B starts?**
-A: No. Each repo implements in parallel using mocks for external dependencies. Only the final integration tests (after all repos merge) verify cross-repo contracts. See [CROSS_REPO_FEATURES.md#implementation-stage-parallel](docs/CROSS_REPO_FEATURES.md#implementation-stage-parallel).
+A: No. Each repo implements in parallel using mocks for external dependencies. Only the final integration tests (after all repos merge) verify cross-repo contracts. See [the implementation stage](docs/CROSS_REPO_FEATURES.md#2-implementation-stage-parallel).
 
 **Q: How do we test a feature that depends on another repo's code?**
 A: Each repo has unit tests (mocking externals) and contract tests (verifying its own implementation). After all repos merge to main, run integration tests to verify end-to-end behavior. See [CROSS_REPO_FEATURES.md#testing-strategy](docs/CROSS_REPO_FEATURES.md#testing-strategy).
 
 **Q: What if the repos have deployment dependencies (one must be live before the other)?**
-A: Document the order in your `nfrs.md` "Key Cross-Repo Contracts" section. Ideally, design contracts to be backward-compatible so deployment order is flexible. See [CROSS_REPO_FEATURES.md#integration-stage-sequential](docs/CROSS_REPO_FEATURES.md#integration-stage-sequential).
+A: Document the order in your `nfrs.md` "Key Cross-Repo Contracts" section. Ideally, design contracts to be backward-compatible so deployment order is flexible. See [the integration stage](docs/CROSS_REPO_FEATURES.md#3-integration-stage-sequential).
 
 ---
 

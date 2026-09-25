@@ -12,7 +12,7 @@ govkit request plan request.json --target . --explain
 govkit request plan request.json --target . --json > request-plan.json
 ```
 
-The CLI prints to stdout; redirection is an explicit caller write. Planning requires the local accepted `.govkit/profile.yaml` and a verified `.govkit/pack-lock.json`. Use the existing profile/pack preview and apply commands for authorized setup. Application Governance pack 1.1.0 adds one agent-neutral `request-planning` skill, installed as `govkit-request-planning` natively for Codex, Claude Code and Copilot. Existing locks remain pinned until explicitly reconciled. Plans only name native guidance from the same lock snapshot whose pinned bytes and current profile were verified. The captured profile must match that snapshot; a concurrent profile change requires re-planning. This is an observation, not a filesystem transaction.
+The CLI prints to stdout; redirection is an explicit caller write. Planning requires the local accepted `.govkit/profile.yaml` and a verified `.govkit/pack-lock.json`. Use the existing profile/pack preview and apply commands for authorized setup. The Application Governance pack includes the agent-neutral `govkit-request-planning` skill, installed under that name for Codex, Claude Code and Copilot. Existing locks remain pinned until explicitly reconciled. Plans only name native guidance from the same lock snapshot whose pinned bytes and current profile were verified. The captured profile must match that snapshot; a concurrent profile change requires re-planning. This is an observation, not a filesystem transaction.
 
 The request records `id`, original `source`, local `summary`, `confirmation`, change intent, literal repository-relative `scope`, impacts, acceptance, local references and an optional workflow preference. It can be JSON or YAML. The source identifier may be a ticket URL; no live lookup occurs. Preserve the current request and plan in the project's reviewed change process so later CI can inspect agreed intent offline.
 
@@ -37,7 +37,7 @@ LLM impact requires the independent `llm-evaluation` capability and its pinned e
 
 Acceptance can be recorded inline or reused through an accepted local reference. References have `kind` (`acceptance`, `nfr`, `contract`, `established-behavior`, `regression-test`), `reference`, `authority`, and an optional content `digest`. Files are read within the target, without symlink traversal, up to 64 KiB each. Missing or changed sources used by the plan are unresolved; an unavailable unrelated contract is informational. Source digests record observations, not authenticated authority or passing evidence.
 
-The versioned plan includes normalized inputs, workflow, required capabilities, guidance with native paths/digests, artifact/check obligations, reused contracts, source snapshots, decisions and identities for profile, request, lock and scope. `RequestPlan.check_specs()` and `.evidence()` expose I04's typed `CheckSpec` and `Evidence` contracts. Every planned check has `execution: not-run`.
+The versioned plan includes normalized inputs, workflow, required capabilities, guidance with native paths/digests, artifact/check obligations, reused contracts, source snapshots, decisions and identities for profile, request, lock and scope. `RequestPlan.check_specs()` and `.evidence()` expose the shared typed `CheckSpec` and `Evidence` contracts. Every planned check has `execution: not-run`.
 
 ```sh
 govkit request plan request.json --previous request-plan.json --scope observed-scope.json --json
@@ -45,13 +45,13 @@ govkit request plan request.json --previous request-plan.json --scope observed-s
 
 `observed-scope.json` has `schema_version: 1`, `paths`, and a partial `impacts` object. Observations add risk and scope; they cannot erase a positive risk or restore previously negative eligibility. Paths outside the normalized request make the request unbounded. Intent, policy, resources, references or scope changes produce a different identity and a reassessment signal. Repeating unchanged inputs preserves identity. A saved plan is replayed against its embedded inputs to detect edited selections; it does not authenticate those inputs.
 
-**I06 boundary:** scope observations are explicitly supplied, not derived from Git. I07 must compare approved intent with actual changes and trusted current policy/resources, execute checks and enforce conformance. A ready plan is neither conformance nor approval. CLI exit 0 means a plan was produced, including plans with unresolved decisions; exit 1 means invalid/unreadable inputs. Inspect blocking `decisions` or `RequestPlan.ready` for planning readiness.
+**Planning boundary:** scope observations supplied to `request plan` are not derived from Git. Actual-change conformance compares accepted intent with real changes and trusted current policy/resources, then executes explicitly selected checks. A ready plan is neither conformance nor approval. CLI exit 0 means a plan was produced, including plans with unresolved decisions; exit 1 means invalid/unreadable inputs. Inspect blocking `decisions` or `RequestPlan.ready` for planning readiness.
 
 Seven runnable fixtures under `governance/examples/workflows/` cover defect, enhancement, refactor, MCP, LLM, full Gherkin delivery and architecture migration. Their shared consumer is illustrative; it is not accepted policy for the GovKit source repository. Fast tests and the runtime-only wheel smoke exercise all seven, with native guidance checked for all three agents.
 
 ## Checking the actual change
 
-I07 now supplies `govkit conform --request ... --base ... --policy-target ...`.
+Use `govkit conform --request ... --base ... --policy-target ...`.
 See [CHANGE_CONFORMANCE.md](CHANGE_CONFORMANCE.md) for trusted inputs, real Git
 scope, proportional artifacts, explicit tests, scoped transitions and limitations.
 A request plan alone remains a proposal, not conformance or approval.
