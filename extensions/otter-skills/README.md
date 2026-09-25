@@ -82,3 +82,7 @@ it regenerates `manifest.yaml` and this file's provenance block. Each skill's
 upstream `agents/openai.yaml` is retained byte-for-byte for invocation policy
 and native metadata; other agent configuration remains excluded. See `origin`
 in [manifest.yaml](manifest.yaml) for the exact pin.
+
+Sync rejects symlinks in the upstream plugin's parent paths or contents before
+replacing any vendored files, including links to other checkout files and dangling
+links. Supply regular source files; a pinned commit does not make link targets safe.
