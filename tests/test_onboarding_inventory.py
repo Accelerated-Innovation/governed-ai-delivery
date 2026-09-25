@@ -39,3 +39,18 @@ def test_tutorial_inventory_paths_cover_the_real_codex_skill_sources():
         p.relative_to(ROOT).as_posix() for p in (ROOT / "agents/codex/skills").rglob("SKILL.md")
     }
     assert declared == actual, {"missing": actual - declared, "unshipped": declared - actual}
+
+
+def test_accelerator_plan_skill_links_resolve_from_the_document_to_real_sections():
+    plan = ROOT / "plans/02_GOVERNANCE_ACCELERATOR_PLAN.md"
+    links = re.findall(r"\[[^\]]+\]\(([^)]+/SKILL\.md#[^)]+)\)", plan.read_text())
+    assert links, "The plan must link its preserved skill contract to the implementation"
+    for link in links:
+        relative, fragment = link.split("#", 1)
+        target = (plan.parent / relative).resolve()
+        assert target.is_file(), f"{plan.name}: broken relative skill link {link}"
+        headings = re.findall(r"^#{1,6} (.+)$", target.read_text(), re.MULTILINE)
+        anchors = {
+            re.sub(r"[^\w -]", "", heading.lower()).replace(" ", "-") for heading in headings
+        }
+        assert fragment in anchors, f"{plan.name}: missing skill section {link}"

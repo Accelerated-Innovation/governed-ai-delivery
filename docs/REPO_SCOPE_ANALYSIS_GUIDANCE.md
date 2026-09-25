@@ -65,9 +65,9 @@ After validation:
 ## Agent-Specific Integration
 
 This guidance is embedded into architecture-preflight for:
-- `agents/claude-code/skills/backend/architecture-preflight/SKILL.md` — Section 3.5
-- `agents/claude-code/skills/ui/architecture-preflight/SKILL.md` — Section 3.5
-- `agents/copilot/skills/backend/architecture-preflight/SKILL.md` — Section 3.5
-- `agents/copilot/skills/ui/architecture-preflight/SKILL.md` — Section 3.5
-- `agents/codex/skills/backend/architecture-preflight/SKILL.md` — Section 3.5
-- `agents/codex/skills/ui/architecture-preflight/SKILL.md` — Section 3.5
+- `agents/claude-code/skills/backend/govkit-architecture-preflight/SKILL.md` — Section 3.5
+- `agents/claude-code/skills/ui/govkit-ui-architecture-preflight/SKILL.md` — Section 3.5
+- `agents/copilot/skills/backend/govkit-architecture-preflight/SKILL.md` — Section 3.5
+- `agents/copilot/skills/ui/govkit-ui-architecture-preflight/SKILL.md` — Section 3.5
+- `agents/codex/skills/backend/govkit-architecture-preflight/SKILL.md` — Section 3.5
+- `agents/codex/skills/ui/govkit-ui-architecture-preflight/SKILL.md` — Section 3.5

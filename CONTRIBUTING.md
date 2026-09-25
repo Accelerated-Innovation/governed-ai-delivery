@@ -130,7 +130,9 @@ description: <one sentence describing WHAT the skill does AND WHEN to use it. Th
 
 When modifying or adding a skill:
 
-* **Frontmatter must be byte-identical** across all three agents for the same skill (e.g., `agents/{claude-code,codex,copilot}/skills/backend/spec-planning/SKILL.md` must share the same `name:` and `description:`). The parity test in `tests/test_govkit.py::TestNoUiDimensionInManifests` and the test suite generally lock this in.
+* **Keep names aligned:** a GovKit-owned source folder, its frontmatter `name`, and the manifest destination basename must match, including the `govkit-` prefix and any `ui-` qualifier.
+
+* **Frontmatter must be byte-identical** across all three agents for the same skill (e.g., `agents/{claude-code,codex,copilot}/skills/backend/govkit-spec-planning/SKILL.md` must share the same `name:` and `description:`). The parity test in `tests/test_govkit.py::TestNoUiDimensionInManifests` and the test suite generally lock this in.
 * **No `$ARGUMENTS` substitution** — derive feature names and other arguments from the user's natural-language request; ask if not provided.
 * **No agent-specific extensions** like `argument-hint:` (Claude Code) or `user-invocable:` (Copilot) — these were removed in v0.8.
 * **Body content can differ slightly** between agents only in path-notation conventions (e.g., Copilot uses `**` globs; Codex references nested `AGENTS.md` paths). The substantive instructions must match.

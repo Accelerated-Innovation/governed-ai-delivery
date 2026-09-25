@@ -8,6 +8,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import yaml
+
 from cli import pack_loading, paths
 from cli.agent_layout import AGENT_LAYOUTS
 from cli.pack_resolution import resolve_packs
@@ -69,6 +71,11 @@ for agent, layout in AGENT_LAYOUTS.items():
                 assert (target / layout.skills_dir / skill.install_as / "SKILL.md").is_file()
                 if pack.id in {"application-governance", "gherkin-delivery", "llm-evaluation"}:
                     assert skill.install_as.startswith("govkit-"), (pack.id, skill.install_as)
+                    source = pack.root / skill.path / "SKILL.md"
+                    native = target / layout.skills_dir / skill.install_as / "SKILL.md"
+                    for skill_path in (source, native):
+                        name = yaml.safe_load(skill_path.read_text().split("---", 2)[1])["name"]
+                        assert name == skill_path.parent.name == skill.install_as, skill_path
             assert not (target / ".govkit/marker.json").exists()
             assert not (target / "features").exists()
             before = {

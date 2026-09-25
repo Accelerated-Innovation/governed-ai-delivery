@@ -823,16 +823,16 @@ project type and level. Capability packs have a separate inventory; see
 
 | Skill | Location | Use |
 | --- | --- | --- |
-| `govkit-architecture-preflight` | `agents/codex/skills/backend/architecture-preflight/SKILL.md` | Validate architecture boundaries, standards alignment, extension applicability, repository scope, ADR need, and required tests before planning. |
-| `govkit-spec-planning` | `agents/codex/skills/backend/spec-planning/SKILL.md` | Generate or update `plan.md` and `eval_criteria.yaml` from NFRs, Gherkin, and preflight findings. |
-| `govkit-implementation-plan` | `agents/codex/skills/backend/implementation-plan/SKILL.md` | Produce an ordered implementation checklist and evaluation compliance summary from validated planning inputs. |
-| `govkit-adr-author` | `agents/codex/skills/backend/adr-author/SKILL.md` | Author a proposed ADR for a new pattern, exception, or boundary change. |
-| `govkit-fix-record` | `agents/codex/skills/backend/fix-record/SKILL.md` | Route qualifying defects through the narrow fix lane using `fixes/<id>/fix.yaml`. |
-| `govkit-genai-preflight` | `agents/codex/skills/backend/genai-preflight/SKILL.md` | Validate L5 provider-neutral LLM decisions after architecture preflight. |
-| `govkit-eval-suite-planning` | `agents/codex/skills/backend/eval-suite-planning/SKILL.md` | Plan provider-neutral model evaluation suites for LLM features. |
-| `govkit-multi-agent-design` | `agents/codex/skills/backend/multi-agent-design/SKILL.md` | Design governed multi-agent topology and produce `agent_topology.md`. |
-| `govkit-ui-architecture-preflight` | `agents/codex/skills/ui/architecture-preflight/SKILL.md` | Validate UI architecture, backend contracts, accessibility, design readiness, and ADR need before UI planning. |
-| `govkit-ui-spec-planning` | `agents/codex/skills/ui/spec-planning/SKILL.md` | Generate UI `plan.md` and `eval_criteria.yaml` from UI specs and preflight. |
-| `govkit-ui-implementation-plan` | `agents/codex/skills/ui/implementation-plan/SKILL.md` | Produce an ordered UI implementation checklist. |
-| `govkit-ui-adr-author` | `agents/codex/skills/ui/adr-author/SKILL.md` | Author UI ADRs. |
-| `govkit-pr-author` | `agents/codex/skills/backend/pr-author/SKILL.md` | Draft a pull request from recorded changes, validation and limitations. |
+| `govkit-architecture-preflight` | `agents/codex/skills/backend/govkit-architecture-preflight/SKILL.md` | Validate architecture boundaries, standards alignment, extension applicability, repository scope, ADR need, and required tests before planning. |
+| `govkit-spec-planning` | `agents/codex/skills/backend/govkit-spec-planning/SKILL.md` | Generate or update `plan.md` and `eval_criteria.yaml` from NFRs, Gherkin, and preflight findings. |
+| `govkit-implementation-plan` | `agents/codex/skills/backend/govkit-implementation-plan/SKILL.md` | Produce an ordered implementation checklist and evaluation compliance summary from validated planning inputs. |
+| `govkit-adr-author` | `agents/codex/skills/backend/govkit-adr-author/SKILL.md` | Author a proposed ADR for a new pattern, exception, or boundary change. |
+| `govkit-fix-record` | `agents/codex/skills/backend/govkit-fix-record/SKILL.md` | Route qualifying defects through the narrow fix lane using `fixes/<id>/fix.yaml`. |
+| `govkit-genai-preflight` | `agents/codex/skills/backend/govkit-genai-preflight/SKILL.md` | Validate L5 provider-neutral LLM decisions after architecture preflight. |
+| `govkit-eval-suite-planning` | `agents/codex/skills/backend/govkit-eval-suite-planning/SKILL.md` | Plan provider-neutral model evaluation suites for LLM features. |
+| `govkit-multi-agent-design` | `agents/codex/skills/backend/govkit-multi-agent-design/SKILL.md` | Design governed multi-agent topology and produce `agent_topology.md`. |
+| `govkit-ui-architecture-preflight` | `agents/codex/skills/ui/govkit-ui-architecture-preflight/SKILL.md` | Validate UI architecture, backend contracts, accessibility, design readiness, and ADR need before UI planning. |
+| `govkit-ui-spec-planning` | `agents/codex/skills/ui/govkit-ui-spec-planning/SKILL.md` | Generate UI `plan.md` and `eval_criteria.yaml` from UI specs and preflight. |
+| `govkit-ui-implementation-plan` | `agents/codex/skills/ui/govkit-ui-implementation-plan/SKILL.md` | Produce an ordered UI implementation checklist. |
+| `govkit-ui-adr-author` | `agents/codex/skills/ui/govkit-ui-adr-author/SKILL.md` | Author UI ADRs. |
+| `govkit-pr-author` | `agents/codex/skills/backend/govkit-pr-author/SKILL.md` | Draft a pull request from recorded changes, validation and limitations. |

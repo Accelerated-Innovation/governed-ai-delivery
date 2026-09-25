@@ -1,5 +1,5 @@
 ---
-name: request-planning
+name: govkit-request-planning
 description: Normalize a request and select proportional work from accepted policy.
 ---
 

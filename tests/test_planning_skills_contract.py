@@ -40,7 +40,15 @@ MARKER = "Behavior contract"
 
 
 def _skill(agent: str, area: str, skill: str) -> Path:
-    return REPO / "agents" / agent / "skills" / area / skill / "SKILL.md"
+    return (
+        REPO
+        / "agents"
+        / agent
+        / "skills"
+        / area
+        / (f"govkit-ui-{skill}" if area == "ui" else f"govkit-{skill}")
+        / "SKILL.md"
+    )
 
 
 CASES = [
@@ -162,7 +170,7 @@ def test_the_three_agents_say_the_same_thing_apart_from_their_own_path(area, ski
     for agent in AGENTS:
         text = _skill(agent, area, skill).read_text(encoding="utf-8")
         start = text.index(f"## {MARKER}")
-        rest = text[start + 3:]
+        rest = text[start + 3 :]
         end = rest.find("\n## ")
         blocks[agent] = rest if end == -1 else rest[:end]
 

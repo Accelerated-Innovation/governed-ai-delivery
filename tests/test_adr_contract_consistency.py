@@ -2,7 +2,7 @@
 
 Two defects, both shipped to all three agents:
 
-1. **Status vocabulary drift.** `skills/backend/adr-author/SKILL.md` prescribed
+1. **Status vocabulary drift.** `skills/backend/govkit-adr-author/SKILL.md` prescribed
    `Proposed / Approved / Rejected / Deprecated`, while both ADR templates
    prescribe `Proposed | Accepted | Rejected | Superseded`. The token the L4
    governance rule gates implementation on — *"ADRs ... must be Accepted before
@@ -10,7 +10,7 @@ Two defects, both shipped to all three agents:
    skill handed the agent, and the skill told the agent to follow a template it
    then contradicted. An agent resolving that contradiction has to invent.
 
-2. **Wrong template path.** All three `skills/ui/adr-author/SKILL.md` pointed at
+2. **Wrong template path.** All three `skills/ui/govkit-ui-adr-author/SKILL.md` pointed at
    `governance/ui/templates/architecture_preflight.md` — the *preflight* template,
    not `docs/ui/architecture/ADR/TEMPLATE.md`.
 
@@ -31,7 +31,16 @@ ADR_TEMPLATES = {
 }
 
 ADR_SKILLS = [
-    (layer, REPO_ROOT / "agents" / agent / "skills" / layer / "adr-author" / "SKILL.md")
+    (
+        layer,
+        REPO_ROOT
+        / "agents"
+        / agent
+        / "skills"
+        / layer
+        / ("govkit-ui-adr-author" if layer == "ui" else "govkit-adr-author")
+        / "SKILL.md",
+    )
     for agent in ("claude-code", "codex", "copilot")
     for layer in ("backend", "ui")
 ]
@@ -72,7 +81,9 @@ def test_adr_skills_discovered():
         assert path.is_file(), f"missing {_rel(path)}"
 
 
-@pytest.mark.parametrize("layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v))
+@pytest.mark.parametrize(
+    "layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v)
+)
 def test_skill_uses_no_stale_status_token(layer: str, skill: Path):
     text = skill.read_text(encoding="utf-8")
     found = [t for t in STALE_STATUS_TOKENS if t in text]
@@ -83,7 +94,9 @@ def test_skill_uses_no_stale_status_token(layer: str, skill: Path):
     )
 
 
-@pytest.mark.parametrize("layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v))
+@pytest.mark.parametrize(
+    "layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v)
+)
 def test_skill_teaches_the_gate_token(layer: str, skill: Path):
     assert GATE_TOKEN in skill.read_text(encoding="utf-8"), (
         f"{_rel(skill)} never mentions '{GATE_TOKEN}' — the status the L4 "
@@ -91,7 +104,9 @@ def test_skill_teaches_the_gate_token(layer: str, skill: Path):
     )
 
 
-@pytest.mark.parametrize("layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v))
+@pytest.mark.parametrize(
+    "layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v)
+)
 def test_skill_points_at_an_adr_template(layer: str, skill: Path):
     text = skill.read_text(encoding="utf-8")
     assert "architecture/ADR/TEMPLATE.md" in text, (
@@ -123,7 +138,9 @@ POLICY_PATH = "governance/approval_policy.yaml"
 GATE_JOB = "adr-approval-check"
 
 
-@pytest.mark.parametrize("layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v))
+@pytest.mark.parametrize(
+    "layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v)
+)
 def test_skill_does_not_hand_the_agent_the_status_menu(layer: str, skill: Path):
     """The template offers the vocabulary because a human reads it and picks.
     Repeating the menu in the skill is what let an agent pick `Accepted`."""
@@ -133,14 +150,18 @@ def test_skill_does_not_hand_the_agent_the_status_menu(layer: str, skill: Path):
     )
 
 
-@pytest.mark.parametrize("layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v))
+@pytest.mark.parametrize(
+    "layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v)
+)
 def test_skill_tells_the_agent_to_author_proposed(layer: str, skill: Path):
     assert "Proposed" in skill.read_text(encoding="utf-8"), (
         f"{_rel(skill)} never names the one status an author may write"
     )
 
 
-@pytest.mark.parametrize("layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v))
+@pytest.mark.parametrize(
+    "layer, skill", ADR_SKILLS, ids=lambda v: v if isinstance(v, str) else _rel(v)
+)
 def test_skill_names_where_approval_authority_lives(layer: str, skill: Path):
     """An instruction not to write `Accepted` is a rule in prose — the exact
     prohibited pattern AUTHORITY_AND_APPROVAL_CONTRACT.md names ('permission
@@ -167,7 +188,8 @@ ALL_ADR_TEMPLATES = ADR_TEMPLATES | {
 # The numbered prefix differs by layer (UI numbers Approval `## 11.`), so match
 # it the way cli/approval.py does rather than by an exact heading.
 APPROVAL_HEADING_RE = re.compile(
-    r"^##\s+(?:\d+\.\s*)?Approval\b.*$", re.MULTILINE | re.IGNORECASE,
+    r"^##\s+(?:\d+\.\s*)?Approval\b.*$",
+    re.MULTILINE | re.IGNORECASE,
 )
 
 
@@ -175,8 +197,8 @@ def _approval_section(layer: str) -> str:
     text = ALL_ADR_TEMPLATES[layer].read_text(encoding="utf-8")
     match = APPROVAL_HEADING_RE.search(text)
     assert match, f"{_rel(ALL_ADR_TEMPLATES[layer])} has no Approval section"
-    nxt = re.search(r"^##\s", text[match.end():], re.MULTILINE)
-    return text[match.end():match.end() + nxt.start()] if nxt else text[match.end():]
+    nxt = re.search(r"^##\s", text[match.end() :], re.MULTILINE)
+    return text[match.end() : match.end() + nxt.start()] if nxt else text[match.end() :]
 
 
 def test_every_layer_ships_an_adr_template():
@@ -212,8 +234,8 @@ def test_status_section_is_linked_to_the_approval_it_derives_from(layer: str):
     the vocabulary menu has to be told that one of those words is not theirs."""
     text = ALL_ADR_TEMPLATES[layer].read_text(encoding="utf-8")
     status = re.search(r"^## Status\s*\n(.+)$", text, re.MULTILINE)
-    nxt = re.search(r"^##\s", text[status.end():], re.MULTILINE)
-    body = text[status.end():status.end() + nxt.start()]
+    nxt = re.search(r"^##\s", text[status.end() :], re.MULTILINE)
+    body = text[status.end() : status.end() + nxt.start()]
     assert "derived" in body.lower(), (
         f"{_rel(ALL_ADR_TEMPLATES[layer])} Status section does not say that "
         f"'{GATE_TOKEN}' is derived rather than typed"
@@ -223,12 +245,7 @@ def test_status_section_is_linked_to_the_approval_it_derives_from(layer: str):
 @pytest.mark.parametrize("layer", ["backend", "ui"])
 def test_adr_skill_body_parity_across_agents(layer: str):
     """[[feedback_agent_parity]] — the ADR skill must not drift between agents."""
-    bodies = {
-        path: path.read_text(encoding="utf-8")
-        for lyr, path in ADR_SKILLS
-        if lyr == layer
-    }
+    bodies = {path: path.read_text(encoding="utf-8") for lyr, path in ADR_SKILLS if lyr == layer}
     assert len(set(bodies.values())) == 1, (
-        f"{layer} adr-author SKILL.md differs across agents: "
-        f"{[_rel(p) for p in bodies]}"
+        f"{layer} adr-author SKILL.md differs across agents: {[_rel(p) for p in bodies]}"
     )

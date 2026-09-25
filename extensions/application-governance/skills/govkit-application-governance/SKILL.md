@@ -1,5 +1,5 @@
 ---
-name: application-governance
+name: govkit-application-governance
 description: Work from accepted project policy and contracts.
 ---
 

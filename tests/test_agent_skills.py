@@ -12,7 +12,13 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILL_PATHS = [
-    REPO_ROOT / "agents" / agent / "skills" / layer / "architecture-preflight" / "SKILL.md"
+    REPO_ROOT
+    / "agents"
+    / agent
+    / "skills"
+    / layer
+    / ("govkit-ui-architecture-preflight" if layer == "ui" else "govkit-architecture-preflight")
+    / "SKILL.md"
     for agent in ("claude-code", "codex", "copilot")
     for layer in ("backend", "ui")
 ]
@@ -99,11 +105,17 @@ def test_section_25_parity_across_all_skills():
 # ---------------------------------------------------------------------------
 
 BACKEND_PREFLIGHT_PATHS = [
-    REPO_ROOT / "agents" / agent / "skills" / "backend" / "architecture-preflight" / "SKILL.md"
+    REPO_ROOT
+    / "agents"
+    / agent
+    / "skills"
+    / "backend"
+    / "govkit-architecture-preflight"
+    / "SKILL.md"
     for agent in ("claude-code", "codex", "copilot")
 ]
 BACKEND_SPEC_PLANNING_PATHS = [
-    REPO_ROOT / "agents" / agent / "skills" / "backend" / "spec-planning" / "SKILL.md"
+    REPO_ROOT / "agents" / agent / "skills" / "backend" / "govkit-spec-planning" / "SKILL.md"
     for agent in ("claude-code", "codex", "copilot")
 ]
 
@@ -191,7 +203,7 @@ def test_starter_data_preflight_mirrors_skill_sections():
 
 
 UI_SKILLS = [
-    REPO_ROOT / "agents" / agent / "skills" / "ui" / skill / "SKILL.md"
+    REPO_ROOT / "agents" / agent / "skills" / "ui" / f"govkit-ui-{skill}" / "SKILL.md"
     for agent in ("claude-code", "codex", "copilot")
     for skill in ("adr-author", "architecture-preflight", "spec-planning", "implementation-plan")
 ]
@@ -205,13 +217,13 @@ UI_SKILLS = [
 def test_ui_skills_enforce_nextjs_boundary_and_design(skill_path: Path):
     text = skill_path.read_text(encoding="utf-8")
     assert "database" in text.lower()
-    if skill_path.parent.name != "adr-author":
+    if skill_path.parent.name != "govkit-ui-adr-author":
         assert "design.md" in text
 
 
 @pytest.mark.parametrize(
     "skill_path",
-    [p for p in UI_SKILLS if p.parent.name != "adr-author"],
+    [p for p in UI_SKILLS if p.parent.name != "govkit-ui-adr-author"],
     ids=lambda p: f"{p.parents[3].name}/{p.parent.name}",
 )
 def test_ui_skills_cover_prototype_references(skill_path: Path):
@@ -229,9 +241,9 @@ def test_ui_skills_cover_prototype_references(skill_path: Path):
 )
 def test_ui_nextjs_skill_content_parity(skill: str):
     texts = [
-        (REPO_ROOT / "agents" / agent / "skills" / "ui" / skill / "SKILL.md").read_text(
-            encoding="utf-8"
-        )
+        (
+            REPO_ROOT / "agents" / agent / "skills" / "ui" / f"govkit-ui-{skill}" / "SKILL.md"
+        ).read_text(encoding="utf-8")
         for agent in ("claude-code", "codex", "copilot")
     ]
     assert all(text == texts[0] for text in texts[1:]), f"{skill} drifted across agents"
@@ -242,7 +254,7 @@ def test_ui_nextjs_skill_content_parity(skill: str):
 # ---------------------------------------------------------------------------
 
 PLANNING_SKILL_PATHS = [
-    REPO_ROOT / "agents" / agent / "skills" / "backend" / skill / "SKILL.md"
+    REPO_ROOT / "agents" / agent / "skills" / "backend" / f"govkit-{skill}" / "SKILL.md"
     for agent in ("claude-code", "codex", "copilot")
     # fix-record plans a defect the way spec-planning plans a feature: it scopes
     # to one service, reads the recorded architecture rather than asserting one,
@@ -329,7 +341,7 @@ def test_ui_planning_skills_do_not_gain_the_section():
     """UI installs have no service packages — #86 puts them out of scope, and
     a section telling a UI agent to pick a service would be noise."""
     ui_paths = [
-        REPO_ROOT / "agents" / agent / "skills" / "ui" / skill / "SKILL.md"
+        REPO_ROOT / "agents" / agent / "skills" / "ui" / f"govkit-ui-{skill}" / "SKILL.md"
         for agent in ("claude-code", "codex", "copilot")
         for skill in ("spec-planning", "implementation-plan")
     ]
@@ -495,7 +507,7 @@ def test_architecture_guidance_parity_across_agents():
         refs = {}
         for agent in ("claude-code", "codex", "copilot"):
             text = (
-                REPO_ROOT / "agents" / agent / "skills" / "backend" / skill / "SKILL.md"
+                REPO_ROOT / "agents" / agent / "skills" / "backend" / f"govkit-{skill}" / "SKILL.md"
             ).read_text(encoding="utf-8")
             refs[agent] = (
                 "architecture.layers" in text,
@@ -541,7 +553,7 @@ def test_parity_doc_skill_count_matches_reality():
 # ---------------------------------------------------------------------------
 
 PR_AUTHOR_PATHS = [
-    REPO_ROOT / "agents" / agent / "skills" / "backend" / "pr-author" / "SKILL.md"
+    REPO_ROOT / "agents" / agent / "skills" / "backend" / "govkit-pr-author" / "SKILL.md"
     for agent in ("claude-code", "codex", "copilot")
 ]
 

@@ -133,7 +133,7 @@ class TestSkillSourcesTokenized:
         from cli import paths
 
         for skill in TOKENIZED_SKILLS:
-            src = paths.AGENTS_DIR / agent / "skills" / "backend" / skill / "SKILL.md"
+            src = paths.AGENTS_DIR / agent / "skills" / "backend" / f"govkit-{skill}" / "SKILL.md"
             text = src.read_text(encoding="utf-8")
             assert "docs/backend/" not in text, (agent, skill)
             assert "{{docs_area}}" in text, (agent, skill)
@@ -372,10 +372,18 @@ class TestPiiKeywordReRendering:
 
         target = tmp_path / "project"
         target.mkdir()
-        cmd_apply(argparse.Namespace(
-            agent="claude-code", target=str(target), level="4", type="data",
-            ci="github", stack=None, force=False, detect=False,
-        ))
+        cmd_apply(
+            argparse.Namespace(
+                agent="claude-code",
+                target=str(target),
+                level="4",
+                type="data",
+                ci="github",
+                stack=None,
+                force=False,
+                detect=False,
+            )
+        )
         rule = target / ".claude" / "rules" / "govkit" / "staging.md"
         assert "`phone`" in rule.read_text(encoding="utf-8")
 
@@ -384,9 +392,13 @@ class TestPiiKeywordReRendering:
         data["pii"]["keyword_list"] = ["email", "iban", "national_id"]
         context.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
 
-        cmd_calibrate(argparse.Namespace(
-            target=str(target), non_interactive=True, only=None,
-        ))
+        cmd_calibrate(
+            argparse.Namespace(
+                target=str(target),
+                non_interactive=True,
+                only=None,
+            )
+        )
 
         text = rule.read_text(encoding="utf-8")
         assert "`email`, `iban`, `national_id`" in text
