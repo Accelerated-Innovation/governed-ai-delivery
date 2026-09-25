@@ -123,7 +123,7 @@ def test_explicit_old_lock_refresh_updates_native_identity_and_is_idempotent(tmp
     native = target / skill.path
     assert "name: sample-help\n" in native.read_text()
     lock = json.loads((target / ".govkit/pack-lock.json").read_text())
-    assert lock["skill_rendering"] == "install-as-v1"
+    assert lock["skill_rendering"] == "install-as-v2"
     assert verify_lock(target).ready
     after = snapshot(target)
     apply_install(preview_install(path, target, catalog, govkit_version="0.21.1"))
@@ -157,7 +157,7 @@ def test_rendering_mode_cannot_be_changed_without_matching_resource_hashes(tmp_p
     apply_install(preview_install(path, target, catalog, govkit_version="0.21.1"))
     lock_path = target / ".govkit/pack-lock.json"
     lock = json.loads(lock_path.read_text())
-    assert lock.pop("skill_rendering") == "install-as-v1"
+    assert lock.pop("skill_rendering") == "install-as-v2"
     if mode is not None:
         lock["skill_rendering"] = mode
     lock_path.write_text(canonical_json(lock) + "\n")

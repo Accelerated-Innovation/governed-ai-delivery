@@ -96,6 +96,32 @@ with tempfile.TemporaryDirectory() as directory:
         if relative.as_posix().startswith(".govkit/packs/"):
             assert after[relative] == original
 
+with tempfile.TemporaryDirectory() as directory:
+    target = Path(directory) / "consumer"
+    fixture = Path(__file__).parent / "fixtures/native-skill-rendering-v1"
+    shutil.copytree(fixture, target)
+    before = snapshot(target)
+    run("pack", "verify", "--target", str(target))
+    assert snapshot(target) == before
+    source = next((target / ".govkit/packs/craft-pack").iterdir())
+    options = ["--target", str(target), "--source", str(source), "--json"]
+    run("pack", "preview", *options)
+    assert snapshot(target) == before
+    run("pack", "apply", *options)
+    native = target / ".agents/skills/craft-unit-testing/SKILL.md"
+    assert "[guide]: unit-testing\n" in native.read_text()
+    assert "Use [craft-unit-testing][guide]." in native.read_text()
+    assert (native.parent / "unit-testing").is_file()
+    lock = json.loads((target / ".govkit/pack-lock.json").read_text())
+    assert lock["skill_rendering"] == "install-as-v2"
+    run("pack", "verify", "--target", str(target))
+    after = snapshot(target)
+    run("pack", "apply", *options)
+    assert snapshot(target) == after
+    for relative, original in before.items():
+        if relative.as_posix().startswith(".govkit/packs/"):
+            assert after[relative] == original
+
 print(
-    "Native skill wheel smoke passed: 3 legacy agents, upstream preservation, protected refresh and historical lock upgrade"
+    "Native skill wheel smoke passed: 3 legacy agents, upstream preservation, protected refresh, historical and v1 lock upgrades"
 )

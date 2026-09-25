@@ -143,7 +143,9 @@ def _resources(
                 relative = f"{AGENT_LAYOUTS[agent].skills_dir}/{skill.install_as}/{suffix}"
                 content = item.content
                 if skill_rendering and suffix == "SKILL.md":
-                    content = render_skill(content, skill.install_as, aliases)
+                    content = render_skill(
+                        content, skill.install_as, aliases, rendering=skill_rendering
+                    )
                 files[relative] = content.replace(b"{{pack_root}}", prefix.encode())
                 owners[relative] = pack.id
         for check in pack.checks:

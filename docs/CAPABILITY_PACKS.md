@@ -100,13 +100,17 @@ and licenses, retain their upstream content. This does not infer invocation
 policy or rewrite resource links. Packs should supply valid frontmatter;
 historical files without a valid name remain unchanged.
 
-New skill-bearing locks record `skill_rendering: install-as-v1` and hash the
+New skill-bearing locks record `skill_rendering: install-as-v2` and hash the
 rendered native bytes separately from the unchanged pinned source bytes.
-Historical locks without this field still verify offline using their original
-byte-copy renderer. An explicit `pack preview` / `pack apply` refresh upgrades
+V2 preserves destinations in reference-style Markdown definitions such as
+`[guide]: unit-testing`, including angle brackets, continuation lines and block
+containers, while visible names and instruction text still receive aliases.
+The original `install-as-v1` contract remains available to replay its exact bytes,
+including its reference-destination bug. Historical locks without this field
+still use their original byte-copy renderer. An explicit `pack preview` / `pack apply` refresh upgrades
 unedited native copies and the lock together; customized copies block that
-refresh. Older GovKit runtimes whose strict lock schema lacks this field cannot
-read the new lock: upgrade those runtimes, or restore the entire prior committed
+refresh. Older GovKit runtimes whose strict lock schema lacks this rendering mode
+cannot read the new lock: upgrade those runtimes, or restore the entire prior committed
 lock/resource set to roll back. Locks without native skills remain unchanged.
 
 Missing or modified pinned resources invalidate the lock; restore the committed lock/resource set before attempting an update. Native skill edits can be moved to a separate user-owned skill or represented by a reviewed local pack. Reconcile ownership explicitly rather than deleting a lock to claim existing files. Symlinks, path escapes, stale previews and incompatible requirements fail before installation. Writes are staged, replaced per file, and rolled back on caught failures; this is not a cross-process transaction or crash-recovery journal. Avoid concurrent writers.
