@@ -38,7 +38,7 @@ provider authentication. The implementation plan owns the checkboxes.
 
 | Plan criterion | Evidence and current limit |
 |---|---|
-| I00–I13 exit criteria | Open: the [execution ledger](declarative-governance-implementation-plan.md#11-execution-ledger-and-handoff) records delivered increments; I10 external enforcement and I13 retirement/pilot inputs are blocked on the records below. |
+| I00–I13 exit criteria | Open: the [execution ledger](declarative-governance-implementation-plan.md#11-execution-ledger-and-handoff) records delivered increments; I10 now has an authorized private consumer bootstrap with passing offline CI; protected enforcement and I13 retirement/team observations remain incomplete. |
 | Included feature acceptance reconciled and satisfied | Open: [#147](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/147), [#149](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/149) and epic [#142](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/142) retain their unchecked criteria. |
 | Legacy compatibility and customization preservation | Verified for frozen selections and representative real L3/L4/L5 installs: [migration tests](../tests/test_migration.py), [wheel migration pilot](../tests/wheel_migration_smoke.py), historical native-lock replay and [migration/rollback guidance](../docs/LEGACY_MIGRATION.md). Unsupported legacy inputs require reconciliation. |
 | Independent capability/workflow combinations across agents | Verified by [workflow tests](../tests/test_workflows.py), [pack tests](../tests/test_capability_packs.py), [three-agent pack wheel pilot](../tests/wheel_pack_smoke.py) and [request wheel pilot](../tests/wheel_workflow_smoke.py). This is fixture coverage, not a claim about every custom pack combination. |
@@ -59,19 +59,26 @@ provider authentication. The implementation plan owns the checkboxes.
 | Consenting pilot team | Team-reviewed aggregate observations for the applicable existing-service/MCP/LLM and workflow scenarios, with comparison method, setup versus recurring effort, useful/noisy findings, missing responses and uncertainty. Follow the [voluntary protocol](../docs/ADOPTION_PILOT.md); synthetic fixtures and review counts do not substitute for this record. | #142 adoption/usefulness acceptance and I13 feedback. |
 | Release maintainer | Warning-start release, minimum warning period, earliest removal release, announcement reference, supported legacy inputs during that period, and reviewed migration/rollback evidence. Keep support until the announced conditions are met; later deletion is a separate change. | #149's remaining compatibility criterion and I13 retirement policy. |
 
-No pilot participants, consumer repository or release boundary are selected by
-this document. Use links or appropriately restricted evidence references rather
-than copying credentials, source, prompts, tickets or individual work records here.
+The maintainer has selected a private consumer repository, and its offline
+bootstrap PR has a passing hosted response-contract check. That selection does
+not establish participant consent, protected enforcement or a release boundary.
+Keep private repository coordinates and evidence in its private pilot record.
+Use appropriately restricted evidence references rather than copying credentials,
+source, prompts, tickets or individual work records here.
 A caller-supplied all-true provider JSON does not close the enforcement criterion.
 
 ## Scope and next action
 
-The next implementation needs the maintainer to provide the legacy warning/removal
-policy or identify an authorized consumer repository for provider/pilot validation.
-That input has been requested. Continue focused fixes for verified defects and
-refresh this evidence record when new inputs arrive. Keep the original parity flake
-visible. Once external records are available, review them against the exact remaining criteria and update the
-plan and issues together; never infer acceptance from an issue or PR being closed.
+Review the private consumer bootstrap, then resolve its readiness findings and
+propose accepted policy with an independently protected caller. Its seven offline
+response-contract tests and two local negative controls are a first baseline, not
+provider enforcement or model-quality evidence. Live bypass trials and consenting
+team observations follow the reviewed setup.
+
+The maintainer still needs to set the legacy warning/removal policy. Keep the
+original parity flake visible. Review new evidence against the exact remaining
+criteria and update the plan and issues together; never infer acceptance from an
+issue or PR being closed.
 
 The adjacent Langfuse/evidence-authoring issues and undefined FeaturePeers work
 are not silently added to this release. Their scope can be selected explicitly,
