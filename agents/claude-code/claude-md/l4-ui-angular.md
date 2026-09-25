@@ -63,7 +63,7 @@ Read before generating any code:
 - Plain async functions using the shared `ApiService`
 - No Angular decorators, no DI — pure functions that take `HttpClient` or the shared service
 - All request and response types explicitly typed — no `any`
-- See `.claude/rules/govkit/api.md`
+- See `.claude/rules/govkit/governance-src.md`
 
 ---
 
@@ -98,9 +98,9 @@ Implementation must not begin unless all six artifacts exist and are complete.
 
 Every feature follows this mandatory sequence:
 
-1. **Architecture Preflight** — `/govkit-architecture-preflight`
-2. **Spec Planning** — `/govkit-spec-planning`
-3. **Implementation Planning** — `/govkit-implementation-plan`
+1. **Architecture Preflight** — `/govkit-ui-architecture-preflight`
+2. **Spec Planning** — `/govkit-ui-spec-planning`
+3. **Implementation Planning** — `/govkit-ui-implementation-plan`
 4. **Implementation** — API → ViewModel → View
 5. **CI & Merge** — all gates must pass
 

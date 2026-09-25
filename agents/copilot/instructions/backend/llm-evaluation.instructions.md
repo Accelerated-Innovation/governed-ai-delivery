@@ -1,3 +1,8 @@
+---
+applyTo_template: layers.llm_evaluation
+applyTo: "**/tests/eval/**,**/eval_sets/**"
+---
+
 # LLM Evaluation Instructions
 
 These instructions apply when editing model evaluation definitions, tests, datasets, and evidence.

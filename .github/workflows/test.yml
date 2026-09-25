@@ -440,6 +440,12 @@ jobs:
           cd /tmp
           /tmp/source-self-hosting-venv/bin/python -I -B -m pytest --import-mode=importlib -p no:cacheprovider -o addopts= "$GITHUB_WORKSPACE/tests/test_capability_onboarding.py" -q
 
+      - name: Installed instruction scopes and UI contracts match the wheel
+        run: |
+          set -euo pipefail
+          cd /tmp
+          /tmp/source-self-hosting-venv/bin/python -I -B -m pytest --import-mode=importlib -p no:cacheprovider -o addopts= "$GITHUB_WORKSPACE/tests/test_instruction_surface.py" -q
+
       - name: Apply against a fresh tmp dir from the wheel install
         # End-to-end: the wheel-installed `govkit apply` writes the marker,
         # the stack overlay docs, the editable header, and the skill_context.

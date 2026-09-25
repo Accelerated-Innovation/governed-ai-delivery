@@ -1,3 +1,10 @@
+---
+paths_template: layers.llm_evaluation
+paths:
+  - "**/tests/eval/**"
+  - "**/eval_sets/**"
+---
+
 # LLM Evaluation Rules
 
 These rules apply when editing model evaluation definitions, tests, datasets, and evidence.

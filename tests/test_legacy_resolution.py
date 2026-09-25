@@ -30,6 +30,14 @@ def test_supported_legacy_selection_matches_before_refactor(case, expected):
     aliases = {new: old for old, new in BASELINE["source_relocations"].items()}
     for entry in comparable[0]:
         entry["src"] = aliases.get(entry["src"], entry["src"])
+        # Issue #188 deliberately selects corrected six-artifact UI sources.
+        # Preserve original digests for destinations/order/attributes, with
+        # only this type/level-bounded payload substitution normalized.
+        variant = BASELINE["payload_source_variants"].get(entry["src"])
+        if variant is not None:
+            assert kind in {"ui-react", "ui-angular", "ui-nextjs"}
+            assert level in {"4", "5"}
+            entry["src"] = variant
     digest = hashlib.sha256(
         json.dumps(comparable, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()

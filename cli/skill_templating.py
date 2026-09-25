@@ -29,6 +29,12 @@ from .agent_layout import AGENT_LAYOUTS
 from .fs import read_text_or_none
 
 _DOCS_AREA_TOKEN = "{{docs_area}}"
+_PREFLIGHT_SKILL_TOKEN = "{{architecture_preflight_skill}}"
+_PREFLIGHT_SKILLS = {
+    "ui": "govkit-ui-architecture-preflight",
+    "backend": "govkit-architecture-preflight",
+    "data": "govkit-architecture-preflight",
+}
 _PII_KEYWORDS_TOKEN = "{{pii_keywords}}"
 
 
@@ -36,12 +42,16 @@ def expand_skill_tokens(text: str, docs_area: str) -> str:
     """Expand skill tokens in `text` for the install's docs area.
 
     Empty `docs_area` leaves the token in place (unknown context must stay
-    visible, not be guessed away). Tokens other than `{{docs_area}}` are not
-    recognized and pass through untouched.
+    visible, not be guessed away). The preflight skill is selected only for
+    known docs areas. Other tokens pass through untouched.
     """
     if not docs_area:
         return text
-    return text.replace(_DOCS_AREA_TOKEN, docs_area)
+    text = text.replace(_DOCS_AREA_TOKEN, docs_area)
+    preflight = _PREFLIGHT_SKILLS.get(docs_area)
+    if preflight is not None:
+        text = text.replace(_PREFLIGHT_SKILL_TOKEN, preflight)
+    return text
 
 
 def render_pii_keywords(keywords: list[str]) -> str:

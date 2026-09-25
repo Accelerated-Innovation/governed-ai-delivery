@@ -1,3 +1,9 @@
+---
+paths_template: layers.llm_observability
+paths:
+  - "**/adapters/observability/**"
+---
+
 # LLM Observability Rules
 
 These rules apply when editing model telemetry and observability adapters.

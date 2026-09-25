@@ -1,3 +1,8 @@
+---
+applyTo_template: layers.multi_agent
+applyTo: "**/services/graphs/**"
+---
+
 # Multi-Agent Instructions
 
 These instructions apply when editing agent runtimes, task controllers, delegation, orchestration, or shared agent state.

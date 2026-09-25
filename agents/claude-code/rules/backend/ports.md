@@ -1,5 +1,5 @@
 ---
-paths_template: layers.inbound
+paths_template: layers.ports
 paths:
   - "**/ports/**"
 ---

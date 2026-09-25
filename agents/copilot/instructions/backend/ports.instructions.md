@@ -1,5 +1,5 @@
 ---
-applyTo_template: layers.inbound
+applyTo_template: layers.ports
 applyTo: "**/ports/**"
 ---
 

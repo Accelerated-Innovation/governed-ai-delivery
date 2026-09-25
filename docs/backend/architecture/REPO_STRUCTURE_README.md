@@ -102,6 +102,28 @@ Both fields are yours to correct. Edit them in `skill_context.yaml` and the
 change survives every later `apply`, `upgrade`, `stack apply` and
 `calibrate` — govkit only reseeds values it wrote itself.
 
+### Optional rule-role scopes
+
+Claude Code and Copilot use narrow default globs for ports and L5 rules.
+To match a different layout, add these optional list-valued keys under
+`architecture.layers` in `.govkit/skill_context.yaml`:
+
+| Key | Default paths |
+|---|---|
+| `ports` | `ports/` |
+| `llm_gateway` | `adapters/llm/` |
+| `guardrails` | `adapters/guardrails/`, `rails/` |
+| `llm_evaluation` | `tests/eval/`, `eval_sets/` |
+| `llm_observability` | `adapters/observability/` |
+| `multi_agent` | `services/graphs/` |
+
+For example, `llm_gateway: [integrations/models/]` renders
+`**/integrations/models/**`. Nonempty role overrides survive upgrades and
+are rendered by apply, upgrade, and calibrate; absent or empty roles retain
+the bundled fallback. Ports use their own role, rather than the inbound API
+role. These optional glob overrides do not relocate Codex's nested
+`AGENTS.md` files.
+
 ### What follows from a multi-service layout
 
 - **Planning skills ask which service.** With more than one entry and a
