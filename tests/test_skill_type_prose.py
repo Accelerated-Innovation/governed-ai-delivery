@@ -7,7 +7,9 @@ import pytest
 
 from cli.agent_layout import AGENT_LAYOUTS
 from cli.cmd_upgrade import cmd_upgrade
-from cli.skill_templating import expand_skill_tokens
+from cli.doctor import run_doctor
+from cli.skill_context import load_skill_context
+from cli.skill_templating import expand_skill_tokens, template_installed_skills
 from tests.test_instruction_surface import AGENTS, UI_TYPES, apply
 
 
@@ -91,8 +93,42 @@ def test_type_sections_select_content_and_expand_its_paths(area, expected):
 
 @pytest.mark.parametrize("area", ["", "unknown"])
 def test_unknown_type_does_not_discard_conditional_guidance(area):
-    text = SECTIONS.replace("{{docs_area}}", "unresolved")
+    text = SECTIONS + "Invoke {{architecture_preflight_skill}}.\n"
     assert expand_skill_tokens(text, area) == text
+
+
+def unresolved_install(target, agent, area):
+    apply(target, agent, "api")
+    skill = target / AGENT_LAYOUTS[agent].skills_dir / "govkit-spec-planning/SKILL.md"
+    skill.write_text(SECTIONS, encoding="utf-8")
+    context = target / ".govkit/skill_context.yaml"
+    context.write_text(json.dumps({"docs_area": area}), encoding="utf-8")
+    return skill, load_skill_context(target)
+
+
+@pytest.mark.parametrize("agent", AGENTS)
+@pytest.mark.parametrize("area", ["", "future-area"])
+def test_unknown_loaded_context_preserves_installed_bytes_and_mtime(tmp_path, agent, area):
+    skill, context = unresolved_install(tmp_path, agent, area)
+    before = skill.read_bytes(), skill.stat().st_mtime_ns
+
+    modified = template_installed_skills(tmp_path, agent, context.docs_area)
+
+    assert modified == 0
+    assert (skill.read_bytes(), skill.stat().st_mtime_ns) == before
+
+
+@pytest.mark.parametrize("agent", AGENTS)
+def test_doctor_still_reports_path_tokens_after_unknown_context_render(tmp_path, agent):
+    skill, context = unresolved_install(tmp_path, agent, "future-area")
+    template_installed_skills(tmp_path, agent, context.docs_area)
+
+    findings = run_doctor(tmp_path)
+
+    hits = [finding for finding in findings if finding.id == "D015"]
+    assert len(hits) == 1
+    assert hits[0].file == skill.relative_to(tmp_path).as_posix()
+    assert hits[0].severity == "warning" and "{{docs_area}}" in hits[0].message
 
 
 def test_rendered_type_guidance_is_idempotent():

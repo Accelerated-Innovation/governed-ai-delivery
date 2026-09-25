@@ -13,8 +13,8 @@ skill_context.yaml is written.
 
 Unlike rule templating (a frontmatter directive), this is inline body
 substitution: skills cite doc paths in prose. Degradation matches the rule
-pass: an unresolvable token (empty docs_area from a missing/unknown marker
-type) is left in the text — doctor flags it — never guessed.
+pass: an empty or unknown docs_area leaves tokens in the text — doctor
+flags them — rather than inventing paths for unsupported contexts.
 
 Installed skills are govkit-owned (no editable header, unconditionally
 refreshed on apply/upgrade), so rewriting them in place clobbers nothing.
@@ -46,22 +46,18 @@ _PII_KEYWORDS_TOKEN = "{{pii_keywords}}"
 def expand_skill_tokens(text: str, docs_area: str) -> str:
     """Expand skill tokens in `text` for the install's docs area.
 
-    Empty `docs_area` leaves the token in place (unknown context must stay
-    visible, not be guessed away). The preflight skill is selected only for
-    known docs areas. Flat, whole-line govkit:docs-area sections retain only
-    the selected area's body; unknown context leaves all sections visible.
+    Empty or unknown `docs_area` leaves all tokens and sections in place
+    (unknown context must stay visible, not be guessed away). For known
+    areas, flat, whole-line govkit:docs-area sections retain only the
+    selected area's body and the preflight skill is resolved.
     Other tokens pass through untouched. Apply/upgrade recopy source sections
     before rendering, so changing the installed type does not lose guidance.
     """
-    if not docs_area:
+    if docs_area not in _PREFLIGHT_SKILLS:
         return text
-    if docs_area in _PREFLIGHT_SKILLS:
-        text = _DOCS_AREA_SECTION.sub(lambda match: match[2] if match[1] == docs_area else "", text)
+    text = _DOCS_AREA_SECTION.sub(lambda match: match[2] if match[1] == docs_area else "", text)
     text = text.replace(_DOCS_AREA_TOKEN, docs_area)
-    preflight = _PREFLIGHT_SKILLS.get(docs_area)
-    if preflight is not None:
-        text = text.replace(_PREFLIGHT_SKILL_TOKEN, preflight)
-    return text
+    return text.replace(_PREFLIGHT_SKILL_TOKEN, _PREFLIGHT_SKILLS[docs_area])
 
 
 def render_pii_keywords(keywords: list[str]) -> str:
@@ -146,7 +142,7 @@ def template_installed_skills(target: Path, agent: str, docs_area: str) -> int:
 
     Walks the agent's skills dir (AGENT_LAYOUTS), rewrites files in place,
     and returns the number of files modified. No-op (0) for unknown agents,
-    layouts without a skills dir, a missing directory, or empty docs_area.
+    layouts without a skills dir, a missing directory, or empty/unknown docs_area.
     """
     layout = AGENT_LAYOUTS.get(agent)
     if layout is None or layout.skills_dir is None or not docs_area:
