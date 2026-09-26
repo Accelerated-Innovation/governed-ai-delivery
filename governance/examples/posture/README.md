@@ -1,5 +1,12 @@
 # Posture examples
 
+`observation-change.json` and `observation-maintenance.json` are synthetic version-2
+exports from real isolated conformance and maintenance with an accepted 2 MiB
+per-file budget. Their opaque observation references bind effective limits and
+source identity without revealing configuration bytes or file paths. Both replay
+offline. The version-1 examples below are intentionally retained unchanged to
+exercise historical compatibility; mixed-version aggregation emits version 2.
+
 `maintenance.json` is a synthetic `posture-export` v1 record validated by the
 runtime schema and replay parser. It projects a canonical local maintenance
 assessment with a compatible optional pack update, matching installed resources

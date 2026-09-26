@@ -4,7 +4,10 @@
   "type": "object",
   "properties": {
     "schema_version": {
-      "const": 1
+      "enum": [
+        1,
+        2
+      ]
     },
     "kind": {
       "const": "change-results"
@@ -109,6 +112,94 @@
         "tree_digest": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$"
+        },
+        "observation": {
+          "type": "object",
+          "properties": {
+            "limits": {
+              "type": "object",
+              "properties": {
+                "max_file_bytes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 8388608
+                },
+                "max_files": {
+                  "const": 2048
+                },
+                "max_total_bytes": {
+                  "const": 16777216
+                },
+                "max_changed_paths": {
+                  "const": 256
+                }
+              },
+              "required": [
+                "max_file_bytes",
+                "max_files",
+                "max_total_bytes",
+                "max_changed_paths"
+              ],
+              "additionalProperties": false
+            },
+            "source_digest": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "source_state": {
+              "enum": [
+                "accepted",
+                "default",
+                "unavailable"
+              ]
+            }
+          },
+          "required": [
+            "limits",
+            "source_digest",
+            "source_state"
+          ],
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "source_state": {
+                    "const": "accepted"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "source_digest": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "source_digest": {
+                    "type": "null"
+                  },
+                  "limits": {
+                    "properties": {
+                      "max_file_bytes": {
+                        "const": 1048576
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
         }
       },
       "required": [
@@ -1377,5 +1468,36 @@
       ],
       "additionalProperties": false
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": 2
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "change": {
+            "required": [
+              "observation"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "change": {
+            "not": {
+              "required": [
+                "observation"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
 }

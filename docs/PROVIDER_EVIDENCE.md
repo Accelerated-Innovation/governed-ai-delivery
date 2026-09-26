@@ -9,6 +9,15 @@ to work; they cannot establish admitted provider enforcement through this adapte
 
 ## Admit a PR run
 
+Evidence collection recaptures Git using the assessment checkout's current accepted
+budget and compares its source identity with the runtime record. Imported limits
+cannot enlarge current policy. Historical version-1 runtime records can match only
+the default budget with matching accepted source bytes, or with the optional
+conformance source omitted from both profiles. Version-2 default provenance also
+matches an omitted source; a declared but unavailable source cannot match.
+A policy change requires fresh conformance and evidence. Imported success remains
+unauthenticated, and complete scope does not satisfy missing conformance checks.
+
 Add `admission` to the accepted pipeline settings, then review and generate a new
 entry point through the [existing protected workflow](PIPELINE_GENERATION.md):
 
@@ -34,6 +43,15 @@ optional `change_output` (new JSON artifact outside both checkouts). Set
 reads accepted request bytes once for execution. Missing, unsupported or
 inconsistent admission inputs fail before project checks run. Full commit IDs are normalized to lowercase; uppercase
 hexadecimal input is accepted for both supported Git object formats.
+
+Before using the accepted observation budget, admission reads only the profile
+and referenced conformance source (each at most 64 KiB). Their bytes and regular
+file modes must match the pinned policy commit, HEAD must match that revision,
+and the parsed profile must match the pipeline profile pin. It then inspects both
+complete checkouts with that same budget. Dirty, missing, substituted or changed
+bootstrap sources withhold execution; expanded budgets cannot relax their own
+source validation. The source binding is checked again before commands and at
+final stability assessment. Caller pins remain assertions, not authentication.
 
 | Provider | Explicit event record | Admission |
 |---|---|---|

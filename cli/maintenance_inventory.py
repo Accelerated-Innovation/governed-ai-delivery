@@ -13,7 +13,7 @@ from pathlib import Path
 from packaging.version import Version
 
 from . import version
-from .change_scope import capture_change
+from .observation_policy import capture_observation, resolve_observation_budget
 from .pack_loading import contained_file, load_pack, safe_relative
 from .pack_store import preview_install, verify_lock
 from .pipeline_layout import DESTINATIONS, LOCK
@@ -230,7 +230,10 @@ def inventory_repository(target: Path, *, as_of=None, metadata=()):
         as_of=as_of,
     )
     problems.extend(release_problems)
-    git = capture_change(target, "HEAD")
+    budget = resolve_observation_budget(target, profile)
+    git = capture_observation(target, "HEAD", budget)
+    if budget.source_state == "unavailable":
+        problems.append("observation-policy:unavailable; repair the declared source and recapture")
     identity = {
         "revision": git.revision,
         "dirty_digest": git.digest if git.complete else None,
@@ -238,11 +241,15 @@ def inventory_repository(target: Path, *, as_of=None, metadata=()):
         "profile_digest": profile.digest if profile else None,
         "resolution_digest": resolution_digest,
         "pack_lock_digest": inputs[".govkit/pack-lock.json"]["digest"],
-        "input_digest": content_digest(canonical_json(inputs).encode()),
+        "input_digest": content_digest(
+            canonical_json({"inputs": inputs, "observation": budget.document}).encode()
+        ),
+        "observation_digest": budget.digest,
     }
     document = {
-        "schema_version": 1,
+        "schema_version": 2,
         "kind": "maintenance-inventory",
+        "observation": budget.document,
         "target": str(target),
         "repository": profile.repository.id if profile else target.name,
         "as_of": as_of,

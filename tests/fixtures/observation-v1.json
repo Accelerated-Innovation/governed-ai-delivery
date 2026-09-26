@@ -1,0 +1,3214 @@
+{
+  "assessment": {
+    "as_of": "2026-09-26T17:00:00Z",
+    "checks": {
+      "exit_code": 0,
+      "govkit_version": "0.21.1",
+      "identity": {
+        "change_digest": null,
+        "dirty_digest": null,
+        "observed_at": "2026-09-26T17:00:00Z",
+        "pack_lock_digest": "fad3fd5314d9e2cec030f2672a0b320b201c5b1b85da78f0bba07ffeb84fb742",
+        "profile_digest": "9d03d76a6104771b2282083735b765dc805643860c56b49346cbbf01a3b3d770",
+        "repository": "service",
+        "resolution_digest": null,
+        "revision": null
+      },
+      "kind": "maintenance-dimensions",
+      "limitations": [
+        "Only the four named maintenance dimensions and their bounded evidence were assessed.",
+        "These normalized observations are not change conformance or authenticated enforcement evidence."
+      ],
+      "results": [
+        {
+          "evidence": [
+            {
+              "digest": "4326b94a5ab37f869142ed4e3af6587809a46e6bfe8d885c2d60a7386a3e0e88",
+              "limitations": [
+                "Local consistency evidence does not authenticate policy, publishers or enforcement."
+              ],
+              "method": "release-policy-comparison",
+              "origin": "local-check",
+              "scope": [
+                "."
+              ],
+              "source": "maintenance-inventory"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Assess this maintenance dimension independently",
+              "category": "maintenance",
+              "check_id": "maintenance:releases",
+              "code": "maintenance:7b20d217195ce1adcba9aa9ec37b81a07df6bacac408ff7f5d2f6936d9926885",
+              "evidence": [
+                {
+                  "digest": "4326b94a5ab37f869142ed4e3af6587809a46e6bfe8d885c2d60a7386a3e0e88",
+                  "limitations": [
+                    "Local consistency evidence does not authenticate policy, publishers or enforcement."
+                  ],
+                  "method": "release-policy-comparison",
+                  "origin": "local-check",
+                  "scope": [
+                    "."
+                  ],
+                  "source": "maintenance-inventory"
+                }
+              ],
+              "id": "finding:0b68cd6d58eb4fa1995977c79fe5ebaa05cf3a1b32e25e2d29be697eddc538dc",
+              "location": null,
+              "message": "No approved release comparison is available.",
+              "scope": [
+                "."
+              ],
+              "severity": "warning",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "inspect-metadata"
+            }
+          ],
+          "id": "maintenance:releases",
+          "reason": "Assess this maintenance dimension independently",
+          "required": false,
+          "scope": [
+            "."
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "unknown",
+          "summary": "Release availability, compatibility and freshness remain separate facts."
+        },
+        {
+          "evidence": [
+            {
+              "digest": "4326b94a5ab37f869142ed4e3af6587809a46e6bfe8d885c2d60a7386a3e0e88",
+              "limitations": [
+                "Local consistency evidence does not authenticate policy, publishers or enforcement."
+              ],
+              "method": "bounded-resource-digest-comparison",
+              "origin": "local-check",
+              "scope": [
+                "."
+              ],
+              "source": "maintenance-inventory"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Assess this maintenance dimension independently",
+              "category": "check",
+              "check_id": "maintenance:resources",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "4326b94a5ab37f869142ed4e3af6587809a46e6bfe8d885c2d60a7386a3e0e88",
+                  "limitations": [
+                    "Local consistency evidence does not authenticate policy, publishers or enforcement."
+                  ],
+                  "method": "bounded-resource-digest-comparison",
+                  "origin": "local-check",
+                  "scope": [
+                    "."
+                  ],
+                  "source": "maintenance-inventory"
+                }
+              ],
+              "id": "finding:e34c1ed45542a8e6744e69b87f2add229eb70e428fc16f0cd4cb0a7153bc15a8",
+              "location": null,
+              "message": "Actual managed bytes, ownership and customization observations.",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "maintenance:resources",
+          "reason": "Assess this maintenance dimension independently",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "Actual managed bytes, ownership and customization observations."
+        },
+        {
+          "evidence": [
+            {
+              "digest": "e38033fe991405b356f9aefbf0f1eb474278f514577a5d084fc377744ac44e91",
+              "limitations": [
+                "Local consistency evidence does not authenticate policy, publishers or enforcement."
+              ],
+              "method": "bounded-discovery",
+              "origin": "local-check",
+              "scope": [
+                "."
+              ],
+              "source": "repository-discovery"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Assess this maintenance dimension independently",
+              "category": "maintenance",
+              "check_id": "maintenance:repository-fit",
+              "code": "maintenance:3a7b2717f6017628c4753f29069661f80ae3242b1f10020c1e678e53b50b1826",
+              "evidence": [
+                {
+                  "digest": "fe77ccea9225e233ee851b1c13be0786c607f8ae08a0891bd83f1966aa9116ec",
+                  "limitations": [
+                    "Observation does not authenticate approval."
+                  ],
+                  "method": "bounded-discovery",
+                  "origin": "local-check",
+                  "scope": [
+                    "."
+                  ],
+                  "source": "architecture.md"
+                }
+              ],
+              "id": "finding:e8e3a68ea1f34b82ca757afe1d82d75c198ec0d8617006be911984552e4ea9d3",
+              "location": "architecture.md",
+              "message": "Review existing sources and choose only when architecture work needs a commitment; no default stack is accepted.",
+              "scope": [
+                "."
+              ],
+              "severity": "warning",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "review-policy"
+            }
+          ],
+          "id": "maintenance:repository-fit",
+          "reason": "Assess this maintenance dimension independently",
+          "required": false,
+          "scope": [
+            "."
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "warn",
+          "summary": "Repository fit observations only; no conformance controls executed."
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Local consistency evidence does not authenticate policy, publishers or enforcement."
+              ],
+              "method": "canonical-check-report-comparison",
+              "origin": "local-check",
+              "scope": [
+                "."
+              ],
+              "source": "ci-check-results"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Assess this maintenance dimension independently",
+              "category": "check",
+              "check_id": "maintenance:ci",
+              "code": "not-applicable",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Local consistency evidence does not authenticate policy, publishers or enforcement."
+                  ],
+                  "method": "canonical-check-report-comparison",
+                  "origin": "local-check",
+                  "scope": [
+                    "."
+                  ],
+                  "source": "ci-check-results"
+                }
+              ],
+              "id": "finding:2012355b5846c628833c8df293ab121e00d72fa184a5e574d519c0459cccc35b",
+              "location": null,
+              "message": "No CI integration is required by this accepted profile.",
+              "scope": [
+                "."
+              ],
+              "severity": "warning",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Resolve the finding and rerun the check."
+            }
+          ],
+          "id": "maintenance:ci",
+          "reason": "Assess this maintenance dimension independently",
+          "required": false,
+          "scope": [
+            "."
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "not-applicable",
+          "summary": "No CI integration is required by this accepted profile."
+        }
+      ],
+      "schema_version": 1,
+      "state": "warn",
+      "summary": {
+        "executed": 4,
+        "fail": 0,
+        "not-applicable": 1,
+        "pass": 1,
+        "required": 1,
+        "required_satisfied": 1,
+        "skipped": 0,
+        "unknown": 1,
+        "waived": 0,
+        "warn": 1
+      }
+    },
+    "digest": "ede55606a1e50e1185f864a6e560e084e3967c04cdee75c9b88e09cf16c2ace2",
+    "discovery": {
+      "accepted_profile": {
+        "capabilities": [
+          {
+            "id": "application-governance"
+          },
+          {
+            "id": "gherkin-delivery"
+          }
+        ],
+        "integrations": {
+          "agent": "codex"
+        },
+        "policy": {
+          "conformance": {
+            "authority": "accepted",
+            "reference": "conformance.json"
+          },
+          "contracts": [
+            {
+              "scope": [
+                "src"
+              ],
+              "source": {
+                "authority": "accepted",
+                "reference": "architecture.md"
+              }
+            }
+          ],
+          "required_checks": [],
+          "source": {
+            "authority": "accepted",
+            "reference": "policy.md"
+          },
+          "transitions": [],
+          "workflows": [
+            {
+              "additional_checks": [],
+              "id": "always",
+              "source": {
+                "authority": "accepted",
+                "reference": "policy.md"
+              },
+              "when": [
+                "*"
+              ]
+            }
+          ]
+        },
+        "repository": {
+          "id": "service"
+        },
+        "schema_version": 1,
+        "source": {
+          "authority": "accepted",
+          "reference": "policy.md"
+        }
+      },
+      "boundaries": [
+        "."
+      ],
+      "changes": [],
+      "coverage": {
+        "complete": true,
+        "limitations": [],
+        "limits": {
+          "max_bytes": 65536,
+          "max_depth": 6,
+          "max_entries": 2048,
+          "max_files": 128,
+          "max_total_bytes": 1048576
+        }
+      },
+      "decisions": [
+        {
+          "affects": [
+            "architecture:."
+          ],
+          "choices": [
+            "retain",
+            "improve",
+            "migrate"
+          ],
+          "id": "architecture:.",
+          "reason": "Review existing sources and choose only when architecture work needs a commitment; no default stack is accepted.",
+          "scope": ".",
+          "sources": [
+            "architecture.md"
+          ],
+          "status": "pending"
+        },
+        {
+          "affects": [
+            "architecture:src"
+          ],
+          "choices": [],
+          "id": "architecture:src:architecture.md",
+          "reason": "Retain the accepted contract; evidence is observational.",
+          "scope": "src",
+          "sources": [
+            "architecture.md"
+          ],
+          "status": "accepted"
+        }
+      ],
+      "install_ready": true,
+      "kind": "discovery",
+      "observations": [
+        {
+          "category": "architecture",
+          "confidence": "medium",
+          "digest": "fe77ccea9225e233ee851b1c13be0786c607f8ae08a0891bd83f1966aa9116ec",
+          "scope": ".",
+          "signals": [],
+          "source": "architecture.md",
+          "status": "observed"
+        },
+        {
+          "category": "reference",
+          "confidence": "medium",
+          "digest": "bd695251c41c1edd2d2df8f2453f9d203e672b1e3c847438696f61c3c6ddeb60",
+          "scope": ".",
+          "signals": [],
+          "source": "conformance.json",
+          "status": "observed"
+        },
+        {
+          "category": "documentation",
+          "confidence": "medium",
+          "digest": "8174661d06afbcca3fdcc619174288789651c5533b97c7df19eb7473419a2161",
+          "scope": ".",
+          "signals": [],
+          "source": "policy.md",
+          "status": "observed"
+        },
+        {
+          "category": "code",
+          "confidence": "high",
+          "digest": "f005b8fe17571af0c46871b9b0fd0fc597ba3c028ab964974e73afa3fc39127b",
+          "scope": ".",
+          "signals": [
+            "language:python"
+          ],
+          "source": "src/service.py",
+          "status": "observed"
+        },
+        {
+          "category": "test",
+          "confidence": "high",
+          "digest": "e07652dee371b3681cc0fab5d001d5b651da6afc660d924c1fbb015398bc8311",
+          "scope": ".",
+          "signals": [
+            "check:test-source",
+            "language:python"
+          ],
+          "source": "tests/test_service.py",
+          "status": "observed"
+        }
+      ],
+      "operations": [
+        {
+          "action": "preserve",
+          "before_digest": "ac8a6348fedf6d15c4aa98da709148d94849ad9274d542b7bd5b47b64226b7c5",
+          "path": ".govkit/profile.yaml",
+          "proposed_digest": "ac8a6348fedf6d15c4aa98da709148d94849ad9274d542b7bd5b47b64226b7c5"
+        },
+        {
+          "action": "create",
+          "before_digest": null,
+          "path": ".govkit/resolution.json",
+          "proposed_digest": "a80cca1c68ff6fcbbf56332e8f4ea1b5a303c1cd5637b2008b5f4ea16237189d"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "110f02bbf3c1e49df7733f53a29f0ae23148329afa52ed2193ecae4cc98b1337",
+          "owner": "application-governance",
+          "path": ".agents/skills/govkit-application-governance/SKILL.md",
+          "proposed_digest": "110f02bbf3c1e49df7733f53a29f0ae23148329afa52ed2193ecae4cc98b1337"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "fb7f31f0a4ad661712c1c5a1edeceb07e1d323645cf6479c8224b4cb8516fc8d",
+          "owner": "application-governance",
+          "path": ".agents/skills/govkit-application-governance/references/guide.md",
+          "proposed_digest": "fb7f31f0a4ad661712c1c5a1edeceb07e1d323645cf6479c8224b4cb8516fc8d"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "2eeeaa24080f5143355547a58e9911342533189bdcdc5567d2212ae0323a3a88",
+          "owner": "gherkin-delivery",
+          "path": ".agents/skills/govkit-gherkin-delivery/SKILL.md",
+          "proposed_digest": "2eeeaa24080f5143355547a58e9911342533189bdcdc5567d2212ae0323a3a88"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "33e1eebaca59c114b646a9e9dc74983cc2ec0886e272c68ec1a84377b338230e",
+          "owner": "gherkin-delivery",
+          "path": ".agents/skills/govkit-gherkin-delivery/references/guide.md",
+          "proposed_digest": "33e1eebaca59c114b646a9e9dc74983cc2ec0886e272c68ec1a84377b338230e"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "cd7d57eeca20538bb1e3fd643977d89af8bb27afdc6defa4cfbb6e1d722adc20",
+          "owner": "application-governance",
+          "path": ".agents/skills/govkit-request-planning/SKILL.md",
+          "proposed_digest": "cd7d57eeca20538bb1e3fd643977d89af8bb27afdc6defa4cfbb6e1d722adc20"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "537da61d7ca7923bfa80ea2ed15e2c5fc17373d647fa13713349b185cb54da14",
+          "owner": "application-governance",
+          "path": ".govkit/packs/application-governance/fcd272af2100f97e3e305f9732cd0aa6fa3f27b7f1a10d8e62f7ef43c252776b/README.md",
+          "proposed_digest": "537da61d7ca7923bfa80ea2ed15e2c5fc17373d647fa13713349b185cb54da14"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "b45936e3b6bbc4c2b091e4896ed01708a2f1a3ed8fb3c494918e383985eed9f1",
+          "owner": "application-governance",
+          "path": ".govkit/packs/application-governance/fcd272af2100f97e3e305f9732cd0aa6fa3f27b7f1a10d8e62f7ef43c252776b/manifest.yaml",
+          "proposed_digest": "b45936e3b6bbc4c2b091e4896ed01708a2f1a3ed8fb3c494918e383985eed9f1"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "110f02bbf3c1e49df7733f53a29f0ae23148329afa52ed2193ecae4cc98b1337",
+          "owner": "application-governance",
+          "path": ".govkit/packs/application-governance/fcd272af2100f97e3e305f9732cd0aa6fa3f27b7f1a10d8e62f7ef43c252776b/skills/govkit-application-governance/SKILL.md",
+          "proposed_digest": "110f02bbf3c1e49df7733f53a29f0ae23148329afa52ed2193ecae4cc98b1337"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "fb7f31f0a4ad661712c1c5a1edeceb07e1d323645cf6479c8224b4cb8516fc8d",
+          "owner": "application-governance",
+          "path": ".govkit/packs/application-governance/fcd272af2100f97e3e305f9732cd0aa6fa3f27b7f1a10d8e62f7ef43c252776b/skills/govkit-application-governance/references/guide.md",
+          "proposed_digest": "fb7f31f0a4ad661712c1c5a1edeceb07e1d323645cf6479c8224b4cb8516fc8d"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "cd7d57eeca20538bb1e3fd643977d89af8bb27afdc6defa4cfbb6e1d722adc20",
+          "owner": "application-governance",
+          "path": ".govkit/packs/application-governance/fcd272af2100f97e3e305f9732cd0aa6fa3f27b7f1a10d8e62f7ef43c252776b/skills/govkit-request-planning/SKILL.md",
+          "proposed_digest": "cd7d57eeca20538bb1e3fd643977d89af8bb27afdc6defa4cfbb6e1d722adc20"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "ec5b7da4163ae28c2ad5def3dede48f452252fcd1e325432e5ce78cb7f68b661",
+          "owner": "gherkin-delivery",
+          "path": ".govkit/packs/gherkin-delivery/e97f8c339220678b01c2aac1ec04f644e8c35b08cd0e2e3909571c75d2c79e73/README.md",
+          "proposed_digest": "ec5b7da4163ae28c2ad5def3dede48f452252fcd1e325432e5ce78cb7f68b661"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "806245b46b2989a6e36bfa5b5eb4f7f2cafd488ba0c61b52e7dedf702d4d7ecf",
+          "owner": "gherkin-delivery",
+          "path": ".govkit/packs/gherkin-delivery/e97f8c339220678b01c2aac1ec04f644e8c35b08cd0e2e3909571c75d2c79e73/manifest.yaml",
+          "proposed_digest": "806245b46b2989a6e36bfa5b5eb4f7f2cafd488ba0c61b52e7dedf702d4d7ecf"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "2eeeaa24080f5143355547a58e9911342533189bdcdc5567d2212ae0323a3a88",
+          "owner": "gherkin-delivery",
+          "path": ".govkit/packs/gherkin-delivery/e97f8c339220678b01c2aac1ec04f644e8c35b08cd0e2e3909571c75d2c79e73/skills/govkit-gherkin-delivery/SKILL.md",
+          "proposed_digest": "2eeeaa24080f5143355547a58e9911342533189bdcdc5567d2212ae0323a3a88"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "33e1eebaca59c114b646a9e9dc74983cc2ec0886e272c68ec1a84377b338230e",
+          "owner": "gherkin-delivery",
+          "path": ".govkit/packs/gherkin-delivery/e97f8c339220678b01c2aac1ec04f644e8c35b08cd0e2e3909571c75d2c79e73/skills/govkit-gherkin-delivery/references/guide.md",
+          "proposed_digest": "33e1eebaca59c114b646a9e9dc74983cc2ec0886e272c68ec1a84377b338230e"
+        },
+        {
+          "action": "preserve",
+          "before_digest": "fad3fd5314d9e2cec030f2672a0b320b201c5b1b85da78f0bba07ffeb84fb742",
+          "owner": "govkit",
+          "path": ".govkit/pack-lock.json",
+          "proposed_digest": "fad3fd5314d9e2cec030f2672a0b320b201c5b1b85da78f0bba07ffeb84fb742"
+        }
+      ],
+      "profile_digest": "9d03d76a6104771b2282083735b765dc805643860c56b49346cbbf01a3b3d770",
+      "proposed_profile": null,
+      "references": [
+        "architecture.md",
+        "conformance.json",
+        "policy.md"
+      ],
+      "repository": "service",
+      "review": [
+        {
+          "affects": [
+            "architecture:."
+          ],
+          "choices": [
+            "retain",
+            "improve",
+            "migrate"
+          ],
+          "id": "architecture:.",
+          "reason": "Review existing sources and choose only when architecture work needs a commitment; no default stack is accepted.",
+          "scope": ".",
+          "sources": [
+            "architecture.md"
+          ],
+          "status": "pending"
+        }
+      ],
+      "scanner_version": 1,
+      "schema_version": 1
+    },
+    "identity": {
+      "baseline_digest": null,
+      "ci_report_digest": null,
+      "dirty_digest": null,
+      "discovery_digest": "e38033fe991405b356f9aefbf0f1eb474278f514577a5d084fc377744ac44e91",
+      "git_complete": false,
+      "input_digest": "4d3cd5089ad6a2c9716855a96745c7bdaedee882460fcd019f63f0b9b134a0ae",
+      "inventory_digest": "4326b94a5ab37f869142ed4e3af6587809a46e6bfe8d885c2d60a7386a3e0e88",
+      "pack_lock_digest": "fad3fd5314d9e2cec030f2672a0b320b201c5b1b85da78f0bba07ffeb84fb742",
+      "profile_digest": "9d03d76a6104771b2282083735b765dc805643860c56b49346cbbf01a3b3d770",
+      "resolution_digest": null,
+      "revision": null
+    },
+    "inputs": {
+      "baseline": null,
+      "ci_report": null,
+      "metadata": [],
+      "profile": {
+        "capabilities": [
+          {
+            "id": "application-governance"
+          },
+          {
+            "id": "gherkin-delivery"
+          }
+        ],
+        "integrations": {
+          "agent": "codex"
+        },
+        "policy": {
+          "conformance": {
+            "authority": "accepted",
+            "reference": "conformance.json"
+          },
+          "contracts": [
+            {
+              "scope": [
+                "src"
+              ],
+              "source": {
+                "authority": "accepted",
+                "reference": "architecture.md"
+              }
+            }
+          ],
+          "required_checks": [],
+          "source": {
+            "authority": "accepted",
+            "reference": "policy.md"
+          },
+          "transitions": [],
+          "workflows": [
+            {
+              "additional_checks": [],
+              "id": "always",
+              "source": {
+                "authority": "accepted",
+                "reference": "policy.md"
+              },
+              "when": [
+                "*"
+              ]
+            }
+          ]
+        },
+        "repository": {
+          "id": "service"
+        },
+        "schema_version": 1,
+        "source": {
+          "authority": "accepted",
+          "reference": "policy.md"
+        }
+      }
+    },
+    "inventory": {
+      "as_of": "2026-09-26T17:00:00Z",
+      "candidates": [],
+      "digest": "4326b94a5ab37f869142ed4e3af6587809a46e6bfe8d885c2d60a7386a3e0e88",
+      "identity": {
+        "dirty_digest": null,
+        "git_complete": false,
+        "input_digest": "4d3cd5089ad6a2c9716855a96745c7bdaedee882460fcd019f63f0b9b134a0ae",
+        "pack_lock_digest": "fad3fd5314d9e2cec030f2672a0b320b201c5b1b85da78f0bba07ffeb84fb742",
+        "profile_digest": "9d03d76a6104771b2282083735b765dc805643860c56b49346cbbf01a3b3d770",
+        "resolution_digest": null,
+        "revision": null
+      },
+      "kind": "maintenance-inventory",
+      "limitations": [
+        "Inventory is not a consolidated maintenance assessment or enforcement evidence.",
+        "Lock ownership/digests remain recorded claims until replay verification succeeds.",
+        "Cached/bundled metadata does not prove the latest published release; source records are not authenticated.",
+        "Legacy resources without a declarative lock are not measured by this inventory.",
+        "Git coverage excludes ignored untracked files and may be incomplete; file reads are not a concurrent transaction."
+      ],
+      "lock_verification": "verified",
+      "locked_packs": [
+        {
+          "digest": "fcd272af2100f97e3e305f9732cd0aa6fa3f27b7f1a10d8e62f7ef43c252776b",
+          "id": "application-governance",
+          "legacy": {},
+          "provides": [
+            "application-governance"
+          ],
+          "source": "bundled",
+          "version": "1.1.2"
+        },
+        {
+          "digest": "e97f8c339220678b01c2aac1ec04f644e8c35b08cd0e2e3909571c75d2c79e73",
+          "id": "gherkin-delivery",
+          "legacy": {},
+          "provides": [
+            "gherkin-delivery"
+          ],
+          "source": "bundled",
+          "version": "1.0.2"
+        }
+      ],
+      "metadata": [],
+      "problems": [
+        "marker:missing",
+        "resolution:missing"
+      ],
+      "profile_resolution": null,
+      "python_version": "3.12.14",
+      "recorded_install": null,
+      "repository": "service",
+      "resolved_govkit": "0.21.1",
+      "resources": [
+        {
+          "action": "none",
+          "actual_digest": "110f02bbf3c1e49df7733f53a29f0ae23148329afa52ed2193ecae4cc98b1337",
+          "expected_digest": "110f02bbf3c1e49df7733f53a29f0ae23148329afa52ed2193ecae4cc98b1337",
+          "owner": "application-governance",
+          "path": ".agents/skills/govkit-application-governance/SKILL.md",
+          "state": "matching"
+        },
+        {
+          "action": "none",
+          "actual_digest": "fb7f31f0a4ad661712c1c5a1edeceb07e1d323645cf6479c8224b4cb8516fc8d",
+          "expected_digest": "fb7f31f0a4ad661712c1c5a1edeceb07e1d323645cf6479c8224b4cb8516fc8d",
+          "owner": "application-governance",
+          "path": ".agents/skills/govkit-application-governance/references/guide.md",
+          "state": "matching"
+        },
+        {
+          "action": "none",
+          "actual_digest": "2eeeaa24080f5143355547a58e9911342533189bdcdc5567d2212ae0323a3a88",
+          "expected_digest": "2eeeaa24080f5143355547a58e9911342533189bdcdc5567d2212ae0323a3a88",
+          "owner": "gherkin-delivery",
+          "path": ".agents/skills/govkit-gherkin-delivery/SKILL.md",
+          "state": "matching"
+        },
+        {
+          "action": "none",
+          "actual_digest": "33e1eebaca59c114b646a9e9dc74983cc2ec0886e272c68ec1a84377b338230e",
+          "expected_digest": "33e1eebaca59c114b646a9e9dc74983cc2ec0886e272c68ec1a84377b338230e",
+          "owner": "gherkin-delivery",
+          "path": ".agents/skills/govkit-gherkin-delivery/references/guide.md",
+          "state": "matching"
+        },
+        {
+          "action": "none",
+          "actual_digest": "cd7d57eeca20538bb1e3fd643977d89af8bb27afdc6defa4cfbb6e1d722adc20",
+          "expected_digest": "cd7d57eeca20538bb1e3fd643977d89af8bb27afdc6defa4cfbb6e1d722adc20",
+          "owner": "application-governance",
+          "path": ".agents/skills/govkit-request-planning/SKILL.md",
+          "state": "matching"
+        },
+        {
+          "action": "none",
+          "actual_digest": "537da61d7ca7923bfa80ea2ed15e2c5fc17373d647fa13713349b185cb54da14",
+          "expected_digest": "537da61d7ca7923bfa80ea2ed15e2c5fc17373d647fa13713349b185cb54da14",
+          "owner": "application-governance",
+          "path": ".govkit/packs/application-governance/fcd272af2100f97e3e305f9732cd0aa6fa3f27b7f1a10d8e62f7ef43c252776b/README.md",
+          "state": "matching"
+        },
+        {
+          "action": "none",
+          "actual_digest": "b45936e3b6bbc4c2b091e4896ed01708a2f1a3ed8fb3c494918e383985eed9f1",
+          "expected_digest": "b45936e3b6bbc4c2b091e4896ed01708a2f1a3ed8fb3c494918e383985eed9f1",
+          "owner": "application-governance",
+          "path": ".govkit/packs/application-governance/fcd272af2100f97e3e305f9732cd0aa6fa3f27b7f1a10d8e62f7ef43c252776b/manifest.yaml",
+          "state": "matching"
+        },
+        {
+          "action": "none",
+          "actual_digest": "110f02bbf3c1e49df7733f53a29f0ae23148329afa52ed2193ecae4cc98b1337",
+          "expected_digest": "110f02bbf3c1e49df7733f53a29f0ae23148329afa52ed2193ecae4cc98b1337",
+          "owner": "application-governance",
+          "path": ".govkit/packs/application-governance/fcd272af2100f97e3e305f9732cd0aa6fa3f27b7f1a10d8e62f7ef43c252776b/skills/govkit-application-governance/SKILL.md",
+          "state": "matching"
+        },
+        {
+          "action": "none",
+          "actual_digest": "fb7f31f0a4ad661712c1c5a1edeceb07e1d323645cf6479c8224b4cb8516fc8d",
+          "expected_digest": "fb7f31f0a4ad661712c1c5a1edeceb07e1d323645cf6479c8224b4cb8516fc8d",
+          "owner": "application-governance",
+          "path": ".govkit/packs/application-governance/fcd272af2100f97e3e305f9732cd0aa6fa3f27b7f1a10d8e62f7ef43c252776b/skills/govkit-application-governance/references/guide.md",
+          "state": "matching"
+        },
+        {
+          "action": "none",
+          "actual_digest": "cd7d57eeca20538bb1e3fd643977d89af8bb27afdc6defa4cfbb6e1d722adc20",
+          "expected_digest": "cd7d57eeca20538bb1e3fd643977d89af8bb27afdc6defa4cfbb6e1d722adc20",
+          "owner": "application-governance",
+          "path": ".govkit/packs/application-governance/fcd272af2100f97e3e305f9732cd0aa6fa3f27b7f1a10d8e62f7ef43c252776b/skills/govkit-request-planning/SKILL.md",
+          "state": "matching"
+        },
+        {
+          "action": "none",
+          "actual_digest": "ec5b7da4163ae28c2ad5def3dede48f452252fcd1e325432e5ce78cb7f68b661",
+          "expected_digest": "ec5b7da4163ae28c2ad5def3dede48f452252fcd1e325432e5ce78cb7f68b661",
+          "owner": "gherkin-delivery",
+          "path": ".govkit/packs/gherkin-delivery/e97f8c339220678b01c2aac1ec04f644e8c35b08cd0e2e3909571c75d2c79e73/README.md",
+          "state": "matching"
+        },
+        {
+          "action": "none",
+          "actual_digest": "806245b46b2989a6e36bfa5b5eb4f7f2cafd488ba0c61b52e7dedf702d4d7ecf",
+          "expected_digest": "806245b46b2989a6e36bfa5b5eb4f7f2cafd488ba0c61b52e7dedf702d4d7ecf",
+          "owner": "gherkin-delivery",
+          "path": ".govkit/packs/gherkin-delivery/e97f8c339220678b01c2aac1ec04f644e8c35b08cd0e2e3909571c75d2c79e73/manifest.yaml",
+          "state": "matching"
+        },
+        {
+          "action": "none",
+          "actual_digest": "2eeeaa24080f5143355547a58e9911342533189bdcdc5567d2212ae0323a3a88",
+          "expected_digest": "2eeeaa24080f5143355547a58e9911342533189bdcdc5567d2212ae0323a3a88",
+          "owner": "gherkin-delivery",
+          "path": ".govkit/packs/gherkin-delivery/e97f8c339220678b01c2aac1ec04f644e8c35b08cd0e2e3909571c75d2c79e73/skills/govkit-gherkin-delivery/SKILL.md",
+          "state": "matching"
+        },
+        {
+          "action": "none",
+          "actual_digest": "33e1eebaca59c114b646a9e9dc74983cc2ec0886e272c68ec1a84377b338230e",
+          "expected_digest": "33e1eebaca59c114b646a9e9dc74983cc2ec0886e272c68ec1a84377b338230e",
+          "owner": "gherkin-delivery",
+          "path": ".govkit/packs/gherkin-delivery/e97f8c339220678b01c2aac1ec04f644e8c35b08cd0e2e3909571c75d2c79e73/skills/govkit-gherkin-delivery/references/guide.md",
+          "state": "matching"
+        }
+      ],
+      "running_cli": "0.21.1",
+      "schema_version": 1,
+      "target": "/private/tmp/govkit-observation-policy-legacy/trusted-policy"
+    },
+    "kind": "maintenance-assessment",
+    "limitations": [
+      "Four independent dimensions; an available update is not automatically required.",
+      "Offline bounded observations, not approval, latest-release certification or authenticated CI enforcement.",
+      "Only canonical ci:* and migration:ci-enforcement requirements are consumed; I10 owns provider collection and configuration.",
+      "Git/discovery coverage is bounded and reads are not a concurrent transaction; unobserved changes may remain unknown."
+    ],
+    "recommendations": [
+      {
+        "action": "review-policy",
+        "component": null,
+        "controls": [
+          "architecture:."
+        ],
+        "customizations": [],
+        "dimension": "repository-fit",
+        "evidence": [
+          {
+            "digest": "fe77ccea9225e233ee851b1c13be0786c607f8ae08a0891bd83f1966aa9116ec",
+            "limitations": [
+              "Observation does not authenticate approval."
+            ],
+            "method": "bounded-discovery",
+            "origin": "local-check",
+            "scope": [
+              "."
+            ],
+            "source": "architecture.md"
+          }
+        ],
+        "finding_ids": [
+          "finding:e8e3a68ea1f34b82ca757afe1d82d75c198ec0d8617006be911984552e4ea9d3"
+        ],
+        "id": "maintenance:3a7b2717f6017628c4753f29069661f80ae3242b1f10020c1e678e53b50b1826",
+        "prerequisites": [
+          "Review the cited evidence and accepted policy before authorizing changes."
+        ],
+        "preview": {
+          "assessment_required": true,
+          "operation": "govkit-discover"
+        },
+        "reason": "Review existing sources and choose only when architecture work needs a commitment; no default stack is accepted.",
+        "required": false,
+        "resources": [
+          "architecture.md"
+        ],
+        "scope": [
+          "."
+        ],
+        "severity": "warning",
+        "source_policy": null,
+        "target_version": null,
+        "uncertainty": [
+          "Observations are neither accepted policy nor conformance violations."
+        ],
+        "urgency": "recommended"
+      },
+      {
+        "action": "inspect-metadata",
+        "component": null,
+        "controls": [],
+        "customizations": [],
+        "dimension": "releases",
+        "evidence": [
+          {
+            "digest": "4326b94a5ab37f869142ed4e3af6587809a46e6bfe8d885c2d60a7386a3e0e88",
+            "limitations": [
+              "Local consistency evidence does not authenticate policy, publishers or enforcement."
+            ],
+            "method": "release-policy-comparison",
+            "origin": "local-check",
+            "scope": [
+              "."
+            ],
+            "source": "maintenance-inventory"
+          }
+        ],
+        "finding_ids": [
+          "finding:0b68cd6d58eb4fa1995977c79fe5ebaa05cf3a1b32e25e2d29be697eddc538dc"
+        ],
+        "id": "maintenance:7b20d217195ce1adcba9aa9ec37b81a07df6bacac408ff7f5d2f6936d9926885",
+        "prerequisites": [
+          "Review the cited evidence and accepted policy before authorizing changes."
+        ],
+        "preview": {
+          "assessment_required": true,
+          "operation": "metadata-review"
+        },
+        "reason": "No approved release comparison is available.",
+        "required": false,
+        "resources": [],
+        "scope": [
+          "."
+        ],
+        "severity": "warning",
+        "source_policy": null,
+        "target_version": null,
+        "uncertainty": [
+          "No latest-release conclusion can be drawn."
+        ],
+        "urgency": "recommended"
+      }
+    ],
+    "repository": "service",
+    "schema_version": 1,
+    "target": "/private/tmp/govkit-observation-policy-legacy/trusted-policy"
+  },
+  "change": {
+    "change": {
+      "base": "af93838d5e3ab53c93275d5729be0696c2fbbafa",
+      "changes": [
+        {
+          "after": "af9651896f3397b25f960e6252ebd914d9112cc64683c09740d3e639a0f02354",
+          "before": "0aac26aac5954c003aafda0c973840f2a4970fbca8101369094138e1e47ce9d8",
+          "path": "src/service.py",
+          "status": "modified"
+        }
+      ],
+      "complete": true,
+      "problems": [],
+      "revision": "af93838d5e3ab53c93275d5729be0696c2fbbafa",
+      "tree_digest": "b881150e63608003d96a833eb3d424b36029b20709243c93f0387bcb402ee965"
+    },
+    "checks": {
+      "exit_code": 0,
+      "govkit_version": "0.21.1",
+      "identity": {
+        "change_digest": "774e7288143b2feff41d575eaa549bb34f9123d0187ed229883c24bae05d91df",
+        "dirty_digest": "b881150e63608003d96a833eb3d424b36029b20709243c93f0387bcb402ee965",
+        "observed_at": "2026-09-23T12:00:00+00:00",
+        "pack_lock_digest": "fad3fd5314d9e2cec030f2672a0b320b201c5b1b85da78f0bba07ffeb84fb742",
+        "profile_digest": "9d03d76a6104771b2282083735b765dc805643860c56b49346cbbf01a3b3d770",
+        "repository": "service",
+        "resolution_digest": "8cd242493cc2c8a810f23a5896d6bf898af0a2c3093e6f74c9e40a56548e885a",
+        "revision": "af93838d5e3ab53c93275d5729be0696c2fbbafa"
+      },
+      "kind": "check-results",
+      "limitations": [
+        "Result consistency does not authenticate policy or evidence origin.",
+        "Only the named checks and scopes were assessed; change routing and maintenance assessment are not performed."
+      ],
+      "results": [
+        {
+          "evidence": [
+            {
+              "digest": "774e7288143b2feff41d575eaa549bb34f9123d0187ed229883c24bae05d91df",
+              "limitations": [
+                "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+              ],
+              "method": "base-to-git-visible-worktree",
+              "origin": "local-check",
+              "scope": [
+                "src/service.py"
+              ],
+              "source": "git:af93838d5e3ab53c93275d5729be0696c2fbbafa"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Keep this intent, acceptance, scope and decisions in one compact record.",
+              "category": "check",
+              "check_id": "artifact:change-record",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "774e7288143b2feff41d575eaa549bb34f9123d0187ed229883c24bae05d91df",
+                  "limitations": [
+                    "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+                  ],
+                  "method": "base-to-git-visible-worktree",
+                  "origin": "local-check",
+                  "scope": [
+                    "src/service.py"
+                  ],
+                  "source": "git:af93838d5e3ab53c93275d5729be0696c2fbbafa"
+                }
+              ],
+              "id": "finding:896fe2cb33d466819c4ea9b726aba95c0876e7380757b55f870a77e50d8ec583",
+              "location": null,
+              "message": "Normalized local intent retains summary, acceptance, scope and sources",
+              "scope": [
+                "src",
+                "src/service.py"
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "artifact:change-record",
+          "reason": "Keep this intent, acceptance, scope and decisions in one compact record.",
+          "required": true,
+          "scope": [
+            "src",
+            "src/service.py"
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "Normalized local intent retains summary, acceptance, scope and sources"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "da094f05e87f7658045fddf4a7990c3c501dc3fd478bb7455945ffa6fe7ab4ac",
+              "limitations": [
+                "Explicitly opted-in trusted command; not sandboxed. Only its measured behavior is evidenced."
+              ],
+              "method": "trusted-command-exit",
+              "origin": "tool-execution",
+              "scope": [
+                "."
+              ],
+              "source": "command:project:tests"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Reference actual test outcomes; a plan does not prove execution.",
+              "category": "check",
+              "check_id": "artifact:test-evidence",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "da094f05e87f7658045fddf4a7990c3c501dc3fd478bb7455945ffa6fe7ab4ac",
+                  "limitations": [
+                    "Explicitly opted-in trusted command; not sandboxed. Only its measured behavior is evidenced."
+                  ],
+                  "method": "trusted-command-exit",
+                  "origin": "tool-execution",
+                  "scope": [
+                    "."
+                  ],
+                  "source": "command:project:tests"
+                }
+              ],
+              "id": "finding:8d0c5a5cccef692d93c06d12cf288b5244503033a49c2f87b684ecb7ff07d7f3",
+              "location": null,
+              "message": "Configured command exited 0",
+              "scope": [
+                "src",
+                "src/service.py"
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "artifact:test-evidence",
+          "reason": "Reference actual test outcomes; a plan does not prove execution.",
+          "required": true,
+          "scope": [
+            "src",
+            "src/service.py"
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "Configured command exited 0"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "774e7288143b2feff41d575eaa549bb34f9123d0187ed229883c24bae05d91df",
+              "limitations": [
+                "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+              ],
+              "method": "base-to-git-visible-worktree",
+              "origin": "local-check",
+              "scope": [
+                "src/service.py"
+              ],
+              "source": "git:af93838d5e3ab53c93275d5729be0696c2fbbafa"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Measure current and scoped target constraints across repository scope",
+              "category": "check",
+              "check_id": "change:architecture",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "774e7288143b2feff41d575eaa549bb34f9123d0187ed229883c24bae05d91df",
+                  "limitations": [
+                    "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+                  ],
+                  "method": "base-to-git-visible-worktree",
+                  "origin": "local-check",
+                  "scope": [
+                    "src/service.py"
+                  ],
+                  "source": "git:af93838d5e3ab53c93275d5729be0696c2fbbafa"
+                }
+              ],
+              "id": "finding:e3eaf36ca6cf293abba9641ec1f734840f68210574b1a7d168efed5f471bf533",
+              "location": null,
+              "message": "Measured configured literal constraints; semantic architecture and approval are unmeasured",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "change:architecture",
+          "reason": "Measure current and scoped target constraints across repository scope",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "Measured configured literal constraints; semantic architecture and approval are unmeasured"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "774e7288143b2feff41d575eaa549bb34f9123d0187ed229883c24bae05d91df",
+              "limitations": [
+                "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+              ],
+              "method": "base-to-git-visible-worktree",
+              "origin": "local-check",
+              "scope": [
+                "src/service.py"
+              ],
+              "source": "git:af93838d5e3ab53c93275d5729be0696c2fbbafa"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Editable workflow labels cannot waive requirements",
+              "category": "check",
+              "check_id": "change:plan",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "774e7288143b2feff41d575eaa549bb34f9123d0187ed229883c24bae05d91df",
+                  "limitations": [
+                    "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+                  ],
+                  "method": "base-to-git-visible-worktree",
+                  "origin": "local-check",
+                  "scope": [
+                    "src/service.py"
+                  ],
+                  "source": "git:af93838d5e3ab53c93275d5729be0696c2fbbafa"
+                }
+              ],
+              "id": "finding:720c54115c4492f8d46bdc4715b4902891d72017c461284feaffdfd8d9b3b7f1",
+              "location": null,
+              "message": "Requirements re-resolved against trusted policy and actual scope",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "change:plan",
+          "reason": "Editable workflow labels cannot waive requirements",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "Requirements re-resolved against trusted policy and actual scope"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "774e7288143b2feff41d575eaa549bb34f9123d0187ed229883c24bae05d91df",
+              "limitations": [
+                "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+              ],
+              "method": "base-to-git-visible-worktree",
+              "origin": "local-check",
+              "scope": [
+                "src/service.py"
+              ],
+              "source": "git:af93838d5e3ab53c93275d5729be0696c2fbbafa"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Require explicit executable/artifact/impact mapping",
+              "category": "check",
+              "check_id": "change:policy",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "774e7288143b2feff41d575eaa549bb34f9123d0187ed229883c24bae05d91df",
+                  "limitations": [
+                    "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+                  ],
+                  "method": "base-to-git-visible-worktree",
+                  "origin": "local-check",
+                  "scope": [
+                    "src/service.py"
+                  ],
+                  "source": "git:af93838d5e3ab53c93275d5729be0696c2fbbafa"
+                }
+              ],
+              "id": "finding:90ab768021002705d251152cf6b6824c458396603f051605e4ea5ccf3ba853a8",
+              "location": null,
+              "message": "Accepted conformance configuration validated",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "change:policy",
+          "reason": "Require explicit executable/artifact/impact mapping",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "Accepted conformance configuration validated"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "774e7288143b2feff41d575eaa549bb34f9123d0187ed229883c24bae05d91df",
+              "limitations": [
+                "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+              ],
+              "method": "base-to-git-visible-worktree",
+              "origin": "local-check",
+              "scope": [
+                "src/service.py"
+              ],
+              "source": "git:af93838d5e3ab53c93275d5729be0696c2fbbafa"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Do not let path filters hide changes",
+              "category": "check",
+              "check_id": "change:scope",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "774e7288143b2feff41d575eaa549bb34f9123d0187ed229883c24bae05d91df",
+                  "limitations": [
+                    "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+                  ],
+                  "method": "base-to-git-visible-worktree",
+                  "origin": "local-check",
+                  "scope": [
+                    "src/service.py"
+                  ],
+                  "source": "git:af93838d5e3ab53c93275d5729be0696c2fbbafa"
+                }
+              ],
+              "id": "finding:0fc0d24dc6b3b005f2963311be1969a414fe65594e37abb8bb0d27c255b6f39b",
+              "location": null,
+              "message": "Complete Git scope captured",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "change:scope",
+          "reason": "Do not let path filters hide changes",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "Complete Git scope captured"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "774e7288143b2feff41d575eaa549bb34f9123d0187ed229883c24bae05d91df",
+              "limitations": [
+                "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+              ],
+              "method": "base-to-git-visible-worktree",
+              "origin": "local-check",
+              "scope": [
+                "src/service.py"
+              ],
+              "source": "git:af93838d5e3ab53c93275d5729be0696c2fbbafa"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Results must match the inspected inputs",
+              "category": "check",
+              "check_id": "change:stable-inputs",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "774e7288143b2feff41d575eaa549bb34f9123d0187ed229883c24bae05d91df",
+                  "limitations": [
+                    "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+                  ],
+                  "method": "base-to-git-visible-worktree",
+                  "origin": "local-check",
+                  "scope": [
+                    "src/service.py"
+                  ],
+                  "source": "git:af93838d5e3ab53c93275d5729be0696c2fbbafa"
+                }
+              ],
+              "id": "finding:19a715fef666747bcacd2ce860ad370a4463f14dbe4f0a81cd393a6d0fe4d469",
+              "location": null,
+              "message": "Captured Git/policy/resource/reference inputs remained stable",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "change:stable-inputs",
+          "reason": "Results must match the inspected inputs",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "Captured Git/policy/resource/reference inputs remained stable"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "fad3fd5314d9e2cec030f2672a0b320b201c5b1b85da78f0bba07ffeb84fb742",
+              "limitations": [
+                "Resource consistency is not source authenticity or proof that a control ran."
+              ],
+              "method": "pack-lock-replay",
+              "origin": "local-check",
+              "scope": [
+                ".govkit/pack-lock.json"
+              ],
+              "source": ".govkit/pack-lock.json"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Verify trusted pinned resources",
+              "category": "check",
+              "check_id": "govkit:pack-lock",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "fad3fd5314d9e2cec030f2672a0b320b201c5b1b85da78f0bba07ffeb84fb742",
+                  "limitations": [
+                    "Resource consistency is not source authenticity or proof that a control ran."
+                  ],
+                  "method": "pack-lock-replay",
+                  "origin": "local-check",
+                  "scope": [
+                    ".govkit/pack-lock.json"
+                  ],
+                  "source": ".govkit/pack-lock.json"
+                }
+              ],
+              "id": "finding:f56a1c2591f0b61a737ac2c9f619c9e4c0400b3b4d5e03f2f7ba4e0e6492dc15",
+              "location": null,
+              "message": "Pinned resources and native skills verified",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/pack-lock.json",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "govkit:pack-lock",
+          "reason": "Verify trusted pinned resources",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": ".govkit/pack-lock.json",
+          "state": "pass",
+          "summary": "Pinned resources and native skills verified"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "ac8a6348fedf6d15c4aa98da709148d94849ad9274d542b7bd5b47b64226b7c5",
+              "limitations": [
+                "Accepted authority is the author's assertion; referenced policy content is not authenticated or enforced here."
+              ],
+              "method": "profile-validation",
+              "origin": "local-check",
+              "scope": [
+                ".govkit/profile.yaml"
+              ],
+              "source": ".govkit/profile.yaml"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Validate trusted accepted policy",
+              "category": "check",
+              "check_id": "govkit:profile",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "ac8a6348fedf6d15c4aa98da709148d94849ad9274d542b7bd5b47b64226b7c5",
+                  "limitations": [
+                    "Accepted authority is the author's assertion; referenced policy content is not authenticated or enforced here."
+                  ],
+                  "method": "profile-validation",
+                  "origin": "local-check",
+                  "scope": [
+                    ".govkit/profile.yaml"
+                  ],
+                  "source": ".govkit/profile.yaml"
+                }
+              ],
+              "id": "finding:61bf1ad4eaa74f5e89a9dbde7f7dcbe2b1865d20029196f92aa3b23489c11bb4",
+              "location": null,
+              "message": "Profile and available resolution metadata checked",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "govkit:profile",
+          "reason": "Validate trusted accepted policy",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "Profile and available resolution metadata checked"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "da094f05e87f7658045fddf4a7990c3c501dc3fd478bb7455945ffa6fe7ab4ac",
+              "limitations": [
+                "Explicitly opted-in trusted command; not sandboxed. Only its measured behavior is evidenced."
+              ],
+              "method": "trusted-command-exit",
+              "origin": "tool-execution",
+              "scope": [
+                "."
+              ],
+              "source": "command:project:tests"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Test the intended behavior and applicable regressions",
+              "category": "check",
+              "check_id": "project:tests",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "da094f05e87f7658045fddf4a7990c3c501dc3fd478bb7455945ffa6fe7ab4ac",
+                  "limitations": [
+                    "Explicitly opted-in trusted command; not sandboxed. Only its measured behavior is evidenced."
+                  ],
+                  "method": "trusted-command-exit",
+                  "origin": "tool-execution",
+                  "scope": [
+                    "."
+                  ],
+                  "source": "command:project:tests"
+                }
+              ],
+              "id": "finding:dfb8884308043e2d6d6f3864014ec880ba496af106abaa5550b4953d83ea85ae",
+              "location": null,
+              "message": "Configured command exited 0",
+              "scope": [
+                "src",
+                "src/service.py"
+              ],
+              "severity": "info",
+              "source_policy": "bundled:request-workflows",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "project:tests",
+          "reason": "Test the intended behavior and applicable regressions",
+          "required": true,
+          "scope": [
+            "src",
+            "src/service.py"
+          ],
+          "source_policy": "bundled:request-workflows",
+          "state": "pass",
+          "summary": "Configured command exited 0"
+        }
+      ],
+      "schema_version": 1,
+      "state": "pass",
+      "summary": {
+        "executed": 10,
+        "fail": 0,
+        "not-applicable": 0,
+        "pass": 10,
+        "required": 10,
+        "required_satisfied": 10,
+        "skipped": 0,
+        "unknown": 0,
+        "waived": 0,
+        "warn": 0
+      }
+    },
+    "exit_code": 0,
+    "kind": "change-results",
+    "limitations": [
+      "Policy checkout, accepted intent and Git base must be selected by a trusted caller; local records are not authenticated approval.",
+      "Git-visible working-tree observations are bounded and are not a filesystem transaction. Ignored untracked files and unconfigured semantic controls are unmeasured.",
+      "I04 engine limitations apply to the nested check execution; this outer record adds actual-change routing. No consolidated maintenance assessment is performed."
+    ],
+    "plan": {
+      "artifacts": [
+        {
+          "id": "change-record",
+          "reason": "Keep this intent, acceptance, scope and decisions in one compact record."
+        },
+        {
+          "id": "test-evidence",
+          "reason": "Reference actual test outcomes; a plan does not prove execution."
+        }
+      ],
+      "checks": [
+        {
+          "execution": "not-run",
+          "id": "project:tests",
+          "reason": "Test the intended behavior and applicable regressions",
+          "required": true,
+          "scope": [
+            "src",
+            "src/service.py"
+          ],
+          "source_policy": "bundled:request-workflows"
+        }
+      ],
+      "decisions": [],
+      "evidence": [
+        {
+          "digest": "fe77ccea9225e233ee851b1c13be0786c607f8ae08a0891bd83f1966aa9116ec",
+          "limitations": [
+            "Source bytes do not authenticate accepted authority or test execution."
+          ],
+          "method": "local-reference-snapshot",
+          "origin": "local-check",
+          "scope": [
+            "src"
+          ],
+          "source": "architecture.md"
+        },
+        {
+          "digest": "bd695251c41c1edd2d2df8f2453f9d203e672b1e3c847438696f61c3c6ddeb60",
+          "limitations": [
+            "Source bytes do not authenticate accepted authority or test execution."
+          ],
+          "method": "local-reference-snapshot",
+          "origin": "local-check",
+          "scope": [
+            "src"
+          ],
+          "source": "conformance.json"
+        },
+        {
+          "digest": "8174661d06afbcca3fdcc619174288789651c5533b97c7df19eb7473419a2161",
+          "limitations": [
+            "Source bytes do not authenticate accepted authority or test execution."
+          ],
+          "method": "local-reference-snapshot",
+          "origin": "local-check",
+          "scope": [
+            "src"
+          ],
+          "source": "policy.md"
+        }
+      ],
+      "guidance": [
+        {
+          "capabilities": [
+            "application-governance"
+          ],
+          "digest": "110f02bbf3c1e49df7733f53a29f0ae23148329afa52ed2193ecae4cc98b1337",
+          "id": "govkit-application-governance",
+          "path": ".agents/skills/govkit-application-governance/SKILL.md"
+        },
+        {
+          "capabilities": [
+            "application-governance"
+          ],
+          "digest": "cd7d57eeca20538bb1e3fd643977d89af8bb27afdc6defa4cfbb6e1d722adc20",
+          "id": "govkit-request-planning",
+          "path": ".agents/skills/govkit-request-planning/SKILL.md"
+        }
+      ],
+      "identity": {
+        "lock_digest": "fad3fd5314d9e2cec030f2672a0b320b201c5b1b85da78f0bba07ffeb84fb742",
+        "plan_digest": "8cd242493cc2c8a810f23a5896d6bf898af0a2c3093e6f74c9e40a56548e885a",
+        "profile_digest": "9d03d76a6104771b2282083735b765dc805643860c56b49346cbbf01a3b3d770",
+        "request_digest": "3be4d9646e1e332243e1ea3ba005ca0d55d0b807405e1b1d8ca6ca5ddba37df8",
+        "scope_digest": "d5d0baf1ae84b2d48866c0aec6424b9a3a0025df4e4489bbb4f965d2bef791dd"
+      },
+      "impacts": {
+        "architecture": false,
+        "auth": false,
+        "bounded": true,
+        "cross-service": false,
+        "data": false,
+        "llm": false,
+        "mcp": false,
+        "new-behavior": true,
+        "nfr": false,
+        "ownership": false,
+        "public-contract": false,
+        "security": false,
+        "within-contracts": true
+      },
+      "inputs": {
+        "context": {
+          "capabilities": [
+            "application-governance",
+            "gherkin-delivery"
+          ],
+          "checks": [],
+          "decisions": [],
+          "evidence": [
+            {
+              "digest": "fe77ccea9225e233ee851b1c13be0786c607f8ae08a0891bd83f1966aa9116ec",
+              "limitations": [
+                "Source bytes do not authenticate accepted authority or test execution."
+              ],
+              "method": "local-reference-snapshot",
+              "origin": "local-check",
+              "scope": [
+                "src"
+              ],
+              "source": "architecture.md"
+            },
+            {
+              "digest": "bd695251c41c1edd2d2df8f2453f9d203e672b1e3c847438696f61c3c6ddeb60",
+              "limitations": [
+                "Source bytes do not authenticate accepted authority or test execution."
+              ],
+              "method": "local-reference-snapshot",
+              "origin": "local-check",
+              "scope": [
+                "src"
+              ],
+              "source": "conformance.json"
+            },
+            {
+              "digest": "8174661d06afbcca3fdcc619174288789651c5533b97c7df19eb7473419a2161",
+              "limitations": [
+                "Source bytes do not authenticate accepted authority or test execution."
+              ],
+              "method": "local-reference-snapshot",
+              "origin": "local-check",
+              "scope": [
+                "src"
+              ],
+              "source": "policy.md"
+            }
+          ],
+          "guidance": [
+            {
+              "capabilities": [
+                "application-governance"
+              ],
+              "digest": "110f02bbf3c1e49df7733f53a29f0ae23148329afa52ed2193ecae4cc98b1337",
+              "id": "govkit-application-governance",
+              "path": ".agents/skills/govkit-application-governance/SKILL.md"
+            },
+            {
+              "capabilities": [
+                "gherkin-delivery"
+              ],
+              "digest": "2eeeaa24080f5143355547a58e9911342533189bdcdc5567d2212ae0323a3a88",
+              "id": "govkit-gherkin-delivery",
+              "path": ".agents/skills/govkit-gherkin-delivery/SKILL.md"
+            },
+            {
+              "capabilities": [
+                "application-governance"
+              ],
+              "digest": "cd7d57eeca20538bb1e3fd643977d89af8bb27afdc6defa4cfbb6e1d722adc20",
+              "id": "govkit-request-planning",
+              "path": ".agents/skills/govkit-request-planning/SKILL.md"
+            }
+          ],
+          "lock_digest": "fad3fd5314d9e2cec030f2672a0b320b201c5b1b85da78f0bba07ffeb84fb742",
+          "profile_digest": "9d03d76a6104771b2282083735b765dc805643860c56b49346cbbf01a3b3d770"
+        },
+        "observed_scope": {
+          "impacts": {},
+          "paths": [
+            "src/service.py"
+          ],
+          "schema_version": 1
+        },
+        "previous": null,
+        "profile": {
+          "capabilities": [
+            {
+              "id": "application-governance"
+            },
+            {
+              "id": "gherkin-delivery"
+            }
+          ],
+          "integrations": {
+            "agent": "codex"
+          },
+          "policy": {
+            "conformance": {
+              "authority": "accepted",
+              "reference": "conformance.json"
+            },
+            "contracts": [
+              {
+                "scope": [
+                  "src"
+                ],
+                "source": {
+                  "authority": "accepted",
+                  "reference": "architecture.md"
+                }
+              }
+            ],
+            "required_checks": [],
+            "source": {
+              "authority": "accepted",
+              "reference": "policy.md"
+            },
+            "transitions": [],
+            "workflows": [
+              {
+                "additional_checks": [],
+                "id": "always",
+                "source": {
+                  "authority": "accepted",
+                  "reference": "policy.md"
+                },
+                "when": [
+                  "*"
+                ]
+              }
+            ]
+          },
+          "repository": {
+            "id": "service"
+          },
+          "schema_version": 1,
+          "source": {
+            "authority": "accepted",
+            "reference": "policy.md"
+          }
+        },
+        "request": {
+          "acceptance": [
+            "The agreed behavior is covered by tests."
+          ],
+          "change": "enhancement",
+          "confirmation": "confirmed",
+          "id": "change-123",
+          "impacts": {
+            "architecture": false,
+            "auth": false,
+            "bounded": true,
+            "cross-service": false,
+            "data": false,
+            "llm": false,
+            "mcp": false,
+            "new-behavior": true,
+            "nfr": false,
+            "ownership": false,
+            "public-contract": false,
+            "security": false,
+            "within-contracts": true
+          },
+          "preference": "auto",
+          "references": [],
+          "schema_version": 1,
+          "scope": [
+            "src"
+          ],
+          "source": "https://tracker.invalid/123",
+          "summary": "Return the agreed result for this bounded request."
+        }
+      },
+      "kind": "request-plan",
+      "limitations": [
+        "Normalized request/scope and authority are caller assertions, not authenticated approval.",
+        "No checks were executed; I07 must derive actual scope and compare with trusted current inputs."
+      ],
+      "reassessment": {
+        "added_checks": [],
+        "previous_identity": null,
+        "reasons": [],
+        "required": false
+      },
+      "required_capabilities": [],
+      "resolver_version": 1,
+      "reused_contracts": [
+        {
+          "scope": [
+            "src"
+          ],
+          "source": {
+            "authority": "accepted",
+            "reference": "architecture.md"
+          }
+        }
+      ],
+      "schema_version": 1,
+      "scope": [
+        "src",
+        "src/service.py"
+      ],
+      "workflow": "bounded"
+    },
+    "schema_version": 1,
+    "state": "pass"
+  },
+  "change_posture": {
+    "architecture": {
+      "accepted_contracts": [
+        {
+          "scope_refs": [
+            "ref:4debec37e382e41c51cf776c87f5dccd97165db6279165bf85b72cd7ca3f54a5"
+          ],
+          "source_ref": "ref:56444f67ad8ac5bbeac0102dba0523920292b2eae4fb3bc580724291ea7d0ff7"
+        }
+      ],
+      "observed": [],
+      "transitions": []
+    },
+    "as_of": "2026-09-23T12:00:00+00:00",
+    "capabilities": {
+      "change_required": [],
+      "configured": [
+        {
+          "label": "application-governance",
+          "ref": "ref:5db068384cf1d3153846092f4cd56fbd48b8f4c5e3b34d749aeb837f84c259cc"
+        },
+        {
+          "label": "gherkin-delivery",
+          "ref": "ref:90edc1cc951b5aa9699bf78371ef3ab2166599c9deab2a26f4f202f2c8553e8d"
+        }
+      ],
+      "recorded": [
+        {
+          "label": "application-governance",
+          "ref": "ref:5db068384cf1d3153846092f4cd56fbd48b8f4c5e3b34d749aeb837f84c259cc"
+        },
+        {
+          "label": "gherkin-delivery",
+          "ref": "ref:90edc1cc951b5aa9699bf78371ef3ab2166599c9deab2a26f4f202f2c8553e8d"
+        }
+      ],
+      "repository_required": []
+    },
+    "configured_controls": [],
+    "coverage": {
+      "controls": "recorded-change-results",
+      "discovery": "not-supplied",
+      "git_complete": true,
+      "lock": "recorded",
+      "maintenance": "not-supplied",
+      "origin": "unauthenticated-snapshot",
+      "provider_enforcement": "not-supplied"
+    },
+    "digest": "da1790f30654134412a33148a8d15aa626e99f1d4bd96fc6196980bd72e32479",
+    "identity": {
+      "base_ref": "ref:a2ef4369009269156316d959b50c50f1b72779c330f95ab2b39e2593b3b45d68",
+      "change_ref": "ref:c5ee5d0ba64b29e93a0e589e459fd62b81829f02845adf37ca9c5af875d16c25",
+      "pack_lock_ref": "ref:202ae4fd083ec7590779f2ce6ff714c27e7aca45eea1a46b0845be26e4678bd7",
+      "profile_ref": "ref:54f4f29fbd353a7187f91c33c83e1f3b04ba245fc3b12955ee89a8cd3a7d8637",
+      "request_plan_ref": "ref:b5943058e812af979110c504f901cc481ff5e3c7d6fea5b67b99072131515b19",
+      "revision_ref": "ref:a2ef4369009269156316d959b50c50f1b72779c330f95ab2b39e2593b3b45d68",
+      "tree_ref": "ref:2b971f805922827d9a025cb62ab001fa77080cfd764d4632c7b42e78f6ff3cef"
+    },
+    "kind": "change-posture",
+    "report_ref": "ref:7e821f76123b64bcdc452ca392d61c3e027d20c15445ab9fb662a4cfec5ca4ef",
+    "repository_ref": "ref:d79158a23ce1e7f8998b0190e5a1605b6c0f1c42fd1294b4fb853838d3ceade4",
+    "results": {
+      "controls": [
+        {
+          "evidence": [
+            {
+              "digest_ref": "ref:34b458d26ca340cb792a485ac8bf41b79b9f9ad3feb9df30c9cb67a44cfa97ce",
+              "limitation_refs": [
+                "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+              ],
+              "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+              "origin": "local-check",
+              "scope_refs": [
+                "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+              ],
+              "source_ref": "ref:93b0794a31fad675ffeef3fc424811108c50c7e51fba9b017fdfa9f003b97f5c"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+              "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+              "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+              "evidence": [
+                {
+                  "digest_ref": "ref:34b458d26ca340cb792a485ac8bf41b79b9f9ad3feb9df30c9cb67a44cfa97ce",
+                  "limitation_refs": [
+                    "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+                  ],
+                  "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+                  "origin": "local-check",
+                  "scope_refs": [
+                    "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+                  ],
+                  "source_ref": "ref:93b0794a31fad675ffeef3fc424811108c50c7e51fba9b017fdfa9f003b97f5c"
+                }
+              ],
+              "location_ref": null,
+              "message_ref": "ref:9c205ceebdd50cce414e0a084da1eca982d088430410b37f29d968399f773060",
+              "ref": "ref:1ac1c32a75930dacea1bb653f96ab5589d83cf09589b5118a429879bcc0f7f97",
+              "severity": "info"
+            }
+          ],
+          "label": "custom",
+          "local_ref": "/checks/results/0",
+          "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+          "reason_ref": "ref:56db3293b7619d26534de202b681a4d5570c6de577da205dc9d4450b3c057d75",
+          "ref": "ref:6536db2963a857fd4151187e7bce47edc7dc8256d709f03ac9a9da29bd1257af",
+          "required": true,
+          "scope_refs": [
+            "ref:4debec37e382e41c51cf776c87f5dccd97165db6279165bf85b72cd7ca3f54a5",
+            "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+          ],
+          "state": "pass",
+          "summary_ref": "ref:9516d76bf29021df5f668aa262c2b9bed727054ea58aa93bb626e435988de938"
+        },
+        {
+          "evidence": [
+            {
+              "digest_ref": "ref:bfe03db763218488e3097369407cd920769f7f8fd5ec78218f6dd8ed98839187",
+              "limitation_refs": [
+                "ref:fbce1da33e3fa83f28281043f0de4353e956ea5e8a33a0d1b7a8a7924b4b7951"
+              ],
+              "method_ref": "ref:c18f599416f11031ae94d191f7cd6e4bbef172319e779308913c5449cb916c5e",
+              "origin": "tool-execution",
+              "scope_refs": [
+                "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+              ],
+              "source_ref": "ref:3812989428cffdcbefd8e2d9db5cb6512ed36c373af5184dbc2ae2059353439a"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+              "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+              "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+              "evidence": [
+                {
+                  "digest_ref": "ref:bfe03db763218488e3097369407cd920769f7f8fd5ec78218f6dd8ed98839187",
+                  "limitation_refs": [
+                    "ref:fbce1da33e3fa83f28281043f0de4353e956ea5e8a33a0d1b7a8a7924b4b7951"
+                  ],
+                  "method_ref": "ref:c18f599416f11031ae94d191f7cd6e4bbef172319e779308913c5449cb916c5e",
+                  "origin": "tool-execution",
+                  "scope_refs": [
+                    "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+                  ],
+                  "source_ref": "ref:3812989428cffdcbefd8e2d9db5cb6512ed36c373af5184dbc2ae2059353439a"
+                }
+              ],
+              "location_ref": null,
+              "message_ref": "ref:73e89a040b3c0f15c6c66f2859bcc0c3f137b96e57d8a37e2d17ba632fb85dc5",
+              "ref": "ref:914c54050bace4f81080bf2c75879b0d7f7310cfc43b6fb5e563af8ae5a558fc",
+              "severity": "info"
+            }
+          ],
+          "label": "custom",
+          "local_ref": "/checks/results/1",
+          "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+          "reason_ref": "ref:b295662477fb6fcaffa69c753b2635c2bd2f5c6dd0e84e2cf3f038f4959aff86",
+          "ref": "ref:8146d0277d529ccdc8c96a3b0bfd68f43064e23e48612b70c1ba518d45025370",
+          "required": true,
+          "scope_refs": [
+            "ref:4debec37e382e41c51cf776c87f5dccd97165db6279165bf85b72cd7ca3f54a5",
+            "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+          ],
+          "state": "pass",
+          "summary_ref": "ref:85cac4f3c5dcc8aa81acecbd9a640d122cb6185c06b4be5a6325115b31483166"
+        },
+        {
+          "evidence": [
+            {
+              "digest_ref": "ref:34b458d26ca340cb792a485ac8bf41b79b9f9ad3feb9df30c9cb67a44cfa97ce",
+              "limitation_refs": [
+                "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+              ],
+              "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+              "origin": "local-check",
+              "scope_refs": [
+                "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+              ],
+              "source_ref": "ref:93b0794a31fad675ffeef3fc424811108c50c7e51fba9b017fdfa9f003b97f5c"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+              "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+              "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+              "evidence": [
+                {
+                  "digest_ref": "ref:34b458d26ca340cb792a485ac8bf41b79b9f9ad3feb9df30c9cb67a44cfa97ce",
+                  "limitation_refs": [
+                    "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+                  ],
+                  "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+                  "origin": "local-check",
+                  "scope_refs": [
+                    "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+                  ],
+                  "source_ref": "ref:93b0794a31fad675ffeef3fc424811108c50c7e51fba9b017fdfa9f003b97f5c"
+                }
+              ],
+              "location_ref": null,
+              "message_ref": "ref:cf8451bc68105d30a9d13b1ead90b1f7e2074d63287d6a370ebf7ac99fc3618a",
+              "ref": "ref:b19480eec71898544194655a581f22262bb9499a9c7e7b7317805e1f7dd2a992",
+              "severity": "info"
+            }
+          ],
+          "label": "custom",
+          "local_ref": "/checks/results/2",
+          "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+          "reason_ref": "ref:dc1b3ef12280899c3f0b1acf85932434c1a684955832f065bf129a74b16dd1e8",
+          "ref": "ref:5383f2eefe6c6e3ef9f0930fd97edaccf281d45148f7887aa84d17fa15ac2e41",
+          "required": true,
+          "scope_refs": [
+            "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+          ],
+          "state": "pass",
+          "summary_ref": "ref:f2e98e87998468cd718e73da43d2a1a8c3902d7b30a03745ac6b27b388825caf"
+        },
+        {
+          "evidence": [
+            {
+              "digest_ref": "ref:34b458d26ca340cb792a485ac8bf41b79b9f9ad3feb9df30c9cb67a44cfa97ce",
+              "limitation_refs": [
+                "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+              ],
+              "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+              "origin": "local-check",
+              "scope_refs": [
+                "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+              ],
+              "source_ref": "ref:93b0794a31fad675ffeef3fc424811108c50c7e51fba9b017fdfa9f003b97f5c"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+              "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+              "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+              "evidence": [
+                {
+                  "digest_ref": "ref:34b458d26ca340cb792a485ac8bf41b79b9f9ad3feb9df30c9cb67a44cfa97ce",
+                  "limitation_refs": [
+                    "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+                  ],
+                  "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+                  "origin": "local-check",
+                  "scope_refs": [
+                    "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+                  ],
+                  "source_ref": "ref:93b0794a31fad675ffeef3fc424811108c50c7e51fba9b017fdfa9f003b97f5c"
+                }
+              ],
+              "location_ref": null,
+              "message_ref": "ref:e82465ebfc9051fda080a9d95d932b5a149ab498f17d3f02d0df17a36cb02a9b",
+              "ref": "ref:1bda16460bdbd3f79d6711cbda0b85dcd4d30374126de7d61e77d6f594c0521a",
+              "severity": "info"
+            }
+          ],
+          "label": "custom",
+          "local_ref": "/checks/results/3",
+          "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+          "reason_ref": "ref:530d2a5915cc977a784b33f058ee8874bc625b354bdd68734ea828e8c43559cd",
+          "ref": "ref:fdf7c7e4f399cc10f17cfa56f80c6dedcfd70e44382134473465e1f83decb2ca",
+          "required": true,
+          "scope_refs": [
+            "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+          ],
+          "state": "pass",
+          "summary_ref": "ref:a5e28a6c1562f886c542e52bdf387701fb240c9d2ed8cb8add44912c138399c9"
+        },
+        {
+          "evidence": [
+            {
+              "digest_ref": "ref:34b458d26ca340cb792a485ac8bf41b79b9f9ad3feb9df30c9cb67a44cfa97ce",
+              "limitation_refs": [
+                "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+              ],
+              "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+              "origin": "local-check",
+              "scope_refs": [
+                "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+              ],
+              "source_ref": "ref:93b0794a31fad675ffeef3fc424811108c50c7e51fba9b017fdfa9f003b97f5c"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+              "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+              "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+              "evidence": [
+                {
+                  "digest_ref": "ref:34b458d26ca340cb792a485ac8bf41b79b9f9ad3feb9df30c9cb67a44cfa97ce",
+                  "limitation_refs": [
+                    "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+                  ],
+                  "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+                  "origin": "local-check",
+                  "scope_refs": [
+                    "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+                  ],
+                  "source_ref": "ref:93b0794a31fad675ffeef3fc424811108c50c7e51fba9b017fdfa9f003b97f5c"
+                }
+              ],
+              "location_ref": null,
+              "message_ref": "ref:7cbd8e25571129edbcdc2ce1f265ac02abc98082a3019d19f8ed8ebb63c15151",
+              "ref": "ref:796757e2b0eac913f264ea0642b46211b975361b05189c4c581f28c345eb1312",
+              "severity": "info"
+            }
+          ],
+          "label": "custom",
+          "local_ref": "/checks/results/4",
+          "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+          "reason_ref": "ref:055871fc8125e5c4369bc957cc861413201f027f08cda34ee8193fa7406f7741",
+          "ref": "ref:e05f47e4d8f50028eca0c83c762b4431ac3101c47775352eeeda303348d4f5a8",
+          "required": true,
+          "scope_refs": [
+            "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+          ],
+          "state": "pass",
+          "summary_ref": "ref:9455e9886d3dc9aeb560118c6737178eb2beb8a608a9350f7c935341ccf3278d"
+        },
+        {
+          "evidence": [
+            {
+              "digest_ref": "ref:34b458d26ca340cb792a485ac8bf41b79b9f9ad3feb9df30c9cb67a44cfa97ce",
+              "limitation_refs": [
+                "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+              ],
+              "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+              "origin": "local-check",
+              "scope_refs": [
+                "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+              ],
+              "source_ref": "ref:93b0794a31fad675ffeef3fc424811108c50c7e51fba9b017fdfa9f003b97f5c"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+              "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+              "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+              "evidence": [
+                {
+                  "digest_ref": "ref:34b458d26ca340cb792a485ac8bf41b79b9f9ad3feb9df30c9cb67a44cfa97ce",
+                  "limitation_refs": [
+                    "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+                  ],
+                  "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+                  "origin": "local-check",
+                  "scope_refs": [
+                    "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+                  ],
+                  "source_ref": "ref:93b0794a31fad675ffeef3fc424811108c50c7e51fba9b017fdfa9f003b97f5c"
+                }
+              ],
+              "location_ref": null,
+              "message_ref": "ref:5694796a222cfbf75f4a3591f5a3b12e2de3a6028043c88491c657e750152b20",
+              "ref": "ref:e0a863465fb41b945fe0d4d019b86fe9ece35c445f93dc36d8adb63236a33047",
+              "severity": "info"
+            }
+          ],
+          "label": "custom",
+          "local_ref": "/checks/results/5",
+          "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+          "reason_ref": "ref:e4a8e84f9e73a7fec73b57a7c298274526947b6279eaf84c2f313397b9dc3a4b",
+          "ref": "ref:271efc4b08ab95c338708062f7cf69ba55a2a54d404a165f67a46438a5b99a2a",
+          "required": true,
+          "scope_refs": [
+            "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+          ],
+          "state": "pass",
+          "summary_ref": "ref:231ed3826501ca367940008cbd220097b3211043be5691144091ed2b50f97632"
+        },
+        {
+          "evidence": [
+            {
+              "digest_ref": "ref:34b458d26ca340cb792a485ac8bf41b79b9f9ad3feb9df30c9cb67a44cfa97ce",
+              "limitation_refs": [
+                "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+              ],
+              "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+              "origin": "local-check",
+              "scope_refs": [
+                "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+              ],
+              "source_ref": "ref:93b0794a31fad675ffeef3fc424811108c50c7e51fba9b017fdfa9f003b97f5c"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+              "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+              "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+              "evidence": [
+                {
+                  "digest_ref": "ref:34b458d26ca340cb792a485ac8bf41b79b9f9ad3feb9df30c9cb67a44cfa97ce",
+                  "limitation_refs": [
+                    "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+                  ],
+                  "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+                  "origin": "local-check",
+                  "scope_refs": [
+                    "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+                  ],
+                  "source_ref": "ref:93b0794a31fad675ffeef3fc424811108c50c7e51fba9b017fdfa9f003b97f5c"
+                }
+              ],
+              "location_ref": null,
+              "message_ref": "ref:70de74e2e0d44aaf1b0c9684f79960912a171e7e591842b86598839da1742c92",
+              "ref": "ref:b2b676da56dc8915207b03ea22ab4b8f144a8c4af5fa304b4d521687cf6d447d",
+              "severity": "info"
+            }
+          ],
+          "label": "custom",
+          "local_ref": "/checks/results/6",
+          "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+          "reason_ref": "ref:952ca43ce45dfea866286a7e76e0c8504dbcf2eaca8b1911f47ae70089bdc82d",
+          "ref": "ref:b06de18195463ad4b00b42fc04a14d7a6963a76d7cdca5919f010f7622c6347b",
+          "required": true,
+          "scope_refs": [
+            "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+          ],
+          "state": "pass",
+          "summary_ref": "ref:304ba259e5d880effa43f13b7562627ed9c8fb219074013d9f24a2a9ddcefc0d"
+        },
+        {
+          "evidence": [
+            {
+              "digest_ref": "ref:e10ab9064c1990518994492d8ad9266978b7abfe9aa3631b9d36b2e964bf3628",
+              "limitation_refs": [
+                "ref:b9d9cb2055e735b1755dcfbbce40e8db24f97a20813a107871f1407ea2f71e98"
+              ],
+              "method_ref": "ref:1ad759947105704dca757c9cba6e9207876b924ee5ff25a3c7c8482d01b84bbd",
+              "origin": "local-check",
+              "scope_refs": [
+                "ref:06f3e4f1732ceea589868c3f76712596a666cdeddfcfd8187a29f6419b244b5a"
+              ],
+              "source_ref": "ref:8ca4a584409d0902c4dac0e617e4558aeeef057b27093b5861d2b288ec8b4915"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+              "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+              "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+              "evidence": [
+                {
+                  "digest_ref": "ref:e10ab9064c1990518994492d8ad9266978b7abfe9aa3631b9d36b2e964bf3628",
+                  "limitation_refs": [
+                    "ref:b9d9cb2055e735b1755dcfbbce40e8db24f97a20813a107871f1407ea2f71e98"
+                  ],
+                  "method_ref": "ref:1ad759947105704dca757c9cba6e9207876b924ee5ff25a3c7c8482d01b84bbd",
+                  "origin": "local-check",
+                  "scope_refs": [
+                    "ref:06f3e4f1732ceea589868c3f76712596a666cdeddfcfd8187a29f6419b244b5a"
+                  ],
+                  "source_ref": "ref:8ca4a584409d0902c4dac0e617e4558aeeef057b27093b5861d2b288ec8b4915"
+                }
+              ],
+              "location_ref": null,
+              "message_ref": "ref:7d17dc6deae9a3cb2646e7b8c7f620d77334737de588c0f389d0110e19a56c17",
+              "ref": "ref:51cdba7a0f8ab915ae7685bf3dacf64de66c845a31545a19b380a9d62982f289",
+              "severity": "info"
+            }
+          ],
+          "label": "custom",
+          "local_ref": "/checks/results/7",
+          "policy_ref": "ref:8ca4a584409d0902c4dac0e617e4558aeeef057b27093b5861d2b288ec8b4915",
+          "reason_ref": "ref:fc2167a729e8ed921bf6a3373f574697579c39afa840f32cb4bb1d904d6b681b",
+          "ref": "ref:1cef5eec6b8f5aa92c55aa4450eadb39382827f5ea642a4e61b1d2425e557f18",
+          "required": true,
+          "scope_refs": [
+            "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+          ],
+          "state": "pass",
+          "summary_ref": "ref:43a44cb72c1275242535298c91c7bcfc53cf1ee9ede5daf8a096b85a39a95788"
+        },
+        {
+          "evidence": [
+            {
+              "digest_ref": "ref:afa68316e6ff021183ddbf447bf3e08f0362189c42ec90c53295f451473801a0",
+              "limitation_refs": [
+                "ref:e909833c040577c84ce7ad35454dd2fca7a5cd3cd43ee26f7673cf7a6e148cfd"
+              ],
+              "method_ref": "ref:2d1c3f9edd24beed1d72497034f5232135e8bd8445a9c5c413b3032c534565c3",
+              "origin": "local-check",
+              "scope_refs": [
+                "ref:72baa935b31b16dec04700ba9f77daa2f9229c6da80db9f6b644340deb7326de"
+              ],
+              "source_ref": "ref:6d9aa9dacc74a1e85cc1f6035db90885ddc6c4ffdfe2f3f20f31ff33f6e184e8"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+              "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+              "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+              "evidence": [
+                {
+                  "digest_ref": "ref:afa68316e6ff021183ddbf447bf3e08f0362189c42ec90c53295f451473801a0",
+                  "limitation_refs": [
+                    "ref:e909833c040577c84ce7ad35454dd2fca7a5cd3cd43ee26f7673cf7a6e148cfd"
+                  ],
+                  "method_ref": "ref:2d1c3f9edd24beed1d72497034f5232135e8bd8445a9c5c413b3032c534565c3",
+                  "origin": "local-check",
+                  "scope_refs": [
+                    "ref:72baa935b31b16dec04700ba9f77daa2f9229c6da80db9f6b644340deb7326de"
+                  ],
+                  "source_ref": "ref:6d9aa9dacc74a1e85cc1f6035db90885ddc6c4ffdfe2f3f20f31ff33f6e184e8"
+                }
+              ],
+              "location_ref": null,
+              "message_ref": "ref:df1d882abbca5b2c291b10f7a412b329f43f154d866497034c3c1aca930bbb50",
+              "ref": "ref:a1be031df99dccf3f3b7af6a389311f64c7054e12c31d42e9922c1f8f5dc0a41",
+              "severity": "info"
+            }
+          ],
+          "label": "custom",
+          "local_ref": "/checks/results/8",
+          "policy_ref": "ref:6d9aa9dacc74a1e85cc1f6035db90885ddc6c4ffdfe2f3f20f31ff33f6e184e8",
+          "reason_ref": "ref:1a43724559ebb15f52838e6af6ff35ee7e2d970b6402d0cc0fdcceec75ccc03f",
+          "ref": "ref:33dbca5c96bf1b3a4772d2348422092e995a1f7b01da0062f651567783494961",
+          "required": true,
+          "scope_refs": [
+            "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+          ],
+          "state": "pass",
+          "summary_ref": "ref:5ed90503068b071b6b15dfc62a12cec0700c8b0a6f7ec8f338f809253b2f44c7"
+        },
+        {
+          "evidence": [
+            {
+              "digest_ref": "ref:bfe03db763218488e3097369407cd920769f7f8fd5ec78218f6dd8ed98839187",
+              "limitation_refs": [
+                "ref:fbce1da33e3fa83f28281043f0de4353e956ea5e8a33a0d1b7a8a7924b4b7951"
+              ],
+              "method_ref": "ref:c18f599416f11031ae94d191f7cd6e4bbef172319e779308913c5449cb916c5e",
+              "origin": "tool-execution",
+              "scope_refs": [
+                "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+              ],
+              "source_ref": "ref:3812989428cffdcbefd8e2d9db5cb6512ed36c373af5184dbc2ae2059353439a"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+              "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+              "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+              "evidence": [
+                {
+                  "digest_ref": "ref:bfe03db763218488e3097369407cd920769f7f8fd5ec78218f6dd8ed98839187",
+                  "limitation_refs": [
+                    "ref:fbce1da33e3fa83f28281043f0de4353e956ea5e8a33a0d1b7a8a7924b4b7951"
+                  ],
+                  "method_ref": "ref:c18f599416f11031ae94d191f7cd6e4bbef172319e779308913c5449cb916c5e",
+                  "origin": "tool-execution",
+                  "scope_refs": [
+                    "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+                  ],
+                  "source_ref": "ref:3812989428cffdcbefd8e2d9db5cb6512ed36c373af5184dbc2ae2059353439a"
+                }
+              ],
+              "location_ref": null,
+              "message_ref": "ref:73e89a040b3c0f15c6c66f2859bcc0c3f137b96e57d8a37e2d17ba632fb85dc5",
+              "ref": "ref:8ff09ef0843f7a15f3eb6ebe58032bdc294cd36610729554adb90bcb1fa71a67",
+              "severity": "info"
+            }
+          ],
+          "label": "custom",
+          "local_ref": "/checks/results/9",
+          "policy_ref": "ref:af6dc5444f1cae91eaa224d625b099d6155a712e0135136ddac762051a1d01f0",
+          "reason_ref": "ref:0d8e61a3414e783baea91fc6719323a6a5f7545a69469d33fbca76b2e84b54c3",
+          "ref": "ref:51afb4c1da845cd1d4c7303292280391a0a1dcb67447c275de017b43f37fd2be",
+          "required": true,
+          "scope_refs": [
+            "ref:4debec37e382e41c51cf776c87f5dccd97165db6279165bf85b72cd7ca3f54a5",
+            "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+          ],
+          "state": "pass",
+          "summary_ref": "ref:85cac4f3c5dcc8aa81acecbd9a640d122cb6185c06b4be5a6325115b31483166"
+        }
+      ],
+      "exit_code": 0,
+      "state": "pass",
+      "summary": {
+        "executed": 10,
+        "fail": 0,
+        "not-applicable": 0,
+        "pass": 10,
+        "required": 10,
+        "required_satisfied": 10,
+        "skipped": 0,
+        "unknown": 0,
+        "waived": 0,
+        "warn": 0
+      }
+    },
+    "running_cli": {
+      "display": "0.21.1",
+      "ref": "ref:d5817740033875c88c6c65a96e5427f94d3f50aa2435edf829cae3f1dc163f7a"
+    },
+    "schema_version": 1,
+    "workflow": {
+      "artifacts": [
+        {
+          "local_ref": "/plan/artifacts/0",
+          "reason_ref": "ref:56db3293b7619d26534de202b681a4d5570c6de577da205dc9d4450b3c057d75",
+          "ref": "ref:f959d824a325e25ec79187098df261c1aca310a36969afa9e36e3c89eab431e0"
+        },
+        {
+          "local_ref": "/plan/artifacts/1",
+          "reason_ref": "ref:b295662477fb6fcaffa69c753b2635c2bd2f5c6dd0e84e2cf3f038f4959aff86",
+          "ref": "ref:fd86444efe263001a85822b78fb5322237abdd9853cb110feb92a61f77af32eb"
+        }
+      ],
+      "decisions": [],
+      "impacts": {
+        "architecture": false,
+        "auth": false,
+        "bounded": true,
+        "cross-service": false,
+        "data": false,
+        "llm": false,
+        "mcp": false,
+        "new-behavior": true,
+        "nfr": false,
+        "ownership": false,
+        "public-contract": false,
+        "security": false,
+        "within-contracts": true
+      },
+      "reassessment": {
+        "added_control_refs": [],
+        "previous_plan_ref": null,
+        "reason_refs": [],
+        "required": false
+      },
+      "request_ref": "ref:82a8067200226959b4e2ab5066f4788f3446b86f6bba671500578deae69ab10b",
+      "requirements": [
+        {
+          "policy_ref": "ref:af6dc5444f1cae91eaa224d625b099d6155a712e0135136ddac762051a1d01f0",
+          "reason_ref": "ref:0d8e61a3414e783baea91fc6719323a6a5f7545a69469d33fbca76b2e84b54c3",
+          "ref": "ref:51afb4c1da845cd1d4c7303292280391a0a1dcb67447c275de017b43f37fd2be",
+          "required": true,
+          "scope_refs": [
+            "ref:4debec37e382e41c51cf776c87f5dccd97165db6279165bf85b72cd7ca3f54a5",
+            "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+          ]
+        }
+      ],
+      "scope_refs": [
+        "ref:4debec37e382e41c51cf776c87f5dccd97165db6279165bf85b72cd7ca3f54a5",
+        "ref:3984e0cbe9caaf8664e83adaa87aa77f7ddd2b89645ddd2093ed5a8d458f221b"
+      ],
+      "selected": "bounded"
+    }
+  },
+  "posture": {
+    "architecture": {
+      "accepted_contracts": [
+        {
+          "scope_refs": [
+            "ref:4debec37e382e41c51cf776c87f5dccd97165db6279165bf85b72cd7ca3f54a5"
+          ],
+          "source_ref": "ref:56444f67ad8ac5bbeac0102dba0523920292b2eae4fb3bc580724291ea7d0ff7"
+        }
+      ],
+      "observed": [
+        {
+          "category": "architecture",
+          "confidence": "medium",
+          "scope_ref": "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b",
+          "source_ref": "ref:56444f67ad8ac5bbeac0102dba0523920292b2eae4fb3bc580724291ea7d0ff7",
+          "status": "observed"
+        },
+        {
+          "category": "reference",
+          "confidence": "medium",
+          "scope_ref": "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b",
+          "source_ref": "ref:1e3672fefab8b9e795d310fbfd17da807cc2ef5fcf027af38d181a36114796dc",
+          "status": "observed"
+        },
+        {
+          "category": "documentation",
+          "confidence": "medium",
+          "scope_ref": "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b",
+          "source_ref": "ref:cbd7b374eaba0fa971520f84fdc0ad804baf7d2a6345f8761f661757a7768ea8",
+          "status": "observed"
+        },
+        {
+          "category": "code",
+          "confidence": "high",
+          "scope_ref": "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b",
+          "source_ref": "ref:848056cdfc95d225930be447b5f760fdfa8917a10e4879d48b776a07b1184580",
+          "status": "observed"
+        },
+        {
+          "category": "test",
+          "confidence": "high",
+          "scope_ref": "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b",
+          "source_ref": "ref:303891a71def7f143173cfaf4dc89e0b761cb76ce52b19ad13f5acb88c067f9c",
+          "status": "observed"
+        }
+      ],
+      "transitions": []
+    },
+    "as_of": "2026-09-26T17:00:00+00:00",
+    "assessment_ref": "ref:ede55606a1e50e1185f864a6e560e084e3967c04cdee75c9b88e09cf16c2ace2",
+    "capabilities": {
+      "configured": [
+        {
+          "label": "application-governance",
+          "ref": "ref:5db068384cf1d3153846092f4cd56fbd48b8f4c5e3b34d749aeb837f84c259cc"
+        },
+        {
+          "label": "gherkin-delivery",
+          "ref": "ref:90edc1cc951b5aa9699bf78371ef3ab2166599c9deab2a26f4f202f2c8553e8d"
+        }
+      ],
+      "lock_verification": "verified",
+      "recorded": [
+        {
+          "label": "application-governance",
+          "ref": "ref:5db068384cf1d3153846092f4cd56fbd48b8f4c5e3b34d749aeb837f84c259cc"
+        },
+        {
+          "label": "gherkin-delivery",
+          "ref": "ref:90edc1cc951b5aa9699bf78371ef3ab2166599c9deab2a26f4f202f2c8553e8d"
+        }
+      ],
+      "required": []
+    },
+    "configured_controls": [],
+    "coverage": {
+      "change_results": "not-supplied",
+      "controls": "maintenance-dimensions-only",
+      "discovery_complete": true,
+      "git_complete": false,
+      "origin": "unauthenticated-snapshot",
+      "profile": "present"
+    },
+    "digest": "ae58ae8e816d5d0fb7526e8706f6f7f365ed0055dff9d04e46683f928609fed9",
+    "identity": {
+      "baseline_digest_ref": null,
+      "ci_report_digest_ref": null,
+      "dirty_digest_ref": null,
+      "discovery_digest_ref": "ref:3c211cf067756faa84fbe9620f48d482e5760666c49f6c8702b24709b44fb45a",
+      "input_digest_ref": "ref:1c288a5db9f4326a1cc0257df34a208227a3dc5c7d7a4fc1c6739ee0bdc2da66",
+      "inventory_digest_ref": "ref:6559f12406b395cc2880696b201a747ababd83961dc171179dad5926573f2148",
+      "pack_lock_digest_ref": "ref:e76df1e3e615dae3f88562f4303ccb10e475b87f8fa138b321467051fd2b8602",
+      "profile_digest_ref": "ref:d2941b135db7c869385961fb7aa0cf866bdefd083b29a7178cd70882d00659c2",
+      "resolution_digest_ref": null,
+      "revision_ref": null
+    },
+    "kind": "posture-export",
+    "maintenance": {
+      "dimensions": [
+        {
+          "execution": "executed",
+          "finding_refs": [
+            "ref:768e09a967faa6e312d9b9944bdcdd1f71572812f456d9e4ca6a46619691b78f"
+          ],
+          "id": "maintenance:releases",
+          "required": false,
+          "state": "unknown"
+        },
+        {
+          "execution": "executed",
+          "finding_refs": [
+            "ref:8b137beca18693cab16b3a167080270c06fe2dfaae4836a3ace5ea92b813e278"
+          ],
+          "id": "maintenance:resources",
+          "required": true,
+          "state": "pass"
+        },
+        {
+          "execution": "executed",
+          "finding_refs": [
+            "ref:0139d3ea5f29c5664a774545bde99cd76f12ccabf9c4d8df11bbaa130431406b"
+          ],
+          "id": "maintenance:repository-fit",
+          "required": false,
+          "state": "warn"
+        },
+        {
+          "execution": "executed",
+          "finding_refs": [
+            "ref:ad3b7349ce6160fe37ba52b8f7c6417e009f232384d3600efb68d8593b93a207"
+          ],
+          "id": "maintenance:ci",
+          "required": false,
+          "state": "not-applicable"
+        }
+      ],
+      "exit_code": 0,
+      "recommendations": [
+        {
+          "action": "review-policy",
+          "component_ref": null,
+          "control_refs": [
+            "ref:7ed097799a0a4365cea8df60d1ac2bc49269c416690e52c6d37dba8ec979d948"
+          ],
+          "customization_refs": [],
+          "dimension": "repository-fit",
+          "evidence_refs": [
+            "ref:d90c3787d023ee3c2a4802e9e86d089b7f6459e36412ed9f057f43b4010c7e98"
+          ],
+          "finding_refs": [
+            "ref:0139d3ea5f29c5664a774545bde99cd76f12ccabf9c4d8df11bbaa130431406b"
+          ],
+          "id": "maintenance:3a7b2717f6017628c4753f29069661f80ae3242b1f10020c1e678e53b50b1826",
+          "local_ref": "/recommendations/0",
+          "prerequisite_refs": [
+            "ref:8545ee3053d48579202e8c55d83a198f119c3f18ee7bc7be7cc1fec1104e7dc0"
+          ],
+          "preview_operation": "govkit-discover",
+          "reason_ref": "ref:b1acdb98d2a1fa24703d7b549470853d42b3a6971b5f68abc73fb99b20131955",
+          "required": false,
+          "resource_refs": [
+            "ref:ac566c13b98cdd4998659105666b9adbe23dfe1906ac763d1ca558cb8fbae2db"
+          ],
+          "scope_refs": [
+            "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+          ],
+          "severity": "warning",
+          "source_policy_ref": null,
+          "target_version": null,
+          "uncertainty_refs": [
+            "ref:262a0b9f1044e8f052567705d788e84cf7ff3d113c06bdff8ff8b3867f70284d"
+          ],
+          "urgency": "recommended"
+        },
+        {
+          "action": "inspect-metadata",
+          "component_ref": null,
+          "control_refs": [],
+          "customization_refs": [],
+          "dimension": "releases",
+          "evidence_refs": [
+            "ref:aa6c0aca13bb3f675f9a1f77239f35740c18640ae8cf20e70858c6ebb76e383c"
+          ],
+          "finding_refs": [
+            "ref:768e09a967faa6e312d9b9944bdcdd1f71572812f456d9e4ca6a46619691b78f"
+          ],
+          "id": "maintenance:7b20d217195ce1adcba9aa9ec37b81a07df6bacac408ff7f5d2f6936d9926885",
+          "local_ref": "/recommendations/1",
+          "prerequisite_refs": [
+            "ref:8545ee3053d48579202e8c55d83a198f119c3f18ee7bc7be7cc1fec1104e7dc0"
+          ],
+          "preview_operation": "metadata-review",
+          "reason_ref": "ref:86753803441e8db1ed11f03ff810eb34ed90e2736e5ee5ee841dede53d83320a",
+          "required": false,
+          "resource_refs": [],
+          "scope_refs": [
+            "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+          ],
+          "severity": "warning",
+          "source_policy_ref": null,
+          "target_version": null,
+          "uncertainty_refs": [
+            "ref:b2b63cf909ab4eb09832a9654a734cbf1b5a9800609dcc7955ef21e482b299e9"
+          ],
+          "urgency": "recommended"
+        }
+      ],
+      "state": "warn",
+      "summary": {
+        "executed": 4,
+        "fail": 0,
+        "not-applicable": 1,
+        "pass": 1,
+        "required": 1,
+        "required_satisfied": 1,
+        "skipped": 0,
+        "unknown": 1,
+        "waived": 0,
+        "warn": 1
+      }
+    },
+    "repository_ref": "ref:d79158a23ce1e7f8998b0190e5a1605b6c0f1c42fd1294b4fb853838d3ceade4",
+    "resources": [
+      {
+        "action": "none",
+        "component_ref": "ref:7c70e95f2518b9d34006b61d749968178f2951e8450062cf3f05bcd19efddd6e",
+        "local_ref": "/inventory/resources/0",
+        "ref": "ref:a297625f8d562fa445414882f20c0a75b5100561a8e55ad957c4067f878e58fb",
+        "state": "matching"
+      },
+      {
+        "action": "none",
+        "component_ref": "ref:7c70e95f2518b9d34006b61d749968178f2951e8450062cf3f05bcd19efddd6e",
+        "local_ref": "/inventory/resources/1",
+        "ref": "ref:b9d4bc1e308cd102e46233add327d7ee1bb937a798c45644c35622a8118673fe",
+        "state": "matching"
+      },
+      {
+        "action": "none",
+        "component_ref": "ref:039c06ef8b14e3403148ae047043b11b3ec00e47a8cf260008b6625e51d708cf",
+        "local_ref": "/inventory/resources/2",
+        "ref": "ref:125d5d753a0b6abbcab287e59b8d24115895a18935d8fac9df48934dc459d09f",
+        "state": "matching"
+      },
+      {
+        "action": "none",
+        "component_ref": "ref:039c06ef8b14e3403148ae047043b11b3ec00e47a8cf260008b6625e51d708cf",
+        "local_ref": "/inventory/resources/3",
+        "ref": "ref:892709525a00e322182bf96dee613edd36228d2651c40879958ea5059a5a483e",
+        "state": "matching"
+      },
+      {
+        "action": "none",
+        "component_ref": "ref:7c70e95f2518b9d34006b61d749968178f2951e8450062cf3f05bcd19efddd6e",
+        "local_ref": "/inventory/resources/4",
+        "ref": "ref:cbacd1f1b4dc9f03aca9c070c06c826c6ab0bfa0b4989697c75fabca48748dc0",
+        "state": "matching"
+      },
+      {
+        "action": "none",
+        "component_ref": "ref:7c70e95f2518b9d34006b61d749968178f2951e8450062cf3f05bcd19efddd6e",
+        "local_ref": "/inventory/resources/5",
+        "ref": "ref:5f84931a02b9f74f57efa4fccb3f4ce1ef374c2409bff80c95df9593f2eb427f",
+        "state": "matching"
+      },
+      {
+        "action": "none",
+        "component_ref": "ref:7c70e95f2518b9d34006b61d749968178f2951e8450062cf3f05bcd19efddd6e",
+        "local_ref": "/inventory/resources/6",
+        "ref": "ref:ab265711d3a0bcc7ab7bd86eb3c6f98fca5317bc9673e86c92d8ffb6ff68bee1",
+        "state": "matching"
+      },
+      {
+        "action": "none",
+        "component_ref": "ref:7c70e95f2518b9d34006b61d749968178f2951e8450062cf3f05bcd19efddd6e",
+        "local_ref": "/inventory/resources/7",
+        "ref": "ref:89ecf1264361c5dfedf97d70b3270919c2c95210c0eaa36cc9bfe93eece88ebb",
+        "state": "matching"
+      },
+      {
+        "action": "none",
+        "component_ref": "ref:7c70e95f2518b9d34006b61d749968178f2951e8450062cf3f05bcd19efddd6e",
+        "local_ref": "/inventory/resources/8",
+        "ref": "ref:e0baac143593e89db67d8411ea4394cfed74bd97e369d9de05d4c3bf88e83c54",
+        "state": "matching"
+      },
+      {
+        "action": "none",
+        "component_ref": "ref:7c70e95f2518b9d34006b61d749968178f2951e8450062cf3f05bcd19efddd6e",
+        "local_ref": "/inventory/resources/9",
+        "ref": "ref:18a4869d646f817fe7056c880eda7f364ad6ca6f3eb62a75da9aec5e0bda02c1",
+        "state": "matching"
+      },
+      {
+        "action": "none",
+        "component_ref": "ref:039c06ef8b14e3403148ae047043b11b3ec00e47a8cf260008b6625e51d708cf",
+        "local_ref": "/inventory/resources/10",
+        "ref": "ref:73b9d4261a10bce4f39d2de62c528b7c3102f46098522a5e746acb3d7f74ac89",
+        "state": "matching"
+      },
+      {
+        "action": "none",
+        "component_ref": "ref:039c06ef8b14e3403148ae047043b11b3ec00e47a8cf260008b6625e51d708cf",
+        "local_ref": "/inventory/resources/11",
+        "ref": "ref:51e9bd10fb68ec836a3e5a729e0ab9263c47a570be43116999c4ebfca1e1e5b4",
+        "state": "matching"
+      },
+      {
+        "action": "none",
+        "component_ref": "ref:039c06ef8b14e3403148ae047043b11b3ec00e47a8cf260008b6625e51d708cf",
+        "local_ref": "/inventory/resources/12",
+        "ref": "ref:12279b244a6fbd15e94fbfa462ac0ec196f023b9575b213b7d3e5511e483f398",
+        "state": "matching"
+      },
+      {
+        "action": "none",
+        "component_ref": "ref:039c06ef8b14e3403148ae047043b11b3ec00e47a8cf260008b6625e51d708cf",
+        "local_ref": "/inventory/resources/13",
+        "ref": "ref:903da117768c3c95c272e1593bd73ad1d60061df7bc01a5a1dff92a37b2811ee",
+        "state": "matching"
+      }
+    ],
+    "schema_version": 1,
+    "versions": {
+      "candidates": [],
+      "locked": [
+        {
+          "component_ref": "ref:7c70e95f2518b9d34006b61d749968178f2951e8450062cf3f05bcd19efddd6e",
+          "version": {
+            "display": "1.1.2",
+            "ref": "ref:9c8b9ae46ab8095e5f32c1f714a45674ace470a34af9364f206b8f65a9a1b1e3"
+          }
+        },
+        {
+          "component_ref": "ref:039c06ef8b14e3403148ae047043b11b3ec00e47a8cf260008b6625e51d708cf",
+          "version": {
+            "display": "1.0.2",
+            "ref": "ref:d5c182c2bc4bfd689769dc801831530d5a3f6fa586aedffad8372a0d6800405d"
+          }
+        }
+      ],
+      "metadata": [],
+      "recorded_install": null,
+      "resolved_govkit": {
+        "display": "0.21.1",
+        "ref": "ref:d5817740033875c88c6c65a96e5427f94d3f50aa2435edf829cae3f1dc163f7a"
+      },
+      "running_cli": {
+        "display": "0.21.1",
+        "ref": "ref:d5817740033875c88c6c65a96e5427f94d3f50aa2435edf829cae3f1dc163f7a"
+      }
+    }
+  },
+  "catalog": {
+    "capabilities": [
+      "application-governance",
+      "llm-evaluation"
+    ],
+    "capability_requirements": [],
+    "decisions": [],
+    "enforcement": "unknown",
+    "execution": "not-run",
+    "gates": [
+      {
+        "blocking": true,
+        "commands": [
+          [
+            "govkit",
+            "conform",
+            "--target",
+            "{target}",
+            "--request",
+            "{request}",
+            "--base",
+            "{base}",
+            "--policy-target",
+            "{policy_target}",
+            "--json"
+          ]
+        ],
+        "configuration": [
+          "trusted-policy-checkout",
+          "trusted-base",
+          "accepted-request",
+          "execution-opt-ins"
+        ],
+        "dependencies": [],
+        "evidence": [
+          "change-results/v1"
+        ],
+        "id": "govkit:change-conformance",
+        "path_filters": [],
+        "permissions": [
+          "repository:read"
+        ],
+        "requirements": [
+          {
+            "blocking": true,
+            "capability_id": null,
+            "kind": "repository",
+            "scope": [
+              "."
+            ],
+            "selectors": [],
+            "source": "bundled:change-conformance"
+          }
+        ],
+        "runner": "common-conformance",
+        "secrets": [],
+        "triggers": [
+          "pull-request",
+          "push",
+          "manual"
+        ]
+      },
+      {
+        "blocking": true,
+        "commands": [],
+        "configuration": [
+          "trusted-conformance-configuration",
+          "execution-opt-ins"
+        ],
+        "dependencies": [
+          "govkit:change-conformance"
+        ],
+        "evidence": [
+          "change-results/v1"
+        ],
+        "id": "llm-exact-match",
+        "path_filters": [],
+        "permissions": null,
+        "requirements": [
+          {
+            "blocking": true,
+            "capability_id": null,
+            "kind": "capability",
+            "scope": [
+              "."
+            ],
+            "selectors": [
+              "llm-evaluation"
+            ],
+            "source": "pack:llm-evaluation@1.0.2#llm-exact-match"
+          }
+        ],
+        "runner": "common-conformance",
+        "secrets": null,
+        "triggers": [
+          "pull-request",
+          "push",
+          "manual"
+        ]
+      }
+    ],
+    "kind": "gate-catalog",
+    "limitations": [
+      "Logical gate declarations share one conformance invocation; they are not individual CI jobs or runtime allowlists.",
+      "Workflow conditions describe accepted policy and cannot authorize a label/path filter to skip shared conformance.",
+      "Runtime may add checks for actual changes, missing context, capabilities, architecture and approvals; re-resolve through the common engine.",
+      "Resolved versions are composition pins, not proof of installed resources, published availability or publisher authenticity.",
+      "Null permissions/secrets mean provider requirements are unmeasured; catalog readiness is not runnable or enforced CI.",
+      "I10b owns provider rendering, trusted execution wiring, protected generation, configuration drift and provider evidence."
+    ],
+    "pins": {
+      "govkit": "0.21.1",
+      "packs": [
+        {
+          "digest": "fcd272af2100f97e3e305f9732cd0aa6fa3f27b7f1a10d8e62f7ef43c252776b",
+          "id": "application-governance",
+          "legacy": {},
+          "provides": [
+            "application-governance"
+          ],
+          "source": "bundled",
+          "version": "1.1.2"
+        },
+        {
+          "digest": "fcb5c1b49af85debc63727bdbe3b63c40fa4640f531a1310eeb58380c5131b06",
+          "id": "llm-evaluation",
+          "legacy": {},
+          "provides": [
+            "llm-evaluation"
+          ],
+          "source": "bundled",
+          "version": "1.0.2"
+        }
+      ]
+    },
+    "profile_digest": "cb124a1f7f46db179c63b8397d6cbbaff8ce4e44ca49197baaa04fd0bffd2903",
+    "provider": "github",
+    "ready": true,
+    "repository": "service",
+    "schema_version": 1,
+    "workflow_requirements": [],
+    "digest": "09c283131a9780bec632f3f81f6d6596de0bf24ebecd417d2e413b280efd5428"
+  },
+  "pipeline": {
+    "schema_version": 1,
+    "kind": "pipeline-render",
+    "provider": "github",
+    "catalog": {
+      "capabilities": [
+        "application-governance",
+        "llm-evaluation"
+      ],
+      "capability_requirements": [],
+      "decisions": [],
+      "enforcement": "unknown",
+      "execution": "not-run",
+      "gates": [
+        {
+          "blocking": true,
+          "commands": [
+            [
+              "govkit",
+              "conform",
+              "--target",
+              "{target}",
+              "--request",
+              "{request}",
+              "--base",
+              "{base}",
+              "--policy-target",
+              "{policy_target}",
+              "--json"
+            ]
+          ],
+          "configuration": [
+            "trusted-policy-checkout",
+            "trusted-base",
+            "accepted-request",
+            "execution-opt-ins"
+          ],
+          "dependencies": [],
+          "evidence": [
+            "change-results/v1"
+          ],
+          "id": "govkit:change-conformance",
+          "path_filters": [],
+          "permissions": [
+            "repository:read"
+          ],
+          "requirements": [
+            {
+              "blocking": true,
+              "capability_id": null,
+              "kind": "repository",
+              "scope": [
+                "."
+              ],
+              "selectors": [],
+              "source": "bundled:change-conformance"
+            }
+          ],
+          "runner": "common-conformance",
+          "secrets": [],
+          "triggers": [
+            "pull-request",
+            "push",
+            "manual"
+          ]
+        },
+        {
+          "blocking": true,
+          "commands": [],
+          "configuration": [
+            "trusted-conformance-configuration",
+            "execution-opt-ins"
+          ],
+          "dependencies": [
+            "govkit:change-conformance"
+          ],
+          "evidence": [
+            "change-results/v1"
+          ],
+          "id": "llm-exact-match",
+          "path_filters": [],
+          "permissions": null,
+          "requirements": [
+            {
+              "blocking": true,
+              "capability_id": null,
+              "kind": "capability",
+              "scope": [
+                "."
+              ],
+              "selectors": [
+                "llm-evaluation"
+              ],
+              "source": "pack:llm-evaluation@1.0.2#llm-exact-match"
+            }
+          ],
+          "runner": "common-conformance",
+          "secrets": null,
+          "triggers": [
+            "pull-request",
+            "push",
+            "manual"
+          ]
+        }
+      ],
+      "kind": "gate-catalog",
+      "limitations": [
+        "Logical gate declarations share one conformance invocation; they are not individual CI jobs or runtime allowlists.",
+        "Workflow conditions describe accepted policy and cannot authorize a label/path filter to skip shared conformance.",
+        "Runtime may add checks for actual changes, missing context, capabilities, architecture and approvals; re-resolve through the common engine.",
+        "Resolved versions are composition pins, not proof of installed resources, published availability or publisher authenticity.",
+        "Null permissions/secrets mean provider requirements are unmeasured; catalog readiness is not runnable or enforced CI.",
+        "I10b owns provider rendering, trusted execution wiring, protected generation, configuration drift and provider evidence."
+      ],
+      "pins": {
+        "govkit": "0.21.1",
+        "packs": [
+          {
+            "digest": "fcd272af2100f97e3e305f9732cd0aa6fa3f27b7f1a10d8e62f7ef43c252776b",
+            "id": "application-governance",
+            "legacy": {},
+            "provides": [
+              "application-governance"
+            ],
+            "source": "bundled",
+            "version": "1.1.2"
+          },
+          {
+            "digest": "fcb5c1b49af85debc63727bdbe3b63c40fa4640f531a1310eeb58380c5131b06",
+            "id": "llm-evaluation",
+            "legacy": {},
+            "provides": [
+              "llm-evaluation"
+            ],
+            "source": "bundled",
+            "version": "1.0.2"
+          }
+        ]
+      },
+      "profile_digest": "cb124a1f7f46db179c63b8397d6cbbaff8ce4e44ca49197baaa04fd0bffd2903",
+      "provider": "github",
+      "ready": true,
+      "repository": "service",
+      "schema_version": 1,
+      "workflow_requirements": [],
+      "digest": "09c283131a9780bec632f3f81f6d6596de0bf24ebecd417d2e413b280efd5428"
+    },
+    "settings": {
+      "schema_version": 1,
+      "govkit_version": "0.21.1",
+      "execute_checks": []
+    },
+    "binding": {
+      "schema_version": 1,
+      "govkit_version": "0.21.1",
+      "profile_digest": "cb124a1f7f46db179c63b8397d6cbbaff8ce4e44ca49197baaa04fd0bffd2903",
+      "packs_digest": "c422b7de7c893c5ab7530737ae54ccd0492f5f8704b760b0bdba935faec46f67",
+      "execute_checks": []
+    },
+    "path": ".github/actions/govkit-conformance/action.yml",
+    "content": "# Generated by GovKit; configure a trusted caller before activation.\nname: GovKit change conformance\ndescription: One pinned common-engine invocation over explicit prepared inputs\ninputs:\n  python:\n    description: Absolute path to an isolated Python containing the exact pinned GovKit release\n    required: true\n  target:\n    description: Absolute path to the inspected checkout\n    required: true\n  policy_target:\n    description: Absolute path to a separate caller-trusted policy and pack checkout\n    required: true\n  request:\n    description: Absolute path to caller-accepted request JSON\n    required: true\n  base:\n    description: Full trusted Git base commit SHA\n    required: true\n  pack_arguments:\n    description: Optional absolute path to explicit check argument JSON\n    required: false\n    default: ''\n  observed_at:\n    description: Optional explicit observation time for deterministic replay\n    required: false\n    default: ''\nruns:\n  using: composite\n  steps:\n  - name: GovKit change conformance\n    shell: bash\n    run: |\n      case \"$GOVKIT_PYTHON\" in\n        /*) ;;\n        *) printf '%s\\n' 'GOVKIT_PYTHON must be an absolute path' >&2; exit 1 ;;\n      esac\n      exec -- \"$GOVKIT_PYTHON\" -I -m cli.pipeline_runtime\n    env:\n      GOVKIT_BINDING: eyJleGVjdXRlX2NoZWNrcyI6W10sImdvdmtpdF92ZXJzaW9uIjoiMC4yMS4xIiwicGFja3NfZGlnZXN0IjoiYzQyMmI3ZGU3Yzg5M2M1YWI3NTMwNzM3YWU1NGNjZDA0OTJmNWY4NzA0Yjc2MGIwYmRiYTkzNWZhZWM0NmY2NyIsInByb2ZpbGVfZGlnZXN0IjoiY2IxMjRhMWY3ZjQ2ZGIxNzljNjNiODM5N2Q2Y2JiYWZmOGNlNGU0NGNhNDkxOTdiYWFhMDRmZDBiZmZkMjkwMyIsInNjaGVtYV92ZXJzaW9uIjoxfQ==\n      GOVKIT_PYTHON: ${{ inputs.python }}\n      GOVKIT_TARGET: ${{ inputs.target }}\n      GOVKIT_POLICY_TARGET: ${{ inputs.policy_target }}\n      GOVKIT_REQUEST: ${{ inputs.request }}\n      GOVKIT_BASE: ${{ inputs.base }}\n      GOVKIT_PACK_ARGUMENTS: ${{ inputs.pack_arguments }}\n      GOVKIT_OBSERVED_AT: ${{ inputs.observed_at }}\n",
+    "execution": "not-run",
+    "enforcement": "unknown",
+    "requirements": [
+      "isolated-pinned-runtime",
+      "separate-trusted-policy-and-packs",
+      "accepted-request-and-full-base-sha",
+      "caller-event-and-permission-policy",
+      "external-required-check-and-reviewer-enforcement"
+    ],
+    "digest": "e8f4e275cfb9e6d0bc100d9bbd8d186d0184c18d32461cfb592ba9bdf611ce90"
+  }
+}

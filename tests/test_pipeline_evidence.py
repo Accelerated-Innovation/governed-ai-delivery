@@ -23,19 +23,35 @@ from tests.test_provider_admission import event, policy
 AS_OF = "2026-09-24T12:00:00Z"
 
 
-def configured(tmp_path, provider="github"):
+def configured(tmp_path, provider="github", *, observation_limit=None, omit_conformance=False):
     target, trusted, _, req, _ = fixture(tmp_path, provider)
     source = trusted / ".govkit/profile.yaml"
     document = json.loads(source.read_text())
     document["maintenance"] = {"assessment_max_age_hours": 24}
+    if omit_conformance:
+        del document["policy"]["conformance"]
     source.write_text(json.dumps(document))
     apply_install(
         preview_install(source, trusted, bundled_catalog(), govkit_version=GOVKIT_VERSION)
     )
+    if observation_limit is not None:
+        path = trusted / "conformance.json"
+        conformance = json.loads(path.read_text())
+        conformance["observation_limits"] = {"max_file_bytes": observation_limit}
+        path.write_text(json.dumps(conformance))
+        for root in (target, trusted):
+            (root / "src").mkdir(exist_ok=True)
+            (root / "src/asset.bin").write_bytes(b"\0" * (1024 * 1024 + 1))
     shutil.copytree(trusted / ".govkit", target / ".govkit")
+    shutil.copyfile(trusted / "conformance.json", target / "conformance.json")
     config = tmp_path / "settings.json"
     config.write_text(
-        json.dumps(settings(execute_checks=["project:tests"], admission=policy(provider)))
+        json.dumps(
+            settings(
+                execute_checks=[] if omit_conformance else ["project:tests"],
+                admission=policy(provider),
+            )
+        )
     )
     proposed = preview_pipeline(source, target, config, bundled_catalog())
     apply_pipeline(proposed, proposed.digest)
@@ -69,7 +85,7 @@ def configured(tmp_path, provider="github"):
         policy_revision=git(trusted, "rev-parse", "HEAD"),
         request_digest=content_digest(req.read_bytes()),
     )
-    assert report.exit_code == 0
+    assert report.exit_code == (1 if omit_conformance else 0)
     observation = {
         "schema_version": 1,
         "kind": "provider-observation",

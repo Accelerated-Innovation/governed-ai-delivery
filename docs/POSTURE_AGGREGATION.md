@@ -2,6 +2,10 @@
 
 `govkit posture aggregate` summarizes existing privacy-filtered maintenance and
 change exports without a collector, network connection or repository inspection.
+It accepts both historical version-1 and new version-2 observation-budget exports.
+An aggregate containing any version-2 snapshot uses version 2; an all-version-1
+aggregate retains version 1. Embedded snapshots keep their original bytes and
+identities. Older readers reject version-2 aggregates.
 Supply the expected cohort, including repositories without an assessment:
 
 ```sh

@@ -5,6 +5,11 @@ versioned JSON or a human report. It does not inspect the repository, run projec
 checks, fetch release metadata, calculate new upgrade advice, or authorize changes.
 The original assessment remains the source of detailed local evidence and reasons.
 
+Version-2 assessments produce version-2 exports with an opaque
+`identity.observation_digest_ref` for observation-budget provenance. Version-1
+sources retain version-1 projection and replay semantics. No policy bytes or raw
+source digest are disclosed; older readers reject version-2 records.
+
 ```bash
 # Save an offline assessment locally. Keep this raw record private.
 govkit maintain assess --target /path/to/project \

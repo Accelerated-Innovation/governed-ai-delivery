@@ -197,7 +197,7 @@ def export_posture(assessment: dict) -> PostureReport:
     discovery = source["discovery"] or {}
     checks = source["checks"]
     document = {
-        "schema_version": 1,
+        "schema_version": source["schema_version"],
         "kind": "posture-export",
         "repository_ref": reference("repository", source["repository"]),
         "assessment_ref": "ref:" + source["digest"],

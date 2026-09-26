@@ -3,7 +3,10 @@
   "type": "object",
   "properties": {
     "schema_version": {
-      "const": 1
+      "enum": [
+        1,
+        2
+      ]
     },
     "kind": {
       "const": "maintenance-assessment"
@@ -100,6 +103,10 @@
               "type": "null"
             }
           ]
+        },
+        "observation_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
         }
       },
       "required": [
@@ -464,5 +471,36 @@
     "limitations",
     "digest"
   ],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": 2
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "identity": {
+            "required": [
+              "observation_digest"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "identity": {
+            "not": {
+              "required": [
+                "observation_digest"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
 }

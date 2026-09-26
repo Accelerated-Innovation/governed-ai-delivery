@@ -53,7 +53,7 @@ class GateSpec:
     permissions: tuple[str, ...] | None = None
     secrets: tuple[str, ...] | None = None
     configuration: tuple[str, ...] = ("trusted-conformance-configuration", "execution-opt-ins")
-    evidence: tuple[str, ...] = ("change-results/v1",)
+    evidence: tuple[str, ...] = ("change-results/v2",)
 
     @property
     def blocking(self):
@@ -108,6 +108,8 @@ def parse_catalog(document):
     ):
         raise DocumentError("Shared conformance requires repository-wide blocking policy")
     for gate in gates.values():
+        if gate["evidence"] != gates[ENGINE]["evidence"]:
+            raise DocumentError("Logical gates must share the engine's result contract")
         if gate["blocking"] != any(r["blocking"] for r in gate["requirements"]):
             raise DocumentError("Gate blocking policy differs from its requirements")
         if gate["id"] != ENGINE and (gate["commands"] or ENGINE not in gate["dependencies"]):

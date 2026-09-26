@@ -3,7 +3,10 @@
   "type": "object",
   "properties": {
     "schema_version": {
-      "const": 1
+      "enum": [
+        1,
+        2
+      ]
     },
     "kind": {
       "const": "posture-export"
@@ -139,6 +142,10 @@
               "type": "null"
             }
           ]
+        },
+        "observation_digest_ref": {
+          "type": "string",
+          "pattern": "^ref:[a-f0-9]{64}$"
         }
       },
       "required": [
@@ -1219,5 +1226,36 @@
       ],
       "additionalProperties": false
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": 2
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "identity": {
+            "required": [
+              "observation_digest_ref"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "identity": {
+            "not": {
+              "required": [
+                "observation_digest_ref"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
 }

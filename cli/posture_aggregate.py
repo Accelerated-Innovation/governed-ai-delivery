@@ -255,7 +255,7 @@ def aggregate_posture(documents, *, repository_refs, as_of, max_age_hours=24):
             }
         )
     document = {
-        "schema_version": 1,
+        "schema_version": 2 if any(s["schema_version"] == 2 for s in snapshots) else 1,
         "kind": "posture-aggregate",
         "as_of": window.as_of.isoformat(),
         "max_age_hours": max_age_hours,

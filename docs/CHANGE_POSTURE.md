@@ -20,6 +20,11 @@ checkout, executes checks, refreshes metadata or transmits content.
 
 ## Recorded facts and coverage
 
+Version-2 change results export as version-2 posture with an opaque
+`identity.observation_ref` for budget/source provenance. Raw paths, policy bytes
+and source digests remain private. Version-1 sources still export/replay as
+version 1 with their original identity rules; older readers reject version 2.
+
 | Field | Meaning |
 |---|---|
 | `repository_ref`, `report_ref`, `as_of` | Pseudonymous repository/source identity and original observation time, not export time |

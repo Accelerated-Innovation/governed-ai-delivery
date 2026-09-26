@@ -319,8 +319,9 @@
             "uniqueItems": true
           },
           "evidence": {
-            "const": [
-              "change-results/v1"
+            "enum": [
+              ["change-results/v1"],
+              ["change-results/v2"]
             ]
           },
           "blocking": {

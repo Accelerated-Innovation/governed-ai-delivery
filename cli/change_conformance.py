@@ -16,7 +16,6 @@ from . import check_adapters as adapters
 from .change_architecture import assess_architecture
 from .change_defects import defect_check
 from .change_policy import load_change_policy
-from .change_scope import capture_change
 from .check_models import (
     CheckContext,
     CheckOutcome,
@@ -28,9 +27,15 @@ from .check_models import (
     State,
 )
 from .check_runner import CheckRegistry, CheckReport, parse_report, run_checks
+from .observation_policy import (
+    ObservationBudget,
+    capture_observation,
+    load_observation_profile,
+    parse_observation,
+    policy_budget,
+)
 from .pack_loading import contained_file
 from .pack_store import locked_check_requirements
-from .profiles import load_profile
 from .schema_validation import (
     DocumentError,
     canonical_json,
@@ -59,7 +64,7 @@ class ChangeReport:
     @property
     def document(self):
         return {
-            "schema_version": 1,
+            "schema_version": 2 if "observation" in self.change else 1,
             "kind": "change-results",
             "change": self.change,
             "plan": self.plan.document,
@@ -86,6 +91,22 @@ def parse_change_report(document: dict) -> ChangeReport:
     result = ChangeReport(
         document["change"], parse_workflow_plan(document["plan"]), parse_report(document["checks"])
     )
+    if document["schema_version"] == 2:
+        budget = parse_observation(result.change["observation"])
+        reference = (
+            result.plan.document["inputs"]["profile"]["policy"]
+            .get("conformance", {})
+            .get("reference")
+        )
+        evidence = next(
+            (e for e in result.plan.document["evidence"] if e["source"] == reference), {}
+        )
+        if budget.source_state == "accepted" and budget.source_digest != evidence.get("digest"):
+            raise DocumentError("Observation source differs from the accepted plan evidence")
+        if budget.source_state == "default" and reference is not None:
+            raise DocumentError("Default observation budget cannot discard declared conformance")
+        if budget.source_state == "unavailable" and result.change["complete"]:
+            raise DocumentError("Unavailable conformance policy cannot establish complete scope")
     if (
         result.checks.identity.change_digest
         != content_digest(canonical_json(result.change).encode())
@@ -256,6 +277,7 @@ def inspect_change(
     execute_checks=(),
     pack_arguments=None,
     allow_inapplicable_checks=False,
+    policy_guard=None,
 ) -> ChangeReport:
     """Inspect without writes by default. Execution is explicit, trusted, unsandboxed.
 
@@ -285,14 +307,22 @@ def inspect_change(
             raise ValueError(
                 "Observation time must be an RFC 3339 timestamp with a timezone"
             ) from exc
-    profile = load_profile(contained_file(policy_target, ".govkit/profile.yaml"))
+    profile = load_observation_profile(policy_target)
     policy_error, policy_digest = False, None
     try:
         policy, policy_digest = load_change_policy(policy_target, profile)
     except (OSError, ValueError):
         policy_error = True
         policy = {"impact_rules": [], "commands": [], "artifacts": [], "constraints": []}
-    change = capture_change(target, base)
+    if not policy_error:
+        budget = policy_budget(policy, policy_digest)
+    elif "conformance" not in profile.document["policy"]:
+        budget = ObservationBudget()
+    else:
+        budget = ObservationBudget(source_state="unavailable")
+    if policy_guard is not None and policy_guard() != budget:
+        raise DocumentError("Observation policy differs from the admitted budget")
+    change = capture_observation(target, base, budget)
     impacts, unclassified = {}, []
     for path in change.paths:
         matched = [r for r in policy["impact_rules"] if any(_covers(p, path) for p in r["paths"])]
@@ -449,14 +479,32 @@ def inspect_change(
         )
         trusted_context = replace(context, target=policy_target)
 
+    def policy_stable():
+        try:
+            fresh_profile = load_observation_profile(policy_target)
+            if fresh_profile.digest != profile.digest:
+                return False
+            if policy_guard is not None:
+                if policy_guard() != budget:
+                    return False
+            if budget.source_state == "default":
+                return "conformance" not in fresh_profile.document["policy"]
+            fresh_policy, fresh_digest = load_change_policy(policy_target, fresh_profile)
+            return not policy_error and policy_budget(fresh_policy, fresh_digest) == budget
+        except (OSError, ValueError):
+            return False
+
     def executable_check(check):
-        if policy_error:
-            return lambda _: CheckOutcome(
-                State.UNKNOWN,
-                Execution.NOT_RUN,
-                "Accepted policy capture is invalid or changed; command execution withheld",
-            )
-        return check
+        def guarded(context):
+            if policy_error or not policy_stable():
+                return CheckOutcome(
+                    State.UNKNOWN,
+                    Execution.NOT_RUN,
+                    "Accepted policy capture is invalid or changed; command execution withheld",
+                )
+            return check(context)
+
+        return guarded
 
     for identifier, command in commands.items():
         if identifier in required:
@@ -525,12 +573,13 @@ def inspect_change(
 
     def stable_inputs(_):
         try:
-            fresh_change = capture_change(target, base)
+            fresh_change = capture_observation(target, base, budget)
             fresh_plan = plan_request(
                 policy_target, request, observed_scope=observed, previous=previous
             )
             stable = (
-                fresh_change.complete
+                policy_stable()
+                and fresh_change.complete
                 and fresh_change.digest == change.digest
                 and fresh_plan.identity == plan.identity
             )

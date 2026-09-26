@@ -11,6 +11,8 @@ from .change_scope import capture_change
 from .check_models import CheckOutcome, CheckResult, CheckSpec, Evidence, Execution, Identity, State
 from .check_runner import CheckReport, normalize
 from .maintenance_inventory import inventory_repository
+from .observation_limits import DEFAULT_OBSERVATION_LIMITS
+from .observation_policy import capture_observation, resolve_observation_budget
 from .pipeline_render import parse_settings
 from .pipeline_runtime import read_input
 from .pipeline_store import check_pipeline, preview_pipeline
@@ -113,9 +115,25 @@ def collect_evidence(
     if change_report is not None:
         runtime = parse_change_report(change_report)
         proofs["runtime"] = _digest(change_report)
-        change = capture_change(target, runtime.change["base"])
+        budget = resolve_observation_budget(target, profile)
+        if runtime.document["schema_version"] == 2:
+            change = capture_observation(target, runtime.change["base"], budget)
+            same_budget = budget.source_state != "unavailable"
+        else:
+            # Old records mean historical defaults, never an imported expansion.
+            change = capture_change(target, runtime.change["base"])
+            reference = profile.document["policy"].get("conformance", {}).get("reference")
+            evidence = next(
+                (e for e in runtime.plan.document["evidence"] if e["source"] == reference), {}
+            )
+            same_budget = (
+                budget.source_state != "unavailable"
+                and budget.limits == DEFAULT_OBSERVATION_LIMITS
+                and budget.source_digest == evidence.get("digest")
+            )
         matched = bool(
             bound
+            and same_budget
             and observation["report_digest"] == proofs["runtime"]
             and observation["base"] == runtime.change["base"]
             and change.complete
