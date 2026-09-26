@@ -8,20 +8,20 @@ it does not change release scope, approve publication or start a deprecation clo
 
 ## Verified baseline
 
-PR [#207](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/207)
-merged as `6bc40fc4ecc1481c84eb263d386dccd9c87eaea7`, tree-identical to its final
-head `b086bf56456e621621dad758faa5ea85475cae85`.
+PR [#210](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/210)
+merged as `a4c394968aecc77fcb0026913b64041c1389c3bf`, tree-identical to its final
+head `b815323c5f33eac1dc41908d158f98562095fdd3`.
 All six final-head checks passed in
-[Tests run 36186637989](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/36186637989):
+[Tests run 36253590849](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/36253590849):
 Python 3.11/3.12 fast suites, the e2e/toolchain tier, the Linux wheel job and both
 Windows deep-path wheel jobs. This verifies the source build labeled `0.21.1`;
 it does not establish that a published package with that version contains these changes.
 New commits require their own applicable checks before release.
 
-Qodo's completed run `1267555` reviews implementation
-`23354bb6a2baa9688b0acc5b873ca6684796a697`. Its one documentation finding now has
-attribution `implemented` after clarification `b086bf5`; this is not a completed
-review of the final head. Local pre-PR review retains the recorded repository
+Qodo's completed run `1275516` reviews implementation
+`125dc61257580a03f0409fa44ff78c5a11fd4305`. Its long-path finding has attribution
+`implemented` after remediation `b874e40`; this is not a completed review of the
+final head. Local pre-PR review retains the recorded repository
 authorization blocker under the support/no-retry handoff.
 
 PR #205's intermittent defect-pilot comparison failure remains unexplained.
@@ -69,15 +69,19 @@ A caller-supplied all-true provider JSON does not close the enforcement criterio
 
 ## Scope and next action
 
-PR #209 is integrated with all six final-head checks passing. The private consumer
-bootstrap remains open with its offline check passing. Source diagnostics now
-identify exceeded Git observation budgets; valid unverified provenance retains the
-failure in human/JSON reports. Default limits and the consumer blocker remain.
-Review the bootstrap and choose a separately reviewed treatment for oversized
-tracked assets, then propose accepted policy with an independently protected caller. Its seven offline
-response-contract tests and two local negative controls are a first baseline, not
-provider enforcement or model-quality evidence. Live bypass trials and consenting
-team observations follow the reviewed setup.
+PR #210 is integrated with all six final-head checks passing. The private consumer
+bootstrap remains open with its offline baseline passing. A read-only feasibility
+trial supports an explicit 8 MiB per-file candidate while preserving the 16 MiB
+total bound. Current configuration still rejects the proposed setting; production
+observers keep their defaults and the consumer blocker remains.
+
+Review [proposed ADR 0018](decisions/0018-trusted-git-observation-budgets.md).
+Merging its proposal PR accepts the design for implementation. Implement and
+verify all observer/admission/replay boundaries test first before enabling a
+nondefault accepted policy. Independently review/merge the consumer bootstrap;
+then select its policy and protected caller. Live bypass trials and consenting
+team observations follow the reviewed setup. The offline response-contract cases
+and direct-function feasibility trial do not supply that evidence.
 
 The maintainer still needs to set the legacy warning/removal policy. Keep the
 original parity flake visible. Review new evidence against the exact remaining
