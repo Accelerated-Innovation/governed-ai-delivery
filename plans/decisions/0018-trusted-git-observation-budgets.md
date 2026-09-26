@@ -1,12 +1,11 @@
 # ADR 0018: Trusted Git observation budgets
 
-Status: **Accepted for implementation on merge of
-[PR #211](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/211);
-proposed until that merge.** The PR's recorded merge is the acceptance event for
-this design and its entry in the implementation plan's decision log. No further
-status edit is required to make that acceptance effective.
+Status: **Accepted for implementation.**
+[PR #211](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/211)
+merged on 2026-09-26 as `09c97d8`; that merge is the acceptance event specified by
+this design and its entry in the implementation plan's decision log.
 
-Runtime implementation remains pending. Selecting a larger budget for any
+Policy-driven runtime integration remains pending. Selecting a larger budget for any
 consumer still requires a separate policy review and protected caller setup;
 design acceptance does not adopt consumer policy or activate enforcement.
 
@@ -36,16 +35,16 @@ evidence about the existing observation function, not a successful public CLI
 configuration, conformance result, authenticated provider run or accepted policy.
 The existing 31 scope-limit regression/control cases also pass.
 
-The current `change-policy` schema **rejects** the proposed setting below. Do not
+The current `change-policy` schema **rejects** the planned setting below. Do not
 copy it into a live configuration until the complete implementation is delivered.
 
-## Proposed decision
+## Decision
 
 Preserve every current default. Add one optional setting to the accepted
 conformance configuration referenced by `profile.policy.conformance`:
 
 ```yaml
-# Proposed fragment only; unsupported by the current schema/runtime.
+# Planned fragment only; unsupported by the current schema/runtime.
 observation_limits:
   max_file_bytes: 8388608
 ```
@@ -158,7 +157,7 @@ After design acceptance, begin with failing tests at the actual boundaries:
 Use existing focused tests first, then required fast and relevant wheel/provider
 checks. Trials above do not satisfy these unimplemented integration criteria.
 
-## Alternatives and next review
+## Alternatives and consumer adoption
 
 Removing generated builds from consumer tracking may be appropriate application
 work, but requires that repository's build/deployment owners to review the
@@ -168,9 +167,9 @@ hide the removal. A global default increase would enlarge resource use for every
 consumer. Exclusions or budgets inferred from changed assets would let proposed
 content influence its own coverage. Neither is recommended.
 
-The requested review decision is to accept this bounded trusted-policy design
-for implementation, or select a separate consumer asset/build change instead.
-Neither choice merges the private baseline, adopts consumer policy, changes
-branch protection, activates deployment, supplies participant consent or closes
-the remaining #147/#149/#142 acceptance criteria. Continue the private bootstrap
+The maintainer accepted this bounded trusted-policy design for implementation by
+merging PR #211. A separate consumer asset/build change remains an application
+owner decision. Design acceptance does not merge the private baseline, adopt
+consumer policy, change branch protection, activate deployment, supply participant
+consent or close the remaining #147/#149/#142 acceptance criteria. Continue the private bootstrap
 review independently; use only a reviewed/merged revision for later enforcement.

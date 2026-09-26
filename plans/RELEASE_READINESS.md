@@ -8,19 +8,19 @@ it does not change release scope, approve publication or start a deprecation clo
 
 ## Verified baseline
 
-PR [#210](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/210)
-merged as `a4c394968aecc77fcb0026913b64041c1389c3bf`, tree-identical to its final
-head `b815323c5f33eac1dc41908d158f98562095fdd3`.
+PR [#211](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/211)
+merged as `09c97d8d9e2739f6e3b11c56a4dc0f27abdb534d`, tree-identical to its final
+head `feefc0ccb8aa676483874eac5ba6ab400552ac57`.
 All six final-head checks passed in
-[Tests run 36253590849](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/36253590849):
+[Tests run 36257282887](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/36257282887):
 Python 3.11/3.12 fast suites, the e2e/toolchain tier, the Linux wheel job and both
 Windows deep-path wheel jobs. This verifies the source build labeled `0.21.1`;
 it does not establish that a published package with that version contains these changes.
 New commits require their own applicable checks before release.
 
-Qodo's completed run `1275516` reviews implementation
-`125dc61257580a03f0409fa44ff78c5a11fd4305`. Its long-path finding has attribution
-`implemented` after remediation `b874e40`; this is not a completed review of the
+Qodo's completed run `1275981` reviews implementation
+`d2bf4c3a76711ba1d78fa05fa7973cca6c9e3c1d`. Its decision-record finding has attribution
+`implemented` after remediation `916327a`; this is not a completed review of the
 final head. Local pre-PR review retains the recorded repository
 authorization blocker under the support/no-retry handoff.
 
@@ -69,16 +69,16 @@ A caller-supplied all-true provider JSON does not close the enforcement criterio
 
 ## Scope and next action
 
-PR #210 is integrated with all six final-head checks passing. The private consumer
-bootstrap remains open with its offline baseline passing. A read-only feasibility
-trial supports an explicit 8 MiB per-file candidate while preserving the 16 MiB
-total bound. Current configuration still rejects the proposed setting; production
-observers keep their defaults and the consumer blocker remains.
+PR #211 is integrated with all six final-head checks passing, accepting
+[ADR 0018](decisions/0018-trusted-git-observation-budgets.md) for implementation.
+I10d1 centralizes and validates internal capture limits before Git I/O, preserving
+default records. Current configuration still rejects the setting; production
+callers keep their defaults and the consumer blocker remains.
 
-Review [proposed ADR 0018](decisions/0018-trusted-git-observation-budgets.md).
-Merging its proposal PR accepts the design for implementation. Implement and
-verify all observer/admission/replay boundaries test first before enabling a
-nondefault accepted policy. Independently review/merge the consumer bootstrap;
+I10d2 must implement and verify all observer/admission/replay boundaries together
+before enabling a nondefault accepted policy. The private bootstrap was last
+verified open with its offline baseline passing and is untouched by I10d1.
+Independently review/merge the consumer bootstrap;
 then select its policy and protected caller. Live bypass trials and consenting
 team observations follow the reviewed setup. The offline response-contract cases
 and direct-function feasibility trial do not supply that evidence.
