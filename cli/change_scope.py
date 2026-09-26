@@ -12,6 +12,7 @@ import subprocess
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+from .observation_limits import DEFAULT_OBSERVATION_LIMITS, ObservationLimits
 from .pack_loading import contained_file, safe_relative
 from .schema_validation import canonical_json, content_digest
 
@@ -104,16 +105,32 @@ def capture_change(
     target: Path,
     base: str,
     *,
-    max_files=2048,
-    max_bytes=1024 * 1024,
-    max_total_bytes=16 * 1024 * 1024,
-    max_changed=256,
+    max_files=DEFAULT_OBSERVATION_LIMITS.max_files,
+    max_bytes=DEFAULT_OBSERVATION_LIMITS.max_file_bytes,
+    max_total_bytes=DEFAULT_OBSERVATION_LIMITS.max_total_bytes,
+    max_changed=DEFAULT_OBSERVATION_LIMITS.max_changed_paths,
+    limits: ObservationLimits | None = None,
 ) -> ChangeSnapshot:
     """Compare one explicit base commit to the Git-visible working tree.
 
     No checkout, index refresh, network operation, diff helper or textconv runs.
     Ignored untracked files are outside this observation. Bounds fail closed.
+    Legacy keywords remain available within the validated ceilings; nondefault
+    legacy values cannot be combined with a limits object. These internal
+    arguments do not accept policy or add provenance to historical records.
     """
+    legacy_limits = ObservationLimits(
+        max_files=max_files,
+        max_file_bytes=max_bytes,
+        max_total_bytes=max_total_bytes,
+        max_changed_paths=max_changed,
+    )
+    if limits is None:
+        limits = legacy_limits
+    elif not isinstance(limits, ObservationLimits):
+        raise ValueError("Capture requires a validated ObservationLimits value")
+    elif legacy_limits != DEFAULT_OBSERVATION_LIMITS:
+        raise ValueError("Cannot combine a limits value with nondefault legacy limits")
     target = target.absolute()
     before, after, changes, problems = {}, {}, [], []
     resolved, revision = None, None
@@ -168,26 +185,26 @@ def capture_change(
             ("Index entry", len(index)),
             ("Git-visible path", len(names)),
         ):
-            if count > max_files:
-                raise _ObservationLimit(f"{label} count {count} exceeds limit {max_files}.")
+            if count > limits.max_files:
+                raise _ObservationLimit(f"{label} count {count} exceeds limit {limits.max_files}.")
         for path, _, _, size in entries:
-            if size > max_bytes:
+            if size > limits.max_file_bytes:
                 raise _ObservationLimit(
                     f"Baseline file {_diagnostic_path(path)} has {size} bytes; "
-                    f"exceeds per-file limit of {max_bytes} bytes."
+                    f"exceeds per-file limit of {limits.max_file_bytes} bytes."
                 )
         baseline_size = sum(e[3] for e in entries)
-        if baseline_size > max_total_bytes:
+        if baseline_size > limits.max_total_bytes:
             raise _ObservationLimit(
                 f"Baseline has {baseline_size} bytes; "
-                f"exceeds total-content limit of {max_total_bytes} bytes."
+                f"exceeds total-content limit of {limits.max_total_bytes} bytes."
             )
         blobs = _git(
             target,
             "cat-file",
             "--batch",
             data=b"".join(e[2] + b"\n" for e in entries),
-            limit=max_total_bytes + len(entries) * 128,
+            limit=limits.max_total_bytes + len(entries) * 128,
         )
         cursor, modes = 0, {}
         for path, mode, sha, size in entries:
@@ -208,17 +225,17 @@ def capture_change(
                 continue  # A tracked working-tree deletion.
             path = contained_file(target, name)
             with path.open("rb") as stream:
-                content = stream.read(max_bytes + 1)
+                content = stream.read(limits.max_file_bytes + 1)
             total += len(content)
-            if len(content) > max_bytes:
+            if len(content) > limits.max_file_bytes:
                 raise _ObservationLimit(
                     f"Working-tree file {_diagnostic_path(name)} has at least {len(content)} bytes; "
-                    f"exceeds per-file limit of {max_bytes} bytes."
+                    f"exceeds per-file limit of {limits.max_file_bytes} bytes."
                 )
-            if total > max_total_bytes:
+            if total > limits.max_total_bytes:
                 raise _ObservationLimit(
                     f"Working-tree content has at least {total} bytes; "
-                    f"exceeds total-content limit of {max_total_bytes} bytes."
+                    f"exceeds total-content limit of {limits.max_total_bytes} bytes."
                 )
             after[name] = content
             current_modes[name] = b"100755" if metadata.st_mode & stat.S_IXUSR else b"100644"
@@ -253,9 +270,9 @@ def capture_change(
                     content_digest(new) if new is not None else None,
                 )
             )
-        if len(changes) > max_changed:
+        if len(changes) > limits.max_changed_paths:
             raise _ObservationLimit(
-                f"Changed-path count {len(changes)} exceeds limit {max_changed}."
+                f"Changed-path count {len(changes)} exceeds limit {limits.max_changed_paths}."
             )
         if _git(target, "rev-parse", "--verify", "HEAD^{commit}").decode().strip() != revision:
             raise ValueError("HEAD changed during observation")
