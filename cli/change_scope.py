@@ -20,6 +20,17 @@ class _ObservationLimit(ValueError):
     """A locally constructed budget diagnostic, safe to include in a report."""
 
 
+def _diagnostic_path(path: str) -> str:
+    """Leave room for the diagnostic inside the schema's 4096-character bound."""
+    escaped = json.dumps(path)
+    if len(escaped) <= 2048:
+        return escaped
+    # One code point expands to at most 12 ASCII characters in JSON. Encode the
+    # prefix separately so truncation cannot split an escape or surrogate pair.
+    prefix = json.dumps(path[:128])
+    return f"{prefix}... (truncated; path sha256:{content_digest(path.encode())})"
+
+
 @dataclass(frozen=True)
 class ChangedPath:
     path: str
@@ -162,7 +173,7 @@ def capture_change(
         for path, _, _, size in entries:
             if size > max_bytes:
                 raise _ObservationLimit(
-                    f"Baseline file {json.dumps(path)} has {size} bytes; "
+                    f"Baseline file {_diagnostic_path(path)} has {size} bytes; "
                     f"exceeds per-file limit of {max_bytes} bytes."
                 )
         baseline_size = sum(e[3] for e in entries)
@@ -201,7 +212,7 @@ def capture_change(
             total += len(content)
             if len(content) > max_bytes:
                 raise _ObservationLimit(
-                    f"Working-tree file {json.dumps(name)} has at least {len(content)} bytes; "
+                    f"Working-tree file {_diagnostic_path(name)} has at least {len(content)} bytes; "
                     f"exceeds per-file limit of {max_bytes} bytes."
                 )
             if total > max_total_bytes:

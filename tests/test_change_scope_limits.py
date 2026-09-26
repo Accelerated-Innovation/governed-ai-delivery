@@ -11,6 +11,7 @@ from cli.conformance import render_report
 from cli.govkit import main
 from cli.posture import reference
 from cli.posture_change import export_change_posture
+from cli.schema_validation import content_digest
 from tests.test_change_conformance import git, inspect, setup
 from tests.test_discovery import write
 from tests.test_pack_store import snapshot
@@ -219,4 +220,49 @@ def test_conform_cli_explains_default_bound_and_cannot_pass(tmp_path, monkeypatc
         output = scope.outcome.summary
     assert "src/large.js" in output
     assert "per-file limit of 1048576 bytes" in output
+    assert (snapshot(target), snapshot(trusted)) == before
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows forbids these path characters")
+@pytest.mark.parametrize("phase", ["baseline", "working-tree"])
+@pytest.mark.parametrize("path_kind", ["ordinary", "escaped-a", "escaped-b"])
+def test_long_escaped_limit_paths_preserve_valid_unknown_reports(tmp_path, phase, path_kind):
+    target, trusted, base = setup(tmp_path)
+    name = (
+        "src/asset.js"
+        if path_kind == "ordinary"
+        # The prefix boundary lands on a supplementary Unicode code point.
+        else "/".join(["p" + "\x01" * 126 + "\U0001f680" + "\x01" * 44] * 4 + [path_kind + ".js"])
+    )
+    write(target, name, "x" * (1024 * 1024 + 1))
+    if phase == "baseline":
+        git(target, "add", ".")
+        git(target, "commit", "-qm", "oversized asset")
+        base = git(target, "rev-parse", "HEAD")
+    before = snapshot(target), snapshot(trusted)
+
+    report = inspect(target, trusted, base)
+
+    assert not report.change["complete"]
+    assert report.exit_code == 1
+    message = report.change["problems"][0]
+    assert len(message) <= 4096
+    assert "per-file limit of 1048576 bytes" in message
+    assert ("Baseline" if phase == "baseline" else "Working-tree") in message
+    assert "\x01" not in message
+    if path_kind == "ordinary":
+        assert json.dumps(name) in message and "truncated" not in message
+    else:
+        assert len(json.dumps(name)) > 4096  # Escaping, not filesystem length, exceeds the bound.
+        assert "truncated" in message
+        assert f"path sha256:{content_digest(name.encode())}" in message
+        prefix, _ = json.JSONDecoder().raw_decode(message[message.index('"') :])
+        assert prefix and name.startswith(prefix) and prefix != name
+        assert prefix.endswith("\U0001f680")
+    scope = next(c for c in report.checks.results if c.spec.id == "change:scope")
+    assert scope.outcome.state.value == "unknown"
+    assert scope.outcome.execution.value == "executed"
+    assert scope.outcome.evidence[0].origin == "unverified-artifact"
+    assert message in render_report(report.checks)
+    assert parse_change_report(json.loads(report.to_json())).document == report.document
     assert (snapshot(target), snapshot(trusted)) == before

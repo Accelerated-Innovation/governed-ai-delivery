@@ -105,6 +105,10 @@ unsafe paths and exceeded bounds leave scope incomplete and blocking.
 Limit diagnostics identify the inventory or content budget exceeded, its limit,
 and the observed count or byte size. Per-file diagnostics include a JSON-escaped
 repository-relative path; bounded working-tree reads report a lower bound on size.
+Paths whose JSON representation exceeds 2,048 characters use an independently
+escaped 128-character prefix, an explicit truncation marker and the SHA-256 of the
+full UTF-8 relative path. This keeps diagnostics within report-schema limits
+without splitting escapes or losing the ability to distinguish matching prefixes.
 The first exceeded budget stops capture, so resolving it may reveal another bound.
 Human and JSON conformance reports retain these diagnostics while scope remains
 unknown and the command exits nonzero. They contain no file contents or raw Git
