@@ -1,6 +1,6 @@
 # Declarative governance implementation plan
 
-Status: PR #212 is integrated with all six final-head checks passing. I10d2 integrates accepted per-file observation budgets across pinned provider admission, local capture, maintenance, evidence and versioned replay. Local validation is complete; PR integration and consumer adoption remain separate. I10/I13, protected enforcement, team observations and the legacy warning/removal policy remain open.
+Status: PR #212 is integrated with all six final-head checks passing. I10d2 integrates accepted per-file observation budgets across pinned provider admission, local capture, maintenance, evidence and versioned replay. Local validation is complete and PR #213 is open; integration and consumer adoption remain separate. I10/I13, protected enforcement, team observations and the legacy warning/removal policy remain open.
 Plan version: 1.64.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
@@ -1630,3 +1630,5 @@ Applied ERROR **2297569** (real CLI/command/parser boundaries, no production-beh
 
 - **Final validation/review:** the final fast suite passes **5,113 tests, 2 existing Copilot-format skips and 150 e2e deselected in 432.86s (7:12)**. This includes the corrected source smoke and engine-entry guard. The final wheel also passes three-agent inventory, consolidated maintenance and posture/fleet pilots. All 73 changed-document local references, scoped non-rewriting Ruff lint/format, whitespace, unchanged acceptance-checkbox and private-coordinate checks pass. No local Python 3.11, Windows or full e2e/toolchain result is claimed. Local diff review is complete and self-contained Qodo context is prepared; the standing external-review authorization blocker was not retried.
 - **Continuation:** after this increment integrates, resume the private bootstrap review and propose consumer budget/caller policy separately. Capability support does not adopt that policy, activate protected enforcement, collect team observations or decide legacy retirement.
+
+- **Delivered:** implementation `e121a58f89266f8264983c23dc99750a8eca9ff3` is committed and pushed in [PR #213](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/213). Updated and reread only the owned progress sections in #142/#147/#149, preserving titles, open states and every acceptance checkbox; #142 remains below its body limit. This plan-only follow-up records delivery, with tested payload bytes unchanged. Hosted new-head checks and PR review are pending. Qodo local review retains the support/no-retry blocker; no clean local review, merge or publication is claimed.
