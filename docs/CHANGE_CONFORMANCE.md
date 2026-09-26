@@ -145,7 +145,10 @@ Larger limits do not waive architecture checks or exclude any tracked asset.
 
 New `change-results` records use schema version 2. `change.observation` records
 the effective limits, raw accepted-source SHA-256 and source state, and contributes
-to the canonical change identity. An unavailable policy leaves scope incomplete.
+to the canonical change identity. Omitting optional `policy.conformance` uses
+`default` provenance and can establish complete Git scope; missing conformance
+mapping still leaves its required checks unknown and execution withheld.
+A declared source that is invalid or unavailable leaves scope incomplete.
 Version-1 records retain their historical default-limit interpretation and original
 digests on replay. Older readers reject version 2; update the reader before sharing
 new records. Raw records and digests are consistency evidence, not authenticated

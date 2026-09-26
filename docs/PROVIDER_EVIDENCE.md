@@ -12,8 +12,11 @@ to work; they cannot establish admitted provider enforcement through this adapte
 Evidence collection recaptures Git using the assessment checkout's current accepted
 budget and compares its source identity with the runtime record. Imported limits
 cannot enlarge current policy. Historical version-1 runtime records can match only
-the default budget with matching accepted source bytes; a policy change requires
-fresh conformance and evidence. Imported success remains unauthenticated.
+the default budget with matching accepted source bytes, or with the optional
+conformance source omitted from both profiles. Version-2 default provenance also
+matches an omitted source; a declared but unavailable source cannot match.
+A policy change requires fresh conformance and evidence. Imported success remains
+unauthenticated, and complete scope does not satisfy missing conformance checks.
 
 Add `admission` to the accepted pipeline settings, then review and generate a new
 entry point through the [existing protected workflow](PIPELINE_GENERATION.md):

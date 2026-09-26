@@ -118,7 +118,7 @@ def collect_evidence(
         budget = resolve_observation_budget(target, profile)
         if runtime.document["schema_version"] == 2:
             change = capture_observation(target, runtime.change["base"], budget)
-            same_budget = budget.source_state == "accepted"
+            same_budget = budget.source_state != "unavailable"
         else:
             # Old records mean historical defaults, never an imported expansion.
             change = capture_change(target, runtime.change["base"])
@@ -127,7 +127,7 @@ def collect_evidence(
                 (e for e in runtime.plan.document["evidence"] if e["source"] == reference), {}
             )
             same_budget = (
-                budget.source_state == "accepted"
+                budget.source_state != "unavailable"
                 and budget.limits == DEFAULT_OBSERVATION_LIMITS
                 and budget.source_digest == evidence.get("digest")
             )

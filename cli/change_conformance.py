@@ -103,7 +103,9 @@ def parse_change_report(document: dict) -> ChangeReport:
         )
         if budget.source_state == "accepted" and budget.source_digest != evidence.get("digest"):
             raise DocumentError("Observation source differs from the accepted plan evidence")
-        if budget.source_state != "accepted" and result.change["complete"]:
+        if budget.source_state == "default" and reference is not None:
+            raise DocumentError("Default observation budget cannot discard declared conformance")
+        if budget.source_state == "unavailable" and result.change["complete"]:
             raise DocumentError("Unavailable conformance policy cannot establish complete scope")
     if (
         result.checks.identity.change_digest
@@ -312,11 +314,12 @@ def inspect_change(
     except (OSError, ValueError):
         policy_error = True
         policy = {"impact_rules": [], "commands": [], "artifacts": [], "constraints": []}
-    budget = (
-        policy_budget(policy, policy_digest)
-        if not policy_error
-        else ObservationBudget(source_state="unavailable")
-    )
+    if not policy_error:
+        budget = policy_budget(policy, policy_digest)
+    elif "conformance" not in profile.document["policy"]:
+        budget = ObservationBudget()
+    else:
+        budget = ObservationBudget(source_state="unavailable")
     if policy_guard is not None and policy_guard() != budget:
         raise DocumentError("Observation policy differs from the admitted budget")
     change = capture_observation(target, base, budget)
@@ -479,21 +482,21 @@ def inspect_change(
     def policy_stable():
         try:
             fresh_profile = load_observation_profile(policy_target)
-            fresh_policy, fresh_digest = load_change_policy(policy_target, fresh_profile)
+            if fresh_profile.digest != profile.digest:
+                return False
             if policy_guard is not None:
                 if policy_guard() != budget:
                     return False
-            return (
-                not policy_error
-                and fresh_profile.digest == profile.digest
-                and policy_budget(fresh_policy, fresh_digest) == budget
-            )
+            if budget.source_state == "default":
+                return "conformance" not in fresh_profile.document["policy"]
+            fresh_policy, fresh_digest = load_change_policy(policy_target, fresh_profile)
+            return not policy_error and policy_budget(fresh_policy, fresh_digest) == budget
         except (OSError, ValueError):
             return False
 
     def executable_check(check):
         def guarded(context):
-            if not policy_stable():
+            if policy_error or not policy_stable():
                 return CheckOutcome(
                     State.UNKNOWN,
                     Execution.NOT_RUN,

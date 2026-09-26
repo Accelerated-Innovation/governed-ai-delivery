@@ -24,7 +24,7 @@ from cli.workflows import parse_request
 MIB = 1024 * 1024
 
 
-def run_pilot(workspace, agent, provider):
+def run_pilot(workspace, agent, provider, *, default_source=False):
     workspace.mkdir(parents=True, exist_ok=True)
     fixture = json.loads(
         (paths.GOVERNANCE_DIR / "examples/change-conformance/consumer.json").read_text()
@@ -73,7 +73,8 @@ def run_pilot(workspace, agent, provider):
     for root in (target, trusted):
         for name, data in fixture["files"].items():
             write(root, name, data)
-        (root / "src/asset.bin").write_bytes(b"\0" * (MIB + 1))
+        if not default_source:
+            (root / "src/asset.bin").write_bytes(b"\0" * (MIB + 1))
         git(root, "init", "-q")
     for name, data in fixture["base_files"].items():
         write(target, name, data)
@@ -82,14 +83,17 @@ def run_pilot(workspace, agent, provider):
         write(target, name, data)
     head = commit(target)
     fixture["profile"]["integrations"] = {"agent": agent, "ci": provider}
-    fixture["conformance"]["observation_limits"] = {"max_file_bytes": 2 * MIB}
+    if default_source:
+        del fixture["profile"]["policy"]["conformance"]
+    else:
+        fixture["conformance"]["observation_limits"] = {"max_file_bytes": 2 * MIB}
     profile_path = write(trusted, ".govkit/profile.yaml", json.dumps(fixture["profile"]))
     config_path = write(trusted, "conformance.json", json.dumps(fixture["conformance"]))
     apply_install(
         preview_install(profile_path, trusted, bundled_catalog(), govkit_version=GOVKIT_VERSION)
     )
     revision = commit(trusted)
-    checks = ["project:tests", "llm-exact-match"]
+    checks = [] if default_source else ["project:tests", "llm-exact-match"]
     settings = write(
         workspace,
         "settings.json",
@@ -145,7 +149,7 @@ def run_pilot(workspace, agent, provider):
         }
     event_path = write(workspace, "event.json", json.dumps(event))
     request_path = paths.GOVERNANCE_DIR / "examples/workflows/requests/enhancement.json"
-    arguments = {"llm-exact-match": ["--results", "results.json"]}
+    arguments = {} if default_source else {"llm-exact-match": ["--results", "results.json"]}
     arguments_path = write(workspace, "arguments.json", json.dumps(arguments))
     env = {
         **os.environ,
@@ -166,7 +170,13 @@ def run_pilot(workspace, agent, provider):
     result = subprocess.run(
         ["bash", "-c", script], env=env, cwd=workspace, capture_output=True, text=True
     )
-    assert result.returncode == 0, (agent, provider, result.stderr, result.stdout)
+    assert result.returncode == (1 if default_source else 0), (
+        agent,
+        provider,
+        result.stderr,
+        result.stdout,
+    )
+    assert result.stdout, result.stderr
     doc = json.loads(result.stdout)
     local = inspect_change(
         target,
@@ -178,9 +188,12 @@ def run_pilot(workspace, agent, provider):
         pack_arguments=arguments,
     )
     assert doc == local.document == parse_change_report(doc).document
-    assert (
-        doc["schema_version"] == 2
-        and doc["change"]["observation"]["limits"]["max_file_bytes"] == 2 * MIB
+    assert doc["schema_version"] == 2 and doc["change"]["complete"]
+    assert doc["change"]["observation"]["limits"]["max_file_bytes"] == (
+        MIB if default_source else 2 * MIB
+    )
+    assert doc["change"]["observation"]["source_state"] == (
+        "default" if default_source else "accepted"
     )
     projected = export_change_posture(doc)
     assert parse_change_posture(projected.document).document == projected.document
@@ -189,6 +202,12 @@ def run_pilot(workspace, agent, provider):
     assert maintenance.document["identity"]["git_complete"]
     assert parse_assessment(maintenance.document).document == maintenance.document
     assert snapshot() == before
+    if default_source:
+        outcomes = {r.spec.id: r.outcome for r in local.checks.results}
+        assert outcomes["change:policy"].state.value == "unknown"
+        assert outcomes["change:stable-inputs"].state.value == "pass"
+        assert outcomes["project:tests"].execution.value == "not-run"
+        return
     original = config_path.read_bytes()
     config_path.write_bytes(original + b"\n")
     dirty_before = snapshot()
@@ -217,6 +236,12 @@ if __name__ == "__main__":
         for agent in ("codex", "claude-code", "copilot"):
             for provider in ("github", "azure"):
                 run_pilot(Path(directory).resolve() / agent / provider, agent, provider)
+                run_pilot(
+                    Path(directory).resolve() / agent / provider / "default-source",
+                    agent,
+                    provider,
+                    default_source=True,
+                )
     print(
-        "Six admitted provider/agent budget pilots: large policy and target trees, local parity, provenance, maintenance, privacy, dirty-source rejection and default-limit refusal verified."
+        "Twelve admitted provider/agent budget pilots: expanded and omitted-source defaults, local parity, provenance, maintenance, privacy, dirty-source rejection and default-limit refusal verified."
     )
