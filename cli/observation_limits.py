@@ -15,8 +15,7 @@ MAX_CHANGED_PATHS = 256
 class ObservationLimits:
     """Bound one capture. Smaller companion bounds support internal callers/tests.
 
-    Accepted-policy configuration will expose only the per-file value when the
-    complete admission/provenance integration is available (ADR 0018).
+    Accepted-policy configuration exposes only the per-file value (ADR 0018).
     """
 
     max_file_bytes: int = DEFAULT_MAX_FILE_BYTES

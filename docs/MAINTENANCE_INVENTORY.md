@@ -124,6 +124,13 @@ Inventory limits include 2 MiB per read, 4,096 declared resources and a 64 MiB a
 resource budget with one bounded overflow probe. Metadata allows 2,000 releases per
 source. Symlinks/nonregular resources are unavailable and are never followed.
 Git identity uses the existing bounded Git observer; ignored untracked files are not
-covered. No arbitrary project checks run. These are consistency snapshots, not signed
+covered. Its per-file budget comes from the local accepted conformance reference as
+described in [change conformance](CHANGE_CONFORMANCE.md). Profile/configuration
+bootstrap reads remain bounded to 64 KiB independently of resource reads. An absent
+conformance declaration uses the default; an invalid declared source yields
+actionable incomplete Git coverage. Version-2 inventory records include `observation`
+and bind its digest into the inventory identity. A changed source requires fresh
+inventory even when its effective numeric limit stays the same. Version-1 records
+keep their original replay interpretation. No arbitrary project checks run. These are consistency snapshots, not signed
 approvals, an exhaustive architecture assessment or a transaction against concurrent
 writers. Keep the target quiescent when reviewing a preview.

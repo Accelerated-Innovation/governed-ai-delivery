@@ -5,7 +5,8 @@ Status: **Accepted for implementation.**
 merged on 2026-09-26 as `09c97d8`; that merge is the acceptance event specified by
 this design and its entry in the implementation plan's decision log.
 
-Policy-driven runtime integration remains pending. Selecting a larger budget for any
+Policy-driven runtime integration is delivered by I10d2 in the implementation plan.
+Selecting a larger budget for any
 consumer still requires a separate policy review and protected caller setup;
 design acceptance does not adopt consumer policy or activate enforcement.
 
@@ -35,8 +36,9 @@ evidence about the existing observation function, not a successful public CLI
 configuration, conformance result, authenticated provider run or accepted policy.
 The existing 31 scope-limit regression/control cases also pass.
 
-The current `change-policy` schema **rejects** the planned setting below. Do not
-copy it into a live configuration until the complete implementation is delivered.
+The `change-policy` schema supports the setting below together with version-2
+observation records and complete admission/recapture integration. Consumer policy
+still needs review before use.
 
 ## Decision
 
@@ -44,7 +46,7 @@ Preserve every current default. Add one optional setting to the accepted
 conformance configuration referenced by `profile.policy.conformance`:
 
 ```yaml
-# Planned fragment only; unsupported by the current schema/runtime.
+# Optional fragment in the separately accepted conformance configuration.
 observation_limits:
   max_file_bytes: 8388608
 ```
@@ -155,7 +157,8 @@ After design acceptance, begin with failing tests at the actual boundaries:
    larger files, positive/negative controls and unchanged source snapshots.
 
 Use existing focused tests first, then required fast and relevant wheel/provider
-checks. Trials above do not satisfy these unimplemented integration criteria.
+checks. Trials above alone do not satisfy these integration criteria; see the
+implementation plan's I10d2 entry for implementation and validation evidence.
 
 ## Alternatives and consumer adoption
 

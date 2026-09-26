@@ -14,6 +14,7 @@ from .check_runner import CheckReport, normalize, parse_report
 from .discovery import discover
 from .maintenance_facts import ci_dimension, fit_dimension, release_dimension, resource_dimension
 from .maintenance_inventory import inventory_repository, read_bounded, release_facts
+from .observation_policy import parse_observation
 from .pack_loading import contained_file
 from .profiles import parse_profile
 from .schema_validation import (
@@ -56,6 +57,14 @@ def parse_assessment(document):
         raise DocumentError("Invalid maintenance assessment digest")
     inventory = document["inventory"]
     validate_document(inventory, "maintenance-inventory")
+    if inventory["schema_version"] != document["schema_version"]:
+        raise DocumentError("Assessment and inventory versions differ")
+    if document["schema_version"] == 2:
+        budget = parse_observation(inventory["observation"])
+        if budget.digest != inventory["identity"]["observation_digest"] or (
+            budget.source_state == "unavailable" and inventory["identity"]["git_complete"]
+        ):
+            raise DocumentError("Inventory observation identity is inconsistent")
     if _digest({k: v for k, v in inventory.items() if k != "digest"}) != inventory["digest"]:
         raise DocumentError("Invalid maintenance inventory digest")
     if document["discovery"] is not None:
@@ -249,7 +258,7 @@ def assess_repository(target: Path, *, as_of=None, metadata=(), baseline=None, c
             "Inputs changed during maintenance assessment; retry on a quiescent target"
         )
     document = {
-        "schema_version": 1,
+        "schema_version": 2,
         "kind": "maintenance-assessment",
         "target": str(target),
         "repository": inventory["repository"],
@@ -306,6 +315,7 @@ def compare_assessments(before, after):
     same_policy = (
         old["identity"]["profile_digest"] == new["identity"]["profile_digest"]
         and old["repository"] == new["repository"]
+        and old["identity"].get("observation_digest") == new["identity"].get("observation_digest")
     )
     resolved = {
         identifier

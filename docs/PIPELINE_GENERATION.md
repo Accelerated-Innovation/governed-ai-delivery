@@ -115,8 +115,13 @@ recomputes requirements from trusted policy and actual Git changes. The catalog 
 not an allowlist; request labels, a changed plan and missing prerequisites cannot
 waive mandatory checks. Different accepted requests reuse the same entry point.
 
-Output is the existing `change-results/v1` JSON on stdout with the same exit code
+Output is `change-results/v2` JSON with observation-budget provenance on stdout, with the same exit code
 as local conformance. Required failures/unknown/skipped evidence remains failing.
+New gate catalogs advertise that result contract. Historical version-1 catalogs,
+rendered artifacts and change results still replay with their original digests;
+they do not authorize expanded limits. Update readers before collecting version-2
+results, and use the normal reviewed pipeline preview/apply flow to reconcile
+catalog metadata. Generated scripts continue to call the shared engine.
 Results are not automatically uploaded or converted into authenticated provider
 evidence. Explicit check commands can have their own side effects.
 

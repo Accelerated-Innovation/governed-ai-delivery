@@ -90,7 +90,7 @@ def export_change_posture(document: dict) -> PostureReport:
         raise DocumentError("Change repository does not match its replayed profile")
     identity = checks["identity"]
     result = {
-        "schema_version": 1,
+        "schema_version": source["schema_version"],
         "kind": "change-posture",
         "repository_ref": reference("repository", identity["repository"]),
         "report_ref": reference("change-report", source),
@@ -103,6 +103,11 @@ def export_change_posture(document: dict) -> PostureReport:
             "pack_lock_ref": reference("pack-lock", identity["pack_lock_digest"]),
             "change_ref": reference("change", identity["change_digest"]),
             "base_ref": reference("revision", source["change"]["base"]),
+            **(
+                {"observation_ref": reference("observation", source["change"]["observation"])}
+                if source["schema_version"] == 2
+                else {}
+            ),
         },
         "running_cli": _version(checks["govkit_version"]),
         "coverage": {

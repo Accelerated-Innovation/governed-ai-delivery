@@ -15,7 +15,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from cli import change_conformance
-from cli.change_scope import capture_change
+from cli.observation_policy import (
+    capture_observation,
+    load_observation_profile,
+    resolve_observation_budget,
+)
 from cli.posture import reference
 from cli.posture_change import parse_change_posture
 
@@ -29,10 +33,15 @@ def invoke(*args):
     )
 
 
+def source_snapshot(root, base):
+    budget = resolve_observation_budget(root, load_observation_profile(root))
+    return capture_observation(root, base, budget)
+
+
 def run(root, base, *, observed_at=None):
     if not isinstance(base, str) or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", base):
         raise ValueError("Source smoke requires an explicit full comparison base SHA")
-    before = capture_change(root, base)
+    before = source_snapshot(root, base)
     if not before.complete:
         raise ValueError(
             "Cannot capture comparison base/tree; check history, observation limits and index/worktree consistency"
@@ -93,7 +102,7 @@ def run(root, base, *, observed_at=None):
             assert controls[reference("control", identifier)]["state"] == "unknown"
         human = invoke("posture", "change", "--results", record)
         assert human.returncode == 0 and "unknown" in human.stdout, human.stderr
-    assert capture_change(root, base).digest == before.digest
+    assert source_snapshot(root, base).digest == before.digest
     print(
         "Installed-wheel source self-hosting verified: model and empty lock resolved, "
         "both selected commands executed, inputs stable, canonical posture replayed. "

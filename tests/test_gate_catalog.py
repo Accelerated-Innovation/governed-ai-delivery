@@ -134,7 +134,18 @@ def test_catalog_commands_use_the_shared_engine_with_explicit_trusted_inputs():
     assert runner["blocking"]
     assert "trusted-policy-checkout" in runner["configuration"]
     assert runner["triggers"] == ["pull-request", "push", "manual"]
-    assert runner["evidence"] == ["change-results/v1"]
+    assert runner["evidence"] == ["change-results/v2"]
+
+
+def test_logical_gate_cannot_claim_a_different_result_contract():
+    document = compose(profile(["llm-evaluation"])).document
+    gate = next(g for g in document["gates"] if g["id"] != "govkit:change-conformance")
+    gate["evidence"] = ["change-results/v1"]
+    document["digest"] = content_digest(
+        canonical_json({k: v for k, v in document.items() if k != "digest"}).encode()
+    )
+    with pytest.raises(ValueError):
+        parse_catalog(document)
 
 
 def test_architecture_scope_is_retained_without_becoming_a_pipeline_path_filter():

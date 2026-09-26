@@ -307,7 +307,7 @@ def test_export_replays_offline_without_reinspecting_or_executing(tmp_path, monk
     def forbidden(*args, **kwargs):
         raise AssertionError("Export must not collect or execute")
 
-    monkeypatch.setattr(change_conformance, "capture_change", forbidden)
+    monkeypatch.setattr(change_conformance, "capture_observation", forbidden)
     monkeypatch.setattr(change_conformance, "plan_request", forbidden)
     monkeypatch.setattr(subprocess, "run", forbidden)
     monkeypatch.setattr(socket, "create_connection", forbidden)

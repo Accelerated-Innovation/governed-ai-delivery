@@ -14,7 +14,7 @@ from pathlib import Path
 from .artifact_publication import publish_assessment
 from .change_conformance import inspect_change
 from .pack_store import verified_lock_document
-from .provider_admission import admit_run
+from .provider_admission import admit_run, pinned_observation_budget
 from .schema_validation import (
     DocumentError,
     canonical_json,
@@ -60,10 +60,11 @@ def run_bound(
         raise DocumentError("Pipeline base must be a full trusted Git commit SHA")
     base = base.lower()
     request_content = read_input(request_path)
+    policy_guard = None
     if "admission" in binding:
         if content_digest(request_content) != request_digest:
             raise DocumentError("Caller-accepted request digest mismatch")
-        admit_run(
+        admitted = admit_run(
             binding["admission"],
             provider_event,
             target,
@@ -72,7 +73,16 @@ def run_bound(
             base,
             policy_revision=policy_revision,
             request_digest=request_digest,
+            profile_digest=binding["profile_digest"],
         )
+
+        def policy_guard():
+            current = pinned_observation_budget(
+                policy_target, policy_revision, binding["profile_digest"]
+            )
+            if current != admitted.observation:
+                raise DocumentError("Accepted observation policy changed after admission")
+            return current
     elif any(value is not None for value in (provider_event, policy_revision, request_digest)):
         raise DocumentError("Provider inputs require accepted admission settings")
     lock = verified_lock_document(policy_target)
@@ -82,6 +92,8 @@ def run_bound(
         raise DocumentError("Trusted policy differs from the pipeline profile pin")
     if content_digest(canonical_json(lock["packs"]).encode()) != binding["packs_digest"]:
         raise DocumentError("Trusted pack closure differs from pipeline pins")
+    if policy_guard is not None:
+        policy_guard()
     return inspect_change(
         target,
         parse_request(parse_document(request_content)),
@@ -91,6 +103,7 @@ def run_bound(
         execute_checks=tuple(binding["execute_checks"]),
         pack_arguments=pack_arguments,
         allow_inapplicable_checks=True,
+        policy_guard=policy_guard,
     )
 
 

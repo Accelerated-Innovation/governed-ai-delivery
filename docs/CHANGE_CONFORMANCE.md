@@ -99,7 +99,7 @@ The explicit base is resolved to a commit. The snapshot compares it with Git-vis
 working-tree bytes, including committed changes since base, staged/unstaged edits,
 untracked nonignored files, deletions and executable-mode changes. Renames appear
 as add/delete. Repository-root inspection avoids partial-directory blind spots.
-Bounds are 2,048 files per tree, 1 MiB per file, 16 MiB per tree and 256 changed
+Default bounds are 2,048 files per tree, 1 MiB per file, 16 MiB per tree and 256 changed
 paths. Unsupported kinds (including symlinks/submodules), unavailable Git inputs,
 unsafe paths and exceeded bounds leave scope incomplete and blocking.
 Limit diagnostics identify the inventory or content budget exceeded, its limit,
@@ -125,6 +125,31 @@ run on the working tree and cannot prove a different staged version conforms.
 Ignored untracked content is unmeasured. No checkout, index refresh, textconv or diff helper
 runs. This is not a filesystem transaction; the final `change:stable-inputs` check
 recaptures Git and accepted inputs and rejects changes observed during execution.
+
+The separately selected accepted conformance configuration may set
+`observation_limits.max_file_bytes` to an integer from 1 through 8,388,608 (8 MiB).
+Omitting the object or field retains 1,048,576 (1 MiB). For example:
+
+```yaml
+observation_limits:
+  max_file_bytes: 8388608
+```
+
+Only this per-file bound is configurable. Booleans, floats, nulls, unknown fields,
+zero/negative values and values above the ceiling are rejected. Profile and
+conformance sources remain bounded to 64 KiB. Target configuration, environment
+values, request labels and imported reports cannot select the trusted limit.
+Rechecking the accepted source before each executable check withholds commands
+if it changes; final recapture uses the original budget and invalidates the run.
+Larger limits do not waive architecture checks or exclude any tracked asset.
+
+New `change-results` records use schema version 2. `change.observation` records
+the effective limits, raw accepted-source SHA-256 and source state, and contributes
+to the canonical change identity. An unavailable policy leaves scope incomplete.
+Version-1 records retain their historical default-limit interpretation and original
+digests on replay. Older readers reject version 2; update the reader before sharing
+new records. Raw records and digests are consistency evidence, not authenticated
+approval. Consumer policy adoption still requires its own review.
 
 Current architecture constraints scan all matching Git-visible files, including
 unedited files. Target constraints apply only within the accepted transition and

@@ -51,6 +51,7 @@ class ChangeSnapshot:
     file_modes: dict[str, str] = field(default_factory=dict, repr=False)
     base_file_modes: dict[str, str] = field(default_factory=dict, repr=False)
     index_digest: str | None = None
+    observation: dict | None = None
 
     @property
     def complete(self):
@@ -67,6 +68,7 @@ class ChangeSnapshot:
     @property
     def document(self):
         return {
+            **({"observation": self.observation} if self.observation is not None else {}),
             "base": self.base,
             "revision": self.revision,
             "changes": [asdict(c) for c in self.changes],

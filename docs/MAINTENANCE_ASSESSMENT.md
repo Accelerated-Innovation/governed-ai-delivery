@@ -143,6 +143,11 @@ Idempotence, original-content preservation and rollback remain unchanged.
 
 `maintenance-assessment.schema.json` versions the record. It embeds inventory,
 discovery, canonical check results, explicit input snapshots and comparison digests.
+New assessments and their inventories use version 2 to bind observation-budget
+provenance. The identity's `observation_digest` covers the effective limits and
+accepted-source identity; a changed source requires reassessment. Saved version-1
+records continue to replay without rewritten identities or digests. Older readers
+reject version-2 records.
 Replay binds saved metadata to the effective approved-source records and recomputes
 release candidates before validating derived checks/recommendations. Missing candidate
 sources and inconsistent saved inputs are validation errors. Explicit new inputs to

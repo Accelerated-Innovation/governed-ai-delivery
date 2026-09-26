@@ -1,0 +1,673 @@
+{
+  "schema_version": 2,
+  "kind": "change-posture",
+  "repository_ref": "ref:d79158a23ce1e7f8998b0190e5a1605b6c0f1c42fd1294b4fb853838d3ceade4",
+  "report_ref": "ref:467cb8292cd757c11e229402e3952948b78bf0c28a1ee43de845902ec9c0d256",
+  "as_of": "2026-09-23T12:00:00+00:00",
+  "identity": {
+    "revision_ref": "ref:2fc5bcda06212e8caea3042e2f087e4ad938ebdf4069b39778fe1946fa9bacc6",
+    "tree_ref": "ref:d286dd41e6e81c307be3ff0b773080ef0fe90acefaa698704c739174dff23111",
+    "profile_ref": "ref:54f4f29fbd353a7187f91c33c83e1f3b04ba245fc3b12955ee89a8cd3a7d8637",
+    "request_plan_ref": "ref:34a073005dcb403b71dc2b888bdbe9f9e16f09f5d67d764a2d3294fa3db1e463",
+    "pack_lock_ref": "ref:202ae4fd083ec7590779f2ce6ff714c27e7aca45eea1a46b0845be26e4678bd7",
+    "change_ref": "ref:94234f6ea201121038bf5b063cdb9216d6d58c16cf32a25cb81d43dd4bb70ed1",
+    "base_ref": "ref:2fc5bcda06212e8caea3042e2f087e4ad938ebdf4069b39778fe1946fa9bacc6",
+    "observation_ref": "ref:f27160003d87b176d4e4325106d21079110e75ca2ca8e39a5306574b57ffa3f0"
+  },
+  "running_cli": {
+    "display": "0.21.1",
+    "ref": "ref:d5817740033875c88c6c65a96e5427f94d3f50aa2435edf829cae3f1dc163f7a"
+  },
+  "coverage": {
+    "origin": "unauthenticated-snapshot",
+    "git_complete": true,
+    "maintenance": "not-supplied",
+    "discovery": "not-supplied",
+    "provider_enforcement": "not-supplied",
+    "controls": "recorded-change-results",
+    "lock": "recorded"
+  },
+  "capabilities": {
+    "configured": [
+      {
+        "ref": "ref:5db068384cf1d3153846092f4cd56fbd48b8f4c5e3b34d749aeb837f84c259cc",
+        "label": "application-governance"
+      },
+      {
+        "ref": "ref:90edc1cc951b5aa9699bf78371ef3ab2166599c9deab2a26f4f202f2c8553e8d",
+        "label": "gherkin-delivery"
+      }
+    ],
+    "repository_required": [],
+    "recorded": [
+      {
+        "ref": "ref:5db068384cf1d3153846092f4cd56fbd48b8f4c5e3b34d749aeb837f84c259cc",
+        "label": "application-governance"
+      },
+      {
+        "ref": "ref:90edc1cc951b5aa9699bf78371ef3ab2166599c9deab2a26f4f202f2c8553e8d",
+        "label": "gherkin-delivery"
+      }
+    ],
+    "change_required": []
+  },
+  "configured_controls": [],
+  "architecture": {
+    "observed": [],
+    "accepted_contracts": [
+      {
+        "source_ref": "ref:56444f67ad8ac5bbeac0102dba0523920292b2eae4fb3bc580724291ea7d0ff7",
+        "scope_refs": [
+          "ref:4debec37e382e41c51cf776c87f5dccd97165db6279165bf85b72cd7ca3f54a5"
+        ]
+      }
+    ],
+    "transitions": []
+  },
+  "workflow": {
+    "selected": "bounded",
+    "request_ref": "ref:82a8067200226959b4e2ab5066f4788f3446b86f6bba671500578deae69ab10b",
+    "scope_refs": [
+      "ref:4debec37e382e41c51cf776c87f5dccd97165db6279165bf85b72cd7ca3f54a5",
+      "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+    ],
+    "impacts": {
+      "bounded": true,
+      "within-contracts": true,
+      "new-behavior": true,
+      "security": false,
+      "auth": false,
+      "data": false,
+      "public-contract": false,
+      "nfr": false,
+      "ownership": false,
+      "architecture": false,
+      "cross-service": false,
+      "llm": false,
+      "mcp": false
+    },
+    "requirements": [
+      {
+        "ref": "ref:51afb4c1da845cd1d4c7303292280391a0a1dcb67447c275de017b43f37fd2be",
+        "required": true,
+        "reason_ref": "ref:0d8e61a3414e783baea91fc6719323a6a5f7545a69469d33fbca76b2e84b54c3",
+        "policy_ref": "ref:af6dc5444f1cae91eaa224d625b099d6155a712e0135136ddac762051a1d01f0",
+        "scope_refs": [
+          "ref:4debec37e382e41c51cf776c87f5dccd97165db6279165bf85b72cd7ca3f54a5",
+          "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+        ]
+      }
+    ],
+    "artifacts": [
+      {
+        "ref": "ref:f959d824a325e25ec79187098df261c1aca310a36969afa9e36e3c89eab431e0",
+        "reason_ref": "ref:56db3293b7619d26534de202b681a4d5570c6de577da205dc9d4450b3c057d75",
+        "local_ref": "/plan/artifacts/0"
+      },
+      {
+        "ref": "ref:fd86444efe263001a85822b78fb5322237abdd9853cb110feb92a61f77af32eb",
+        "reason_ref": "ref:b295662477fb6fcaffa69c753b2635c2bd2f5c6dd0e84e2cf3f038f4959aff86",
+        "local_ref": "/plan/artifacts/1"
+      }
+    ],
+    "decisions": [],
+    "reassessment": {
+      "required": false,
+      "previous_plan_ref": null,
+      "reason_refs": [],
+      "added_control_refs": []
+    }
+  },
+  "results": {
+    "controls": [
+      {
+        "ref": "ref:6536db2963a857fd4151187e7bce47edc7dc8256d709f03ac9a9da29bd1257af",
+        "required": true,
+        "reason_ref": "ref:56db3293b7619d26534de202b681a4d5570c6de577da205dc9d4450b3c057d75",
+        "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+        "scope_refs": [
+          "ref:4debec37e382e41c51cf776c87f5dccd97165db6279165bf85b72cd7ca3f54a5",
+          "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+        ],
+        "label": "custom",
+        "state": "pass",
+        "execution": "executed",
+        "summary_ref": "ref:9516d76bf29021df5f668aa262c2b9bed727054ea58aa93bb626e435988de938",
+        "evidence": [
+          {
+            "source_ref": "ref:325f7475ab792e252350d7d144e363b0bfe13248e1fb10529b4be145d1c831c1",
+            "scope_refs": [
+              "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+            ],
+            "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+            "origin": "local-check",
+            "digest_ref": "ref:7aff1dafb09483d47cd0adacb1a79b703a4e1aaa8a4c7de2707057f12e4116b1",
+            "limitation_refs": [
+              "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "ref": "ref:c717782129187f69aaebdf3b75659276d0f623b09a8c12b873ad8dfab062967c",
+            "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+            "severity": "info",
+            "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+            "message_ref": "ref:9c205ceebdd50cce414e0a084da1eca982d088430410b37f29d968399f773060",
+            "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+            "location_ref": null,
+            "evidence": [
+              {
+                "source_ref": "ref:325f7475ab792e252350d7d144e363b0bfe13248e1fb10529b4be145d1c831c1",
+                "scope_refs": [
+                  "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+                ],
+                "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+                "origin": "local-check",
+                "digest_ref": "ref:7aff1dafb09483d47cd0adacb1a79b703a4e1aaa8a4c7de2707057f12e4116b1",
+                "limitation_refs": [
+                  "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+                ]
+              }
+            ]
+          }
+        ],
+        "local_ref": "/checks/results/0"
+      },
+      {
+        "ref": "ref:8146d0277d529ccdc8c96a3b0bfd68f43064e23e48612b70c1ba518d45025370",
+        "required": true,
+        "reason_ref": "ref:b295662477fb6fcaffa69c753b2635c2bd2f5c6dd0e84e2cf3f038f4959aff86",
+        "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+        "scope_refs": [
+          "ref:4debec37e382e41c51cf776c87f5dccd97165db6279165bf85b72cd7ca3f54a5",
+          "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+        ],
+        "label": "custom",
+        "state": "pass",
+        "execution": "executed",
+        "summary_ref": "ref:85cac4f3c5dcc8aa81acecbd9a640d122cb6185c06b4be5a6325115b31483166",
+        "evidence": [
+          {
+            "source_ref": "ref:3812989428cffdcbefd8e2d9db5cb6512ed36c373af5184dbc2ae2059353439a",
+            "scope_refs": [
+              "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+            ],
+            "method_ref": "ref:c18f599416f11031ae94d191f7cd6e4bbef172319e779308913c5449cb916c5e",
+            "origin": "tool-execution",
+            "digest_ref": "ref:bfe03db763218488e3097369407cd920769f7f8fd5ec78218f6dd8ed98839187",
+            "limitation_refs": [
+              "ref:fbce1da33e3fa83f28281043f0de4353e956ea5e8a33a0d1b7a8a7924b4b7951"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "ref": "ref:4ce311dc67d0823d214ddcdbd13e69639f08b281efd29bbc690b7bb392284c5e",
+            "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+            "severity": "info",
+            "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+            "message_ref": "ref:73e89a040b3c0f15c6c66f2859bcc0c3f137b96e57d8a37e2d17ba632fb85dc5",
+            "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+            "location_ref": null,
+            "evidence": [
+              {
+                "source_ref": "ref:3812989428cffdcbefd8e2d9db5cb6512ed36c373af5184dbc2ae2059353439a",
+                "scope_refs": [
+                  "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+                ],
+                "method_ref": "ref:c18f599416f11031ae94d191f7cd6e4bbef172319e779308913c5449cb916c5e",
+                "origin": "tool-execution",
+                "digest_ref": "ref:bfe03db763218488e3097369407cd920769f7f8fd5ec78218f6dd8ed98839187",
+                "limitation_refs": [
+                  "ref:fbce1da33e3fa83f28281043f0de4353e956ea5e8a33a0d1b7a8a7924b4b7951"
+                ]
+              }
+            ]
+          }
+        ],
+        "local_ref": "/checks/results/1"
+      },
+      {
+        "ref": "ref:5383f2eefe6c6e3ef9f0930fd97edaccf281d45148f7887aa84d17fa15ac2e41",
+        "required": true,
+        "reason_ref": "ref:dc1b3ef12280899c3f0b1acf85932434c1a684955832f065bf129a74b16dd1e8",
+        "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+        "scope_refs": [
+          "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+        ],
+        "label": "custom",
+        "state": "pass",
+        "execution": "executed",
+        "summary_ref": "ref:f2e98e87998468cd718e73da43d2a1a8c3902d7b30a03745ac6b27b388825caf",
+        "evidence": [
+          {
+            "source_ref": "ref:325f7475ab792e252350d7d144e363b0bfe13248e1fb10529b4be145d1c831c1",
+            "scope_refs": [
+              "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+            ],
+            "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+            "origin": "local-check",
+            "digest_ref": "ref:7aff1dafb09483d47cd0adacb1a79b703a4e1aaa8a4c7de2707057f12e4116b1",
+            "limitation_refs": [
+              "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "ref": "ref:b19480eec71898544194655a581f22262bb9499a9c7e7b7317805e1f7dd2a992",
+            "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+            "severity": "info",
+            "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+            "message_ref": "ref:cf8451bc68105d30a9d13b1ead90b1f7e2074d63287d6a370ebf7ac99fc3618a",
+            "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+            "location_ref": null,
+            "evidence": [
+              {
+                "source_ref": "ref:325f7475ab792e252350d7d144e363b0bfe13248e1fb10529b4be145d1c831c1",
+                "scope_refs": [
+                  "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+                ],
+                "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+                "origin": "local-check",
+                "digest_ref": "ref:7aff1dafb09483d47cd0adacb1a79b703a4e1aaa8a4c7de2707057f12e4116b1",
+                "limitation_refs": [
+                  "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+                ]
+              }
+            ]
+          }
+        ],
+        "local_ref": "/checks/results/2"
+      },
+      {
+        "ref": "ref:fdf7c7e4f399cc10f17cfa56f80c6dedcfd70e44382134473465e1f83decb2ca",
+        "required": true,
+        "reason_ref": "ref:530d2a5915cc977a784b33f058ee8874bc625b354bdd68734ea828e8c43559cd",
+        "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+        "scope_refs": [
+          "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+        ],
+        "label": "custom",
+        "state": "pass",
+        "execution": "executed",
+        "summary_ref": "ref:a5e28a6c1562f886c542e52bdf387701fb240c9d2ed8cb8add44912c138399c9",
+        "evidence": [
+          {
+            "source_ref": "ref:325f7475ab792e252350d7d144e363b0bfe13248e1fb10529b4be145d1c831c1",
+            "scope_refs": [
+              "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+            ],
+            "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+            "origin": "local-check",
+            "digest_ref": "ref:7aff1dafb09483d47cd0adacb1a79b703a4e1aaa8a4c7de2707057f12e4116b1",
+            "limitation_refs": [
+              "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "ref": "ref:1bda16460bdbd3f79d6711cbda0b85dcd4d30374126de7d61e77d6f594c0521a",
+            "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+            "severity": "info",
+            "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+            "message_ref": "ref:e82465ebfc9051fda080a9d95d932b5a149ab498f17d3f02d0df17a36cb02a9b",
+            "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+            "location_ref": null,
+            "evidence": [
+              {
+                "source_ref": "ref:325f7475ab792e252350d7d144e363b0bfe13248e1fb10529b4be145d1c831c1",
+                "scope_refs": [
+                  "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+                ],
+                "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+                "origin": "local-check",
+                "digest_ref": "ref:7aff1dafb09483d47cd0adacb1a79b703a4e1aaa8a4c7de2707057f12e4116b1",
+                "limitation_refs": [
+                  "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+                ]
+              }
+            ]
+          }
+        ],
+        "local_ref": "/checks/results/3"
+      },
+      {
+        "ref": "ref:e05f47e4d8f50028eca0c83c762b4431ac3101c47775352eeeda303348d4f5a8",
+        "required": true,
+        "reason_ref": "ref:055871fc8125e5c4369bc957cc861413201f027f08cda34ee8193fa7406f7741",
+        "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+        "scope_refs": [
+          "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+        ],
+        "label": "custom",
+        "state": "pass",
+        "execution": "executed",
+        "summary_ref": "ref:9455e9886d3dc9aeb560118c6737178eb2beb8a608a9350f7c935341ccf3278d",
+        "evidence": [
+          {
+            "source_ref": "ref:325f7475ab792e252350d7d144e363b0bfe13248e1fb10529b4be145d1c831c1",
+            "scope_refs": [
+              "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+            ],
+            "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+            "origin": "local-check",
+            "digest_ref": "ref:7aff1dafb09483d47cd0adacb1a79b703a4e1aaa8a4c7de2707057f12e4116b1",
+            "limitation_refs": [
+              "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "ref": "ref:796757e2b0eac913f264ea0642b46211b975361b05189c4c581f28c345eb1312",
+            "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+            "severity": "info",
+            "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+            "message_ref": "ref:7cbd8e25571129edbcdc2ce1f265ac02abc98082a3019d19f8ed8ebb63c15151",
+            "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+            "location_ref": null,
+            "evidence": [
+              {
+                "source_ref": "ref:325f7475ab792e252350d7d144e363b0bfe13248e1fb10529b4be145d1c831c1",
+                "scope_refs": [
+                  "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+                ],
+                "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+                "origin": "local-check",
+                "digest_ref": "ref:7aff1dafb09483d47cd0adacb1a79b703a4e1aaa8a4c7de2707057f12e4116b1",
+                "limitation_refs": [
+                  "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+                ]
+              }
+            ]
+          }
+        ],
+        "local_ref": "/checks/results/4"
+      },
+      {
+        "ref": "ref:271efc4b08ab95c338708062f7cf69ba55a2a54d404a165f67a46438a5b99a2a",
+        "required": true,
+        "reason_ref": "ref:e4a8e84f9e73a7fec73b57a7c298274526947b6279eaf84c2f313397b9dc3a4b",
+        "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+        "scope_refs": [
+          "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+        ],
+        "label": "custom",
+        "state": "pass",
+        "execution": "executed",
+        "summary_ref": "ref:231ed3826501ca367940008cbd220097b3211043be5691144091ed2b50f97632",
+        "evidence": [
+          {
+            "source_ref": "ref:325f7475ab792e252350d7d144e363b0bfe13248e1fb10529b4be145d1c831c1",
+            "scope_refs": [
+              "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+            ],
+            "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+            "origin": "local-check",
+            "digest_ref": "ref:7aff1dafb09483d47cd0adacb1a79b703a4e1aaa8a4c7de2707057f12e4116b1",
+            "limitation_refs": [
+              "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "ref": "ref:e0a863465fb41b945fe0d4d019b86fe9ece35c445f93dc36d8adb63236a33047",
+            "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+            "severity": "info",
+            "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+            "message_ref": "ref:5694796a222cfbf75f4a3591f5a3b12e2de3a6028043c88491c657e750152b20",
+            "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+            "location_ref": null,
+            "evidence": [
+              {
+                "source_ref": "ref:325f7475ab792e252350d7d144e363b0bfe13248e1fb10529b4be145d1c831c1",
+                "scope_refs": [
+                  "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+                ],
+                "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+                "origin": "local-check",
+                "digest_ref": "ref:7aff1dafb09483d47cd0adacb1a79b703a4e1aaa8a4c7de2707057f12e4116b1",
+                "limitation_refs": [
+                  "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+                ]
+              }
+            ]
+          }
+        ],
+        "local_ref": "/checks/results/5"
+      },
+      {
+        "ref": "ref:b06de18195463ad4b00b42fc04a14d7a6963a76d7cdca5919f010f7622c6347b",
+        "required": true,
+        "reason_ref": "ref:952ca43ce45dfea866286a7e76e0c8504dbcf2eaca8b1911f47ae70089bdc82d",
+        "policy_ref": "ref:348be275c7f87cfb52281b69f4d3277705d87ac9a8fc182e4136dd0dcdb9bec8",
+        "scope_refs": [
+          "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+        ],
+        "label": "custom",
+        "state": "pass",
+        "execution": "executed",
+        "summary_ref": "ref:304ba259e5d880effa43f13b7562627ed9c8fb219074013d9f24a2a9ddcefc0d",
+        "evidence": [
+          {
+            "source_ref": "ref:325f7475ab792e252350d7d144e363b0bfe13248e1fb10529b4be145d1c831c1",
+            "scope_refs": [
+              "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+            ],
+            "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+            "origin": "local-check",
+            "digest_ref": "ref:7aff1dafb09483d47cd0adacb1a79b703a4e1aaa8a4c7de2707057f12e4116b1",
+            "limitation_refs": [
+              "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "ref": "ref:b2b676da56dc8915207b03ea22ab4b8f144a8c4af5fa304b4d521687cf6d447d",
+            "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+            "severity": "info",
+            "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+            "message_ref": "ref:70de74e2e0d44aaf1b0c9684f79960912a171e7e591842b86598839da1742c92",
+            "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+            "location_ref": null,
+            "evidence": [
+              {
+                "source_ref": "ref:325f7475ab792e252350d7d144e363b0bfe13248e1fb10529b4be145d1c831c1",
+                "scope_refs": [
+                  "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+                ],
+                "method_ref": "ref:8d8bb84296f8000891337d9884bfdf790612b46f97b24a11fd1bf2b3b399cd20",
+                "origin": "local-check",
+                "digest_ref": "ref:7aff1dafb09483d47cd0adacb1a79b703a4e1aaa8a4c7de2707057f12e4116b1",
+                "limitation_refs": [
+                  "ref:8609adc65f5e551945c6ed20ad3f68e2dceac3a446c08961bd2bf9cdbca5fc95"
+                ]
+              }
+            ]
+          }
+        ],
+        "local_ref": "/checks/results/6"
+      },
+      {
+        "ref": "ref:1cef5eec6b8f5aa92c55aa4450eadb39382827f5ea642a4e61b1d2425e557f18",
+        "required": true,
+        "reason_ref": "ref:fc2167a729e8ed921bf6a3373f574697579c39afa840f32cb4bb1d904d6b681b",
+        "policy_ref": "ref:8ca4a584409d0902c4dac0e617e4558aeeef057b27093b5861d2b288ec8b4915",
+        "scope_refs": [
+          "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+        ],
+        "label": "custom",
+        "state": "pass",
+        "execution": "executed",
+        "summary_ref": "ref:43a44cb72c1275242535298c91c7bcfc53cf1ee9ede5daf8a096b85a39a95788",
+        "evidence": [
+          {
+            "source_ref": "ref:8ca4a584409d0902c4dac0e617e4558aeeef057b27093b5861d2b288ec8b4915",
+            "scope_refs": [
+              "ref:06f3e4f1732ceea589868c3f76712596a666cdeddfcfd8187a29f6419b244b5a"
+            ],
+            "method_ref": "ref:1ad759947105704dca757c9cba6e9207876b924ee5ff25a3c7c8482d01b84bbd",
+            "origin": "local-check",
+            "digest_ref": "ref:e10ab9064c1990518994492d8ad9266978b7abfe9aa3631b9d36b2e964bf3628",
+            "limitation_refs": [
+              "ref:b9d9cb2055e735b1755dcfbbce40e8db24f97a20813a107871f1407ea2f71e98"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "ref": "ref:51cdba7a0f8ab915ae7685bf3dacf64de66c845a31545a19b380a9d62982f289",
+            "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+            "severity": "info",
+            "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+            "message_ref": "ref:7d17dc6deae9a3cb2646e7b8c7f620d77334737de588c0f389d0110e19a56c17",
+            "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+            "location_ref": null,
+            "evidence": [
+              {
+                "source_ref": "ref:8ca4a584409d0902c4dac0e617e4558aeeef057b27093b5861d2b288ec8b4915",
+                "scope_refs": [
+                  "ref:06f3e4f1732ceea589868c3f76712596a666cdeddfcfd8187a29f6419b244b5a"
+                ],
+                "method_ref": "ref:1ad759947105704dca757c9cba6e9207876b924ee5ff25a3c7c8482d01b84bbd",
+                "origin": "local-check",
+                "digest_ref": "ref:e10ab9064c1990518994492d8ad9266978b7abfe9aa3631b9d36b2e964bf3628",
+                "limitation_refs": [
+                  "ref:b9d9cb2055e735b1755dcfbbce40e8db24f97a20813a107871f1407ea2f71e98"
+                ]
+              }
+            ]
+          }
+        ],
+        "local_ref": "/checks/results/7"
+      },
+      {
+        "ref": "ref:33dbca5c96bf1b3a4772d2348422092e995a1f7b01da0062f651567783494961",
+        "required": true,
+        "reason_ref": "ref:1a43724559ebb15f52838e6af6ff35ee7e2d970b6402d0cc0fdcceec75ccc03f",
+        "policy_ref": "ref:6d9aa9dacc74a1e85cc1f6035db90885ddc6c4ffdfe2f3f20f31ff33f6e184e8",
+        "scope_refs": [
+          "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+        ],
+        "label": "custom",
+        "state": "pass",
+        "execution": "executed",
+        "summary_ref": "ref:5ed90503068b071b6b15dfc62a12cec0700c8b0a6f7ec8f338f809253b2f44c7",
+        "evidence": [
+          {
+            "source_ref": "ref:6d9aa9dacc74a1e85cc1f6035db90885ddc6c4ffdfe2f3f20f31ff33f6e184e8",
+            "scope_refs": [
+              "ref:72baa935b31b16dec04700ba9f77daa2f9229c6da80db9f6b644340deb7326de"
+            ],
+            "method_ref": "ref:2d1c3f9edd24beed1d72497034f5232135e8bd8445a9c5c413b3032c534565c3",
+            "origin": "local-check",
+            "digest_ref": "ref:afa68316e6ff021183ddbf447bf3e08f0362189c42ec90c53295f451473801a0",
+            "limitation_refs": [
+              "ref:e909833c040577c84ce7ad35454dd2fca7a5cd3cd43ee26f7673cf7a6e148cfd"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "ref": "ref:a1be031df99dccf3f3b7af6a389311f64c7054e12c31d42e9922c1f8f5dc0a41",
+            "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+            "severity": "info",
+            "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+            "message_ref": "ref:df1d882abbca5b2c291b10f7a412b329f43f154d866497034c3c1aca930bbb50",
+            "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+            "location_ref": null,
+            "evidence": [
+              {
+                "source_ref": "ref:6d9aa9dacc74a1e85cc1f6035db90885ddc6c4ffdfe2f3f20f31ff33f6e184e8",
+                "scope_refs": [
+                  "ref:72baa935b31b16dec04700ba9f77daa2f9229c6da80db9f6b644340deb7326de"
+                ],
+                "method_ref": "ref:2d1c3f9edd24beed1d72497034f5232135e8bd8445a9c5c413b3032c534565c3",
+                "origin": "local-check",
+                "digest_ref": "ref:afa68316e6ff021183ddbf447bf3e08f0362189c42ec90c53295f451473801a0",
+                "limitation_refs": [
+                  "ref:e909833c040577c84ce7ad35454dd2fca7a5cd3cd43ee26f7673cf7a6e148cfd"
+                ]
+              }
+            ]
+          }
+        ],
+        "local_ref": "/checks/results/8"
+      },
+      {
+        "ref": "ref:51afb4c1da845cd1d4c7303292280391a0a1dcb67447c275de017b43f37fd2be",
+        "required": true,
+        "reason_ref": "ref:0d8e61a3414e783baea91fc6719323a6a5f7545a69469d33fbca76b2e84b54c3",
+        "policy_ref": "ref:af6dc5444f1cae91eaa224d625b099d6155a712e0135136ddac762051a1d01f0",
+        "scope_refs": [
+          "ref:4debec37e382e41c51cf776c87f5dccd97165db6279165bf85b72cd7ca3f54a5",
+          "ref:30cfd7ea464126af0da7ccebdc922f01a60e84c26af6622a28b964cb3dca929f"
+        ],
+        "label": "custom",
+        "state": "pass",
+        "execution": "executed",
+        "summary_ref": "ref:85cac4f3c5dcc8aa81acecbd9a640d122cb6185c06b4be5a6325115b31483166",
+        "evidence": [
+          {
+            "source_ref": "ref:3812989428cffdcbefd8e2d9db5cb6512ed36c373af5184dbc2ae2059353439a",
+            "scope_refs": [
+              "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+            ],
+            "method_ref": "ref:c18f599416f11031ae94d191f7cd6e4bbef172319e779308913c5449cb916c5e",
+            "origin": "tool-execution",
+            "digest_ref": "ref:bfe03db763218488e3097369407cd920769f7f8fd5ec78218f6dd8ed98839187",
+            "limitation_refs": [
+              "ref:fbce1da33e3fa83f28281043f0de4353e956ea5e8a33a0d1b7a8a7924b4b7951"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "ref": "ref:9e9c9a11ede7094e8cf5c285bff2067b7bb0cab55cc17c8aab44bd2cf9a5461d",
+            "code_ref": "ref:4357539b78dcd7242a11a3ec820ee492a6e890cdb805a14c7e8ea66a2ac3b262",
+            "severity": "info",
+            "category_ref": "ref:ca9ea0fc0ac0a523fe6ce63fbe9d5882adf87f30a19aa6ed0ed8d7726f52bfca",
+            "message_ref": "ref:73e89a040b3c0f15c6c66f2859bcc0c3f137b96e57d8a37e2d17ba632fb85dc5",
+            "action_ref": "ref:48a9164c48eded3d712c6c9e0ae6fa70b04e15015b1f2ba359815cf0a811ecc3",
+            "location_ref": null,
+            "evidence": [
+              {
+                "source_ref": "ref:3812989428cffdcbefd8e2d9db5cb6512ed36c373af5184dbc2ae2059353439a",
+                "scope_refs": [
+                  "ref:27d92133dfe03a5fd0e9f1625e981cb05aef208e46e6944a058ebe564813909b"
+                ],
+                "method_ref": "ref:c18f599416f11031ae94d191f7cd6e4bbef172319e779308913c5449cb916c5e",
+                "origin": "tool-execution",
+                "digest_ref": "ref:bfe03db763218488e3097369407cd920769f7f8fd5ec78218f6dd8ed98839187",
+                "limitation_refs": [
+                  "ref:fbce1da33e3fa83f28281043f0de4353e956ea5e8a33a0d1b7a8a7924b4b7951"
+                ]
+              }
+            ]
+          }
+        ],
+        "local_ref": "/checks/results/9"
+      }
+    ],
+    "summary": {
+      "executed": 10,
+      "fail": 0,
+      "not-applicable": 0,
+      "pass": 10,
+      "required": 10,
+      "required_satisfied": 10,
+      "skipped": 0,
+      "unknown": 0,
+      "waived": 0,
+      "warn": 0
+    },
+    "state": "pass",
+    "exit_code": 0
+  },
+  "digest": "6a1e9119b5deabb26e549ce580729d49a7bf84d18f049e2a69551acba2ba28fe"
+}

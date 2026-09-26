@@ -23,7 +23,7 @@ from tests.test_provider_admission import event, policy
 AS_OF = "2026-09-24T12:00:00Z"
 
 
-def configured(tmp_path, provider="github"):
+def configured(tmp_path, provider="github", *, observation_limit=None):
     target, trusted, _, req, _ = fixture(tmp_path, provider)
     source = trusted / ".govkit/profile.yaml"
     document = json.loads(source.read_text())
@@ -32,7 +32,16 @@ def configured(tmp_path, provider="github"):
     apply_install(
         preview_install(source, trusted, bundled_catalog(), govkit_version=GOVKIT_VERSION)
     )
+    if observation_limit is not None:
+        path = trusted / "conformance.json"
+        conformance = json.loads(path.read_text())
+        conformance["observation_limits"] = {"max_file_bytes": observation_limit}
+        path.write_text(json.dumps(conformance))
+        for root in (target, trusted):
+            (root / "src").mkdir(exist_ok=True)
+            (root / "src/asset.bin").write_bytes(b"\0" * (1024 * 1024 + 1))
     shutil.copytree(trusted / ".govkit", target / ".govkit")
+    shutil.copyfile(trusted / "conformance.json", target / "conformance.json")
     config = tmp_path / "settings.json"
     config.write_text(
         json.dumps(settings(execute_checks=["project:tests"], admission=policy(provider)))

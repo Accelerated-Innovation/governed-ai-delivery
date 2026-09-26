@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .observation_limits import DEFAULT_MAX_FILE_BYTES, ObservationLimits
 from .pack_loading import contained_file
 from .schema_validation import DocumentError, content_digest, parse_document, validate_document
 from .workflows import _scope
@@ -21,6 +22,11 @@ def load_change_policy(target: Path, profile):
         raise DocumentError("Conformance configuration exceeds 64 KiB")
     document = parse_document(content)
     validate_document(document, "change-policy")
+    ObservationLimits(
+        max_file_bytes=document.get("observation_limits", {}).get(
+            "max_file_bytes", DEFAULT_MAX_FILE_BYTES
+        )
+    )
     for collection in ("commands", "artifacts", "constraints"):
         identifiers = [item["id"] for item in document[collection]]
         if len(identifiers) != len(set(identifiers)):

@@ -410,6 +410,7 @@ jobs:
         run: |
           cd /tmp
           /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_pipeline_smoke.py"
+          /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_observation_smoke.py"
 
       - name: Provider admission and maintenance evidence work from the wheel
         run: |

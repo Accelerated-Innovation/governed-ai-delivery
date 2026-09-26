@@ -147,14 +147,14 @@ def test_wrong_limits_object_is_rejected_before_git(tmp_path, monkeypatch):
         capture_change(tmp_path, "HEAD", limits={"max_file_bytes": 8388608})
 
 
-def test_configuration_remains_closed_until_all_observers_are_integrated():
+def test_accepted_configuration_keeps_companion_bounds_closed():
     policy = {
         "schema_version": 1,
         "impact_rules": [],
         "commands": [],
         "artifacts": [],
         "constraints": [],
-        "observation_limits": {"max_file_bytes": 8388608},
+        "observation_limits": {"max_file_bytes": 8388608, "max_total_bytes": 33554432},
     }
 
     with pytest.raises(DocumentError, match="observation_limits"):
