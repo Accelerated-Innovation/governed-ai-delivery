@@ -60,8 +60,12 @@ def run_pilot(workspace, agent):
     write(trusted, "conformance.json", json.dumps(fixture["conformance"]))
 
     def git(*args):
+        # Fixture commits must not leave background writers racing later snapshots.
         return subprocess.run(
-            ["git", "-C", str(target), *args], check=True, capture_output=True, text=True
+            ["git", "-c", "maintenance.auto=false", "-C", str(target), *args],
+            check=True,
+            capture_output=True,
+            text=True,
         ).stdout.strip()
 
     git("init", "-q")
