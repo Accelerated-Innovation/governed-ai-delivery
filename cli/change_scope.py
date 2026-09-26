@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import stat
 import subprocess
@@ -13,6 +14,10 @@ from pathlib import Path
 
 from .pack_loading import contained_file, safe_relative
 from .schema_validation import canonical_json, content_digest
+
+
+class _ObservationLimit(ValueError):
+    """A locally constructed budget diagnostic, safe to include in a report."""
 
 
 @dataclass(frozen=True)
@@ -147,14 +152,25 @@ def capture_change(
             ).split(b"\0")
             if n
         }
-        if (
-            len(entries) > max_files
-            or len(index) > max_files
-            or len(names) > max_files
-            or any(e[3] > max_bytes for e in entries)
-            or sum(e[3] for e in entries) > max_total_bytes
+        for label, count in (
+            ("Baseline file", len(entries)),
+            ("Index entry", len(index)),
+            ("Git-visible path", len(names)),
         ):
-            raise ValueError("Repository exceeds file/content observation limits")
+            if count > max_files:
+                raise _ObservationLimit(f"{label} count {count} exceeds limit {max_files}.")
+        for path, _, _, size in entries:
+            if size > max_bytes:
+                raise _ObservationLimit(
+                    f"Baseline file {json.dumps(path)} has {size} bytes; "
+                    f"exceeds per-file limit of {max_bytes} bytes."
+                )
+        baseline_size = sum(e[3] for e in entries)
+        if baseline_size > max_total_bytes:
+            raise _ObservationLimit(
+                f"Baseline has {baseline_size} bytes; "
+                f"exceeds total-content limit of {max_total_bytes} bytes."
+            )
         blobs = _git(
             target,
             "cat-file",
@@ -183,8 +199,16 @@ def capture_change(
             with path.open("rb") as stream:
                 content = stream.read(max_bytes + 1)
             total += len(content)
-            if len(content) > max_bytes or total > max_total_bytes:
-                raise ValueError("Working tree exceeds content observation limits")
+            if len(content) > max_bytes:
+                raise _ObservationLimit(
+                    f"Working-tree file {json.dumps(name)} has at least {len(content)} bytes; "
+                    f"exceeds per-file limit of {max_bytes} bytes."
+                )
+            if total > max_total_bytes:
+                raise _ObservationLimit(
+                    f"Working-tree content has at least {total} bytes; "
+                    f"exceeds total-content limit of {max_total_bytes} bytes."
+                )
             after[name] = content
             current_modes[name] = b"100755" if metadata.st_mode & stat.S_IXUSR else b"100644"
         base_index = {p: (m, sha) for p, m, sha, _ in entries}
@@ -219,11 +243,15 @@ def capture_change(
                 )
             )
         if len(changes) > max_changed:
-            raise ValueError("Change exceeds the workflow scope limit")
+            raise _ObservationLimit(
+                f"Changed-path count {len(changes)} exceeds limit {max_changed}."
+            )
         if _git(target, "rev-parse", "--verify", "HEAD^{commit}").decode().strip() != revision:
             raise ValueError("HEAD changed during observation")
         if _git(target, "ls-files", "--stage", "-v", "-z") != index_input:
             raise ValueError("Index changed during observation")
+    except _ObservationLimit as exc:
+        problems.append(f"{exc} Scope remains incomplete; review repository bounds and retry.")
     except (OSError, ValueError, subprocess.SubprocessError):
         problems.append(
             "Git scope is incomplete, unsafe, unavailable or exceeds observation limits; inspect the repository and retry."

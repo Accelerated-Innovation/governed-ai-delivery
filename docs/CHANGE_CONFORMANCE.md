@@ -102,6 +102,16 @@ as add/delete. Repository-root inspection avoids partial-directory blind spots.
 Bounds are 2,048 files per tree, 1 MiB per file, 16 MiB per tree and 256 changed
 paths. Unsupported kinds (including symlinks/submodules), unavailable Git inputs,
 unsafe paths and exceeded bounds leave scope incomplete and blocking.
+Limit diagnostics identify the inventory or content budget exceeded, its limit,
+and the observed count or byte size. Per-file diagnostics include a JSON-escaped
+repository-relative path; bounded working-tree reads report a lower bound on size.
+The first exceeded budget stops capture, so resolving it may reveal another bound.
+Human and JSON conformance reports retain these diagnostics while scope remains
+unknown and the command exits nonzero. They contain no file contents or raw Git
+errors. These raw local reports may identify repository paths; use the
+[privacy-filtered change posture export](CHANGE_POSTURE.md) for sharing.
+The diagnostics do not change budgets or authorize excluding files, removing assets
+or accepting policy. Review such changes separately before retrying.
 Sparse/skip-worktree and conflicted indexes are unsupported and remain incomplete;
 missing sparse files are not reported as deletions. The index's object IDs, modes
 and flags contribute to the captured identity. If content changed from the base in

@@ -316,7 +316,7 @@ def inspect_change(
             "git:" + (change.base or base),
             change.paths or (".",),
             "base-to-git-visible-worktree",
-            "local-check" if change.complete else "unverified",
+            "local-check" if change.complete else "unverified-artifact",
             change.digest,
             (
                 "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun.",
@@ -364,20 +364,22 @@ def inspect_change(
         ),
         "Require explicit executable/artifact/impact mapping",
     )
-    add(
-        "change:scope",
-        lambda _: _outcome(
-            State.UNKNOWN if not change.complete else State.FAIL if unclassified else State.PASS,
-            "Unclassified changed paths: " + ", ".join(unclassified)
-            if unclassified
-            else "Complete Git scope captured"
-            if change.complete
-            else change.problems[0],
-            proof,
-            code="unclassified-scope" if unclassified else None,
-        ),
-        "Do not let path filters hide changes",
-    )
+
+    def scope_check(_):
+        if not change.complete:
+            return _outcome(
+                State.UNKNOWN, "; ".join(change.problems), proof, code="incomplete-scope"
+            )
+        if unclassified:
+            return _outcome(
+                State.FAIL,
+                "Unclassified changed paths: " + ", ".join(unclassified),
+                proof,
+                code="unclassified-scope",
+            )
+        return _outcome(State.PASS, "Complete Git scope captured", proof)
+
+    add("change:scope", scope_check, "Do not let path filters hide changes")
     expansion = [
         p for p in change.paths if not any(_covers(s, p) for s in request.document["scope"])
     ]
