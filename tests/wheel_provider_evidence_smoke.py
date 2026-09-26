@@ -39,8 +39,12 @@ def run_pilot(workspace, agent, provider):
         return path
 
     def git(root, *args):
+        # Fixture commits must not leave background writers racing later snapshots.
         return subprocess.run(
-            ["git", "-C", str(root), *args], check=True, capture_output=True, text=True
+            ["git", "-c", "maintenance.auto=false", "-C", str(root), *args],
+            check=True,
+            capture_output=True,
+            text=True,
         ).stdout.strip()
 
     for root in (target, trusted):

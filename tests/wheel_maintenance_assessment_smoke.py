@@ -63,7 +63,12 @@ def run_pilot(workspace, agent):
             "fixture",
         ),
     ):
-        subprocess.run(["git", "-C", str(target), *args], check=True, capture_output=True)
+        # Fixture commits must not leave background writers racing later snapshots.
+        subprocess.run(
+            ["git", "-c", "maintenance.auto=false", "-C", str(target), *args],
+            check=True,
+            capture_output=True,
+        )
     baseline = discover(target).document
     baseline_path = workspace / "baseline.json"
     baseline_path.write_text(json.dumps(baseline))
