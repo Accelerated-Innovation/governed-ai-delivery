@@ -1,9 +1,14 @@
 # ADR 0018: Trusted Git observation budgets
 
-Status: **Proposed for maintainer review; not implemented or accepted policy.**
-Merging this proposal's PR accepts the design for implementation. Selecting a
-larger budget for any consumer still requires a separate policy review and
-protected caller setup.
+Status: **Accepted for implementation on merge of
+[PR #211](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/211);
+proposed until that merge.** The PR's recorded merge is the acceptance event for
+this design and its entry in the implementation plan's decision log. No further
+status edit is required to make that acceptance effective.
+
+Runtime implementation remains pending. Selecting a larger budget for any
+consumer still requires a separate policy review and protected caller setup;
+design acceptance does not adopt consumer policy or activate enforcement.
 
 ## Problem and evidence
 
