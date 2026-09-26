@@ -1,6 +1,6 @@
 # ADR 0019: Bounded isolated command worker primitive
 
-Status: Proposed for review with I10d8's implementation. Merging that PR accepts
+Status: Proposed for review with [I10d8's implementation PR #219](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/219). Merging that PR accepts
 this primitive's design; it does not activate a protected caller or approve a
 production daemon/image, consumer policy change or external settings.
 
