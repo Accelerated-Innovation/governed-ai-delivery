@@ -69,8 +69,12 @@ A caller-supplied all-true provider JSON does not close the enforcement criterio
 
 ## Scope and next action
 
-Review the private consumer bootstrap, then resolve its readiness findings and
-propose accepted policy with an independently protected caller. Its seven offline
+PR #209 is integrated with all six final-head checks passing. The private consumer
+bootstrap remains open with its offline check passing. Source diagnostics now
+identify exceeded Git observation budgets; valid unverified provenance retains the
+failure in human/JSON reports. Default limits and the consumer blocker remain.
+Review the bootstrap and choose a separately reviewed treatment for oversized
+tracked assets, then propose accepted policy with an independently protected caller. Its seven offline
 response-contract tests and two local negative controls are a first baseline, not
 provider enforcement or model-quality evidence. Live bypass trials and consenting
 team observations follow the reviewed setup.
