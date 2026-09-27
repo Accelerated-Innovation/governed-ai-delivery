@@ -213,17 +213,19 @@ def _run(argv, env, *, timeout, data=b"") -> _ProcessResult:
         except OSError:
             io_error.set()
 
-    threads = [
-        threading.Thread(target=drain, args=(stream, destination), daemon=True)
-        for stream, destination in zip((process.stdout, process.stderr), output, strict=True)
-    ]
-    threads.append(threading.Thread(target=send, daemon=True))
-    for thread in threads:
-        thread.start()
-    deadline = time.monotonic() + timeout
+    started = []
     state = WorkerState.COMPLETED
     try:
-        while process.poll() is None or any(t.is_alive() for t in threads):
+        threads = [
+            threading.Thread(target=drain, args=(stream, destination), daemon=True)
+            for stream, destination in zip((process.stdout, process.stderr), output, strict=True)
+        ]
+        threads.append(threading.Thread(target=send, daemon=True))
+        for thread in threads:
+            thread.start()
+            started.append(thread)
+        deadline = time.monotonic() + timeout
+        while process.poll() is None or any(t.is_alive() for t in started):
             if overflow.is_set():
                 state = WorkerState.OUTPUT_LIMIT
                 break
@@ -234,11 +236,15 @@ def _run(argv, env, *, timeout, data=b"") -> _ProcessResult:
                 state = WorkerState.TIMED_OUT
                 break
             overflow.wait(0.01)
+    except RuntimeError:
+        # Thread exhaustion is a transport failure. Reap the client even when
+        # startup only partially succeeded, then let execute recover its CID.
+        state = WorkerState.UNAVAILABLE
     finally:
         if process.poll() is None:
             process.kill()
         process.wait()
-        for thread in threads:
+        for thread in started:
             thread.join(timeout=1)
         for stream in (process.stdin, process.stdout, process.stderr):
             stream.close()

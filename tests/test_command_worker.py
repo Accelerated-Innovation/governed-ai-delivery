@@ -65,6 +65,108 @@ def sample_request():
     return CommandRequest(("{python}", "test.py"), (SnapshotFile("test.py", b"print('ok')\n"),), 5)
 
 
+@pytest.fixture
+def transport_processes(monkeypatch):
+    """Observe real children and reclaim leaks even when a regression fails."""
+    processes, started = [], []
+    popen = command_worker.subprocess.Popen
+    start = command_worker.threading.Thread.start
+
+    def launch(*args, **kwargs):
+        process = popen(*args, **kwargs)
+        processes.append(process)
+        return process
+
+    def start_thread(thread):
+        start(thread)
+        started.append(thread)
+
+    monkeypatch.setattr(command_worker.subprocess, "Popen", launch)
+    monkeypatch.setattr(command_worker.threading.Thread, "start", start_thread)
+    yield processes, started
+    for process in processes:
+        if process.poll() is None:
+            process.kill()
+        process.wait(timeout=5)
+    for thread in started:
+        thread.join(timeout=5)
+    for process in processes:
+        for stream in (process.stdin, process.stdout, process.stderr):
+            stream.close()
+
+
+@pytest.mark.parametrize("failed_start", [1, 2, 3])
+def test_thread_exhaustion_reaps_client_and_started_helpers(
+    transport_processes, monkeypatch, failed_start
+):
+    processes, started = transport_processes
+    start = command_worker.threading.Thread.start
+    attempts = 0
+
+    def exhausted(thread):
+        nonlocal attempts
+        attempts += 1
+        if attempts == failed_start:
+            raise RuntimeError("can't start new thread")
+        start(thread)
+
+    monkeypatch.setattr(command_worker.threading.Thread, "start", exhausted)
+    result = command_worker._run(
+        [sys.executable, "-I", "-c", "import time; time.sleep(60)"], {}, timeout=1
+    )
+    assert result.state is WorkerState.UNAVAILABLE
+    assert processes[0].poll() is not None
+    assert all(
+        stream.closed for stream in (processes[0].stdin, processes[0].stdout, processes[0].stderr)
+    )
+    assert all(not thread.is_alive() for thread in started)
+
+
+@pytest.mark.parametrize(
+    "action,persistent,expected",
+    [
+        ("create", False, WorkerState.UNAVAILABLE),
+        ("inspect", False, WorkerState.UNAVAILABLE),
+        ("start", False, WorkerState.UNAVAILABLE),
+        ("rm", False, WorkerState.CLEANUP_FAILED),
+        ("start", True, WorkerState.CLEANUP_FAILED),
+    ],
+)
+def test_thread_exhaustion_preserves_owned_container_cleanup(
+    docker, transport_processes, monkeypatch, action, persistent, expected
+):
+    runtime, _, _, _ = docker
+    processes, started = transport_processes
+    start = command_worker.threading.Thread.start
+    failed = False
+
+    def exhausted(thread):
+        nonlocal failed
+        process = processes[-1]
+        if (persistent and failed) or (not failed and process.args[5] == action):
+            failed = True
+            if action == "create":
+                # Ensure the external client has written its CID before startup fails.
+                process.wait(timeout=5)
+            raise RuntimeError("can't start new thread")
+        start(thread)
+
+    monkeypatch.setattr(command_worker.threading.Thread, "start", exhausted)
+    result = execute(runtime, sample_request())
+    assert failed
+    assert result.state is expected
+    assert result.exit_code is None
+    assert result.stdout == result.stderr == b""
+    assert processes[-1].args[5:] == ["rm", "--force", "--volumes", CONTAINER]
+    assert all(process.poll() is not None for process in processes)
+    assert all(not thread.is_alive() for thread in started)
+    assert all(
+        stream.closed
+        for process in processes
+        for stream in (process.stdin, process.stdout, process.stderr)
+    )
+
+
 @pytest.mark.parametrize(
     "path", ["/host", "../host", "a/../b", "a//b", "a\\b", ".git/config", "x/.GIT/config", "a\x00b"]
 )

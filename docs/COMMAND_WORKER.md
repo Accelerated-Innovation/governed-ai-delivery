@@ -10,7 +10,7 @@ and pack checks still use their existing trusted, unsandboxed paths. No CLI,
 environment variable, profile field or generated workflow selects this worker.
 Routing those paths through a trusted caller-selected boundary, preserving
 mandatory checks and binding canonical evidence, is the next increment. See
-[ADR 0019](../plans/decisions/0019-isolated-command-worker.md).
+[ADR 0019](https://github.com/Accelerated-Innovation/governed-ai-delivery/blob/ec22f910a52c044553e2dd742195b63a01fbb8f7/plans/decisions/0019-isolated-command-worker.md).
 
 ## Inputs and runtime authority
 
@@ -81,6 +81,9 @@ cleans up only the container ID written by its own Docker create operation,
 including when creation fails after writing that ID. If the daemon becomes
 unreachable or creation is interrupted before returning an ID, operator
 reconciliation can still be needed; this is not a durable job/recovery service.
+Failure to start a transport helper thread also reaps the client and attempts
+removal of its known container; continued exhaustion during removal produces
+`cleanup-failed` rather than a command verdict.
 
 | Result state | Meaning |
 | --- | --- |
@@ -109,8 +112,10 @@ resource limits, positive/negative exits, spoofed stdout, timeout, overflow and
 startup failure. It does not run automatically in the default suite or infer
 availability of Docker from a developer machine.
 
-Run [the pilot script](../scripts/pilot_command_worker.py) with the fresh wheel's
-interpreter, Python isolation and explicit runtime values:
+Obtain [the pilot script](https://github.com/Accelerated-Innovation/governed-ai-delivery/blob/ec22f910a52c044553e2dd742195b63a01fbb8f7/scripts/pilot_command_worker.py)
+from the repository and run it with the fresh wheel's interpreter, Python
+isolation and explicit runtime values. The script and ADR are repository
+resources; they are not included in the wheel:
 
 ```text
 /absolute/runtime/bin/python -I /absolute/source/scripts/pilot_command_worker.py \
