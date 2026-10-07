@@ -24,8 +24,11 @@ REPO = Path(__file__).resolve().parent.parent
 
 @pytest.fixture(autouse=True)
 def armed(monkeypatch):
+    from cli import version
     from cli.marker import _reset_legacy_deprecation_warning
 
+    # The notice starts with 1.0.0; pin a release inside the warning period.
+    monkeypatch.setattr(version, "GOVKIT_VERSION", "1.0.0")
     monkeypatch.delenv(ENV, raising=False)
     monkeypatch.setenv("GOVKIT_NO_MIGRATION_WARNING", "1")
     _reset_legacy_deprecation_warning()
@@ -117,6 +120,53 @@ def test_replacement_paths_do_not_warn(tmp_path, monkeypatch, capsys):
     assert run(monkeypatch, "migrate", "--target", str(target), "--json") == 0
     assert json.loads(capsys.readouterr().out)["acceptance"] == "proposed"
     assert read_govkit_marker(tmp_path / "markerless") is None
+
+    assert deprecations(capsys.readouterr().err) == 0
+
+
+@pytest.mark.parametrize("running", ["0.21.1", "0.99.0"])
+def test_releases_before_the_warning_start_stay_quiet(tmp_path, monkeypatch, capsys, running):
+    from cli import version
+    from cli.marker import read_govkit_marker
+
+    monkeypatch.setattr(version, "GOVKIT_VERSION", running)
+    target = legacy(tmp_path)
+
+    assert read_govkit_marker(target)["level"] == "4"
+    assert deprecations(capsys.readouterr().err) == 0
+
+
+def test_detect_dry_run_without_legacy_inputs_stays_quiet(tmp_path, monkeypatch, capsys):
+    target = tmp_path / "project"
+    target.mkdir()
+
+    assert run(monkeypatch, "apply", "--agent", "claude-code", "--target", str(target),
+               "--detect") == 0
+
+    assert not (target / ".govkit").exists()
+    assert deprecations(capsys.readouterr().err) == 0
+
+
+@pytest.mark.parametrize("command", ["verify-authority", "verify-contract"])
+def test_authority_checks_reading_the_marker_warn(tmp_path, monkeypatch, capsys, command):
+    target = legacy(tmp_path)
+    baseline = tmp_path / "baseline.json"
+    baseline.write_text("{}", encoding="utf-8")
+
+    extra = ["--baseline", str(baseline)] if command == "verify-authority" else []
+    run(monkeypatch, command, "--target", str(target), *extra)
+
+    assert deprecations(capsys.readouterr().err) == 1
+
+
+def test_authority_checks_without_a_marker_stay_quiet(tmp_path, monkeypatch, capsys):
+    target = tmp_path / "project"
+    target.mkdir()
+    baseline = tmp_path / "baseline.json"
+    baseline.write_text("{}", encoding="utf-8")
+
+    assert run(monkeypatch, "verify-authority", "--target", str(target),
+               "--baseline", str(baseline)) == 0
 
     assert deprecations(capsys.readouterr().err) == 0
 

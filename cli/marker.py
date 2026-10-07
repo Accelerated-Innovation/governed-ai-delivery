@@ -71,6 +71,7 @@ _VERSION_MIGRATION_WARNING = _OneTimeWarning("GOVKIT_NO_MIGRATION_WARNING")
 _SHAPE_MIGRATION_WARNING = _OneTimeWarning("GOVKIT_NO_SHAPE_MIGRATION_WARNING")
 _DIRECTORY_MIGRATION_WARNING = _OneTimeWarning("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING")
 _LEGACY_DEPRECATION_WARNING = _OneTimeWarning("GOVKIT_NO_LEGACY_WARNING")
+_LEGACY_WARNING_START = "1.0.0"
 
 
 def _compare_version(v1: str, v2: str) -> int:
@@ -182,7 +183,13 @@ def warn_legacy_deprecation() -> None:
     their own snapshot boundaries, so the replacement path stays quiet.
     Suppressible via GOVKIT_NO_LEGACY_WARNING=1. The boundary itself is
     recorded in docs/LEGACY_MIGRATION.md; keep this text aligned with it.
+
+    Dormant before 1.0.0, where the approved warning period starts, so an
+    interim 0.x release does not begin the clock early. Unparseable
+    development versions compare equal and therefore warn.
     """
+    if _compare_version(version.GOVKIT_VERSION, _LEGACY_WARNING_START) < 0:
+        return
     _LEGACY_DEPRECATION_WARNING.warn(
         "warning: level-based legacy installation (govkit apply/upgrade, --level "
         "and .govkit/marker.json) is deprecated. It stays supported throughout "

@@ -36,6 +36,7 @@ from pathlib import Path
 
 from . import paths, pdg_client
 from .authority_check import Outcome, PdgUnreachable, Result, exit_status, verify
+from .marker import warn_legacy_deprecation
 
 TOKEN_ENV = "GOVKIT_PDG_TOKEN"
 
@@ -68,6 +69,9 @@ def _authority(target: Path) -> dict:
     marker = target / ".govkit" / "marker.json"
     if not marker.is_file():
         return {"source": "none"}
+    # Read directly rather than through the migrating marker reader, but the
+    # marker is still a deprecated legacy input (#149).
+    warn_legacy_deprecation()
     try:
         data = json.loads(marker.read_text(encoding="utf-8"))
     except (OSError, ValueError) as unreadable:

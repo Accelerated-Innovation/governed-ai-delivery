@@ -177,14 +177,15 @@ def cmd_apply(args: argparse.Namespace) -> None:
     if not target.exists():
         print(f"Error: target directory '{target}' does not exist.")
         sys.exit(1)
-    # Every apply is a level-based install, including the first one, which
-    # has no marker yet to trigger the notice on read.
-    warn_legacy_deprecation()
 
     # PR 3 / Chunk D: --detect runs inference and exits without writing.
     if getattr(args, "detect", False):
         _cmd_apply_detect_dry_run(target, args)
         return
+
+    # Every install is level-based, including the first one, which has no
+    # marker yet to trigger the notice on read. A --detect dry run is not.
+    warn_legacy_deprecation()
 
     manifest = load_manifest(args.agent)
     agent_dir = paths.AGENTS_DIR / args.agent
