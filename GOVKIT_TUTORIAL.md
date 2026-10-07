@@ -14,8 +14,10 @@ packs; do not assume that every legacy skill described later is installed.
 
 Existing level-based installations remain supported. Use
 [legacy migration](docs/LEGACY_MIGRATION.md) to preview a conversion, preserve
-configured requirements and customizations, and retain rollback. No retirement
-release or warning period has been announced.
+configured requirements and customizations, and retain rollback. Level-based
+installation is deprecated from 1.0.0, stays supported throughout 1.x and is
+removed no earlier than 2.0.0; see the
+[deprecation policy](docs/LEGACY_MIGRATION.md#deprecation-and-retirement-policy).
 
 The bundle setup, calibration and feature lifecycle below describe the legacy
 consumer installation. They remain useful for those installations; they are not

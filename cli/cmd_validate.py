@@ -12,12 +12,15 @@ import sys
 from pathlib import Path
 
 from . import paths
+from .marker import warn_legacy_deprecation
 from .validate import run_validation
 
 
 def cmd_validate(args: argparse.Namespace) -> None:
     target = Path(args.target).resolve()
     level = args.level
+    if level:
+        warn_legacy_deprecation()
     strict = getattr(args, "strict", False)
     sys.exit(run_validation(target, level=level, strict=strict))
 

@@ -21,7 +21,7 @@ from .install_common import (
     resolve_path_scoped_dests,
 )
 from .manifest import load_manifest, resolve_options, resolve_variant_files
-from .marker import read_govkit_marker, write_govkit_marker
+from .marker import read_govkit_marker, warn_legacy_deprecation, write_govkit_marker
 from .overlay import apply_rule_overrides, load_overlay
 from .stack_select import apply_stack_overlay, print_detection_summary, resolve_stack_choice
 
@@ -177,6 +177,9 @@ def cmd_apply(args: argparse.Namespace) -> None:
     if not target.exists():
         print(f"Error: target directory '{target}' does not exist.")
         sys.exit(1)
+    # Every apply is a level-based install, including the first one, which
+    # has no marker yet to trigger the notice on read.
+    warn_legacy_deprecation()
 
     # PR 3 / Chunk D: --detect runs inference and exits without writing.
     if getattr(args, "detect", False):
