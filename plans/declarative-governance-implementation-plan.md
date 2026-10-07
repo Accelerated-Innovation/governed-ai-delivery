@@ -1,7 +1,7 @@
 # Declarative governance implementation plan
 
-Status: I10d7 is merged and verified in both repositories. I10d8 implements a bounded opt-in isolated command worker as a prerequisite; engine/provider integration, full runtime provenance and authenticated caller/publication remain next. Protected activation, live enforcement, team observations and legacy warning/removal decisions remain open.
-Plan version: 1.75.
+Status: I10d7 is merged and verified in both repositories. I10d8 implements a bounded opt-in isolated command worker as a prerequisite; engine/provider integration, full runtime provenance and authenticated caller/publication remain next. Protected activation, live enforcement and team observations remain open. The legacy warning/removal boundary is integrated through [PR #221](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/221).
+Plan version: 1.76.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
 Primary epic: [#142 — Declarative, composable GovKit governance](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/142).
@@ -1270,7 +1270,7 @@ Source: [[Feature 7] Safe legacy migration, level retirement, and GovKit self-ho
 - [x] Preview performs no target writes; ambiguous decisions are explicit and scoped.
 - [x] Authorized migration is deterministic/idempotent with documented rollback.
 - [x] Migrated repositories can use the new per-request workflow model under accepted policy without broadening agent authority.
-- [ ] Legacy commands remain covered through the compatibility period; retirement names a release boundary and warning period.
+- [x] Legacy commands remain covered through the compatibility period; retirement names a release boundary and warning period.
 - [x] GovKit resolves its own profile, executes conformance, and exercises pipeline/reporting contracts without the full consumer bundle.
 - [x] Migration guidance demonstrates ordinary brownfield adoption separately from architecture migration.
 
@@ -1278,7 +1278,7 @@ Source: [[Feature 7] Safe legacy migration, level retirement, and GovKit self-ho
 - [x] Stale proposals are detected before writes; completion checks report remaining findings and do not infer resolution from a version-marker update.
 - [x] Documentation and examples distinguish a CLI/package update from a repository resource refresh and preserve the existing authorization, idempotency, and rollback guarantees.
 
-Evidence: [I08 execution record](#i08-execution-record--2026-09-24). I08 demonstrated nine criteria; [I09b](#i09b-execution-record--2026-09-24) adds canonical maintenance integration. [I12](#i12-execution-record--2026-09-24) demonstrates self-hosting with real source/wheel checks and canonical posture, integrated through PR #198 (`fcb0b11`) with all four final-head checks passing in Tests run `36065549797`. The concrete retirement boundary remains open. #149 is not complete.
+Evidence: [I08 execution record](#i08-execution-record--2026-09-24). I08 demonstrated nine criteria; [I09b](#i09b-execution-record--2026-09-24) adds canonical maintenance integration. [I12](#i12-execution-record--2026-09-24) demonstrates self-hosting with real source/wheel checks and canonical posture, integrated through PR #198 (`fcb0b11`) with all four final-head checks passing in Tests run `36065549797`. [I13j](#i13j--legacy-deprecation-boundary-149--2026-10-07) names the retirement boundary and warning period, integrated through [PR #221](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/221) (`c5c6aa9`). Every listed #149 criterion now has evidence; closing the issue is the maintainer's decision.
 
 ### Epic #142
 
@@ -1760,3 +1760,9 @@ Applied ERROR **2297569** (real CLI/command/parser boundaries, no production-beh
 - **Fixed (maintainer-selected):** (1) action-required correctness `c5fbcbbd`: the notice is now dormant while the running version is below 1.0.0, so an interim 0.x release cannot start the warning period early; unparseable development versions still warn. (2) Recommended correctness `c585ddbf`: `verify-authority` and `verify-contract` now emit the notice when they read `.govkit/marker.json` directly, keeping their non-migrating read. (3) Recommended correctness `c39ba2a2`: `apply --detect` writes nothing and no longer warns; the notice moved after the dry-run exit.
 - **Test first:** six new cases. The pre-1.0.0 and `--detect` cases failed for the stated reason; the `verify-*` cases failed with the fixes removed and pass with them. The no-marker authority control passes. The existing tests now pin a release inside the warning period. 412 focused authority/contract/marker/deprecation tests pass.
 - **Not fixed:** action-required reliability `78aaaf3b` (validate/doctor/evidence warn). The maintainer chose to leave it unaddressed. Those are legacy commands consuming the deprecated marker, which the approved policy deliberately warns about; the replacement commands stay quiet. It is left open and not dismissed.
+
+### I13j — Integration verification — 2026-10-07
+
+- **Verified:** [PR #221](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/221) merged as `c5c6aa907162da49cf2fd81c9fc6fce7078c9708`, tree-identical to final head `69d29175d0db31d573fa4408aea9c0238d068eff`. All six checks passed at the final head ([Tests run 37687342030](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/37687342030)) and on merged `main` ([Tests run 37690285432](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/37690285432)). Synchronized local `main`, deleted the merged local branch and removed the PR's local Qodo context file.
+- **Acceptance:** the #149 retirement criterion is checked in Appendix A with this evidence. The GitHub issue body, its checkbox and the issue's closure are left to the maintainer. The open Qodo reliability finding `78aaaf3b` was left as the maintainer chose. #220's equivalents gate 2.0.0 removal, not 1.0.0.
+- **Remaining release-candidate inputs:** #147 needs protected-caller enforcement evidence and #142 needs consenting-team observations. No version bump, release or removal.

@@ -2,7 +2,7 @@
 
 The release candidate is **not complete**. Protected-caller deployment evidence
 and consenting-team pilot observations remain open. The legacy compatibility
-boundary is approved and announced (below), pending integration of its delivery. This record maps evidence to the
+boundary is approved, announced and integrated through [PR #221](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/221) (`c5c6aa9`). This record maps evidence to the
 [implementation plan](declarative-governance-implementation-plan.md#10-release-candidate-definition-of-done);
 it does not change release scope, approve publication or start a deprecation clock.
 
@@ -39,7 +39,7 @@ provider authentication. The implementation plan owns the checkboxes.
 | Plan criterion | Evidence and current limit |
 |---|---|
 | I00–I13 exit criteria | Open: the [execution ledger](declarative-governance-implementation-plan.md#11-execution-ledger-and-handoff) records delivered increments; I10 now has an authorized private consumer bootstrap with passing offline CI; protected enforcement and I13 retirement/team observations remain incomplete. |
-| Included feature acceptance reconciled and satisfied | Open: [#147](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/147), [#149](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/149) and epic [#142](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/142) retain their unchecked criteria. |
+| Included feature acceptance reconciled and satisfied | Open: [#147](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/147) and epic [#142](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/142) retain their unchecked criteria. [#149](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/149)'s last criterion, the retirement boundary, is satisfied by [PR #221](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/221) and checked in the plan. Updating the issue's own checkbox and closing it are left to the maintainer. |
 | Legacy compatibility and customization preservation | Verified for frozen selections and representative real L3/L4/L5 installs: [migration tests](../tests/test_migration.py), [wheel migration pilot](../tests/wheel_migration_smoke.py), historical native-lock replay and [migration/rollback guidance](../docs/LEGACY_MIGRATION.md). Unsupported legacy inputs require reconciliation. |
 | Independent capability/workflow combinations across agents | Verified by [workflow tests](../tests/test_workflows.py), [pack tests](../tests/test_capability_packs.py), [three-agent pack wheel pilot](../tests/wheel_pack_smoke.py) and [request wheel pilot](../tests/wheel_workflow_smoke.py). This is fixture coverage, not a claim about every custom pack combination. |
 | Useful brownfield setup without full calibration | Automated adoption/source-preservation scenarios pass in [discovery tests](../tests/test_discovery.py) and [onboarding tests](../tests/test_capability_onboarding.py); usefulness in actual familiar/unfamiliar repositories still needs consenting-team observations. |
@@ -47,7 +47,7 @@ provider authentication. The implementation plan owns the checkboxes.
 | Four-dimensional maintenance with honest freshness | Verified by [maintenance tests](../tests/test_maintenance.py), [inventory tests](../tests/test_maintenance_inventory.py), [freshness regressions](../tests/test_migration_freshness.py) and [runtime-only maintenance pilot](../tests/wheel_maintenance_assessment_smoke.py). Unavailable provider facts remain unknown. |
 | Provider limits, provenance and reporting privacy | Verified by [provider evidence tests](../tests/test_pipeline_evidence.py), [posture tests](../tests/test_posture.py), [change posture tests](../tests/test_change_posture.py) and [aggregation tests](../tests/test_posture_aggregate.py). Imported exports are not authenticated evidence. |
 | Clean wheel and required CI/toolchain checks | Verified for the baseline/run above. Windows coverage is the bounded deep-path install/entrypoint/pack-loading scenario; generated-provider writes require supported POSIX filesystem operations and are not certified on Windows. |
-| Pilot findings, migration/rollback and deprecation records | Migration/rollback guidance and verified reported defects are recorded. The maintainer-approved [deprecation policy](../docs/LEGACY_MIGRATION.md#deprecation-and-retirement-policy) is announced in the README and CHANGELOG with a tested one-time notice ([legacy deprecation tests](../tests/test_legacy_deprecation.py)). Actual adoption observations remain open; the [pilot protocol](../docs/ADOPTION_PILOT.md) is not collected evidence. |
+| Pilot findings, migration/rollback and deprecation records | Migration/rollback guidance and verified reported defects are recorded. The maintainer-approved [deprecation policy](../docs/LEGACY_MIGRATION.md#deprecation-and-retirement-policy) is announced in the README and CHANGELOG with a tested one-time notice ([legacy deprecation tests](../tests/test_legacy_deprecation.py)), integrated through [PR #221](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/221). Actual adoption observations remain open; the [pilot protocol](../docs/ADOPTION_PILOT.md) is not collected evidence. |
 | Real shipped commands and skill references | Verified by [tutorial inventory tests](../tests/test_onboarding_inventory.py), [executable onboarding tests](../tests/test_capability_onboarding.py), [native wheel checks](../tests/wheel_native_skills_smoke.py) and the current documentation reconciliation. These checks do not validate every arbitrary prose claim. |
 | Reviewable release candidate | Open until the preceding incomplete criteria have evidence or an explicit recorded scope decision. Merging and publication require their own authorization. |
 
@@ -83,8 +83,13 @@ then select its policy and protected caller. Live bypass trials and consenting
 team observations follow the reviewed setup. The offline response-contract cases
 and direct-function feasibility trial do not supply that evidence.
 
-The maintainer set the legacy warning/removal policy on 2026-10-07. #149's
-criterion closes once that delivery is integrated. Keep the original parity flake
+The maintainer set the legacy warning/removal policy on 2026-10-07. It merged
+through [PR #221](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/221) as `c5c6aa9`, tree-identical to final head `69d2917`.
+All six checks passed at the final head ([Tests run 37687342030](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/37687342030)) and on merged
+`main` ([Tests run 37690285432](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/37690285432)). The notice is dormant until the 1.0.0 version
+bump. Profile equivalents for the marker-only features are tracked separately in
+[#220](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/220)
+and are a prerequisite for 2.0.0, not for 1.0.0. Keep the original parity flake
 visible. Review new evidence against the exact remaining
 criteria and update the plan and issues together; never infer acceptance from an
 issue or PR being closed.
