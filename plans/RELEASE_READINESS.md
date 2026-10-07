@@ -1,8 +1,8 @@
 # Declarative release readiness
 
-The release candidate is **not complete**. Protected-caller deployment evidence,
-consenting-team pilot observations and an announced legacy compatibility boundary
-remain open. This record maps evidence to the
+The release candidate is **not complete**. Protected-caller deployment evidence
+and consenting-team pilot observations remain open. The legacy compatibility
+boundary is approved and announced (below), pending integration of its delivery. This record maps evidence to the
 [implementation plan](declarative-governance-implementation-plan.md#10-release-candidate-definition-of-done);
 it does not change release scope, approve publication or start a deprecation clock.
 
@@ -47,7 +47,7 @@ provider authentication. The implementation plan owns the checkboxes.
 | Four-dimensional maintenance with honest freshness | Verified by [maintenance tests](../tests/test_maintenance.py), [inventory tests](../tests/test_maintenance_inventory.py), [freshness regressions](../tests/test_migration_freshness.py) and [runtime-only maintenance pilot](../tests/wheel_maintenance_assessment_smoke.py). Unavailable provider facts remain unknown. |
 | Provider limits, provenance and reporting privacy | Verified by [provider evidence tests](../tests/test_pipeline_evidence.py), [posture tests](../tests/test_posture.py), [change posture tests](../tests/test_change_posture.py) and [aggregation tests](../tests/test_posture_aggregate.py). Imported exports are not authenticated evidence. |
 | Clean wheel and required CI/toolchain checks | Verified for the baseline/run above. Windows coverage is the bounded deep-path install/entrypoint/pack-loading scenario; generated-provider writes require supported POSIX filesystem operations and are not certified on Windows. |
-| Pilot findings, migration/rollback and deprecation records | Migration/rollback guidance and verified reported defects are recorded. Actual adoption observations and warning/removal policy remain open; the [pilot protocol](../docs/ADOPTION_PILOT.md) is not collected evidence. |
+| Pilot findings, migration/rollback and deprecation records | Migration/rollback guidance and verified reported defects are recorded. The maintainer-approved [deprecation policy](../docs/LEGACY_MIGRATION.md#deprecation-and-retirement-policy) is announced in the README and CHANGELOG with a tested one-time notice ([legacy deprecation tests](../tests/test_legacy_deprecation.py)). Actual adoption observations remain open; the [pilot protocol](../docs/ADOPTION_PILOT.md) is not collected evidence. |
 | Real shipped commands and skill references | Verified by [tutorial inventory tests](../tests/test_onboarding_inventory.py), [executable onboarding tests](../tests/test_capability_onboarding.py), [native wheel checks](../tests/wheel_native_skills_smoke.py) and the current documentation reconciliation. These checks do not validate every arbitrary prose claim. |
 | Reviewable release candidate | Open until the preceding incomplete criteria have evidence or an explicit recorded scope decision. Merging and publication require their own authorization. |
 
@@ -57,7 +57,7 @@ provider authentication. The implementation plan owns the checkboxes.
 |---|---|---|
 | Repository/platform maintainer | Chosen GitHub/Azure consumer, protected caller and policy revision, accepted request/base/head identity, pinned runtime and pack inputs, actual run references, required-status/reviewer settings, and trigger/path coverage. Include passing and failing cases showing required security, architecture, evaluation and approval controls cannot be omitted by a label or path filter. Preserve unsupported events and unauthenticated observations as unknown. Follow [provider evidence](../docs/PROVIDER_EVIDENCE.md). | #147's remaining enforcement criterion; relevant #142 scenarios. |
 | Consenting pilot team | Team-reviewed aggregate observations for the applicable existing-service/MCP/LLM and workflow scenarios, with comparison method, setup versus recurring effort, useful/noisy findings, missing responses and uncertainty. Follow the [voluntary protocol](../docs/ADOPTION_PILOT.md); synthetic fixtures and review counts do not substitute for this record. | #142 adoption/usefulness acceptance and I13 feedback. |
-| Release maintainer | Warning-start release, minimum warning period, earliest removal release, announcement reference, supported legacy inputs during that period, and reviewed migration/rollback evidence. Keep support until the announced conditions are met; later deletion is a separate change. | #149's remaining compatibility criterion and I13 retirement policy. |
+| Release maintainer | **Supplied 2026-10-07:** warnings start in 1.0.0. Every legacy input stays supported and optional throughout 1.x. The earliest removal is 2.0.0, at least six months and two warning-carrying minor releases after 1.0.0, and only after the marker-only profile equivalents tracked in [#220](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/220) ship. Announced in the README and CHANGELOG. Later deletion is a separate change. | #149's remaining compatibility criterion and I13 retirement policy. |
 
 The maintainer has selected a private consumer repository, and its offline
 bootstrap PR has a passing hosted response-contract check. That selection does
@@ -83,8 +83,9 @@ then select its policy and protected caller. Live bypass trials and consenting
 team observations follow the reviewed setup. The offline response-contract cases
 and direct-function feasibility trial do not supply that evidence.
 
-The maintainer still needs to set the legacy warning/removal policy. Keep the
-original parity flake visible. Review new evidence against the exact remaining
+The maintainer set the legacy warning/removal policy on 2026-10-07. #149's
+criterion closes once that delivery is integrated. Keep the original parity flake
+visible. Review new evidence against the exact remaining
 criteria and update the plan and issues together; never infer acceptance from an
 issue or PR being closed.
 

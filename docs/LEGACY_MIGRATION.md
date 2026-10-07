@@ -147,13 +147,35 @@ catalog. It does not refresh a repository. Migrating or running **profile/pack
 operations** changes repository metadata/resources; it does not update the CLI.
 Later resource refreshes need their own reviewed pack previews and verification.
 
-The current 0.21.x compatibility line retains `apply`, `upgrade`, level flags and
-legacy manifests. New adoption uses [explicit capabilities](CAPABILITY_ONBOARDING.md).
-No removal release or warning period has been announced. Documentation and
-compatibility work does not start a deprecation clock or remove a supported input.
-A maintainer must approve and announce both a concrete release boundary and warning
-period after migration and release evidence is reviewed. Until then legacy inputs
-remain supported and the retirement acceptance criterion stays open.
+New adoption uses [explicit capabilities](CAPABILITY_ONBOARDING.md).
+
+## Deprecation and retirement policy
+
+The maintainer has approved this boundary for level-based legacy inputs:
+
+| | |
+|---|---|
+| **Inputs covered** | `govkit apply` and `govkit upgrade` level-based installs, the `--level` flag (`apply`, `init`, `fix init`, `validate`), legacy variant and flat agent manifests, and `.govkit/marker.json` (or a pre-0.10 flat `.govkit` file) as the configuration source for legacy commands |
+| **Warning starts** | 1.0.0 |
+| **Support during 1.x** | Every covered input stays supported and optional, with unchanged behavior and continued fixes. Nothing is removed in a 1.x release |
+| **Earliest removal** | 2.0.0, released no sooner than six months after 1.0.0 **and** after at least two minor releases (1.1.0 and 1.2.0) carrying the warning, whichever is later |
+| **Before removal** | Profile/pack equivalents for features that are configurable only through the marker or a level ship during 1.x ([#220](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/220)): PDG authority checks, stack overlays, feature/fix scaffolding and extension/evidence project facts. An input whose equivalent has not shipped is not removed |
+| **Announcement** | This guide, the README and the CHANGELOG |
+
+From 1.0.0, a command that consumes a covered input prints a one-time notice on
+stderr naming the boundary. Its exit status and output are otherwise unchanged.
+Set `GOVKIT_NO_LEGACY_WARNING=1` to suppress it, for example in CI logs. The
+replacement commands (`migrate`, `discover`, `profile`, `pack`, `request`, `conform`,
+`maintain`, `posture` and `pipeline`) do not print it.
+
+Migration keeps the legacy marker in place, so legacy commands run against a
+migrated repository still print the notice. That is accurate: they still depend on
+a deprecated input. PDG authority verification remains off (`authority.source:
+none`) unless a project opts in, and its CI gate keeps asserting the expectation
+with `--require-authority`.
+
+Removal is a separate reviewed change in 2.0.0, announced in the CHANGELOG once the
+conditions above are met. Reaching a date does not delete anything automatically.
 
 The executable pilot is [tests/wheel_migration_smoke.py](../tests/wheel_migration_smoke.py).
 It installs real L3/Codex, L4/Claude Code and L5/Copilot bundles into isolated fixtures,

@@ -28,7 +28,7 @@ from pathlib import Path
 
 from . import paths
 from .fixes import FIX_RECORD_FILE, FIX_RECORD_SKELETON, FIXES_DIR
-from .marker import read_govkit_marker
+from .marker import read_govkit_marker, warn_legacy_deprecation
 
 # Mirrors the schema's `id` pattern. Checked here so a bad id fails at creation
 # rather than producing a record that can never validate.
@@ -46,6 +46,8 @@ def cmd_fix_init(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     stored = read_govkit_marker(target) or {}
+    if args.level:
+        warn_legacy_deprecation()
 
     # Level gate next, before any other check — mirrors cmd_init.
     level = args.level or stored.get("level") or "3"

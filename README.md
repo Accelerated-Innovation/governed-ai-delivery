@@ -47,8 +47,16 @@ remain separate, explicit steps.
 
 Already have a legacy `.govkit/marker.json`? Start with the
 [migration preview](docs/LEGACY_MIGRATION.md), preserving configured requirements,
-customizations and rollback. Legacy flags and manifests remain supported; no
-retirement release or warning period has been announced.
+customizations and rollback.
+
+> **Deprecation notice.** Starting with 1.0.0, level-based legacy installation
+> (`govkit apply`/`upgrade`, `--level`, legacy manifests and `.govkit/marker.json`)
+> is deprecated. It stays supported and optional throughout 1.x. It will be removed
+> no earlier than 2.0.0, which ships at least six months **and** two minor releases
+> (1.1.0, 1.2.0) after 1.0.0, and only after profile equivalents for marker-only
+> features ship ([#220](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/220)).
+> Legacy commands print a one-time notice; set `GOVKIT_NO_LEGACY_WARNING=1` to
+> suppress it. See the [deprecation policy](docs/LEGACY_MIGRATION.md#deprecation-and-retirement-policy).
 
 ### Windows installation paths
 

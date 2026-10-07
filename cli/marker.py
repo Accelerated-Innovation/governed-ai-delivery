@@ -70,6 +70,8 @@ class _OneTimeWarning:
 _VERSION_MIGRATION_WARNING = _OneTimeWarning("GOVKIT_NO_MIGRATION_WARNING")
 _SHAPE_MIGRATION_WARNING = _OneTimeWarning("GOVKIT_NO_SHAPE_MIGRATION_WARNING")
 _DIRECTORY_MIGRATION_WARNING = _OneTimeWarning("GOVKIT_NO_DIRECTORY_MIGRATION_WARNING")
+_LEGACY_DEPRECATION_WARNING = _OneTimeWarning("GOVKIT_NO_LEGACY_WARNING")
+_LEGACY_WARNING_START = "1.0.0"
 
 
 def _compare_version(v1: str, v2: str) -> int:
@@ -172,6 +174,38 @@ def _reset_directory_migration_warning() -> None:
     _DIRECTORY_MIGRATION_WARNING.reset()
 
 
+def warn_legacy_deprecation() -> None:
+    """Print the one-time notice that level-based legacy inputs are deprecated.
+
+    Fires when a command consumes a legacy input: `apply`/`upgrade`, a
+    `--level` flag, or a `.govkit/marker.json` read through this module.
+    Migration, conformance and profile/pack commands read markers through
+    their own snapshot boundaries, so the replacement path stays quiet.
+    Suppressible via GOVKIT_NO_LEGACY_WARNING=1. The boundary itself is
+    recorded in docs/LEGACY_MIGRATION.md; keep this text aligned with it.
+
+    Dormant before 1.0.0, where the approved warning period starts, so an
+    interim 0.x release does not begin the clock early. Unparseable
+    development versions compare equal and therefore warn.
+    """
+    if _compare_version(version.GOVKIT_VERSION, _LEGACY_WARNING_START) < 0:
+        return
+    _LEGACY_DEPRECATION_WARNING.warn(
+        "warning: level-based legacy installation (govkit apply/upgrade, --level "
+        "and .govkit/marker.json) is deprecated. It stays supported throughout "
+        "govkit 1.x and will be removed no earlier than 2.0.0. Preview a "
+        "conversion with 'govkit migrate'; see "
+        "https://github.com/Accelerated-Innovation/governed-ai-delivery/blob/main/"
+        "docs/LEGACY_MIGRATION.md "
+        "(Set GOVKIT_NO_LEGACY_WARNING=1 to suppress.)"
+    )
+
+
+def _reset_legacy_deprecation_warning() -> None:
+    """Test helper: re-arm the one-time legacy deprecation notice."""
+    _LEGACY_DEPRECATION_WARNING.reset()
+
+
 # ---------------------------------------------------------------------------
 # .govkit marker read / write / migrate
 # ---------------------------------------------------------------------------
@@ -197,6 +231,7 @@ def read_govkit_marker(target: Path) -> dict | None:
       - pre-0.10 layout (file → directory migration)
       - pre-0.7 maturity-model marker (L3/L4 swap)
       - legacy `ui` option (0.7 → 0.8 shape refactor)
+      - level-based legacy installation deprecation (#149)
     Each warning is independently suppressible via env var.
     """
     marker_node = target / MARKER_DIRNAME
@@ -224,6 +259,7 @@ def read_govkit_marker(target: Path) -> dict | None:
             return None
         _maybe_warn_migration(data.get("version"))
         _maybe_warn_shape_migration(data.get("options"))
+        warn_legacy_deprecation()
         return data
 
     # Legacy layout: .govkit is a single file. Read, then migrate.
@@ -236,6 +272,7 @@ def read_govkit_marker(target: Path) -> dict | None:
         _migrate_legacy_marker_to_directory(target, marker_node, data)
         _maybe_warn_migration(data.get("version"))
         _maybe_warn_shape_migration(data.get("options"))
+        warn_legacy_deprecation()
         return data
 
     return None

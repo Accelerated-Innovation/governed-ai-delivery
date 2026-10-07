@@ -14,7 +14,7 @@ from pathlib import Path
 from . import paths
 from .compat import validate_level_type
 from .fs import copy_entry
-from .marker import read_govkit_marker
+from .marker import read_govkit_marker, warn_legacy_deprecation
 
 # The starter each marker options.type implies. The apply-time type choice is
 # recorded precisely so later commands need no re-specification; a data repo
@@ -87,6 +87,8 @@ def cmd_init(args: argparse.Namespace) -> None:
     target = Path(args.target).resolve()
 
     stored = read_govkit_marker(target) or {}
+    if args.level:
+        warn_legacy_deprecation()
 
     # Determine level early so we can gate L3 before any other checks.
     level = args.level or stored.get("level") or "3"

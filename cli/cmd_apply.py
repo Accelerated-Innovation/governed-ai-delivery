@@ -21,7 +21,7 @@ from .install_common import (
     resolve_path_scoped_dests,
 )
 from .manifest import load_manifest, resolve_options, resolve_variant_files
-from .marker import read_govkit_marker, write_govkit_marker
+from .marker import read_govkit_marker, warn_legacy_deprecation, write_govkit_marker
 from .overlay import apply_rule_overrides, load_overlay
 from .stack_select import apply_stack_overlay, print_detection_summary, resolve_stack_choice
 
@@ -182,6 +182,10 @@ def cmd_apply(args: argparse.Namespace) -> None:
     if getattr(args, "detect", False):
         _cmd_apply_detect_dry_run(target, args)
         return
+
+    # Every install is level-based, including the first one, which has no
+    # marker yet to trigger the notice on read. A --detect dry run is not.
+    warn_legacy_deprecation()
 
     manifest = load_manifest(args.agent)
     agent_dir = paths.AGENTS_DIR / args.agent

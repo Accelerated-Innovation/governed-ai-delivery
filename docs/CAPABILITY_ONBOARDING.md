@@ -9,8 +9,8 @@ using this path. Recording a profile does not execute controls or approve policy
 If the repository already has a legacy `.govkit/marker.json`, use
 [legacy migration](LEGACY_MIGRATION.md) for a preview that preserves its configured
 requirements, customizations and rollback. Do not replace that marker with this
-example profile. Existing legacy commands remain supported; no removal release
-or warning period has been announced.
+example profile. Existing legacy commands remain supported throughout 1.x under
+the [deprecation policy](LEGACY_MIGRATION.md#deprecation-and-retirement-policy).
 
 ## Try the commands in an isolated example
 

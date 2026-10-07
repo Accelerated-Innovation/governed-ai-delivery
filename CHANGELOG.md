@@ -8,6 +8,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Deprecated
+
+- **Level-based legacy installation is deprecated, starting with 1.0.0** (#149).
+  This covers `govkit apply`/`govkit upgrade` level-based installs, the `--level`
+  flag, legacy variant/flat agent manifests and `.govkit/marker.json` as the
+  configuration source for legacy commands. Every covered input stays supported
+  and optional, with unchanged behavior, throughout 1.x. Removal comes no earlier
+  than 2.0.0, which ships at least six months after 1.0.0 **and** after at least
+  two minor releases (1.1.0, 1.2.0) carrying the warning, whichever is later. It
+  also waits for profile equivalents of the marker-only features (#220): PDG
+  authority checks, stack overlays, feature/fix scaffolding and extension/evidence
+  project facts. A command that consumes a covered input prints a one-time stderr
+  notice; set `GOVKIT_NO_LEGACY_WARNING=1` to suppress it. `govkit migrate`
+  previews a conversion. See the deprecation policy in `docs/LEGACY_MIGRATION.md`.
+
 ### Fixed
 
 - Preserve Otter's explicit-only user-POV story skill policy across native
