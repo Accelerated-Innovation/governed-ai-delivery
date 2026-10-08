@@ -7,6 +7,7 @@ import pytest
 from cli.maintenance_inventory import inventory_repository, preview_candidate
 from cli.pack_loading import load_pack
 from cli.pack_store import apply_install, preview_install
+from cli.version import GOVKIT_VERSION
 from tests.test_capability_packs import make_pack
 from tests.test_pack_store import snapshot, write_profile
 from tests.test_release_metadata import AS_OF, metadata, project
@@ -17,9 +18,9 @@ def installed(tmp_path):
     source = make_pack(tmp_path / "source", skills=True)
     pack = load_pack(source)
     path = write_profile(target, project())
-    apply_install(preview_install(path, target, (pack,), govkit_version="0.21.1"))
+    apply_install(preview_install(path, target, (pack,), govkit_version=GOVKIT_VERSION))
     (target / ".govkit/marker.json").write_text(
-        json.dumps({"version": "0.21.1", "level": "3", "options": {}})
+        json.dumps({"version": GOVKIT_VERSION, "level": "3", "options": {}})
     )
     return target, source
 
@@ -29,8 +30,8 @@ def test_inventory_separates_cli_marker_lock_and_actual_digests_without_writes(t
     before = snapshot(target)
     report = inventory_repository(target, as_of=AS_OF, metadata=(metadata(),))
     doc = report.document
-    assert doc["running_cli"] == "0.21.1"
-    assert doc["recorded_install"] == "0.21.1"
+    assert doc["running_cli"] == GOVKIT_VERSION
+    assert doc["recorded_install"] == GOVKIT_VERSION
     assert doc["locked_packs"][0]["version"] == "1.0.0"
     assert doc["resources"] and all(r["state"] == "matching" for r in doc["resources"])
     assert doc["lock_verification"] == "verified"
@@ -71,7 +72,7 @@ def test_missing_profile_and_bad_lock_produce_partial_inventory(tmp_path):
     before = snapshot(target)
     doc = inventory_repository(target, as_of=AS_OF).document
     assert doc["problems"] and doc["lock_verification"] == "unknown"
-    assert doc["recorded_install"] == "0.21.1"
+    assert doc["recorded_install"] == GOVKIT_VERSION
     assert doc["candidates"] == []
     assert snapshot(target) == before
 
@@ -127,7 +128,7 @@ def test_inventory_replays_existing_profile_resolution(tmp_path):
     doc = inventory_repository(target, as_of=AS_OF).document
     assert "resolution:invalid" not in doc["problems"]
     assert doc["identity"]["resolution_digest"] is not None
-    assert doc["profile_resolution"]["govkit_version"] == "0.21.1"
+    assert doc["profile_resolution"]["govkit_version"] == GOVKIT_VERSION
     assert doc["profile_resolution"]["capabilities"] == ["sample"]
 
 

@@ -20,9 +20,10 @@ from cli.discovery import discover
 from cli.maintenance import assess_repository, parse_assessment, verify_assessment
 from cli.maintenance_operations import preview_operation
 from cli.profiles import parse_profile
+from cli.version import GOVKIT_VERSION
 from tests.test_maintenance_inventory import installed
 from tests.test_pack_store import snapshot
-from tests.test_release_metadata import AS_OF, metadata, project, release
+from tests.test_release_metadata import AS_OF, metadata, newer_govkit, project, release
 
 
 def dimensions(report):
@@ -347,7 +348,7 @@ def test_marker_change_does_not_resolve_a_missing_resource(tmp_path):
     target, _ = installed(tmp_path)
     (target / ".agents/skills/sample-help/SKILL.md").unlink()
     before = assess_repository(target, as_of=AS_OF)
-    (target / ".govkit/marker.json").write_text(json.dumps({"version": "0.22.0"}))
+    (target / ".govkit/marker.json").write_text(json.dumps({"version": newer_govkit()[0]}))
     result = verify_assessment(target, before.document, as_of=AS_OF)
     resource = next(
         r for r in before.document["recommendations"] if r["action"] == "refresh-resources"
@@ -386,7 +387,7 @@ def test_missing_profile_keeps_partial_assessment_with_supplied_metadata(tmp_pat
     report = assess_repository(target, as_of=AS_OF, metadata=(metadata(),))
     assert dimensions(report)["releases"]["state"] == "unknown"
     assert dimensions(report)["resources"]["state"] != "pass"
-    assert report.document["inventory"]["recorded_install"] == "0.21.1"
+    assert report.document["inventory"]["recorded_install"] == GOVKIT_VERSION
 
 
 def test_recomputed_hash_does_not_validate_forged_recommendations(tmp_path):

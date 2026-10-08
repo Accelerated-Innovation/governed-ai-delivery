@@ -12,7 +12,7 @@ from cli.maintenance import assess_repository
 from tests.test_maintenance import ci_evidence, dimensions
 from tests.test_migration import accepted, legacy
 from tests.test_pack_store import snapshot
-from tests.test_release_metadata import AS_OF, metadata, project, release
+from tests.test_release_metadata import AS_OF, metadata, newer_govkit, project, release
 
 LATER = "2026-09-26T00:00:00Z"
 WITHIN = "2026-09-24T13:00:00Z"
@@ -23,7 +23,8 @@ def measured_migration(tmp_path, *, release_age=24, ci_age=24):
     source = accepted(tmp_path, target)
     profile = json.loads(source.read_text())
     profile["maintenance"] = project().document["maintenance"]
-    profile["maintenance"]["constraints"][0].update(component="govkit", compatibility=">=0.21,<1")
+    newer, compatibility = newer_govkit()
+    profile["maintenance"]["constraints"][0].update(component="govkit", compatibility=compatibility)
     profile["maintenance"].update(
         metadata_max_age_hours=release_age, assessment_max_age_hours=ci_age
     )
@@ -62,7 +63,7 @@ def measured_migration(tmp_path, *, release_age=24, ci_age=24):
     assessment = assess_repository(
         target,
         as_of=AS_OF,
-        metadata=(metadata(release("0.22.0", component="govkit")),),
+        metadata=(metadata(release(newer, component="govkit")),),
         ci_report=report.to_document(),
     )
     assert dimensions(assessment)["ci"]["state"] == "pass"

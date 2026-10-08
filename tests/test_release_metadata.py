@@ -4,12 +4,26 @@ import copy
 import json
 
 import pytest
+from packaging.version import Version
 
 from cli.profiles import parse_profile
 from cli.release_metadata import parse_metadata, refresh_metadata, select_candidates
 from tests.test_capability_packs import profile
 
 AS_OF = "2026-09-24T12:00:00Z"
+
+
+def newer_govkit():
+    """A GovKit release newer than the running CLI, and a constraint admitting both.
+
+    Derived rather than literal so a version bump cannot turn an offered
+    upgrade into the running version.
+    """
+    from cli.version import GOVKIT_VERSION
+
+    running = Version(GOVKIT_VERSION)
+    newer = f"{running.major}.{running.minor + 1}.0"
+    return newer, f">={running.major}.{running.minor},<{running.major + 1}"
 URL = "https://example.invalid/releases.json"
 
 

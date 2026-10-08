@@ -15,13 +15,13 @@ the [deprecation policy](LEGACY_MIGRATION.md#deprecation-and-retirement-policy).
 ## Try the commands in an isolated example
 
 Install the CLI with Python 3.11+ using `python -m pip install govkit`. The examples
-below require a build that includes `discover`, `profile` and `pack`. Start with
-`govkit --help`; do not invoke those commands if the installed package does not
-list them. To use this development build, inspect a GovKit source checkout and
-select the revision you intend to trust, then run `python -m pip install -e .`
-**from that GovKit checkout**, not from the adopting project. Contributor test
-environments use `python -m pip install -e ".[test]"` instead. This guide is verified against the built
-wheel from this implementation, not a claim that an unreleased change is on PyPI.
+below need govkit 0.22.0 or later, which adds `discover`, `profile` and `pack`.
+Check `govkit --version` first, and upgrade with `python -m pip install --upgrade
+govkit` if needed. To try an unreleased revision instead, inspect a GovKit source
+checkout, select the revision you intend to trust, and run
+`python -m pip install -e .` **from that GovKit checkout**, not from the adopting
+project. Contributor test environments use `python -m pip install -e ".[test]"`.
+This guide is verified against the wheel built from its own revision.
 
 Use Bash for this recipe (including on Windows via a Bash environment). The CLI
 itself supports other shells; this recipe does not establish Windows/deep-path

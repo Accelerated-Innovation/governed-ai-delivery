@@ -24,7 +24,7 @@ entry point through the [existing protected workflow](PIPELINE_GENERATION.md):
 ```json
 {
   "schema_version": 1,
-  "govkit_version": "0.21.1",
+  "govkit_version": "0.22.0",
   "execute_checks": ["project:tests"],
   "admission": {
     "provider": "github",
