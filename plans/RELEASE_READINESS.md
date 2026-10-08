@@ -6,7 +6,28 @@ boundary is approved, announced and integrated through [PR #221](https://github.
 [implementation plan](declarative-governance-implementation-plan.md#10-release-candidate-definition-of-done);
 it does not change release scope, approve publication or start a deprecation clock.
 
-## Verified baseline
+## Interim release 0.22.0 — maintainer scope decision (2026-10-08)
+
+The maintainer decided to publish **0.22.0** before the release candidate is
+complete. Teams already use GovKit for spec-driven development, and this release
+gives them everything merged since 0.21.1. It is **not** the release candidate
+defined in this record, and 1.0.0 stays reserved for it.
+
+Explicitly excluded from 0.22.0:
+
+- **Protected enforcement evidence** (#147). Enforcement relies on teams following
+  their pipeline deployment policy. GovKit does not claim that a label or path
+  filter cannot skip required controls; that remains unknown.
+- **Consenting-team pilot observations** (#142).
+
+Consequences:
+
+- The legacy deprecation notice stays dormant (it activates at 1.0.0), and the
+  removal clock does not start.
+- The changelog's "Scope of this release" section states both exclusions.
+- Every open criterion below stays open; this decision does not satisfy any of
+  them.
+
 
 PR [#211](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/211)
 merged as `09c97d8d9e2739f6e3b11c56a4dc0f27abdb534d`, tree-identical to its final

@@ -8,32 +8,142 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-### Deprecated
+## [0.22.0] — 2026-10-08
 
-- **Level-based legacy installation is deprecated, starting with 1.0.0** (#149).
-  This covers `govkit apply`/`govkit upgrade` level-based installs, the `--level`
-  flag, legacy variant/flat agent manifests and `.govkit/marker.json` as the
-  configuration source for legacy commands. Every covered input stays supported
-  and optional, with unchanged behavior, throughout 1.x. Removal comes no earlier
-  than 2.0.0, which ships at least six months after 1.0.0 **and** after at least
-  two minor releases (1.1.0, 1.2.0) carrying the warning, whichever is later. It
-  also waits for profile equivalents of the marker-only features (#220): PDG
-  authority checks, stack overlays, feature/fix scaffolding and extension/evidence
-  project facts. A command that consumes a covered input prints a one-time stderr
-  notice; set `GOVKIT_NO_LEGACY_WARNING=1` to suppress it. `govkit migrate`
-  previews a conversion. See the deprecation policy in `docs/LEGACY_MIGRATION.md`.
+Governance becomes declarative and composable. A team selects the capabilities
+it needs (application governance, Gherkin delivery, LLM evaluation and others)
+in an explicit profile, installs only those packs, and checks each change against
+what actually changed in Git. Level-based installation is unchanged and fully
+supported: existing projects need no action, and `govkit migrate` previews an
+optional conversion.
+
+### Scope of this release
+
+This is an interim release before 1.0.0. Two release-candidate criteria are
+deliberately left out of it:
+
+- **Protected enforcement is not verified** (#147). GovKit generates CI entry
+  points and evaluates conformance, but it does not prove that a repository's
+  branch protection requires them or that a label or path filter cannot skip
+  them. Enforcement relies on each team following its pipeline deployment
+  policy.
+- **No consenting-team pilot observations have been collected** (#142).
+
+Also note:
+
+- Opted-in project and pack commands run as ordinary, unsandboxed subprocesses.
+  The isolated command worker added here is a separate primitive that `conform`
+  does not use yet.
+- Generated pipeline writes need POSIX filesystem operations and are not
+  certified on Windows.
+
+### Added
+
+- **Declarative profiles** (#181, #182). `govkit profile preview|apply` records
+  the capabilities, controls and accepted sources a project selected, together
+  with a replayable resolution. Only profile metadata is written; project-owned
+  content and any legacy marker are preserved. See
+  `docs/DECLARATIVE_PROFILES.md`.
+- **Capability packs** (#183). `govkit pack list|preview|apply|verify|check`
+  installs pinned resources and native skills for Claude Code, Codex and Copilot,
+  recorded in a verifiable lock, without a legacy marker. See
+  `docs/CAPABILITY_PACKS.md`.
+- **Conformance checks** (#184). `govkit conform` reports typed check results
+  and the evidence each requirement needs. Required evidence that is unknown,
+  skipped or unconfigured cannot pass. Pack command execution is opt-in. See
+  `docs/CONFORMANCE.md`.
+- **Brownfield discovery** (#185). `govkit discover` inspects an existing
+  repository without writing anything and asks focused questions instead of
+  requiring a full calibration. Observed code is never treated as accepted
+  policy. See `docs/BROWNFIELD_DISCOVERY.md`.
+- **Request workflows** (#186). `govkit request template|plan` plans
+  proportionate evidence for a defect, enhancement, refactor or full feature.
+  See `docs/REQUEST_WORKFLOWS.md`.
+- **Change conformance** (#187, #212, #213). Requests are evaluated against the
+  actual Git changes, so a small security, data or public-contract change gets
+  its additional controls whatever its label. Accepted policy can raise the
+  per-file observation budget for repositories with larger tracked files. See
+  `docs/CHANGE_CONFORMANCE.md`.
+- **Legacy migration** (#189). `govkit migrate preview|apply|rollback` proposes a
+  profile from an existing L3/L4/L5 install, preserving configured requirements
+  and customizations. Apply requires the exact reviewed preview digest, and
+  rollback refuses to touch edited files. See `docs/LEGACY_MIGRATION.md`.
+- **Maintenance assessment** (#190, #191).
+  `govkit maintain inventory|assess|preview|verify|refresh` reports installed
+  resource versions and drift, compatible releases, governance fit and CI facts,
+  and keeps unknown freshness explicit. See `docs/MAINTENANCE_INVENTORY.md` and
+  `docs/MAINTENANCE_ASSESSMENT.md`.
+- **Gate catalog and pipeline generation** (#192, #193, #194).
+  `govkit pipeline catalog|preview|check|generate` produces paired, pinned
+  GitHub Actions and Azure DevOps entry points that share one conformance
+  invocation, without overwriting existing workflows.
+  `pipeline evidence|assess|upgrade-preview` admits PR runs and compares
+  provider evidence. See `docs/GATE_CATALOG.md`, `docs/PIPELINE_GENERATION.md`
+  and `docs/PROVIDER_EVIDENCE.md`.
+- **Posture reporting** (#195, #196, #197). `govkit posture export|change|aggregate`
+  exports privacy-filtered maintenance and change reports and counts them
+  offline across a chosen cohort. See `docs/POSTURE_REPORTING.md`,
+  `docs/CHANGE_POSTURE.md` and `docs/POSTURE_AGGREGATION.md`.
+- **Isolated command worker** (#219). An opt-in Docker primitive runs a command
+  against validated file snapshots with no host mounts or environment, inside
+  resource, output and deadline bounds. See `docs/COMMAND_WORKER.md`.
+- **Capability-based onboarding** (#199). The README now leads with an executable
+  onboarding guide, `docs/CAPABILITY_ONBOARDING.md`, that needs no level flags or
+  mandatory calibration.
+
+### Changed
+
+- **Skill names** (#199, #200). GovKit-owned skills install under `govkit-`
+  names for all three agents, and source folders match their installed names.
+  Pack versions: Application Governance 1.1.2, Gherkin Delivery 1.0.2, LLM
+  Evaluation 1.0.2. Existing pinned layouts stay verifiable; a reviewed update
+  removes only unchanged owned files and never overwrites an edited skill.
+- **Extension skills** (#203) installed under an `install_as` prefix now use that
+  prefix consistently in their `name` and sibling references.
+- **Shared skills** (#204) render only the guidance for the installed project
+  type (backend, data or UI).
+- **CI gate selection** (#192). Agent manifests now reference one shared CI
+  selection table. All 258 existing legacy selections produce the same files.
+- **`gherkin-official`** (#177): the optional baseline dependency now allows
+  versions below 43.
 
 ### Fixed
 
-- Preserve Otter's explicit-only user-POV story skill policy across native
-  Codex, Claude Code and Copilot installs, including namespaced default prompts
-  and protected refresh of historical pack locks (#188 item 8).
+- **The ADR approval gate could report success without evaluating any ADR**
+  (#180). Both provider templates now pass changed paths correctly, stop when
+  the base or diff is unavailable, and work from a monorepo service directory.
+  Run `govkit upgrade` to receive the corrected gate; a copy your team edited is
+  protected and needs a manual review.
+- **Installed rule scopes and UI guidance** (#202). Rules no longer skip outbound
+  ports or load L5 model rules on unrelated edits, and UI work is no longer sent
+  to unavailable skills or a five-artifact gate.
+- **Explicit-only skill invocation** (#205, #188 item 8). Otter's user-POV story
+  skill keeps its explicit-only policy across Codex, Claude Code and Copilot,
+  including protected refresh of historical pack locks.
+- **Windows deep-path installs** (#201, #129). The wheel's private extension
+  asset root moves from `cli/extension_packs/` to `cli/ext/`, leaving room for a
+  124-character virtualenv path with long paths disabled. Public extension IDs,
+  resource contents and consumer paths are unchanged.
+- **Git scope diagnostics** (#210). When bounded Git capture exceeds a budget,
+  conformance now reports which budget and path, instead of a generic scope or
+  schema error.
 
-- Shorten the wheel's private extension asset root from `cli/extension_packs/`
-  to `cli/ext/` to address deep Windows virtualenv installation failures (#129).
-  Public extension IDs, resource contents and consumer paths are unchanged.
-  Check the built wheel's path budget and exercise a 124-character virtualenv
-  root with long paths disabled in Windows CI on Python 3.11 and 3.12.
+### Deprecated
+
+- **Level-based legacy installation is deprecated, starting with 1.0.0** (#149).
+  This release announces the policy; nothing changes in 0.22.0, and the runtime
+  notice switches on with 1.0.0. The policy covers `govkit apply`/`govkit upgrade`
+  level-based installs, the `--level` flag, legacy variant/flat agent manifests
+  and `.govkit/marker.json` as the configuration source for legacy commands.
+  Every covered input stays supported and optional, with unchanged behavior,
+  throughout 1.x. Removal comes no earlier than 2.0.0, which ships at least
+  six months after 1.0.0 **and** after at least two minor releases (1.1.0, 1.2.0)
+  carrying the warning, whichever is later. It also waits for profile
+  equivalents of the marker-only features (#220): PDG authority checks, stack
+  overlays, feature/fix scaffolding and extension/evidence project facts. From
+  1.0.0, a command that consumes a covered input prints a one-time stderr notice;
+  set `GOVKIT_NO_LEGACY_WARNING=1` to suppress it. `govkit migrate` previews a
+  conversion. See the deprecation policy in `docs/LEGACY_MIGRATION.md`.
 
 ## [0.21.1] — 2026-09-19
 

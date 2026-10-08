@@ -1,7 +1,7 @@
 # Declarative governance implementation plan
 
 Status: I10d7 is merged and verified in both repositories. I10d8 implements a bounded opt-in isolated command worker as a prerequisite; engine/provider integration, full runtime provenance and authenticated caller/publication remain next. Protected activation, live enforcement and team observations remain open. The legacy warning/removal boundary is integrated through [PR #221](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/221).
-Plan version: 1.76.
+Plan version: 1.77.
 Prepared: 2026-09-23.
 Baseline inspected: govkit 0.21.1, commit af819455cb19ebc01ce6bd56b6d6490e128bc1a5.
 Primary epic: [#142 — Declarative, composable GovKit governance](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/142).
@@ -1766,3 +1766,10 @@ Applied ERROR **2297569** (real CLI/command/parser boundaries, no production-beh
 - **Verified:** [PR #221](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/221) merged as `c5c6aa907162da49cf2fd81c9fc6fce7078c9708`, tree-identical to final head `69d29175d0db31d573fa4408aea9c0238d068eff`. All six checks passed at the final head ([Tests run 37687342030](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/37687342030)) and on merged `main` ([Tests run 37690285432](https://github.com/Accelerated-Innovation/governed-ai-delivery/actions/runs/37690285432)). Synchronized local `main`, deleted the merged local branch and removed the PR's local Qodo context file.
 - **Acceptance:** the #149 retirement criterion is checked in Appendix A with this evidence. The GitHub issue body, its checkbox and the issue's closure are left to the maintainer. The open Qodo reliability finding `78aaaf3b` was left as the maintainer chose. #220's equivalents gate 2.0.0 removal, not 1.0.0.
 - **Remaining release-candidate inputs:** #147 needs protected-caller enforcement evidence and #142 needs consenting-team observations. No version bump, release or removal.
+
+### Interim release 0.22.0 — 2026-10-08
+
+- **Decision:** the maintainer chose to publish 0.22.0 now, recorded in [release readiness](RELEASE_READINESS.md#interim-release-0220--maintainer-scope-decision-2026-10-08). #147 enforcement evidence and #142 pilot observations are excluded; enforcement relies on team pipeline deployment policy. 1.0.0 remains the release candidate; no acceptance criterion changes.
+- **Release changes:** version 0.22.0; the ten shipped CI gates pin `govkit~=0.22.0` as the release convention requires; a changelog covering #177–#222; README, onboarding and pipeline/provider docs no longer describe the capability commands as unreleased.
+- **Test corrections exposed by the bump:** inventory, maintenance, migration-freshness and pipeline-upgrade tests, and the provider-evidence wheel smoke, hard-coded the running version as `0.21.1`, or the offered newer release as `0.22.0`. They now derive both from the running CLI through `newer_govkit()`, so later bumps cannot turn an offered upgrade into the running version. Explicit-input pure-function literals are unchanged.
+- **Follow-up, not changed here:** `pipeline_render` accepts settings pinned to `0.21.1`, but the published 0.21.1 lacks the pipeline runtime, so such a pipeline fails closed at runtime verification. Raising the minimum to 0.22.0 would ripple through bundled examples and goldens, so it is left for a separate change (no issue filed yet).

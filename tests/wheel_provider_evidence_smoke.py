@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 
 import yaml
+from packaging.version import Version
 
 import cli
 from cli import paths
@@ -19,6 +20,12 @@ from cli.pipeline_evidence import collect_evidence
 from cli.pipeline_store import apply_pipeline, preview_pipeline
 from cli.schema_validation import canonical_json, content_digest
 from cli.version import GOVKIT_VERSION
+
+# An upgrade offer newer than the installed runtime; derived so a version bump
+# cannot make the offered release the running one.
+_RUNNING = Version(GOVKIT_VERSION)
+NEWER_GOVKIT = f"{_RUNNING.major}.{_RUNNING.minor + 1}.0"
+GOVKIT_COMPATIBILITY = f">={_RUNNING.major}.{_RUNNING.minor},<{_RUNNING.major + 1}"
 
 AS_OF = "2026-09-24T12:00:00Z"
 
@@ -215,7 +222,7 @@ def run_pilot(workspace, agent, provider):
                     "component": "govkit",
                     "source_id": "team",
                     "channel": "stable",
-                    "compatibility": ">=0.21,<1",
+                    "compatibility": GOVKIT_COMPATIBILITY,
                 }
             ],
             "metadata_max_age_hours": 24,
@@ -233,7 +240,7 @@ def run_pilot(workspace, agent, provider):
         "releases": [
             {
                 "component": "govkit",
-                "version": "0.22.0",
+                "version": NEWER_GOVKIT,
                 "channel": "stable",
                 "requires_govkit": ">=0.21",
                 "requires_python": ">=3.11",
@@ -249,7 +256,7 @@ def run_pilot(workspace, agent, provider):
         uninstalled, before_upgrade, selected, settings_path, catalog=bundled_catalog(), as_of=AS_OF
     )
     assert upgrade["integration"]["artifact"]["catalog"]["ready"]
-    assert upgrade["integration"]["artifact"]["binding"]["govkit_version"] == "0.22.0"
+    assert upgrade["integration"]["artifact"]["binding"]["govkit_version"] == NEWER_GOVKIT
     assert not upgrade["integration"]["writes_authorized"]
     assert sorted(
         p.relative_to(uninstalled).as_posix() for p in uninstalled.rglob("*") if p.is_file()

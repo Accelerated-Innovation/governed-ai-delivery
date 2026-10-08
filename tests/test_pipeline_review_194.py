@@ -20,7 +20,9 @@ from tests.test_pipeline_assessment import candidate
 from tests.test_pipeline_evidence import AS_OF, collect, configured, states
 from tests.test_pipeline_render import settings
 from tests.test_provider_admission import event, policy, prepared
-from tests.test_release_metadata import metadata, project, release
+from tests.test_release_metadata import metadata, newer_govkit, project, release
+
+NEWER_GOVKIT, GOVKIT_COMPATIBILITY = newer_govkit()
 
 
 @pytest.mark.parametrize("provider", ["github", "azure"])
@@ -144,13 +146,13 @@ def cli_candidate(tmp_path):
             "component": "govkit",
             "source_id": "team",
             "channel": "stable",
-            "compatibility": ">=0.21,<1",
+            "compatibility": GOVKIT_COMPATIBILITY,
         }
     )
     (target / ".govkit/profile.yaml").write_text(json.dumps(profile))
     pack = load_pack(make_pack(tmp_path / "sample"))
     report = assess_repository(
-        target, as_of=AS_OF, metadata=(metadata(release("0.22.0", component="govkit")),)
+        target, as_of=AS_OF, metadata=(metadata(release(NEWER_GOVKIT, component="govkit")),)
     ).document
     identifier = next(r["id"] for r in report["recommendations"] if r["action"] == "upgrade-cli")
     config = tmp_path / "settings.json"
@@ -166,8 +168,8 @@ def test_cli_upgrade_without_lock_uses_explicit_available_catalog_read_only(tmp_
         target, report, identifier, config, catalog=(pack,), as_of=AS_OF
     )
 
-    assert preview["target_version"] == "0.22.0"
-    assert preview["integration"]["artifact"]["binding"]["govkit_version"] == "0.22.0"
+    assert preview["target_version"] == NEWER_GOVKIT
+    assert preview["integration"]["artifact"]["binding"]["govkit_version"] == NEWER_GOVKIT
     assert preview["integration"]["artifact"]["catalog"]["capabilities"] == ["sample"]
     assert preview["integration"]["writes_authorized"] is False
     assert snapshot(target) == before and not (target / ".govkit/pack-lock.json").exists()
@@ -239,7 +241,7 @@ def test_cli_upgrade_keeps_an_existing_lock_instead_of_selecting_a_new_available
         )
     )
     report = assess_repository(
-        target, as_of=AS_OF, metadata=(metadata(release("0.22.0", component="govkit")),)
+        target, as_of=AS_OF, metadata=(metadata(release(NEWER_GOVKIT, component="govkit")),)
     ).document
     identifier = next(r["id"] for r in report["recommendations"] if r["action"] == "upgrade-cli")
     available = load_pack(make_pack(tmp_path / "newer", version="2.0.0"))

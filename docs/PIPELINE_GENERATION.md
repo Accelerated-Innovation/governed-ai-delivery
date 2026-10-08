@@ -16,14 +16,13 @@ Create accepted settings independently of the profile:
 ```json
 {
   "schema_version": 1,
-  "govkit_version": "0.21.1",
+  "govkit_version": "0.22.0",
   "execute_checks": ["project:tests", "llm-exact-match"]
 }
 ```
 
 Use the exact release you intend to provision. It must contain these entry-point
-features; the example version identifies this source build, not a claim that a
-matching published package contains it. Preview resolves compatibility from the
+features, which first shipped in 0.22.0. Preview resolves compatibility from the
 supplied packs and checks exact version syntax; it does not query package servers
 or authenticate a release. The caller provisions the isolated runtime and any
 test tools/dependencies. Generation performs no installation or network access.
