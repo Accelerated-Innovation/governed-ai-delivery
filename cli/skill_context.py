@@ -151,6 +151,25 @@ def _extract_contract_paths(manifest: dict) -> list[str]:
     return paths
 
 
+def _extract_capabilities(manifest: dict) -> list[str]:
+    """Collect capability tokens in declaration order, without duplicates.
+
+    The manifest schema declares tokens under contract_sets[].capabilities.
+    A top-level `capabilities` list is outside the schema but was the only
+    location read before; it is still honored so such manifests keep working.
+    """
+    tokens: list[str] = []
+    sources = [
+        cs.get("capabilities") for cs in manifest.get("contract_sets") or [] if isinstance(cs, dict)
+    ]
+    sources.append(manifest.get("capabilities"))
+    for source in sources:
+        for token in source if isinstance(source, list) else []:
+            if isinstance(token, str) and token not in tokens:
+                tokens.append(token)
+    return tokens
+
+
 def _extension_facts(target: Path) -> list[dict]:
     """Discover extensions and project their manifest data into a flat list
     of (id, version, capabilities, contract_paths) dicts for skill consumers."""
@@ -165,7 +184,7 @@ def _extension_facts(target: Path) -> list[dict]:
         out.append({
             "id": ext.id,
             "version": ext.version,
-            "capabilities": list(manifest.get("capabilities") or []),
+            "capabilities": _extract_capabilities(manifest),
             "contract_paths": _extract_contract_paths(manifest),
         })
     return out

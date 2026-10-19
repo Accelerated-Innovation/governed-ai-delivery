@@ -16,6 +16,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   feature fail the quality gate's schema validation.
   `multi_agent_evaluation` requires `multi_agent: true`, and unknown keys
   remain rejected.
+- `.govkit/skill_context.yaml` now reports each extension's capability tokens
+  from `contract_sets[].capabilities`, where the manifest schema declares them.
+  The list was previously always empty for real manifests. A top-level
+  `capabilities` list is still honored.
 
 ## [0.22.0] — 2026-10-08
 
