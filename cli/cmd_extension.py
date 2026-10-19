@@ -77,10 +77,48 @@ def _compat_warnings(manifest: dict, marker: dict) -> list[str]:
     return warnings
 
 
-def cmd_extension_list(_args: argparse.Namespace) -> None:
+def _print_installed(target: Path, as_json: bool) -> None:
+    """`extension list --installed`: legacy and lock-verified declarative installs."""
+    from .extension_inventory import installed_extensions
+    from .schema_validation import canonical_json
+
+    inventory = installed_extensions(target)
+    if as_json:
+        print(canonical_json(inventory.to_document()))
+    elif not inventory.extensions and not inventory.conflicts:
+        print("No extensions installed.")
+    else:
+        print(f"\nInstalled extensions (pack lock: {inventory.lock}):\n")
+        for ext in inventory.extensions:
+            print(f"  {ext.id} {ext.version or '?'}  [{ext.source}, {ext.status}]")
+            print(f"    root: {ext.root}")
+            for contract_set in ext.contract_sets:
+                print(f"    {contract_set['id']}: {', '.join(contract_set['paths'])}")
+            for issue in ext.issues:
+                print(f"    issue: {issue}")
+        if inventory.conflicts:
+            print("\nConflicts:")
+            for conflict in inventory.conflicts:
+                print(f"  [{conflict.kind}] {conflict.message}")
+        print("\nInstalled guidance is not accepted project policy.")
+    if not inventory.ready:
+        sys.exit(1)
+
+
+def cmd_extension_list(args: argparse.Namespace) -> None:
     """Print every bundled extension pack (id, name, description, supported
     levels/types). Source of truth for what `govkit extension add` can install.
+    With --installed, list what a target project actually has installed.
     """
+    if getattr(args, "installed", False):
+        if not getattr(args, "target", None):
+            print("Error: --installed requires --target.", file=sys.stderr)
+            sys.exit(1)
+        _print_installed(Path(args.target).resolve(), getattr(args, "json", False))
+        return
+    if getattr(args, "target", None) or getattr(args, "json", False):
+        print("Error: --target and --json apply only with --installed.", file=sys.stderr)
+        sys.exit(1)
     packs = _bundled_packs()
     if not packs:
         print("No bundled extension packs found.")
@@ -422,7 +460,15 @@ def register(subparsers) -> None:
     )
     ext_sub = ext_parser.add_subparsers(dest="extension_command", required=True)
 
-    list_parser = ext_sub.add_parser("list", help="List bundled extension packs")
+    list_parser = ext_sub.add_parser("list", help="List bundled or installed extension packs")
+    list_parser.add_argument(
+        "--installed",
+        action="store_true",
+        help="List extensions installed in --target (legacy extensions/ and verified "
+        ".govkit/packs/), with conflicting copies; exits 1 unless all are usable",
+    )
+    list_parser.add_argument("--target", help=paths.TARGET_HELP)
+    list_parser.add_argument("--json", action="store_true", help="Print the inventory as JSON")
     list_parser.set_defaults(func=cmd_extension_list)
 
     add_parser = ext_sub.add_parser(

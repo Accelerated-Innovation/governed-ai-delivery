@@ -171,10 +171,19 @@ def _extract_capabilities(manifest: dict) -> list[str]:
 
 
 def _extension_facts(target: Path) -> list[dict]:
-    """Discover extensions and project their manifest data into a flat list
-    of (id, version, capabilities, contract_paths) dicts for skill consumers."""
+    """Project installed extensions into a flat list for skill consumers.
+
+    Each entry carries id, version, capabilities and contract_paths (relative
+    to the extension root), plus where it is installed: `source` (legacy or
+    declarative), the repository-relative `root`, `status`, and the kinds of
+    any conflicting copies. Declarative packs appear only when the pack lock
+    verifies.
+    """
+    from .extension_inventory import installed_extensions
     from .extensions import discover_extensions
 
+    inventory = installed_extensions(target)
+    status = {(e.id, e.source): e.status for e in inventory.extensions}
     out: list[dict] = []
     for ext in discover_extensions(target):
         if ext.errors:
@@ -186,6 +195,28 @@ def _extension_facts(target: Path) -> list[dict]:
             "version": ext.version,
             "capabilities": _extract_capabilities(manifest),
             "contract_paths": _extract_contract_paths(manifest),
+            "source": "legacy",
+            "root": ext.root.relative_to(target).as_posix(),
+            "status": status.get((ext.id, "legacy"), "invalid"),
+            "conflicts": inventory.conflicts_for(ext.id),
+        })
+    for entry in inventory.extensions:
+        if entry.source != "declarative" or entry.status != "verified":
+            continue
+        prefix = entry.root + "/"
+        out.append({
+            "id": entry.id,
+            "version": entry.version,
+            "capabilities": list(dict.fromkeys(
+                token for cs in entry.contract_sets for token in cs["capabilities"]
+            )),
+            "contract_paths": [
+                path[len(prefix):] for cs in entry.contract_sets for path in cs["paths"]
+            ],
+            "source": "declarative",
+            "root": entry.root,
+            "status": entry.status,
+            "conflicts": inventory.conflicts_for(entry.id),
         })
     return out
 
