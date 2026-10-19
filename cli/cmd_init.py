@@ -135,12 +135,31 @@ def cmd_init(args: argparse.Namespace) -> None:
     if starter_type in ("ui-react", "ui-angular", "ui-nextjs"):
         print(f"  3. Edit {feature_dir / 'design.md'} — define screens, states, and brand use")
         next_step = 4
+    agent = stored.get("agent")
+    for offset, skill in enumerate(_next_skills(starter_type, level)):
+        print(f"  {next_step + offset}. Run {_skill_invocation(agent, skill, feature_name)}")
+
+
+def _next_skills(starter_type: str, level: str) -> tuple[str, str]:
+    """The installed skills a new feature runs next, by area and level.
+
+    UI installs have their own preflight and planning skills and no GenAI
+    preflight; L5 backend and CLI installs run GenAI preflight next.
+    """
+    if starter_type in ("ui-react", "ui-angular", "ui-nextjs"):
+        return ("govkit-ui-architecture-preflight", "govkit-ui-spec-planning")
     if level == "5":
-        print(f"  {next_step}. Run /architecture-preflight {feature_name}")
-        print(f"  {next_step + 1}. Run /genai-preflight {feature_name}")
-    else:  # L4
-        print(f"  {next_step}. Run /architecture-preflight {feature_name}")
-        print(f"  {next_step + 1}. Run /spec-planning {feature_name}")
+        return ("govkit-architecture-preflight", "govkit-genai-preflight")
+    return ("govkit-architecture-preflight", "govkit-spec-planning")
+
+
+def _skill_invocation(agent: str | None, skill: str, feature_name: str) -> str:
+    """Render the agent's invocation syntax; an unknown agent is not guessed."""
+    if agent == "codex":
+        return f"${skill} {feature_name}"
+    if agent in ("claude-code", "copilot"):
+        return f"/{skill} {feature_name}"
+    return f"the `{skill}` skill for {feature_name}"
 
 
 def register(subparsers) -> None:
