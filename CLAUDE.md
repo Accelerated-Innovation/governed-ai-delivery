@@ -122,7 +122,8 @@ A change is rarely one file. Changing a schema means updating starter templates 
 - **What makes evidence stale.** A changed requirement, dependency or evidence file, edited criteria, re-pinned inputs or an expired result. A preflight relying on stale evidence is an error.
 - **Rules that guard requirements.** `adopt` requires a pass. Narrowing behavior requires an accepted requirement change. The schema has no waiver field, and synthetic evidence never satisfies an application requirement.
 - **What a clean assessment means.** The records are consistent and current. It is not execution or conformance.
-- **Not yet wired in.** `validate`, change conformance, the CI templates and the agent skills do not consume the assessor yet.
+- **Where it runs.** `govkit validate` reports experiment findings per feature, at any level; `--only experiments` runs just these checks. Errors FAIL. Outstanding or unknown findings WARN, or FAIL with `--strict`. Both `quality-gate.yml` templates run the non-strict `--only experiments` check when a non-starter feature declares either record. Every feature install ships both schemas.
+- **Not yet wired in.** Change conformance and the agent skills do not consume the assessor yet.
 - **Keep aligned.** The schemas and the six example scenarios, together with their expected results.
 
 ### Actual-change conformance

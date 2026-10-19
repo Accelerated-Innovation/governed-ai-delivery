@@ -26,8 +26,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   application-evidence requirement. Six example scenarios live in
   `governance/examples/experiments/`. A clean assessment means the records are
   consistent and current; it does not show execution or SOAA conformance.
-  `govkit validate`, change conformance, CI templates and agent skills do not
-  consume these records yet. See `docs/ARCHITECTURE_EXPERIMENTS.md`.
+  See `docs/ARCHITECTURE_EXPERIMENTS.md`.
+- **`govkit validate` checks architecture experiments.** It adds one result
+  line per finding to each feature that declares `experiments.yaml` or a
+  `preflight_outcome` block. Features declaring neither see unchanged output.
+  - Errors fail. Outstanding or unverifiable evidence warns, and fails with
+    `--strict`, which also now covers this case.
+  - The new `--only experiments` flag runs just these checks at any level.
+  - Every feature install now ships the `experiment-set` and
+    `preflight-outcome` schemas.
+  - The GitHub and Azure `quality-gate.yml` templates gain an
+    `architecture-experiments` job. It runs the non-strict check only when a
+    non-starter feature declares either record.
+  - Change conformance and agent skills do not consume the records yet.
 
 ### Fixed
 

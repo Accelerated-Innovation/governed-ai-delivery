@@ -12,6 +12,12 @@
 #   contract-compatibility — detects @contract-tagged features and checks backward compatibility
 #                            (configure your schema diff tool in the final step)
 #   governance-artifacts   — checks that required governance artifacts exist for each feature
+#   architecture-experiments — when a feature declares experiments.yaml or a
+#                            preflight_outcome block, runs
+#                            `govkit validate --only experiments`. Invalid records
+#                            and stale reliance fail; outstanding experiments warn.
+#                            Run `govkit validate --strict` locally at feature
+#                            completion. See docs/ARCHITECTURE_EXPERIMENTS.md.
 #
 # This gate is ADDITIVE over l3-quality-gate.yml, which an L4+ install also
 # receives. boundary-check, sonarqube, security-scan and commit-format live
@@ -102,3 +108,40 @@ jobs:
             exit 1
           fi
           echo "All planned features have architecture preflight artifacts."
+
+  architecture-experiments:
+    name: Architecture experiment evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect experiment records and preflight outcomes
+        id: detect
+        run: |
+          set -euo pipefail
+          found=no
+          for feature_dir in features/*/; do
+            [ -d "$feature_dir" ] || continue
+            feature=$(basename "$feature_dir")
+            # Skip starter templates
+            case "$feature" in starter_*) continue;; esac
+            if [ -f "${feature_dir}experiments.yaml" ] \
+              || grep -qs '^preflight_outcome:' "${feature_dir}architecture_preflight.md"; then
+              found=yes
+            fi
+          done
+          echo "found=$found" >> "$GITHUB_OUTPUT"
+          if [ "$found" = no ]; then
+            echo "No experiment records or preflight outcome blocks; nothing to check."
+          fi
+
+      - name: Install GovKit
+        if: steps.detect.outputs.found == 'yes'
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install govkit~=0.22.0
+
+      - name: Check architecture experiment evidence
+        if: steps.detect.outputs.found == 'yes'
+        run: govkit validate --target . --only experiments

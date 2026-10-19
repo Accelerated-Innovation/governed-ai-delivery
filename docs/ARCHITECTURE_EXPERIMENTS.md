@@ -13,9 +13,36 @@ are for material uncertainty only.
 
 > **Status.** This page describes the record contracts and assessor added by
 > [ADR 0020](../plans/decisions/0020-architecture-experiments.md). `govkit
-> validate`, change conformance, the CI templates and the agent skills do not
-> read these records yet. Those integrations are later increments of the
+> validate` and the consumer `quality-gate.yml` (GitHub and Azure) check them,
+> as described below. Change conformance and the agent skills do not read
+> them yet; those are later increments of the
 > [Phase A plan](../plans/SOAA_GOVKIT_INCREMENTAL_IMPLEMENTATION_PLAN.md).
+
+## Checking a project
+
+`govkit validate` adds one result line per finding to each feature that
+declares either record. Features that declare neither see no change. These
+checks run at every level:
+
+```bash
+govkit validate --target .                       # all checks; experiment findings included
+govkit validate --target . --only experiments    # only the experiment checks
+govkit validate --target . --strict              # feature completion
+```
+
+| Finding class | Default | `--strict` |
+|---|---|---|
+| error | FAIL | FAIL |
+| outstanding | WARN | FAIL |
+| unknown | WARN | FAIL |
+
+Expiry is measured against the current time.
+
+The consumer quality gate runs the `--only experiments` command without
+`--strict` whenever a feature outside `starter_*` declares either record. That
+way, pull requests made during experimentation can merge while errors still
+fail. Run with `--strict` when you are ready to declare the feature complete.
+Both schemas ship with every feature install under `governance/schemas/`.
 
 ## The two records
 
