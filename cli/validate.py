@@ -28,11 +28,14 @@ deferred to CI or `check-jsonschema` if installed.
 
 import re
 import subprocess
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 
 import yaml
 
+from .experiment_store import assess_feature
+from .experiments import ERROR
 from .features import list_user_features
 from .marker import TYPE_AREA, read_govkit_marker
 
@@ -717,17 +720,75 @@ def _build_checks(
     return artifacts, checks
 
 
+def check_architecture_experiments(
+    target: Path, feature_dir: Path, *, strict: bool = False, now: datetime | None = None
+) -> list[tuple[CheckStatus, str]]:
+    """Report a feature's preflight outcome and experiment records (ADR 0020).
+
+    Returns no results when the feature declares neither, so existing
+    features keep identical output. Errors fail; outstanding and unverifiable
+    evidence warns, or fails with --strict. A clean result means the records
+    are consistent and current, not that experiments ran.
+    """
+    result = assess_feature(target, feature_dir, now=now)
+    if result is None:
+        return []
+    assessment = result.assessment
+    if not assessment.findings:
+        status = assessment.outcome["status"] if assessment.outcome else "no preflight outcome"
+        count = len(assessment.experiments)
+        return [
+            (
+                CheckStatus.PASS,
+                f"architecture experiments: {status}; {count} experiment(s); records current",
+            )
+        ]
+    lenient = CheckStatus.FAIL if strict else CheckStatus.WARN
+    return [
+        (
+            CheckStatus.FAIL if finding.severity == ERROR else lenient,
+            f"architecture experiments: {finding.code} — {finding.message}",
+        )
+        for finding in assessment.findings
+    ]
+
+
 def _run_feature_checks(feature_dir: Path, checks: list) -> bool:
-    """Run all checks on a single feature directory. Returns True if all pass."""
+    """Run all checks on a single feature directory. Returns True if all pass.
+
+    A check returns one (status, message) pair, or a list of them; an empty
+    list reports nothing.
+    """
     feature_ok = True
     print(f"features/{feature_dir.name}/")
     for check_fn in checks:
-        status, message = check_fn(feature_dir)
-        print(f"  {_STATUS_LABEL[status]}  {message}")
-        if status is CheckStatus.FAIL:
-            feature_ok = False
+        outcome = check_fn(feature_dir)
+        for status, message in outcome if isinstance(outcome, list) else [outcome]:
+            print(f"  {_STATUS_LABEL[status]}  {message}")
+            if status is CheckStatus.FAIL:
+                feature_ok = False
     print()
     return feature_ok
+
+
+def _run_experiment_checks_only(target: Path, strict: bool, now: datetime) -> int:
+    """`govkit validate --only experiments`: no other checks, any level."""
+    features_dir = target / "features"
+    if not features_dir.exists():
+        print(f"Error: no features/ directory found in '{target}'.")
+        return 1
+    print("\ngovkit validate — architecture experiments\n")
+    reported = 0
+    any_fail = False
+    for feature_dir in list_user_features(features_dir):
+        results = check_architecture_experiments(target, feature_dir, strict=strict, now=now)
+        if not results:
+            continue
+        reported += 1
+        any_fail |= not _run_feature_checks(feature_dir, [lambda _fd, r=results: r])
+    if not reported:
+        print("No architecture experiment records or preflight outcomes found.")
+    return 1 if any_fail else 0
 
 
 def _run_extension_checks(target: Path, strict: bool) -> int:
@@ -820,11 +881,24 @@ def _run_approval_checks(target: Path) -> int:
     return 1 if issues else 0
 
 
-def run_validation(target: Path, level: str | None = None, strict: bool = False) -> int:
-    """Run all governance checks on the target project. Returns exit code."""
+def run_validation(
+    target: Path,
+    level: str | None = None,
+    strict: bool = False,
+    only: str | None = None,
+    now: datetime | None = None,
+) -> int:
+    """Run all governance checks on the target project. Returns exit code.
+
+    `only="experiments"` runs just the architecture experiment checks.
+    `now` is the clock for experiment expiry; it defaults to the current time.
+    """
     if not target.exists():
         print(f"Error: target directory '{target}' does not exist.")
         return 1
+    now = now or datetime.now(timezone.utc)
+    if only == "experiments":
+        return _run_experiment_checks_only(target, strict, now)
 
     marker = read_govkit_marker(target) or {}
     if level is None:
@@ -859,6 +933,10 @@ def run_validation(target: Path, level: str | None = None, strict: bool = False)
         return 1
 
     _, checks = _build_checks(level, (marker.get("options") or {}).get("type"))
+    checks = [
+        *checks,
+        lambda fd: check_architecture_experiments(target, fd, strict=strict, now=now),
+    ]
 
     feature_dirs = list_user_features(features_dir)
 

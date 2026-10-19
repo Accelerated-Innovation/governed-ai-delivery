@@ -177,7 +177,7 @@ in its own stack-selected `boundary-gate-*.yml`, which also ships from L3.
 | `boundary-gate-go.yml` | Architecture boundary enforcement (`go-gin`) | — |
 | `boundary-gate-jvm.yml` | Architecture boundary enforcement (`java-spring-boot`) | — |
 | `boundary-gate-dotnet.yml` | Architecture boundary enforcement (`dotnet-aspnet`) | — |
-| `quality-gate.yml` | — | Schema validation, contract compatibility, governance artifacts (5) |
+| `quality-gate.yml` | — | Schema validation, contract compatibility, governance artifacts (5), architecture experiment evidence |
 | `eval-gate.yml` | — | FIRST/Virtue prediction thresholds, LLM eval |
 | `ui-quality-gate.yml` | — | Type check, ESLint, component tests, bundle size |
 | `ui-eval-gate.yml` | — | FIRST/Virtue prediction, Playwright E2E, axe scans |
@@ -491,6 +491,37 @@ These governance rules are communicated to agents via CLAUDE.md / copilot-instru
 | "Multi-repo but does not list <repo> as owner" | Add your repo to the ownership table |
 
 See: `docs/REPO_SCOPE_ANALYSIS_GUIDANCE.md` for complete repo scope semantics.
+
+---
+
+## Architecture Experiment Evidence
+
+**Job/stage:** `architecture-experiments` in `quality-gate.yml` (GitHub job and
+Azure stage `ArchitectureExperiments`)
+
+The job runs only when a feature outside `starter_*` declares
+`features/<feature>/experiments.yaml` or a `preflight_outcome` block in
+`architecture_preflight.md`. It then installs the pinned GovKit and runs
+`govkit validate --target . --only experiments`.
+
+- **Fails the job:**
+  - an invalid or contradictory record;
+  - a preflight that relies on stale evidence;
+  - a preflight that relies on an experiment that did not pass or was not
+    adopted.
+- **Warns without failing:** experiments that are planned, running or
+  undecided; preflights that still say `experiment-required`, `adr-required`
+  or `blocked`; and evidence that cannot be verified. This lets
+  experimentation pull requests merge.
+- **Feature completion:** run `govkit validate --target . --strict` before
+  declaring a feature complete. With `--strict`, outstanding or unverifiable
+  experiment evidence also fails.
+
+The data and Next.js gates already run `govkit validate`, so they apply the
+same checks to features that declare these records. A passing job means the
+records are consistent and current. It does not show that experiments ran or
+that the design conforms to an architecture. See
+[`docs/ARCHITECTURE_EXPERIMENTS.md`](../docs/ARCHITECTURE_EXPERIMENTS.md).
 
 ---
 

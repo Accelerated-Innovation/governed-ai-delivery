@@ -60,6 +60,8 @@
           "governed": [
             "governance/data/schemas/",
             "governance/schemas/fix_record.schema.json",
+            "governance/schemas/experiment-set.schema.json",
+            "governance/schemas/preflight-outcome.schema.json",
             "governance/schemas/approval_policy.schema.json"
           ]
         }
@@ -104,6 +106,8 @@
             "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json",
             "governance/schemas/fix_record.schema.json",
+            "governance/schemas/experiment-set.schema.json",
+            "governance/schemas/preflight-outcome.schema.json",
             "governance/schemas/approval_policy.schema.json"
           ]
         },
@@ -142,6 +146,8 @@
             "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json",
             "governance/schemas/fix_record.schema.json",
+            "governance/schemas/experiment-set.schema.json",
+            "governance/schemas/preflight-outcome.schema.json",
             "governance/schemas/approval_policy.schema.json"
           ]
         }
@@ -185,6 +191,8 @@
             "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json",
             "governance/schemas/fix_record.schema.json",
+            "governance/schemas/experiment-set.schema.json",
+            "governance/schemas/preflight-outcome.schema.json",
             "governance/schemas/approval_policy.schema.json"
           ]
         },
@@ -222,6 +230,8 @@
             "governance/backend/templates/",
             "governance/schemas/evaluation_prediction.schema.json",
             "governance/schemas/fix_record.schema.json",
+            "governance/schemas/experiment-set.schema.json",
+            "governance/schemas/preflight-outcome.schema.json",
             "governance/schemas/approval_policy.schema.json"
           ]
         }
@@ -266,6 +276,8 @@
             "docs/ui/evaluation/",
             "governance/ui/",
             "governance/schemas/fix_record.schema.json",
+            "governance/schemas/experiment-set.schema.json",
+            "governance/schemas/preflight-outcome.schema.json",
             "governance/schemas/approval_policy.schema.json"
           ]
         },
@@ -302,6 +314,8 @@
             "docs/ui/evaluation/",
             "governance/ui/",
             "governance/schemas/fix_record.schema.json",
+            "governance/schemas/experiment-set.schema.json",
+            "governance/schemas/preflight-outcome.schema.json",
             "governance/schemas/approval_policy.schema.json"
           ]
         }
@@ -346,6 +360,8 @@
             "docs/ui/evaluation/",
             "governance/ui/",
             "governance/schemas/fix_record.schema.json",
+            "governance/schemas/experiment-set.schema.json",
+            "governance/schemas/preflight-outcome.schema.json",
             "governance/schemas/approval_policy.schema.json"
           ]
         },
@@ -382,6 +398,8 @@
             "docs/ui/evaluation/",
             "governance/ui/",
             "governance/schemas/fix_record.schema.json",
+            "governance/schemas/experiment-set.schema.json",
+            "governance/schemas/preflight-outcome.schema.json",
             "governance/schemas/approval_policy.schema.json"
           ]
         }
@@ -425,6 +443,8 @@
             "docs/ui/evaluation/",
             "governance/ui/",
             "governance/schemas/fix_record.schema.json",
+            "governance/schemas/experiment-set.schema.json",
+            "governance/schemas/preflight-outcome.schema.json",
             "governance/schemas/approval_policy.schema.json"
           ]
         },
@@ -460,6 +480,8 @@
             "docs/ui/evaluation/",
             "governance/ui/",
             "governance/schemas/fix_record.schema.json",
+            "governance/schemas/experiment-set.schema.json",
+            "governance/schemas/preflight-outcome.schema.json",
             "governance/schemas/approval_policy.schema.json"
           ]
         }

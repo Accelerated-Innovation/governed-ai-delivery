@@ -897,6 +897,42 @@ class TestDataEvalCriteriaSchema:
         assert "governance/data/schemas/" in governed, agent
 
 
+EXPERIMENT_SCHEMAS = (
+    "governance/schemas/experiment-set.schema.json",
+    "governance/schemas/preflight-outcome.schema.json",
+)
+
+
+def _governed_variants(manifest: dict):
+    for project_type, levels in manifest["variants"]["type"].items():
+        for level, variant in levels.items():
+            if isinstance(variant, dict):
+                yield f"{project_type}/{level}", variant.get("governed", [])
+
+
+@pytest.mark.parametrize("agent", _all_agents())
+def test_every_feature_variant_installs_experiment_schemas(agent):
+    """Wherever a feature workflow is installed (the fix-record schema marks
+    it), the experiment and preflight-outcome schemas ship beside it, so the
+    consumer has the contracts its agents and reviewers are told to follow."""
+    variants = list(_governed_variants(_load_manifest(agent)))
+    feature_variants = [
+        name for name, governed in variants
+        if "governance/schemas/fix_record.schema.json" in governed
+    ]
+    assert len(feature_variants) >= 11, feature_variants
+    missing = [
+        f"{name}: {schema}"
+        for name, governed in variants
+        if "governance/schemas/fix_record.schema.json" in governed
+        for schema in EXPERIMENT_SCHEMAS
+        if schema not in governed
+    ]
+    assert not missing, missing
+    for schema in EXPERIMENT_SCHEMAS:
+        assert (REPO_ROOT / schema).is_file(), schema
+
+
 class TestBackendEvalCriteriaMultiAgent:
     """`multi_agent: true` is the documented topology trigger read by
     `govkit validate` and both multi-agent CI gates. The quality gate

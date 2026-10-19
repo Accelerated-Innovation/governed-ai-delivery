@@ -6,6 +6,12 @@
 #                            governance/backend/schemas/eval_criteria.schema.json
 #   contract-compatibility — detects @contract-tagged features and checks backward compatibility
 #   governance-artifacts   — checks that required governance artifacts exist for each feature
+#   architecture-experiments — when a feature declares experiments.yaml or a
+#                            preflight_outcome block, runs
+#                            `govkit validate --only experiments`. Invalid records
+#                            and stale reliance fail; outstanding experiments warn.
+#                            Run `govkit validate --strict` locally at feature
+#                            completion. See docs/ARCHITECTURE_EXPERIMENTS.md.
 #
 # This gate is ADDITIVE over l3-quality-gate.yml, which an L4+ install also
 # receives. BoundaryCheck, SonarQube, SecurityScan and CommitFormat live
@@ -113,6 +119,44 @@ stages:
               fi
               echo "All planned features have architecture preflight artifacts."
             displayName: Check architecture preflight exists
+
+  - stage: ArchitectureExperiments
+    displayName: Architecture experiment evidence
+    dependsOn: []
+    jobs:
+      - job: ArchitectureExperiments
+        displayName: Architecture experiment evidence
+        steps:
+          - checkout: self
+
+          - script: |
+              set -euo pipefail
+              found=no
+              for feature_dir in features/*/; do
+                [ -d "$feature_dir" ] || continue
+                feature=$(basename "$feature_dir")
+                case "$feature" in starter_*) continue;; esac
+                if [ -f "${feature_dir}experiments.yaml" ] \
+                  || grep -qs '^preflight_outcome:' "${feature_dir}architecture_preflight.md"; then
+                  found=yes
+                fi
+              done
+              echo "##vso[task.setvariable variable=EXPERIMENTS_FOUND]$found"
+              if [ "$found" = no ]; then
+                echo "No experiment records or preflight outcome blocks; nothing to check."
+              fi
+            displayName: Detect experiment records and preflight outcomes
+
+          - script: |
+              set -euo pipefail
+              python -m pip install --upgrade pip
+              python -m pip install govkit~=0.22.0
+            displayName: Install GovKit
+            condition: eq(variables['EXPERIMENTS_FOUND'], 'yes')
+
+          - script: govkit validate --target . --only experiments
+            displayName: Check architecture experiment evidence
+            condition: eq(variables['EXPERIMENTS_FOUND'], 'yes')
 
   - stage: CommitFormat
     displayName: Commit message format
