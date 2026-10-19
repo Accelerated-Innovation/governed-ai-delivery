@@ -1553,9 +1553,9 @@ Every other design question is resolved in §6.
 | Increment | Status | Evidence / commit / PR | Next action or blocker |
 |---|---|---|---|
 | 0 Preserved fix | complete | Merged as #226 (`2be2b18`) | — |
-| 1 Routing/context defects | in review | R1/R2 merged as #227 (`37a311b`). R3/R4 in the follow-up PR: `govkit init` invokes installed skills with agent syntax (10 new tests, red first); L5 starters mirror template §15/§16; neutral payload uses `govkit-` names (3 new tests, red first). Qodo local review blocked (CLI not installed) | Merge by the user |
-| 2 Experiment contract | not started | — | After 0 (parallel with 1) |
-| 3 Validator/schemas/CI | not started | — | After 2 |
+| 1 Routing/context defects | complete | R1/R2 merged as #227 (`37a311b`); R3/R4 merged as #229 (`f32ecdc`) | — |
+| 2 Experiment contract | complete | Merged as #230 (`d3585a7`): schemas, pure assessor, bounded store, six scenarios, ADR 0020; 106 tests; ad hoc clean-wheel check of all scenarios. Deviations: bare-hex digests; `adopt-without-pass` | — |
+| 3 Validator/schemas/CI | in review | `govkit validate` experiment check and `--only experiments`; schemas in all 33 feature install lists; GitHub/Azure `architecture-experiments` job; tests red first. CI pins `govkit~=0.22.0` until the 0.23.0 release PR bumps every pin. Qodo local review blocked (CLI not installed) | Merge by the user |
 | 4 Backend/data payload | not started | — | After 3 |
 | 5 UI alignment | deferred | U2: Value Builder is an API project; its UI is a client | Not required for handoff |
 | 6 Declarative integration | not started | — | After 2 |
@@ -1565,9 +1565,11 @@ Every other design question is resolved in §6.
 | 10 Applicability check | not started | — | After 9 |
 | 11 Wheel acceptance/handoff | not started | — | After all; U3 |
 
-**Current handoff:** Increments 0 and 1 (R1/R2) are merged; Increment 1's
-R3/R4 follow-up is in review. Next: Increment 2 (experiment contract). Install
-or connect the Qodo CLI so later PRs can run the required local review.
+**Current handoff:** Increments 0–2 are merged and Increment 3 is in review.
+Next: Increment 4 (backend/CLI/data agent payload for the loop) after 3, and
+Increment 6 (declarative request planning and change conformance) or 7
+(extension inventory), which do not depend on 3. Install or connect the Qodo
+CLI so later PRs can run the required local review.
 
 ## Decision log
 
