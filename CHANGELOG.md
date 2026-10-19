@@ -25,6 +25,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   conformance pass. Manifest parsing rejects duplicate YAML keys and aliases,
   consistent with declarative pack loading, and malformed descriptions produce
   a warning instead of crashing extension reporting.
+- `govkit init` next steps now name the skills the install actually ships,
+  using the agent's invocation syntax (`$govkit-…` for Codex,
+  `/govkit-…` for Claude Code and Copilot). UI features are pointed to the UI
+  preflight and planning skills, not GenAI preflight. Without a recorded agent,
+  skills are named without guessing a syntax.
+- The L5 backend and CLI starter preflights now match the governed template:
+  they include §15 Agent Topology and number Final Status §16 with its
+  multi-agent line. Governed templates and the data starter name skills by
+  their installed `govkit-` names.
 
 ## [0.22.0] — 2026-10-08
 

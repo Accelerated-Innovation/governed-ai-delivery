@@ -2098,6 +2098,68 @@ class TestSmokeInit:
         feature_dir = target / "features" / "my-ui-feature"
         assert (feature_dir / "acceptance.feature").read_text(encoding="utf-8") == "Feature: bundled"
 
+    @pytest.mark.parametrize(
+        ("agent", "level", "starter", "skills"),
+        [
+            ("claude-code", "4", "backend", ("govkit-architecture-preflight", "govkit-spec-planning")),
+            ("codex", "4", "cli", ("govkit-architecture-preflight", "govkit-spec-planning")),
+            ("copilot", "4", "data", ("govkit-architecture-preflight", "govkit-spec-planning")),
+            ("claude-code", "5", "backend", ("govkit-architecture-preflight", "govkit-genai-preflight")),
+            ("codex", "5", "backend", ("govkit-architecture-preflight", "govkit-genai-preflight")),
+            ("copilot", "5", "cli", ("govkit-architecture-preflight", "govkit-genai-preflight")),
+            ("codex", "4", "ui-react", ("govkit-ui-architecture-preflight", "govkit-ui-spec-planning")),
+            ("claude-code", "5", "ui-nextjs", ("govkit-ui-architecture-preflight", "govkit-ui-spec-planning")),
+            ("copilot", "5", "ui-angular", ("govkit-ui-architecture-preflight", "govkit-ui-spec-planning")),
+        ],
+    )
+    def test_init_next_steps_invoke_installed_skills(
+        self, tmp_path, monkeypatch, capsys, agent, level, starter, skills
+    ):
+        """Next steps name skills the install actually ships, with the agent's
+        invocation prefix (Codex uses `$`, Claude Code and Copilot use `/`)."""
+        slug = {"backend": "starter_backend", "cli": "starter_cli", "data": "starter_data",
+                "ui-nextjs": "starter_ui_nextjs"}.get(starter, "starter_ui")
+        fake_repo = self._bundled_repo(tmp_path, starter=slug)
+        monkeypatch.setattr("cli.paths.REPO_ROOT", fake_repo)
+        target = tmp_path / "project"
+        (target / "features").mkdir(parents=True)
+        project_type = {"backend": "api"}.get(starter, starter)
+        write_govkit_marker(target, agent, level, {"type": project_type})
+
+        cmd_init(argparse.Namespace(feature="feat", target=str(target), level=None, starter=starter))
+
+        out = capsys.readouterr().out
+        prefix = "$" if agent == "codex" else "/"
+        for skill in skills:
+            assert f"{prefix}{skill} feat" in out
+        for stale in ("/architecture-preflight ", "/genai-preflight ", "/spec-planning "):
+            assert stale not in out
+        repo_root = Path(__file__).resolve().parents[1]
+        manifest = json.loads((repo_root / "agents" / agent / "manifest.json").read_text(encoding="utf-8"))
+        variant = manifest["variants"]["type"][project_type][f"level_{level}"]
+        installed = {
+            entry["dest"].rstrip("/").rsplit("/", 1)[-1]
+            for entry in variant["files"]
+            if isinstance(entry, dict) and "skills/" in entry.get("src", "")
+        }
+        assert set(skills) <= installed
+
+    def test_init_next_steps_without_recorded_agent_name_skills_neutrally(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        """Without a marker the agent is unknown, so no invocation syntax is guessed."""
+        fake_repo = self._bundled_repo(tmp_path)
+        monkeypatch.setattr("cli.paths.REPO_ROOT", fake_repo)
+        target = tmp_path / "project"
+        (target / "features").mkdir(parents=True)
+
+        cmd_init(argparse.Namespace(feature="feat", target=str(target), level="4", starter="backend"))
+
+        out = capsys.readouterr().out
+        assert "the `govkit-architecture-preflight` skill for feat" in out
+        assert "the `govkit-spec-planning` skill for feat" in out
+        assert "/govkit-" not in out and "$govkit-" not in out
+
     def test_init_nextjs_resolves_to_dedicated_starter(self, tmp_path, monkeypatch):
         fake_repo = self._bundled_repo(tmp_path, starter="starter_ui_nextjs")
         (fake_repo / "features" / "starter_ui_nextjs" / "design.md").write_text(

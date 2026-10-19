@@ -214,8 +214,31 @@ If any LLM NFR is TBD, stop and request completion.
 
 ---
 
-## 15. Final Status
+## 15. Agent Topology (multi-agent features only)
+
+Check `eval_criteria.yaml` for `multi_agent: true`.
+
+If **not declared**: "Section 15: Not applicable — multi_agent not declared."
+
+If **declared**, complete each item:
+
+- [ ] `skill-oriented-agent-architecture` extension installed
+- [ ] `agent_topology.md` exists — run the `govkit-multi-agent-design` skill if missing
+- [ ] Accountable principal, accepted task boundary, one runtime owner, and completion authority declared
+- [ ] Components classified; each agent run has a bounded responsibility and authority ceiling
+- [ ] Typed runtime state, authoritative writers, legal transitions, ports, and handoffs declared
+- [ ] Time, token, cost, tool, retry, loop, and delegation budgets declared
+- [ ] External operations have fresh authorization, idempotency, recovery, and evidence
+- [ ] Completion requires independent evidence and a trusted controller transition
+- [ ] ADR required? (Yes for new multi-agent feature or topology change)
+
+**Section 15 Status:** Approved / Blocked
+
+---
+
+## 16. Final Status
 
 - L4 preflight status: approved | blocked
 - L5 GenAI status: approved | blocked
+- Multi-agent status (if applicable): approved | blocked | n/a
 - Combined status: **Approved for planning** | **Blocked pending resolution**

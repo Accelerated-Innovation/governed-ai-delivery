@@ -202,6 +202,43 @@ def test_starter_data_preflight_mirrors_skill_sections():
         assert heading in starter, heading
 
 
+@pytest.mark.parametrize("starter", ["starter_backend_l5", "starter_cli_l5"])
+def test_l5_starter_preflight_mirrors_template_sections(starter):
+    """`govkit init` copies the L5 starter; its numbered sections must match
+    the governed L5 template, including §15 Agent Topology and §16 Final Status."""
+    numbered = re.compile(r"^## \d+\. .+$", re.MULTILINE)
+    template = (
+        REPO_ROOT / "governance" / "backend" / "templates" / "l5-architecture-preflight.md"
+    ).read_text(encoding="utf-8")
+    starter_text = (REPO_ROOT / "features" / starter / "architecture_preflight.md").read_text(
+        encoding="utf-8"
+    )
+    assert numbered.findall(starter_text) == numbered.findall(template)
+    for line in (
+        "Check `eval_criteria.yaml` for `multi_agent: true`.",
+        "- Multi-agent status (if applicable): approved | blocked | n/a",
+    ):
+        assert line in starter_text
+
+
+_UNPREFIXED_SKILL_INVOCATION = re.compile(
+    r"(?<![\w/.-])[/$](?:ui-)?(?:architecture-preflight|genai-preflight|spec-planning|"
+    r"implementation-plan|multi-agent-design|eval-suite-planning|fix-record|adr-author|"
+    r"pr-author)\b"
+)
+
+
+def test_neutral_payload_invokes_only_installed_skill_names():
+    """Governed templates and starters are agent-neutral and install for every
+    agent; they must name skills by their installed `govkit-` names."""
+    stale = []
+    for root in (REPO_ROOT / "governance", REPO_ROOT / "features"):
+        for path in sorted(root.rglob("*.md")):
+            for match in _UNPREFIXED_SKILL_INVOCATION.finditer(path.read_text(encoding="utf-8")):
+                stale.append(f"{path.relative_to(REPO_ROOT)}: {match.group(0)}")
+    assert not stale, stale
+
+
 UI_SKILLS = [
     REPO_ROOT / "agents" / agent / "skills" / "ui" / f"govkit-ui-{skill}" / "SKILL.md"
     for agent in ("claude-code", "codex", "copilot")
