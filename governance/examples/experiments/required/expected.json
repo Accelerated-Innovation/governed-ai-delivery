@@ -1,0 +1,15 @@
+{
+  "now": "2026-11-10T00:00:00+00:00",
+  "findings": {
+    "error": [],
+    "outstanding": [
+      "experiment-outstanding",
+      "experiment-required"
+    ],
+    "unknown": []
+  },
+  "states": {
+    "EXP-001": "planned"
+  },
+  "ready": false
+}

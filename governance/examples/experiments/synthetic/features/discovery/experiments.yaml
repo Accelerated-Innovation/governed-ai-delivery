@@ -1,0 +1,73 @@
+schema_version: 1
+kind: experiment-set
+feature: discovery
+experiments:
+- id: EXP-001
+  title: Single-agent discovery skill selection
+  uncertainty: Can trusted code admit and select among three discovery skills without model-owned authority?
+  hypothesis: Deterministic admission before ranking, plus a null option, keeps activation controls intact
+    with one agent and three skills.
+  decisions_affected:
+  - kind: preflight-section
+    reference: features/discovery/architecture_preflight.md
+  requirements:
+  - path: features/discovery/acceptance.feature
+    digest: 93dce9b89f679428e2c0c6997a84113799196815e7d8ed742aad0b18d69376ee
+  scope:
+    paths:
+    - src/runtime
+    permitted_effects: none
+    excluded:
+    - Real external mutation
+    - Model-driven ranking quality
+  conditions:
+  - Synthetic catalog of three skills
+  - Model adapter replaced by a fixture
+  oracle: deterministic-test
+  required_evidence_class: application
+  acceptance_criteria:
+  - id: AC-1
+    statement: A revoked or incompatible release is never activated
+    threshold: 0 activations across 50 cases
+    refs:
+    - GK-SOAA-04
+  - id: AC-2
+    statement: Ranking always offers the null choice
+    threshold: null offered in every case
+  limits:
+    budget: 2 days
+    stop_when:
+    - An authority or activation counterexample
+  depends_on:
+  - kind: skill
+    path: skills/discovery-interview/SKILL.md
+    digest: cff29e9a03b0ae8dade8ae15408d81fbbaf8d3aa55b870662ba984e93b7fa02d
+  - kind: implementation
+    path: src/runtime/selection.py
+    digest: bb26359b7e72dbec6665ade45fcb8a51b054f696f759169cb4c1ced558559ed0
+  status: passed
+  result:
+    observed_at: '2026-11-01T10:00:00Z'
+    evidence_class: synthetic-fixture
+    criteria_digest: 5e2882bb44b1afa375471874fdf99a48735bb6d51bcdddeccb0eab8ee6862a81
+    inputs_digest: 14b16033215470958d45a8f77d76f49d10030a2eecd79e14bb07a84420a48d61
+    criteria:
+    - id: AC-1
+      outcome: pass
+      evidence:
+      - path: features/discovery/evidence/ac1.json
+        digest: a250f2969079eb335f042ada8698bc096c51d501627485555c224cf45451287b
+        producer: test-run
+    - id: AC-2
+      outcome: pass
+      evidence:
+      - path: features/discovery/evidence/ac2.json
+        digest: 687b7835a74badd5585590e744dfdecf06c31df38716e376615fb5e9acbe86a8
+        producer: test-run
+    summary: Synthetic fixture run for GovKit tooling tests; not application evidence.
+    limitations:
+    - Synthetic fixture; says nothing about any application runtime.
+  decision:
+    outcome: adopt
+    reference: adr/0001-skill-admission.md
+    recorded_at: '2026-11-01T12:00:00Z'

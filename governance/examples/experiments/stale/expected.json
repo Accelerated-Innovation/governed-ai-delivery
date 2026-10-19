@@ -1,0 +1,16 @@
+{
+  "now": "2026-11-10T00:00:00+00:00",
+  "findings": {
+    "error": [
+      "stale-reliance"
+    ],
+    "outstanding": [
+      "stale-requirement"
+    ],
+    "unknown": []
+  },
+  "states": {
+    "EXP-001": "stale"
+  },
+  "ready": false
+}

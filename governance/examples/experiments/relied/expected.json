@@ -1,0 +1,12 @@
+{
+  "now": "2026-11-10T00:00:00+00:00",
+  "findings": {
+    "error": [],
+    "outstanding": [],
+    "unknown": []
+  },
+  "states": {
+    "EXP-001": "passed"
+  },
+  "ready": true
+}

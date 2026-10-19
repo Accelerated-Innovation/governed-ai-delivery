@@ -1,0 +1,18 @@
+{
+  "now": "2026-11-10T00:00:00+00:00",
+  "findings": {
+    "error": [
+      "adopt-without-pass",
+      "invalid-reliance",
+      "status-contradiction"
+    ],
+    "outstanding": [
+      "insufficient-evidence-class"
+    ],
+    "unknown": []
+  },
+  "states": {
+    "EXP-001": "inconclusive"
+  },
+  "ready": false
+}
