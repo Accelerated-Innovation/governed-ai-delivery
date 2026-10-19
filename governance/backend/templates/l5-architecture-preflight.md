@@ -225,7 +225,7 @@ If **not declared**: "Section 15: Not applicable — multi_agent not declared."
 If **declared**, complete each item:
 
 - [ ] `skill-oriented-agent-architecture` extension installed
-- [ ] `agent_topology.md` exists — run `/multi-agent-design` if missing
+- [ ] `agent_topology.md` exists — run the `govkit-multi-agent-design` skill if missing
 - [ ] Accountable principal, accepted task boundary, one runtime owner, and completion authority declared
 - [ ] Components classified; each agent run has a bounded responsibility and authority ceiling
 - [ ] Typed runtime state, authoritative writers, legal transitions, ports, and handoffs declared
