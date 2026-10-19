@@ -1,0 +1,48 @@
+schema_version: 1
+kind: experiment-set
+feature: discovery
+experiments:
+- id: EXP-001
+  title: Single-agent discovery skill selection
+  uncertainty: Can trusted code admit and select among three discovery skills without model-owned authority?
+  hypothesis: Deterministic admission before ranking, plus a null option, keeps activation controls intact
+    with one agent and three skills.
+  decisions_affected:
+  - kind: preflight-section
+    reference: features/discovery/architecture_preflight.md
+  requirements:
+  - path: features/discovery/acceptance.feature
+    digest: 93dce9b89f679428e2c0c6997a84113799196815e7d8ed742aad0b18d69376ee
+  scope:
+    paths:
+    - src/runtime
+    permitted_effects: none
+    excluded:
+    - Real external mutation
+    - Model-driven ranking quality
+  conditions:
+  - Synthetic catalog of three skills
+  - Model adapter replaced by a fixture
+  oracle: deterministic-test
+  required_evidence_class: synthetic-fixture
+  acceptance_criteria:
+  - id: AC-1
+    statement: A revoked or incompatible release is never activated
+    threshold: 0 activations across 50 cases
+    refs:
+    - GK-SOAA-04
+  - id: AC-2
+    statement: Ranking always offers the null choice
+    threshold: null offered in every case
+  limits:
+    budget: 2 days
+    stop_when:
+    - An authority or activation counterexample
+  depends_on:
+  - kind: skill
+    path: skills/discovery-interview/SKILL.md
+    digest: cff29e9a03b0ae8dade8ae15408d81fbbaf8d3aa55b870662ba984e93b7fa02d
+  - kind: implementation
+    path: src/runtime/selection.py
+    digest: bb26359b7e72dbec6665ade45fcb8a51b054f696f759169cb4c1ced558559ed0
+  status: planned

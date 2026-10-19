@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:governed-ai-delivery:schemas:experiment-set",
+  "title": "Architecture experiment set",
+  "description": "Experiments that resolve material architectural uncertainty for one feature. A valid record is consistent and current; it does not show that an experiment ran or that its evidence is authentic.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "feature", "experiments"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "kind": { "const": "experiment-set" },
+    "feature": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "experiments": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": { "$ref": "#/$defs/experiment" }
+    }
+  },
+  "$defs": {
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "pattern": "\\S"
+    },
+    "path": {
+      "description": "Literal repository-relative path: no globs, no absolute or parent segments.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?![/\\\\])(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)[^*?\\[\\]\\\\:]+$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "minLength": 20,
+      "maxLength": 64
+    },
+    "experiment_id": {
+      "type": "string",
+      "pattern": "^EXP-[0-9]{3,6}$"
+    },
+    "bound_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "digest"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "experiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "uncertainty",
+        "hypothesis",
+        "decisions_affected",
+        "requirements",
+        "scope",
+        "conditions",
+        "oracle",
+        "required_evidence_class",
+        "acceptance_criteria",
+        "limits",
+        "depends_on",
+        "status"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/experiment_id" },
+        "title": { "$ref": "#/$defs/text" },
+        "uncertainty": {
+          "$ref": "#/$defs/text",
+          "description": "The material architectural question this experiment resolves."
+        },
+        "hypothesis": { "$ref": "#/$defs/text" },
+        "decisions_affected": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "reference"],
+            "properties": {
+              "kind": { "enum": ["preflight-section", "adr", "contract", "plan-increment"] },
+              "reference": { "$ref": "#/$defs/path" }
+            }
+          }
+        },
+        "requirements": {
+          "description": "Accepted requirements that must remain intact; a changed digest makes the result stale.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/bound_file" }
+        },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["paths", "permitted_effects", "excluded"],
+          "properties": {
+            "paths": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "items": { "$ref": "#/$defs/path" }
+            },
+            "permitted_effects": { "enum": ["none", "local-reversible", "fixture-external"] },
+            "excluded": {
+              "type": "array",
+              "maxItems": 32,
+              "items": { "$ref": "#/$defs/text" }
+            }
+          }
+        },
+        "conditions": {
+          "type": "array",
+          "maxItems": 32,
+          "items": { "$ref": "#/$defs/text" }
+        },
+        "oracle": { "enum": ["deterministic-test", "evaluation", "measurement", "review"] },
+        "required_evidence_class": { "enum": ["application", "synthetic-fixture"] },
+        "acceptance_criteria": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "statement", "threshold"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^AC-[0-9]{1,4}$" },
+              "statement": { "$ref": "#/$defs/text" },
+              "threshold": { "$ref": "#/$defs/text" },
+              "refs": {
+                "description": "Optional catalog case identifiers interpreted by extensions, such as GK-SOAA-03.",
+                "type": "array",
+                "maxItems": 16,
+                "uniqueItems": true,
+                "items": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$" }
+              }
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["budget", "stop_when"],
+          "properties": {
+            "budget": { "$ref": "#/$defs/text" },
+            "stop_when": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 16,
+              "items": { "$ref": "#/$defs/text" }
+            },
+            "expires_after_days": { "type": "integer", "minimum": 1, "maximum": 3650 }
+          }
+        },
+        "depends_on": {
+          "description": "Assumptions bound by digest; any change makes the result stale.",
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "path", "digest"],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "requirement",
+                  "skill",
+                  "policy",
+                  "interface",
+                  "runtime",
+                  "implementation",
+                  "catalog"
+                ]
+              },
+              "path": { "$ref": "#/$defs/path" },
+              "digest": { "$ref": "#/$defs/digest" }
+            }
+          }
+        },
+        "status": {
+          "enum": ["planned", "running", "passed", "failed", "inconclusive", "withdrawn"]
+        },
+        "result": { "$ref": "#/$defs/result" },
+        "decision": { "$ref": "#/$defs/decision" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "enum": ["passed", "failed", "inconclusive"] } } },
+          "then": { "required": ["result"] }
+        },
+        {
+          "if": { "properties": { "status": { "const": "planned" } } },
+          "then": { "not": { "anyOf": [{ "required": ["result"] }, { "required": ["decision"] }] } }
+        }
+      ]
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observed_at",
+        "evidence_class",
+        "criteria_digest",
+        "inputs_digest",
+        "criteria",
+        "summary",
+        "limitations"
+      ],
+      "properties": {
+        "observed_at": { "$ref": "#/$defs/timestamp" },
+        "revision": { "type": "string", "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" },
+        "evidence_class": { "enum": ["application", "synthetic-fixture"] },
+        "criteria_digest": { "$ref": "#/$defs/digest" },
+        "inputs_digest": { "$ref": "#/$defs/digest" },
+        "criteria": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "outcome", "evidence"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^AC-[0-9]{1,4}$" },
+              "outcome": { "enum": ["pass", "fail", "unknown"] },
+              "evidence": {
+                "type": "array",
+                "maxItems": 64,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["path", "digest", "producer"],
+                  "properties": {
+                    "path": { "$ref": "#/$defs/path" },
+                    "digest": { "$ref": "#/$defs/digest" },
+                    "producer": {
+                      "enum": ["test-run", "evaluation", "measurement", "manual-observation", "imported"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": { "$ref": "#/$defs/text" },
+        "limitations": {
+          "type": "array",
+          "maxItems": 32,
+          "items": { "$ref": "#/$defs/text" }
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "reference", "recorded_at"],
+      "properties": {
+        "outcome": {
+          "enum": ["adopt", "revise-design", "reject-approach", "narrow-supported-behavior", "rerun"]
+        },
+        "reference": { "$ref": "#/$defs/path" },
+        "recorded_at": { "$ref": "#/$defs/timestamp" },
+        "requirement_change": { "$ref": "#/$defs/path" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "outcome": { "const": "narrow-supported-behavior" } } },
+          "then": { "required": ["requirement_change"] }
+        }
+      ]
+    }
+  }
+}

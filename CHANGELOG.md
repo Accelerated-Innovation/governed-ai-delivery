@@ -8,6 +8,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Architecture experiment records** (ADR 0020). Two versioned contracts let
+  a feature record contained experiments that resolve material architectural
+  uncertainty:
+  - `experiment-set`, for an optional `features/<feature>/experiments.yaml`;
+  - `preflight-outcome`, for a single machine-readable block in
+    `architecture_preflight.md`, with the statuses `approved-for-planning`,
+    `experiment-required`, `adr-required` and `blocked`.
+
+  A pure assessor (`cli/experiments.py`) and a bounded, read-only store
+  (`cli/experiment_store.py`) report errors, outstanding work and unverifiable
+  evidence. Evidence becomes stale when a requirement, dependency or evidence
+  file changes, when criteria are edited, when inputs are re-pinned or when the
+  result expires. Stale reliance is an error. Synthetic results never satisfy an
+  application-evidence requirement. Six example scenarios live in
+  `governance/examples/experiments/`. A clean assessment means the records are
+  consistent and current; it does not show execution or SOAA conformance.
+  `govkit validate`, change conformance, CI templates and agent skills do not
+  consume these records yet. See `docs/ARCHITECTURE_EXPERIMENTS.md`.
+
 ### Fixed
 
 - The backend `eval_criteria.yaml` schema now accepts the documented

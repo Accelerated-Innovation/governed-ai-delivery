@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:governed-ai-delivery:schemas:preflight-outcome",
+  "title": "Architecture preflight outcome",
+  "description": "The single fenced YAML block in architecture_preflight.md whose top-level key is preflight_outcome. A valid outcome is a structured claim; it is not approval or conformance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["preflight_outcome"],
+  "properties": {
+    "preflight_outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason"],
+      "properties": {
+        "status": {
+          "enum": ["approved-for-planning", "experiment-required", "adr-required", "blocked"]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "pattern": "\\S"
+        },
+        "experiments": {
+          "description": "Experiments that must resolve before the design is approved; only with experiment-required.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^EXP-[0-9]{3,6}$" }
+        },
+        "relies_on": {
+          "description": "Passed, adopted experiments supporting this outcome, bound by result digest. record defaults to this feature's experiments.yaml.",
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["experiment", "result_digest"],
+            "properties": {
+              "experiment": { "type": "string", "pattern": "^EXP-[0-9]{3,6}$" },
+              "record": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^(?![/\\\\])(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)[^*?\\[\\]\\\\:]+$"
+              },
+              "result_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "experiment-required" } } },
+          "then": { "required": ["experiments"] },
+          "else": { "not": { "required": ["experiments"] } }
+        }
+      ]
+    }
+  }
+}
