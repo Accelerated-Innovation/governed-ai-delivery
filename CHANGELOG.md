@@ -8,6 +8,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- The backend `eval_criteria.yaml` schema now accepts the documented
+  `multi_agent` topology flag and `multi_agent_evaluation` block. Previously,
+  uncommenting the L5 starter's multi-agent block as instructed made the
+  feature fail the quality gate's schema validation.
+  `multi_agent_evaluation` requires `multi_agent: true`, and unknown keys
+  remain rejected.
+
 ## [0.22.0] — 2026-10-08
 
 Governance becomes declarative and composable. A team selects the capabilities

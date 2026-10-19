@@ -897,6 +897,107 @@ class TestDataEvalCriteriaSchema:
         assert "governance/data/schemas/" in governed, agent
 
 
+class TestBackendEvalCriteriaMultiAgent:
+    """`multi_agent: true` is the documented topology trigger read by
+    `govkit validate` and both multi-agent CI gates. The quality gate
+    validates every feature's eval_criteria.yaml against this schema, so the
+    declaration must be schema-valid or following the documented route fails
+    CI."""
+
+    STARTER = REPO_ROOT / "features" / "starter_backend_l5" / "eval_criteria.yaml"
+
+    def _validator(self) -> Draft202012Validator:
+        schema = json.loads(BACKEND_EVAL_SCHEMA_PATH.read_text(encoding="utf-8"))
+        Draft202012Validator.check_schema(schema)
+        return Draft202012Validator(schema)
+
+    def _starter(self, *, uncomment_multi_agent: bool) -> dict:
+        """Load the L5 starter, optionally enabling its commented multi-agent
+        block exactly as its instructions say ("uncomment when ...")."""
+        import yaml
+
+        lines = self.STARTER.read_text(encoding="utf-8").splitlines()
+        if uncomment_multi_agent:
+            start = lines.index("# multi_agent: true")
+            lines[start:] = [
+                line[2:] if line.startswith("# ") else line.lstrip("#") for line in lines[start:]
+            ]
+        return yaml.safe_load("\n".join(lines))
+
+    def _errors(self, instance: dict) -> list[str]:
+        return [e.message for e in self._validator().iter_errors(instance)]
+
+    def test_starter_validates_with_multi_agent_block_disabled(self):
+        assert self._errors(self._starter(uncomment_multi_agent=False)) == []
+
+    def test_starter_validates_with_documented_multi_agent_block_enabled(self):
+        instance = self._starter(uncomment_multi_agent=True)
+        assert instance["multi_agent"] is True
+        assert "multi_agent_evaluation" in instance
+        assert self._errors(instance) == []
+
+    def test_completed_multi_agent_evaluation_validates(self):
+        instance = self._starter(uncomment_multi_agent=True)
+        instance["multi_agent_evaluation"] = {
+            "topology_validated": True,
+            "system_prompt_governed": True,
+            "cross_agent_coherence": {"score": 4, "evidence": "eval run 12"},
+            "orchestrator_routing_accuracy": {"score": 4.5, "evidence": "eval run 12"},
+        }
+        assert self._errors(instance) == []
+
+    def test_multi_agent_false_without_evaluation_validates(self):
+        instance = self._starter(uncomment_multi_agent=False)
+        instance["multi_agent"] = False
+        assert self._errors(instance) == []
+
+    @pytest.mark.parametrize("value", ["true", "yes", 1, None])
+    def test_rejects_non_boolean_multi_agent(self, value):
+        instance = self._starter(uncomment_multi_agent=False)
+        instance["multi_agent"] = value
+        assert self._errors(instance)
+
+    @pytest.mark.parametrize("flag", [None, False])
+    def test_rejects_multi_agent_evaluation_without_multi_agent_true(self, flag):
+        instance = self._starter(uncomment_multi_agent=True)
+        if flag is None:
+            del instance["multi_agent"]
+        else:
+            instance["multi_agent"] = flag
+        assert self._errors(instance)
+
+    @pytest.mark.parametrize("missing", ["topology_validated", "system_prompt_governed"])
+    def test_rejects_multi_agent_evaluation_missing_required_flag(self, missing):
+        instance = self._starter(uncomment_multi_agent=True)
+        del instance["multi_agent_evaluation"][missing]
+        assert self._errors(instance)
+
+    def test_rejects_unknown_multi_agent_evaluation_key(self):
+        instance = self._starter(uncomment_multi_agent=True)
+        instance["multi_agent_evaluation"]["agent_count"] = 3
+        assert self._errors(instance)
+
+    @pytest.mark.parametrize(
+        "entry",
+        [
+            {"score": 0, "evidence": ""},
+            {"score": 6, "evidence": ""},
+            {"score": "4", "evidence": ""},
+            {"score": 4},
+            {"score": 4, "evidence": "", "notes": "x"},
+        ],
+    )
+    def test_rejects_malformed_score_entry(self, entry):
+        instance = self._starter(uncomment_multi_agent=True)
+        instance["multi_agent_evaluation"]["cross_agent_coherence"] = entry
+        assert self._errors(instance)
+
+    def test_still_rejects_unknown_top_level_keys(self):
+        instance = self._starter(uncomment_multi_agent=True)
+        instance["agent_skills_rung"] = 3
+        assert self._errors(instance)
+
+
 # ---------------------------------------------------------------------------
 # Fix record schema (defect lane)
 # ---------------------------------------------------------------------------
