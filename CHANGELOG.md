@@ -20,6 +20,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   from `contract_sets[].capabilities`, where the manifest schema declares them.
   The list was previously always empty for real manifests. A top-level
   `capabilities` list is still honored.
+- Legacy extension validation now applies the shared manifest schema before
+  checking paths, preventing malformed fields from receiving a structural
+  conformance pass. Manifest parsing rejects duplicate YAML keys and aliases,
+  consistent with declarative pack loading, and malformed descriptions produce
+  a warning instead of crashing extension reporting.
 
 ## [0.22.0] — 2026-10-08
 

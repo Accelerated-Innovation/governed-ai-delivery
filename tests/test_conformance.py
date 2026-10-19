@@ -31,6 +31,27 @@ def result(report, identifier):
     return next(r for r in report.results if r.spec.id == identifier)
 
 
+@pytest.mark.parametrize("declaration", [
+    "contract_sets: broken\n",
+    "contract_sets: []\ncontract_sets: []\n",
+    "contract_sets: [{id: missing-paths, description: incomplete}]\n",
+])
+def test_malformed_extension_manifest_cannot_report_pass(tmp_path, declaration):
+    marker(tmp_path)
+    extension = tmp_path / "extensions/sample"
+    extension.mkdir(parents=True)
+    (extension / "manifest.yaml").write_text(
+        "id: sample\nname: Sample\nversion: 1.0.0\nextension_type: architecture\n"
+        + declaration
+    )
+    before = snapshot(tmp_path)
+    report = inspect_repository(tmp_path)
+    checked = result(report, "legacy:extensions")
+    assert checked.outcome.state is State.FAIL
+    assert checked.outcome.findings
+    assert snapshot(tmp_path) == before
+
+
 def test_broken_feature_extension_and_policy_report_independent_findings(tmp_path, capsys):
     marker(tmp_path)
     (tmp_path / "features/broken").mkdir(parents=True)
