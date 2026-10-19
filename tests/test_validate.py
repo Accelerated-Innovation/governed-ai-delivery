@@ -4,6 +4,8 @@ import json
 import textwrap
 from pathlib import Path
 
+import pytest
+
 from cli.validate import (
     CheckStatus,
     check_agent_topology_exists,
@@ -121,18 +123,35 @@ class TestCmdValidateWiring:
 
         seen = {}
 
-        def fake_run_validation(target, level=None, strict=False):
-            seen.update(target=target, level=level, strict=strict)
+        def fake_run_validation(target, level=None, strict=False, only=None):
+            seen.update(target=target, level=level, strict=strict, only=only)
             return 3
 
         monkeypatch.setattr("cli.cmd_validate.run_validation", fake_run_validation)
-        args = argparse.Namespace(target=str(tmp_path), level="5", strict=True)
+        args = argparse.Namespace(target=str(tmp_path), level="5", strict=True, only="experiments")
 
         with pytest.raises(SystemExit) as excinfo:
             cmd_validate(args)
 
         assert excinfo.value.code == 3
-        assert seen == {"target": tmp_path.resolve(), "level": "5", "strict": True}
+        assert seen == {
+            "target": tmp_path.resolve(), "level": "5", "strict": True, "only": "experiments",
+        }
+
+    def test_only_accepts_experiments_and_nothing_else(self):
+        import argparse
+
+        import pytest
+
+        from cli.cmd_validate import register
+
+        parser = argparse.ArgumentParser()
+        register(parser.add_subparsers())
+        args = parser.parse_args(["validate", "--target", ".", "--only", "experiments"])
+        assert args.only == "experiments"
+        assert parser.parse_args(["validate", "--target", "."]).only is None
+        with pytest.raises(SystemExit):
+            parser.parse_args(["validate", "--target", ".", "--only", "gherkin"])
 
 
 class TestCheckStatus:
@@ -1812,3 +1831,184 @@ class TestValidateUiShapes:
         (tmp_path / ".govkit").write_text(json.dumps(marker), encoding="utf-8")
         result = run_validation(tmp_path)
         assert result == 0, "Legacy marker with options.ui must still validate (L3 short-circuit)"
+
+
+# ---------------------------------------------------------------------------
+# Architecture experiments (ADR 0020) — synthetic records; tooling behavior only
+# ---------------------------------------------------------------------------
+
+
+class TestArchitectureExperimentValidation:
+    """`govkit validate` reports preflight outcomes and experiment records.
+    Errors fail; outstanding and unverifiable evidence warns, or fails with
+    --strict; features declaring neither record see no new output."""
+
+    from datetime import datetime as _datetime
+
+    NOW = _datetime.fromisoformat("2026-11-10T00:00:00+00:00")
+    EXAMPLES = Path(__file__).resolve().parents[1] / "governance" / "examples" / "experiments"
+
+    APPROVED_BLOCK = (
+        "# Architecture Preflight\n\n## 9. Preflight Conclusion\n\n```yaml\n"
+        "preflight_outcome:\n  status: approved-for-planning\n"
+        "  reason: Inside accepted contracts.\n```\n"
+    )
+
+    def _scenario(self, tmp_path, name):
+        import shutil
+
+        shutil.copytree(self.EXAMPLES / name, tmp_path, dirs_exist_ok=True)
+        (tmp_path / ".govkit").mkdir(exist_ok=True)
+        return tmp_path
+
+    def _lines(self, out):
+        return [line for line in out.splitlines() if "architecture experiments:" in line]
+
+    def _valid_full_feature(self, feature_dir, **overrides):
+        make_full_feature(feature_dir, **{
+            "acceptance.feature": """\
+                Feature: Real feature
+
+                  @nfr-performance
+                  Scenario: Fast
+                    Given a request
+                    When processed
+                    Then fast
+
+                  @nfr-security
+                  Scenario: Secure
+                    Given auth
+                    When request
+                    Then ok
+            """,
+            **overrides,
+        })
+
+    def test_features_without_records_produce_identical_output(self, tmp_path, capsys, monkeypatch):
+        self._valid_full_feature(tmp_path / "features" / "plain")
+        assert run_validation(tmp_path, level="4", now=self.NOW) == 0
+        with_check = capsys.readouterr().out
+        monkeypatch.setattr(
+            "cli.validate.check_architecture_experiments", lambda *a, **k: []
+        )
+        assert run_validation(tmp_path, level="4", now=self.NOW) == 0
+        assert capsys.readouterr().out == with_check
+        assert "architecture experiments" not in with_check
+
+    def test_full_run_reports_a_clean_outcome(self, tmp_path, capsys):
+        self._valid_full_feature(
+            tmp_path / "features" / "boundary",
+            **{"architecture_preflight.md": self.APPROVED_BLOCK},
+        )
+        assert run_validation(tmp_path, level="4", now=self.NOW) == 0
+        [line] = self._lines(capsys.readouterr().out)
+        assert "PASS" in line and "approved-for-planning" in line
+
+    def test_full_run_fails_an_invalid_outcome_block(self, tmp_path, capsys):
+        self._valid_full_feature(
+            tmp_path / "features" / "broken",
+            **{"architecture_preflight.md": "```yaml\npreflight_outcome:\n  status: aligned\n"
+                                            "  reason: x\n```\n"},
+        )
+        assert run_validation(tmp_path, level="5", now=self.NOW) == 1
+        [line] = self._lines(capsys.readouterr().out)
+        assert "FAIL" in line and "invalid-outcome" in line
+
+    def test_only_experiments_passes_a_clean_scenario(self, tmp_path, capsys):
+        root = self._scenario(tmp_path, "relied")
+        assert run_validation(root, level="4", only="experiments", now=self.NOW) == 0
+        out = capsys.readouterr().out
+        assert "features/discovery/" in out
+        [line] = self._lines(out)
+        assert "PASS" in line
+
+    def test_outstanding_work_warns_and_fails_when_strict(self, tmp_path, capsys):
+        root = self._scenario(tmp_path, "required")
+        assert run_validation(root, level="4", only="experiments", now=self.NOW) == 0
+        lines = self._lines(capsys.readouterr().out)
+        assert {"experiment-outstanding", "experiment-required"} == {
+            line.split(": ")[1].split(" ")[0] for line in lines
+        }
+        assert all("WARN" in line for line in lines)
+
+        assert run_validation(root, level="4", only="experiments", strict=True,
+                              now=self.NOW) == 1
+        assert all("FAIL" in line for line in self._lines(capsys.readouterr().out))
+
+    def test_stale_reliance_fails_without_strict(self, tmp_path, capsys):
+        root = self._scenario(tmp_path, "stale")
+        assert run_validation(root, level="4", only="experiments", now=self.NOW) == 1
+        lines = self._lines(capsys.readouterr().out)
+        assert any("FAIL" in line and "stale-reliance" in line for line in lines)
+        assert any("WARN" in line and "stale-requirement" in line for line in lines)
+
+    def test_synthetic_evidence_cannot_satisfy_application_requirement(self, tmp_path, capsys):
+        root = self._scenario(tmp_path, "synthetic")
+        assert run_validation(root, level="4", only="experiments", now=self.NOW) == 1
+        out = capsys.readouterr().out
+        assert "status-contradiction" in out and "insufficient-evidence-class" in out
+
+    def test_expiry_uses_the_supplied_clock(self, tmp_path, capsys):
+        from datetime import datetime
+
+        root = self._scenario(tmp_path, "relied")
+        later = datetime.fromisoformat("2027-03-01T00:00:00+00:00")
+        assert run_validation(root, level="4", only="experiments", now=later) == 1
+        out = capsys.readouterr().out
+        assert "expired" in out and "stale-reliance" in out
+
+    def test_only_experiments_skips_every_other_check(self, tmp_path, capsys):
+        root = self._scenario(tmp_path, "boundary")
+        bad_extension = root / "extensions" / "broken"
+        bad_extension.mkdir(parents=True)
+        (bad_extension / "manifest.yaml").write_text("id: 42\n", encoding="utf-8")
+        assert run_validation(root, level="4", only="experiments", strict=True,
+                              now=self.NOW) == 0
+        out = capsys.readouterr().out
+        assert "extensions" not in out
+        assert "acceptance.feature" not in out and "nfrs.md" not in out
+
+    def test_only_experiments_runs_without_a_feature_level(self, tmp_path, capsys):
+        root = self._scenario(tmp_path, "stale")
+        assert run_validation(root, only="experiments", now=self.NOW) == 1
+        assert "stale-reliance" in capsys.readouterr().out
+
+    def test_only_experiments_reports_when_nothing_is_declared(self, tmp_path, capsys):
+        self._valid_full_feature(tmp_path / "features" / "plain")
+        assert run_validation(tmp_path, level="4", only="experiments", now=self.NOW) == 0
+        out = capsys.readouterr().out
+        assert "No architecture experiment records or preflight outcomes" in out
+        assert "features/plain/" not in out
+
+    def test_starters_are_skipped(self, tmp_path, capsys):
+        root = self._scenario(tmp_path, "stale")
+        (root / "features" / "discovery").rename(root / "features" / "starter_discovery")
+        assert run_validation(root, level="4", only="experiments", now=self.NOW) == 0
+        assert "stale-reliance" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("agent", ["claude-code", "codex", "copilot"])
+def test_real_l5_install_ships_experiment_schemas_and_validates(tmp_path, capsys, agent):
+    """A real L5 API install for each agent ships both schemas; a copied
+    example feature is then checked with `--only experiments`."""
+    import argparse
+    import shutil
+    from datetime import datetime
+
+    from cli.cmd_apply import cmd_apply
+
+    target = tmp_path / "project"
+    target.mkdir()
+    cmd_apply(argparse.Namespace(
+        agent=agent, target=str(target), level="5", type="api", ci="github",
+        stack="python-fastapi", force=False, detect=False,
+    ))
+    for schema in ("experiment-set", "preflight-outcome"):
+        assert (target / "governance" / "schemas" / f"{schema}.schema.json").is_file()
+    example = TestArchitectureExperimentValidation.EXAMPLES / "stale"
+    shutil.copytree(example, target, dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns("expected.json"))
+    capsys.readouterr()
+    now = datetime.fromisoformat("2026-11-10T00:00:00+00:00")
+    assert run_validation(target, only="experiments", now=now) == 1
+    assert "stale-reliance" in capsys.readouterr().out

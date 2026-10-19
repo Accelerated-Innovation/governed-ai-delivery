@@ -38,6 +38,16 @@ def test_supported_legacy_selection_matches_before_refactor(case, expected):
             assert kind in {"ui-react", "ui-angular", "ui-nextjs"}
             assert level in {"4", "5"}
             entry["src"] = variant
+    # ADR 0020 deliberately ships two schemas immediately after the fix-record
+    # schema. Require exactly that placement, then remove them so every other
+    # destination, order and attribute stays pinned to its original digest.
+    additions = BASELINE["governed_additions"]
+    governed = comparable[2]
+    if additions["after"] in governed:
+        start = governed.index(additions["after"]) + 1
+        assert governed[start : start + len(additions["paths"])] == additions["paths"], case
+        del governed[start : start + len(additions["paths"])]
+    assert not set(additions["paths"]) & set(governed), case
     digest = hashlib.sha256(
         json.dumps(comparable, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()

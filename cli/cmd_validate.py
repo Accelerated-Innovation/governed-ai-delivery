@@ -22,7 +22,8 @@ def cmd_validate(args: argparse.Namespace) -> None:
     if level:
         warn_legacy_deprecation()
     strict = getattr(args, "strict", False)
-    sys.exit(run_validation(target, level=level, strict=strict))
+    only = getattr(args, "only", None)
+    sys.exit(run_validation(target, level=level, strict=strict, only=only))
 
 
 def register(subparsers) -> None:
@@ -32,5 +33,8 @@ def register(subparsers) -> None:
     p.add_argument("--level", choices=["3", "4", "5"], default=None,
                    help="Maturity level (default: read from .govkit or 4)")
     p.add_argument("--strict", action="store_true",
-                   help="Promote extension manifest warnings to failures")
+                   help="Promote extension manifest warnings and outstanding or unverifiable "
+                        "architecture experiment evidence to failures")
+    p.add_argument("--only", choices=["experiments"], default=None,
+                   help="Run only the architecture experiment checks (any level)")
     p.set_defaults(func=cmd_validate)

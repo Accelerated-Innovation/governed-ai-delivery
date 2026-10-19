@@ -279,5 +279,13 @@
   "payload_source_variants": {
     "rules/generic/spec-compliance-ui.md": "rules/generic/spec-compliance.md",
     "instructions/generic/spec-compliance-ui.instructions.md": "instructions/generic/spec-compliance.instructions.md"
+  },
+  "governed_additions": {
+    "reason": "ADR 0020: experiment and preflight-outcome schemas ship beside the fix-record schema",
+    "after": "governance/schemas/fix_record.schema.json",
+    "paths": [
+      "governance/schemas/experiment-set.schema.json",
+      "governance/schemas/preflight-outcome.schema.json"
+    ]
   }
 }
