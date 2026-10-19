@@ -10,6 +10,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- The backend `eval_criteria.yaml` schema now accepts the documented
+  `multi_agent` topology flag and `multi_agent_evaluation` block. Previously,
+  uncommenting the L5 starter's multi-agent block as instructed made the
+  feature fail the quality gate's schema validation.
+  `multi_agent_evaluation` requires `multi_agent: true`, and unknown keys
+  remain rejected.
+- `.govkit/skill_context.yaml` now reports each extension's capability tokens
+  from `contract_sets[].capabilities`, where the manifest schema declares them.
+  The list was previously always empty for real manifests. A top-level
+  `capabilities` list is still honored.
 - Legacy extension validation now applies the shared manifest schema before
   checking paths, preventing malformed fields from receiving a structural
   conformance pass. Manifest parsing rejects duplicate YAML keys and aliases,

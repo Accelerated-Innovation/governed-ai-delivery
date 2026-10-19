@@ -192,6 +192,80 @@ class TestWriteSkillContext:
         assert ext["version"] == "0.1.0"
         assert "agent-runtime" in ext["capabilities"]
 
+    def test_extension_capabilities_come_from_contract_sets(self, tmp_path):
+        """The manifest schema declares capability tokens under
+        contract_sets[]; skills must see them, in declaration order, once."""
+        import yaml
+
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        ext_dir = tmp_path / "extensions" / "test-ext"
+        ext_dir.mkdir(parents=True)
+        (ext_dir / "manifest.yaml").write_text(
+            "id: test-ext\nname: Test\nversion: 0.1.0\nextension_type: architecture\n"
+            "contract_sets:\n"
+            "  - id: core\n    description: core\n    paths: []\n"
+            "    capabilities: [task-ownership, procedural-skills]\n"
+            "  - id: extra\n    description: extra\n    paths: []\n"
+            "    capabilities: [procedural-skills, revocation]\n"
+            "  - id: bare\n    description: no tokens\n    paths: []\n",
+            encoding="utf-8",
+        )
+
+        write_skill_context(tmp_path, marker)
+        data = yaml.safe_load((tmp_path / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8"))
+
+        assert data["extensions"][0]["capabilities"] == [
+            "task-ownership", "procedural-skills", "revocation",
+        ]
+
+    def test_bundled_soaa_extension_reports_every_contract_set_capability(self, tmp_path):
+        import shutil
+
+        import yaml
+
+        from cli import paths
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path, level="5")
+        source = paths.EXTENSION_PACKS_DIR / "skill-oriented-agent-architecture"
+        shutil.copytree(source, tmp_path / "extensions" / source.name)
+        manifest = yaml.safe_load((source / "manifest.yaml").read_text(encoding="utf-8"))
+        expected = []
+        for contract_set in manifest["contract_sets"]:
+            for token in contract_set.get("capabilities", []):
+                if token not in expected:
+                    expected.append(token)
+
+        write_skill_context(tmp_path, marker)
+        data = yaml.safe_load((tmp_path / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8"))
+
+        [ext] = data["extensions"]
+        assert ext["id"] == "skill-oriented-agent-architecture"
+        assert ext["capabilities"] == expected
+        assert "governed-agent-runtime" in ext["capabilities"]
+        assert len(ext["capabilities"]) == 32
+
+    def test_extension_without_contract_set_capabilities_reports_none(self, tmp_path):
+        import yaml
+
+        from cli.skill_context import write_skill_context
+
+        marker = _write_marker(tmp_path)
+        ext_dir = tmp_path / "extensions" / "skills-only"
+        ext_dir.mkdir(parents=True)
+        (ext_dir / "manifest.yaml").write_text(
+            "id: skills-only\nname: Skills\nversion: 1.0.0\nextension_type: skills\n"
+            "contract_sets: []\n",
+            encoding="utf-8",
+        )
+
+        write_skill_context(tmp_path, marker)
+        data = yaml.safe_load((tmp_path / ".govkit" / "skill_context.yaml").read_text(encoding="utf-8"))
+
+        assert data["extensions"][0]["capabilities"] == []
+
     def test_extensions_block_empty_when_none_present(self, tmp_path):
         import yaml
 

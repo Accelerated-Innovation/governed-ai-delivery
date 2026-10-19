@@ -81,10 +81,41 @@
       "type": "array",
       "description": "Legacy: prefer llm_evaluation.criteria. Retained for compatibility.",
       "items": { "$ref": "#/$defs/criterion" }
+    },
+
+    "multi_agent": {
+      "type": "boolean",
+      "description": "Multi-agent topology trigger. When true, govkit validate and the multi-agent CI gate require agent_topology.md. Skill-oriented agent architecture applicability does not depend on this flag."
+    },
+
+    "multi_agent_evaluation": {
+      "type": "object",
+      "description": "Multi-agent governance criteria. Allowed only with multi_agent: true. Scores stay null until evaluated.",
+      "additionalProperties": false,
+      "required": ["topology_validated", "system_prompt_governed"],
+      "properties": {
+        "topology_validated": {
+          "type": "boolean",
+          "description": "agent_topology.md was reviewed and approved before implementation."
+        },
+        "system_prompt_governed": {
+          "type": "boolean",
+          "description": "All agent system prompts are file-based and declared in agent_topology.md."
+        },
+        "cross_agent_coherence": { "$ref": "#/$defs/multi_agent_score" },
+        "orchestrator_routing_accuracy": { "$ref": "#/$defs/multi_agent_score" }
+      }
     }
   },
 
   "allOf": [
+    {
+      "if": { "required": ["multi_agent_evaluation"] },
+      "then": {
+        "required": ["multi_agent"],
+        "properties": { "multi_agent": { "const": true } }
+      }
+    },
     {
       "if": {
         "properties": { "mode": { "const": "none" } },
@@ -119,6 +150,20 @@
   ],
 
   "$defs": {
+    "multi_agent_score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "evidence"],
+      "properties": {
+        "score": {
+          "type": ["number", "null"],
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Null until evaluated; the plan's evaluation_prediction carries the forecast."
+        },
+        "evidence": { "type": "string" }
+      }
+    },
     "criterion": {
       "type": "object",
       "additionalProperties": false,
