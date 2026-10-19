@@ -8,6 +8,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Legacy extension validation now applies the shared manifest schema before
+  checking paths, preventing malformed fields from receiving a structural
+  conformance pass. Manifest parsing rejects duplicate YAML keys and aliases,
+  consistent with declarative pack loading, and malformed descriptions produce
+  a warning instead of crashing extension reporting.
+
 ## [0.22.0] — 2026-10-08
 
 Governance becomes declarative and composable. A team selects the capabilities

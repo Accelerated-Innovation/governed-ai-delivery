@@ -1,10 +1,10 @@
-"""Tests for cli/extensions.py — Increment 1 (discovery only).
-
-Validation, --strict, and overlap detection are added in later increments.
-"""
+"""Extension discovery, strict manifests, contained paths and reporting."""
 
 import textwrap
 from pathlib import Path
+
+import pytest
+import yaml
 
 from cli.extensions import (
     EXTENSIONS_DIR,
@@ -167,6 +167,17 @@ class TestDiscoverTolerance:
 
 
 class TestLoadManifest:
+    @pytest.mark.parametrize("suffix", [
+        "contract_sets: []\n",
+        "alias: &value [x]\ncopy: *value\n",
+    ])
+    def test_ambiguous_yaml_is_rejected(self, tmp_path, suffix):
+        p = tmp_path / MANIFEST_FILE
+        p.write_text(VALID_MANIFEST + suffix, encoding="utf-8")
+        data, err = load_manifest(p)
+        assert data is None
+        assert err is not None
+
     def test_loads_valid_yaml(self, tmp_path):
         p = tmp_path / "m.yaml"
         p.write_text(VALID_MANIFEST, encoding="utf-8")
@@ -231,6 +242,14 @@ class TestLoadManifest:
 
 
 class TestReportExtensions:
+    def test_malformed_description_is_reported_without_crashing(self, tmp_path, capsys):
+        _write_extension(tmp_path, "sample-ext", VALID_MANIFEST.replace(
+            "description: A test extension", "description: 42",
+        ))
+        assert report_extensions(tmp_path) == 1
+        output = capsys.readouterr().out
+        assert "WARN" in output and "description" in output
+
     def test_silent_when_no_extensions(self, tmp_path, capsys):
         count = report_extensions(tmp_path)
         captured = capsys.readouterr()
@@ -270,6 +289,30 @@ class TestReportExtensions:
 
 
 class TestValidateExtension:
+    @pytest.mark.parametrize("field,value", [
+        ("id", 42),
+        ("name", []),
+        ("version", 1),
+        ("extension_type", "unknown"),
+        ("contract_sets", "broken"),
+        ("contract_sets", [{"id": "missing-paths", "description": "incomplete"}]),
+        ("contract_sets", [{"id": "bad", "description": "bad", "paths": None}]),
+        ("templates", "broken"),
+        ("templates", [{"id": "missing-path"}]),
+        ("implementation_profiles", "broken"),
+        ("supported_levels", "5"),
+        ("agent_guidance", {"validation": 42}),
+    ])
+    def test_schema_invalid_fields_cannot_validate(self, tmp_path, field, value):
+        manifest = yaml.safe_load(VALID_MANIFEST)
+        manifest[field] = value
+        _write_extension(tmp_path, "sample-ext", yaml.safe_dump(manifest))
+        ext_dir = tmp_path / EXTENSIONS_DIR / "sample-ext"
+        (ext_dir / "docs").mkdir()
+        (ext_dir / "docs/SAMPLE.md").write_text("# sample", encoding="utf-8")
+        issues = validate_extension(discover_extensions(tmp_path)[0], tmp_path)
+        assert issues and any(field in issue for issue in issues)
+
     def test_valid_manifest_no_issues(self, tmp_path):
         _write_valid_extension(tmp_path)
         ext = discover_extensions(tmp_path)[0]
@@ -297,7 +340,7 @@ class TestValidateExtension:
         (ext_dir / "docs" / "SAMPLE.md").write_text("x", encoding="utf-8")
         ext = discover_extensions(tmp_path)[0]
         issues = validate_extension(ext, tmp_path)
-        assert any("invalid id format" in i for i in issues)
+        assert any("/id:" in i and "does not match" in i for i in issues)
 
     def test_id_folder_mismatch_reported(self, tmp_path):
         body = VALID_MANIFEST  # declares id: sample-ext
@@ -391,7 +434,7 @@ contract_sets:
         _write_extension(tmp_path, "sample-ext", body)
         ext = discover_extensions(tmp_path)[0]
         issues = validate_extension(ext, tmp_path)
-        assert any("contract_sets[0] must be a mapping" in i for i in issues)
+        assert any("/contract_sets/0:" in i and "'object'" in i for i in issues)
 
 
 class TestValidateExtensionRelatesTo:
@@ -477,17 +520,15 @@ class TestValidateExtensionRelatesTo:
         finally:
             outside.unlink(missing_ok=True)
 
-    def test_relates_to_non_dict_silently_skipped(self, tmp_path):
-        # Schema would reject this at parse time, but validate_extension shouldn't crash
+    def test_relates_to_non_dict_rejected_without_crashing(self, tmp_path):
         body = VALID_MANIFEST + "    relates_to: not-a-mapping\n"
         _write_extension(tmp_path, "sample-ext", body)
         ext_dir = tmp_path / EXTENSIONS_DIR / "sample-ext"
         (ext_dir / "docs").mkdir(exist_ok=True)
         (ext_dir / "docs" / "SAMPLE.md").write_text("x", encoding="utf-8")
         ext = discover_extensions(tmp_path)[0]
-        # Should not raise; relates_to issues are confined to well-formed dicts
         issues = validate_extension(ext, tmp_path)
-        assert all("relates_to" not in i for i in issues)
+        assert any("/contract_sets/0/relates_to:" in i and "'object'" in i for i in issues)
 
 
 class TestUndeclaredOverlap:
@@ -762,7 +803,7 @@ class TestImplementationProfileValidation:
         (ext_dir / "docs" / "SAMPLE.md").write_text("# sample", encoding="utf-8")
         ext = discover_extensions(tmp_path)[0]
         issues = validate_extension(ext, tmp_path)
-        assert any("implementation_profiles[0].path" in i for i in issues), issues
+        assert any("/implementation_profiles/0:" in i and "'path'" in i for i in issues), issues
 
     def test_absolute_profile_path_reported(self, tmp_path):
         body = VALID_MANIFEST + _PROFILE_BLOCK.replace(
@@ -854,7 +895,7 @@ class TestValidateSkills:
             "skills: not-a-list",
         )
         _write_skills_extension(tmp_path, body)
-        assert any("skills must be a list" in i for i in self._issues(tmp_path))
+        assert any("/skills:" in i and "'array'" in i for i in self._issues(tmp_path))
 
     def test_entry_must_be_a_mapping(self, tmp_path):
         body = SKILLS_MANIFEST.replace(
@@ -862,18 +903,18 @@ class TestValidateSkills:
             "  - just-a-string",
         )
         _write_skills_extension(tmp_path, body)
-        assert any("skills[0] must be a mapping" in i for i in self._issues(tmp_path))
+        assert any("/skills/0:" in i and "'object'" in i for i in self._issues(tmp_path))
 
     def test_missing_path_reported(self, tmp_path):
         body = SKILLS_MANIFEST.replace("  - path: skills/unit-testing\n", "  - ")
         _write_skills_extension(tmp_path, body)
-        assert any("skills[0] missing required field: path" in i for i in self._issues(tmp_path))
+        assert any("/skills/0:" in i and "'path'" in i for i in self._issues(tmp_path))
 
     def test_missing_install_as_reported(self, tmp_path):
         body = SKILLS_MANIFEST.replace("    install_as: craft-unit-testing\n", "")
         _write_skills_extension(tmp_path, body)
         assert any(
-            "skills[0] missing required field: install_as" in i for i in self._issues(tmp_path)
+            "/skills/0:" in i and "'install_as'" in i for i in self._issues(tmp_path)
         )
 
     def test_install_as_traversal_rejected(self, tmp_path):

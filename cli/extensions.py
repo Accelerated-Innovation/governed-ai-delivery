@@ -21,21 +21,20 @@ surfaces them to agents and validation. A bundled pack may be added with
 `govkit extension add`, or the folder may be vendored directly; either way,
 the in-repo folder is the installed extension.
 
-This module owns Increment 1 of the extension feature: discovery only.
-Validation (validate_extension) and overlap detection arrive in later
-increments.
+Discovery tolerates invalid manifests and carries diagnostics to callers.
+Validation enforces the shared manifest schema before checking local paths
+and declared relationships.
 """
 
 import re
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
-import yaml
+from .schema_validation import DocumentError, parse_document, validate_document
 
 EXTENSIONS_DIR = "extensions"
 MANIFEST_FILE = "manifest.yaml"
 
-_REQUIRED_FIELDS = ("id", "name", "version", "extension_type", "contract_sets")
 _ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
@@ -69,15 +68,18 @@ class Extension:
 
 
 def load_manifest(manifest_path: Path) -> tuple[dict | None, str | None]:
-    """Safe-load a YAML manifest. Returns (data, None) on success or
-    (None, error_message) on failure. Never raises."""
+    """Parse unambiguous, JSON-shaped YAML using the shared pack loader rules.
+
+    Returns (data, None) on success or (None, error_message) on failure.
+    Shape and path checks remain the responsibility of validate_extension.
+    """
     try:
         text = manifest_path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
         return None, f"could not read manifest: {exc}"
     try:
-        data = yaml.safe_load(text)
-    except yaml.YAMLError as exc:
+        data = parse_document(text)
+    except DocumentError as exc:
         return None, f"invalid YAML: {exc}"
     if data is None:
         return None, "manifest is empty"
@@ -150,8 +152,12 @@ def discover_in(ext_root: Path) -> list[Extension]:
     return results
 
 
-def _check_required_fields(manifest: dict) -> list[str]:
-    return [f"missing required field: {fld}" for fld in _REQUIRED_FIELDS if fld not in manifest]
+def _check_manifest_shape(manifest: dict) -> list[str]:
+    try:
+        validate_document(manifest, "extension-manifest")
+    except DocumentError as exc:
+        return [str(exc)]
+    return []
 
 
 def _check_id(manifest: dict, ext: Extension) -> list[str]:
@@ -415,9 +421,9 @@ def _check_undeclared_overlap(manifest: dict, target: Path) -> list[str]:
 def validate_extension(ext: Extension, target: Path) -> list[str]:
     """Return a list of human-readable validation issues for one extension.
 
-    Increment 2 checks:
+    Checks:
       - discovery errors (missing/invalid manifest) — passed through
-      - required top-level fields present
+      - shared manifest schema, including nested field types and requirements
       - id format and folder-name match
       - contract_sets[].paths exist under ext.root
       - templates[].path exist under ext.root
@@ -432,8 +438,10 @@ def validate_extension(ext: Extension, target: Path) -> list[str]:
     if ext.errors:
         return list(ext.errors)
     m = ext.manifest
+    shape_issues = _check_manifest_shape(m)
+    if shape_issues:
+        return shape_issues
     return [
-        *_check_required_fields(m),
         *_check_id(m, ext),
         *_check_contract_sets(m, ext),
         *_check_templates(m, ext),
@@ -452,8 +460,9 @@ def report_extensions(target: Path) -> int:
         return 0
     print("\nExtensions detected:")
     for ext in extensions:
-        if ext.errors:
-            print(f"  {ext.id} — WARN: {ext.errors[0]}")
+        issues = ext.errors or _check_manifest_shape(ext.manifest)
+        if issues:
+            print(f"  {ext.id} — WARN: {issues[0]}")
         else:
             desc = ext.manifest.get("description", "").strip()
             suffix = f" — {ext.name}" if ext.name != ext.id else ""
