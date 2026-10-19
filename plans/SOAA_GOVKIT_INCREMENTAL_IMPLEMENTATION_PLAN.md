@@ -1552,8 +1552,8 @@ Every other design question is resolved in §6.
 
 | Increment | Status | Evidence / commit / PR | Next action or blocker |
 |---|---|---|---|
-| 0 Preserved fix | in review | PR #226 (`f106a83`): branch tests 318 passed; combined fast tier 5,261 passed / 2 skipped; Qodo local review blocked (CLI not installed) | Merge by the user |
-| 1 Routing/context defects | in progress | R1 and R2 in PR #227 (`a158094`, `9f2ee38`), each red-then-green; combined fast tier 5,261 passed / 2 skipped; Qodo local review blocked (CLI not installed) | Merge by the user; R3 (L5 starter §15/§16) and R4 (stale skill names) remain |
+| 0 Preserved fix | complete | Merged as #226 (`2be2b18`) | — |
+| 1 Routing/context defects | in review | R1/R2 merged as #227 (`37a311b`). R3/R4 in the follow-up PR: `govkit init` invokes installed skills with agent syntax (10 new tests, red first); L5 starters mirror template §15/§16; neutral payload uses `govkit-` names (3 new tests, red first). Qodo local review blocked (CLI not installed) | Merge by the user |
 | 2 Experiment contract | not started | — | After 0 (parallel with 1) |
 | 3 Validator/schemas/CI | not started | — | After 2 |
 | 4 Backend/data payload | not started | — | After 3 |
@@ -1565,11 +1565,9 @@ Every other design question is resolved in §6.
 | 10 Applicability check | not started | — | After 9 |
 | 11 Wheel acceptance/handoff | not started | — | After all; U3 |
 
-**Current handoff:** Increment 0 is in review as #226, and Increment 1's
-R1/R2 fixes are in review as #227; the user performs the merges. Next: the rest
-of Increment 1 (R3, R4) and Increment 2 (experiment contract), which can
-proceed in parallel. Install or connect the Qodo CLI so later PRs can run the
-required local review.
+**Current handoff:** Increments 0 and 1 (R1/R2) are merged; Increment 1's
+R3/R4 follow-up is in review. Next: Increment 2 (experiment contract). Install
+or connect the Qodo CLI so later PRs can run the required local review.
 
 ## Decision log
 
