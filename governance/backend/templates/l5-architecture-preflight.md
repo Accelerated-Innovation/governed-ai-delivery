@@ -137,6 +137,22 @@ If no shared artifact, state: "No shared contract produced."
 
 ---
 
+## 8.5 Architecture Uncertainty and Experiments
+
+List each architectural assumption this design depends on and its basis.
+
+| Assumption | Basis | Material? | Action |
+|---|---|---|---|
+|  | accepted contract / accepted ADR / current experiment (EXP-…) / untested | yes/no | none / ADR / experiment EXP-… / narrower scope |
+
+- Supported by an accepted contract, an accepted ADR or a current passed and adopted experiment: no experiment needed.
+- A known violation of an accepted boundary needs an ADR or an authorized narrower scope; an experiment cannot excuse it.
+- A material, untested assumption needs an experiment. Record it in `features/<feature_name>/experiments.yaml` (schema: `governance/schemas/experiment-set.schema.json`) and set the outcome below to `experiment-required`.
+
+Do not label an untested design approved in order to start a prototype. Experiments do not change accepted requirements.
+
+---
+
 ## 9. Preflight Conclusion (L4)
 
 - Architecture alignment: compliant | requires ADR | blocked
@@ -243,4 +259,18 @@ If **declared**, complete each item:
 - L4 preflight status: approved | blocked
 - L5 GenAI status: approved | blocked
 - Multi-agent status (if applicable): approved | blocked | n/a
-- Combined status: **Approved for planning** | **Blocked pending resolution**
+- Combined status: **Approved for planning** | **Experiment required** | **Blocked pending resolution**
+
+Record the outcome in this single machine-readable block (schema:
+`governance/schemas/preflight-outcome.schema.json`). `govkit validate` checks it;
+run `govkit validate --target . --strict` before declaring the feature complete.
+
+```yaml
+preflight_outcome:
+  status: blocked   # approved-for-planning | experiment-required | adr-required | blocked
+  reason: Preflight not yet completed.
+  # experiments: [EXP-001]          # with experiment-required
+  # relies_on:                      # passed, adopted experiments supporting approval
+  #   - experiment: EXP-001
+  #     result_digest: <result digest>
+```

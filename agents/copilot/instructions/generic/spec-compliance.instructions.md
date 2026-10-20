@@ -54,6 +54,7 @@ Before writing any implementation code:
 - Verify `acceptance.feature` has complete scenarios
 - Verify `eval_criteria.yaml` exists and validates against the schema
 - Verify `architecture_preflight.md` exists and its status is not Blocked
+- Verify its `preflight_outcome` block, when present, is not `experiment-required`, `adr-required` or `blocked` before feature implementation. Experiment increments may proceed within their recorded scope and permitted effects
 - Verify `plan.md` exists with defined increments and tests
 - Verify "Repository Scope" section in `nfrs.md` is complete (see Repository Scope Enforcement rule)
 
@@ -65,3 +66,4 @@ If any artifact is incomplete, stop and request completion before proceeding.
 - Implement one increment at a time
 - Each increment must be independently buildable and testable
 - Do not expand scope beyond the active increment
+- Before declaring the feature complete, run `govkit validate --target . --strict`; stale, failed or outstanding experiment evidence cannot support completion

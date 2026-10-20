@@ -123,7 +123,8 @@ A change is rarely one file. Changing a schema means updating starter templates 
 - **Rules that guard requirements.** `adopt` requires a pass. Narrowing behavior requires an accepted requirement change. The schema has no waiver field, and synthetic evidence never satisfies an application requirement.
 - **What a clean assessment means.** The records are consistent and current. It is not execution or conformance.
 - **Where it runs.** `govkit validate` reports experiment findings per feature, at any level; `--only experiments` runs just these checks. Errors FAIL. Outstanding or unknown findings WARN, or FAIL with `--strict`. Both `quality-gate.yml` templates run the non-strict `--only experiments` check when a non-starter feature declares either record. Every feature install ships both schemas.
-- **Not yet wired in.** Change conformance and the agent skills do not consume the assessor yet.
+- **Agent guidance.** The backend, CLI and data preflight, GenAI preflight, spec-planning and implementation-plan skills, the generic spec-compliance rule, the entry instructions, both preflight and plan templates, and the backend, CLI and data starters carry the loop, identically for all three agents. Starters ship `status: blocked` with the reason "Preflight not yet completed." UI payload is a later increment.
+- **Not yet wired in.** Change conformance does not consume the assessor yet.
 - **Keep aligned.** The schemas and the six example scenarios, together with their expected results.
 
 ### Actual-change conformance

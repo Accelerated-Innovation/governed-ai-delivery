@@ -83,4 +83,4 @@ Block if a required extension, contract, decision, or control is missing.
 
 ## Output
 
-Update `features/<feature_name>/architecture_preflight.md` sections 10–15 with evidence-backed findings. Set the final status to `Approved for planning`, `Requires ADR`, or `Blocked pending resolution`. Do not proceed to planning while any required control is blocked.
+Update `features/<feature_name>/architecture_preflight.md` sections 10–15 with evidence-backed findings. Set the final status to `Approved for planning`, `Experiment required`, `Requires ADR`, or `Blocked pending resolution`, and update the report's single `preflight_outcome` block to match (`approved-for-planning`, `experiment-required`, `adr-required` or `blocked`). Use `experiment-required` when a material model-behavior or agent-control assumption is untested, and record the experiment in `experiments.yaml`. Do not proceed to planning while any required control is blocked.

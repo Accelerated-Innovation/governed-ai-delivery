@@ -14,8 +14,9 @@ are for material uncertainty only.
 > **Status.** This page describes the record contracts and assessor added by
 > [ADR 0020](../plans/decisions/0020-architecture-experiments.md). `govkit
 > validate` and the consumer `quality-gate.yml` (GitHub and Azure) check them,
-> as described below. Change conformance and the agent skills do not read
-> them yet; those are later increments of the
+> as described below. For backend, CLI and data features, the agent skills,
+> rules, entry instructions, templates and starters guide teams through the
+> workflow. Change conformance and UI guidance are later increments of the
 > [Phase A plan](../plans/SOAA_GOVKIT_INCREMENTAL_IMPLEMENTATION_PLAN.md).
 
 ## Checking a project

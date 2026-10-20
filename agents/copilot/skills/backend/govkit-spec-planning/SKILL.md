@@ -70,6 +70,16 @@ When `architecture.services` is absent, the repo holds a single service.
 Use `architecture.source_root` as the prefix instead — an empty value means
 the layer folders sit at the repo root and paths need no prefix.
 
+## Preflight outcome
+
+Read the `preflight_outcome` block in `features/<feature_name>/architecture_preflight.md` before planning.
+
+- `approved-for-planning`: plan the feature.
+- `experiment-required`: plan only the experiment increments for the listed `EXP-` entries in `experiments.yaml`. Plan the rest of the feature after the preflight is reassessed.
+- `adr-required` or `blocked`: stop and report what must be resolved.
+
+Do not reverse the preflight's ADR decision or its outcome. If you disagree, say so and ask.
+
 ## Inputs to read
 
 Feature specs:
