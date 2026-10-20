@@ -60,7 +60,7 @@ Implementation must not begin unless all five artifacts exist.
 7. Incremental implementation → guided by `$govkit-implementation-plan`
 8. Automated tests
 9. Static analysis and evaluation gates
-10. Completion → `govkit validate --target . --strict` (rechecks every accepted requirement and control, including experiment evidence)
+10. Completion → `govkit validate --target . --strict` (checks feature artifacts and experiment-record consistency; it does not execute tests or prove architecture conformance, so the tests and gates above must already pass)
 
 ---
 

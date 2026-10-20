@@ -166,3 +166,28 @@ def test_data_starter_mirrors_the_new_skill_section():
         encoding="utf-8"
     )
     assert "## 6.5 Uncertainty Classification and Outcome" in text
+
+
+PAYLOAD_ROOTS = ("agents", "governance/backend/templates", "features")
+
+
+def test_strict_validation_is_never_described_as_proving_requirements_or_controls():
+    """`govkit validate --strict` checks artifacts and experiment records. Tests
+    and CI gates prove behavior; nothing may claim validate rechecks them."""
+    overclaims = []
+    for root in PAYLOAD_ROOTS:
+        for path in sorted((REPO / root).rglob("*.md")):
+            text = path.read_text(encoding="utf-8")
+            if re.search(r"rechecks every accepted requirement|rechecks every .*control", text):
+                overclaims.append(str(path.relative_to(REPO)))
+    assert not overclaims, overclaims
+
+
+@pytest.mark.parametrize("agent", AGENTS)
+@pytest.mark.parametrize("doc", ("l4-backend-api", "l4-backend-cli", "l5-backend-api",
+                                 "l5-backend-cli"))
+def test_completion_step_states_what_strict_validation_does_not_prove(agent, doc):
+    text = (REPO / "agents" / agent / ENTRY_DIRS[agent] / f"{doc}.md").read_text(encoding="utf-8")
+    [step] = [line for line in text.splitlines() if "Completion →" in line]
+    assert "experiment-record consistency" in step
+    assert "does not execute tests or prove architecture conformance" in step

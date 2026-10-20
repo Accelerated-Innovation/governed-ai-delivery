@@ -150,7 +150,7 @@ List conditions under which refactoring must occur:
 - If the preflight outcome is `experiment-required`, the first increments are the recorded experiments. Each names its `EXP-` id and stays within that experiment's scope and permitted effects. Record results, evidence digests and the decision in `experiments.yaml`.
 - After each result, and after any material change to requirements, skills, policy, interfaces, runtime or implementation, reassess the preflight before planning further feature increments.
 - A failed experiment returns the work to design. Accepted requirements change only through their normal approval; record a deliberate narrowing as `narrow-supported-behavior` with the accepted requirement change.
-- A passing experiment supports only its observed scope. Completion still rechecks every accepted requirement and control: run `govkit validate --target . --strict`.
+- A passing experiment supports only its observed scope. Completion still requires every accepted requirement's tests and the CI gates to pass. Then run `govkit validate --target . --strict`, which checks feature artifacts and experiment records; it does not execute tests or prove architecture conformance.
 
 ### Risks & Unknowns
 

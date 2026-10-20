@@ -56,7 +56,7 @@ Before proceeding to Architecture Preflight or planning:
 5. Incremental implementation → guided by `$govkit-implementation-plan`
 6. Automated tests
 7. Static analysis and evaluation gates
-8. Completion → `govkit validate --target . --strict` (rechecks every accepted requirement and control, including experiment evidence)
+8. Completion → `govkit validate --target . --strict` (checks feature artifacts and experiment-record consistency; it does not execute tests or prove architecture conformance, so the tests and gates above must already pass)
 
 ---
 

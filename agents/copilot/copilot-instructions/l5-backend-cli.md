@@ -46,7 +46,7 @@ CLI features may be deterministic (no LLM). If mode is `llm`, all L5 contracts a
 6. Incremental implementation
 7. Automated tests
 8. CI gates
-9. Completion → `govkit validate --target . --strict` (rechecks every accepted requirement and control, including experiment evidence)
+9. Completion → `govkit validate --target . --strict` (checks feature artifacts and experiment-record consistency; it does not execute tests or prove architecture conformance, so the tests and gates above must already pass)
 
 ---
 

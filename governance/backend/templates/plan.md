@@ -168,7 +168,7 @@ If the preflight outcome is `experiment-required`, plan only the recorded experi
 
 - After each experiment result, and after any material change to requirements, skills, policy, interfaces, runtime or implementation, reassess the preflight and update its `preflight_outcome` block.
 - A failed experiment returns the work to design. Accepted requirements change only through their normal approval; record a deliberate narrowing as `narrow-supported-behavior` with the accepted requirement change.
-- A passing experiment supports only its observed scope. Before completion, run `govkit validate --target . --strict`; it rechecks every accepted requirement and control, including experiment evidence.
+- A passing experiment supports only its observed scope. Before completion, every accepted requirement's tests and the CI gates must pass. Then run `govkit validate --target . --strict`; it checks feature artifacts and experiment records, not test execution or architecture conformance.
 
 ---
 
