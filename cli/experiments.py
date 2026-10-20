@@ -299,18 +299,22 @@ def _check_currency(experiment, result, read_digest, now, add) -> bool:
     """Compare recorded digests and expiry with current inputs; True when stale."""
     exp_id = experiment["id"]
     stale = False
-    if criteria_digest(experiment["acceptance_criteria"]) != result["criteria_digest"]:
+    current_criteria = criteria_digest(experiment["acceptance_criteria"])
+    if current_criteria != result["criteria_digest"]:
         add(
             "criteria-changed-after-result",
             OUTSTANDING,
-            f"{exp_id} acceptance criteria changed after the result was recorded",
+            f"{exp_id} acceptance criteria changed after the result was recorded "
+            f"(current criteria digest {current_criteria})",
         )
         stale = True
-    if inputs_digest(experiment["depends_on"]) != result["inputs_digest"]:
+    current_inputs = inputs_digest(experiment["depends_on"])
+    if current_inputs != result["inputs_digest"]:
         add(
             "inputs-changed-after-result",
             OUTSTANDING,
-            f"{exp_id} dependencies were re-pinned after the result; rerun the experiment",
+            f"{exp_id} dependencies were re-pinned after the result; rerun the experiment "
+            f"(current inputs digest {current_inputs})",
         )
         stale = True
     for requirement in experiment["requirements"]:
@@ -325,7 +329,8 @@ def _check_currency(experiment, result, read_digest, now, add) -> bool:
             add(
                 "stale-requirement",
                 OUTSTANDING,
-                f"Requirement {requirement['path']} changed after {exp_id} ran",
+                f"Requirement {requirement['path']} changed after {exp_id} ran "
+                f"(current digest {current})",
             )
             stale = True
     for dependency in experiment["depends_on"]:
@@ -340,7 +345,8 @@ def _check_currency(experiment, result, read_digest, now, add) -> bool:
             add(
                 "stale-dependency",
                 OUTSTANDING,
-                f"{dependency['kind']} dependency {dependency['path']} changed after {exp_id} ran",
+                f"{dependency['kind']} dependency {dependency['path']} changed after "
+                f"{exp_id} ran (current digest {current})",
             )
             stale = True
     for criterion in result["criteria"]:
@@ -424,7 +430,8 @@ def _assess_outcome(outcome, records, states, default_record):
             add(
                 "stale-reliance",
                 ERROR,
-                f"Preflight relies on {exp_id}, whose evidence changed or is stale; reassess",
+                f"Preflight relies on {exp_id}, whose evidence changed or is stale; reassess "
+                f"(current result digest {exp_state.result_digest})",
             )
         elif exp_state.effective != "passed" or exp_state.decision != "adopt":
             add(

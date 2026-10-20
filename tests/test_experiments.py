@@ -634,3 +634,45 @@ class TestInvalidInputs:
         first = run(record(exp, experiment(id="EXP-002", status="running")), outcome, files=files)
         second = run(record(exp, experiment(id="EXP-002", status="running")), outcome, files=files)
         assert first == second
+
+
+class TestMismatchMessagesNameCurrentDigests:
+    """Recording or reassessing needs the current digest; messages supply it.
+    Copying it without rerunning is the documented, undetectable limitation."""
+
+    def _message(self, assessment, code):
+        return next(f.message for f in assessment.findings if f.code == code)
+
+    def test_criteria_and_inputs_changes_name_current_digests(self):
+        exp = with_result(experiment())
+        exp["acceptance_criteria"][0]["threshold"] = "at most 5 of 50"
+        exp["depends_on"] = exp["depends_on"][:1]
+        assessment = run(record(exp))
+        assert criteria_digest(exp["acceptance_criteria"]) in self._message(
+            assessment, "criteria-changed-after-result"
+        )
+        assert inputs_digest(exp["depends_on"]) in self._message(
+            assessment, "inputs-changed-after-result"
+        )
+
+    def test_changed_files_name_current_digests(self):
+        changed = dict(
+            FILES,
+            **{
+                "features/discovery/acceptance.feature": b"Feature: v2\n",
+                "src/runtime/selection.py": b"changed\n",
+            },
+        )
+        assessment = run(record(with_result(experiment())), files=changed)
+        assert content_digest(changed["features/discovery/acceptance.feature"]) in self._message(
+            assessment, "stale-requirement"
+        )
+        assert content_digest(changed["src/runtime/selection.py"]) in self._message(
+            assessment, "stale-dependency"
+        )
+
+    def test_stale_reliance_names_the_current_result_digest(self):
+        exp, outcome = TestReliance()._relied()
+        exp["result"]["summary"] = "Rewritten after the reliance was recorded."
+        assessment = run(record(exp), outcome)
+        assert result_digest(exp["result"]) in self._message(assessment, "stale-reliance")
