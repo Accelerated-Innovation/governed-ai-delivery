@@ -39,6 +39,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     `architecture-experiments` job. It runs the non-strict check only when a
     non-starter feature declares either record.
   - Change conformance and agent skills do not consume the records yet.
+- **`govkit extension list --installed --target <path> [--json]`** lists the
+  extensions a project actually has: legacy copies under `extensions/` and
+  declarative packs under `.govkit/packs/`.
+  - Each listing gives contract sets, capability tokens, `applies_to` globs and
+    repository-relative resources, including the README.
+  - Declarative packs are usable only when the pack lock verifies.
+  - It reports legacy and declarative copies of the same extension, and pack
+    folders the lock doesn't record. It exits 1 unless everything is usable.
+  - It is read-only, and the JSON follows the new `extension-inventory` schema.
+  - `.govkit/skill_context.yaml` entries gain `source`, `root`, `status` and
+    `conflicts`, and now include verified declarative packs. The
+    `legacy:extensions` check warns about conflicting copies.
 
 ### Fixed
 

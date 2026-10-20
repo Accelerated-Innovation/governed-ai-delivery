@@ -12,6 +12,7 @@ from jsonschema.exceptions import SchemaError
 
 from . import approval, doctor, extensions, validate
 from .check_models import CheckContext, CheckOutcome, Evidence, Execution, Finding, State
+from .extension_inventory import installed_extensions
 from .features import list_user_features
 from .pack_store import execute_check, verify_lock
 from .profiles import load_profile, load_resolution, resolve_profile
@@ -209,6 +210,35 @@ def extension_check(context: CheckContext) -> CheckOutcome:
                     (proof,),
                 )
             )
+    try:
+        conflicts = installed_extensions(context.target).conflicts
+    except Exception as exc:
+        conflicts = ()
+        findings.append(
+            Finding(
+                "extension-inventory-unreadable",
+                "warning",
+                "extension",
+                f"Installed-extension inventory could not complete ({type(exc).__name__})",
+                "Run `govkit extension list --installed` and resolve the reported problem.",
+                "extensions",
+                tuple(proofs),
+            )
+        )
+    for conflict in conflicts:
+        if conflict.kind != "legacy-and-declarative":
+            continue
+        findings.append(
+            Finding(
+                "extension-conflict",
+                "warning",
+                "extension",
+                conflict.message,
+                "Keep one copy; agents may otherwise read divergent guidance.",
+                conflict.roots[0],
+                tuple(proofs),
+            )
+        )
     state = (
         State.FAIL
         if any(f.severity == "error" for f in findings)

@@ -173,6 +173,47 @@ Do not delete locks or force an update to conceal a collision. Legacy `extension
 add` does not migrate pack locks or remove old skill copies; review its separate
 installed files before invoking an updated skill.
 
+## Inspecting installed extensions
+
+An extension can be installed two ways:
+
+- **Legacy:** `govkit extension add` copies it to `extensions/<id>/`.
+- **Declarative:** `govkit pack apply` pins it under
+  `.govkit/packs/<id>/<digest>/`.
+
+To see what a project actually has, run:
+
+```bash
+govkit extension list --installed --target .          # human-readable
+govkit extension list --installed --target . --json   # extension-inventory schema
+```
+
+**What it lists:**
+
+- Every legacy extension, with its manifest status. A missing `relates_to`
+  target is a warning only, as in `doctor`.
+- Every declarative pack recorded in the pack lock. Packs are usable only when
+  the lock verifies. If any pinned file is missing or edited, they are listed as
+  `unverified`, with no resources.
+- For each usable extension, its contract sets, capability tokens and
+  `applies_to` globs, plus resources (contracts, implementation profiles and
+  the README), all as repository-relative paths.
+
+**Conflicts it reports:**
+
+- **Legacy and declarative copies** of the same extension.
+- **Orphaned pack folders** under `.govkit/packs/` that the lock doesn't record.
+
+The command exits 1 unless every listed extension is usable and nothing
+conflicts. It never migrates, deletes or rewrites anything. To resolve a
+conflict, keep one copy deliberately.
+
+`.govkit/skill_context.yaml` lists the same extensions for agents. Each entry
+has its `source`, `root`, `status` and any conflict kinds. Declarative entries
+appear only when the lock verifies. The `legacy:extensions` conformance check
+warns about legacy and declarative copies of the same extension. Installed
+guidance is still not accepted project policy.
+
 ## Independent controls
 
 ```bash
