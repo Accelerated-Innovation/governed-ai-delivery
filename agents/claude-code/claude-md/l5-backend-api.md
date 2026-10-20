@@ -57,6 +57,7 @@ Before proceeding to Architecture Preflight or planning:
 
 0. **Multi-agent features only:** run `/govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
 1. Architecture Preflight → run `/govkit-architecture-preflight`
+   - If the preflight records `experiment-required`, run only the recorded experiments first, then reassess the preflight before planning further. Established boundaries need no experiment.
 2. GenAI Preflight → run `/govkit-genai-preflight` (validates L5-specific decisions)
 3. ADR creation (if required by preflight)
 4. Plan finalization → run `/govkit-spec-planning`
@@ -65,6 +66,7 @@ Before proceeding to Architecture Preflight or planning:
 7. Incremental implementation → guided by `/govkit-implementation-plan`
 8. Automated tests (unit + LLM evaluation)
 9. Static analysis and evaluation gates
+10. Completion → `govkit validate --target . --strict` (rechecks every accepted requirement and control, including experiment evidence)
 
 ---
 

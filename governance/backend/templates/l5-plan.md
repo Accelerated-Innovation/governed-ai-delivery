@@ -165,6 +165,8 @@ If `thresholds_met` is false or any average is below 4.0, this plan must be revi
 
 ## Increments
 
+If the preflight outcome is `experiment-required`, plan only the recorded experiments first. Each experiment increment names its `EXP-` id, stays within that experiment's scope and permitted effects, and records results in `experiments.yaml`. Plan the feature increments after the preflight is reassessed.
+
 ### Increment 1: <name>
 
 **Goal**
@@ -213,6 +215,14 @@ If `thresholds_met` is false or any average is below 4.0, this plan must be revi
 - Risk:
   - Impact:
   - Mitigation:
+
+---
+
+## Reassessment and Completion
+
+- After each experiment result, and after any material change to requirements, skills, policy, interfaces, runtime or implementation, reassess the preflight and update its `preflight_outcome` block.
+- A failed experiment returns the work to design. Accepted requirements change only through their normal approval; record a deliberate narrowing as `narrow-supported-behavior` with the accepted requirement change.
+- A passing experiment supports only its observed scope. Before completion, run `govkit validate --target . --strict`; it rechecks every accepted requirement and control, including experiment evidence.
 
 ---
 

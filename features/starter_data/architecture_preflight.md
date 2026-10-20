@@ -160,3 +160,20 @@ Per `eval_criteria.yaml`:
 - Every `dim_customers` change is downstream-facing (Looker + Hightouch)
   — breaking-change risk is carried by the Contract Impact checklist
   above, not by an API review.
+
+---
+
+## 6.5 Uncertainty Classification and Outcome
+
+- Lineage tool choice is an open decision, not a material architectural
+  uncertainty for this mart: no experiment needed. A known contract
+  violation would need an ADR; an experiment cannot excuse it.
+- Record experiments, when needed, in `experiments.yaml` (schema:
+  `governance/schemas/experiment-set.schema.json`). Run
+  `govkit validate --target . --strict` before declaring the feature complete.
+
+```yaml
+preflight_outcome:
+  status: blocked   # approved-for-planning | experiment-required | adr-required | blocked
+  reason: Preflight not yet completed.
+```
