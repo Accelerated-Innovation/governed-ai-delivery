@@ -1555,21 +1555,21 @@ Every other design question is resolved in §6.
 | 0 Preserved fix | complete | Merged as #226 (`2be2b18`) | — |
 | 1 Routing/context defects | complete | R1/R2 merged as #227 (`37a311b`); R3/R4 merged as #229 (`f32ecdc`) | — |
 | 2 Experiment contract | complete | Merged as #230 (`d3585a7`): schemas, pure assessor, bounded store, six scenarios, ADR 0020; 106 tests; ad hoc clean-wheel check of all scenarios. Deviations: bare-hex digests; `adopt-without-pass` | — |
-| 3 Validator/schemas/CI | in review | `govkit validate` experiment check and `--only experiments`; schemas in all 33 feature install lists; GitHub/Azure `architecture-experiments` job; tests red first. CI pins `govkit~=0.22.0` until the 0.23.0 release PR bumps every pin. Qodo local review blocked (CLI not installed) | Merge by the user |
-| 4 Backend/data payload | not started | — | After 3 |
+| 3 Validator/schemas/CI | complete | Merged as #231 (`b0166fa`). Its duplicate frozen-baseline check in `tests/wheel_gate_catalog_smoke.py` was missed; `wheel-smoke` failed on main until #233 (`78f2dec`). CI pins `govkit~=0.22.0` until the 0.23.0 release PR bumps every pin | — |
+| 4 Backend/data payload | in review | Skills (preflight §6.5, GenAI output, spec-planning outcome, implementation-plan reassessment), spec-compliance rule and 15 entry docs for all three agents; preflight/plan templates; five starters (`blocked` placeholder); assessor messages name current digests. No separate `experiments.yaml` template: the shared preflight skill carries the skeleton, so data installs need no install-list change. Qodo local review blocked (CLI not installed) | Merge by the user |
 | 5 UI alignment | deferred | U2: Value Builder is an API project; its UI is a client | Not required for handoff |
 | 6 Declarative integration | not started | — | After 2 |
-| 7 Extension inventory | not started | — | After 1 |
+| 7 Extension inventory | complete | Merged as #232 (`3d2a36a`): `extension list --installed`, inventory schema, skill-context roots/conflicts, conflict warning in `legacy:extensions`. Declarative SOAA README awaits Increment 9 | — |
 | 8 Routing alignment | not started | — | After 4 and 7 |
 | 9 SOAA 0.2.0 | not started | — | After 4, 7, 8; U1 affects wording only |
 | 10 Applicability check | not started | — | After 9 |
 | 11 Wheel acceptance/handoff | not started | — | After all; U3 |
 
-**Current handoff:** Increments 0–2 are merged and Increment 3 is in review.
-Next: Increment 4 (backend/CLI/data agent payload for the loop) after 3, and
-Increment 6 (declarative request planning and change conformance) or 7
-(extension inventory), which do not depend on 3. Install or connect the Qodo
-CLI so later PRs can run the required local review.
+**Current handoff:** Increments 0–3 and 7 are merged and Increment 4 is in
+review. Next: Increment 8 (routing alignment) after 4, and Increment 6
+(declarative request planning and change conformance), which does not depend
+on 4. Run the full local wheel-smoke mirror before every PR. Install or
+connect the Qodo CLI so later PRs can run the required local review.
 
 ## Decision log
 
@@ -1582,4 +1582,7 @@ CLI so later PRs can run the required local review.
 | 2026-10-19 | SOAA 0.2.0 keeps identities and adds an explicit `capability_pack` with README and advisory resources | Proposal D5; review P4; `_legacy_contract` omits README |
 | 2026-10-19 | SOAA applicability coverage is an opt-in extension check, not a core engine | Proposal D1 "no second policy engine"; ADR 0004 state semantics |
 | 2026-10-19 | Release 0.23.0; Value Builder treated as an API project; Increment 5 deferred; no SOAA-specific CI gate | User decisions U2, U3 and the declined CI step |
+| 2026-10-20 | Starters ship `preflight_outcome: blocked` ("Preflight not yet completed.") rather than an invalid placeholder | A valid, non-approving default keeps non-strict CI green for in-progress features while `--strict` still blocks completion |
+| 2026-10-20 | No separate `experiments.yaml` template; the shared preflight skill carries the record skeleton | Data installs do not get backend templates; avoids another install-list and frozen-baseline change |
+| 2026-10-20 | Mismatch findings report current digests | Agents can record and reassess results; deliberate copying without rerun stays the documented, undetectable limitation (ADR 0020) |
 | 2026-10-19 | `multi_agent_evaluation` scores in eval_criteria may be null (placeholders), unlike the plan's `evaluation_prediction` | The starter documents `score: null` / `evidence: ""` until evaluation runs |
