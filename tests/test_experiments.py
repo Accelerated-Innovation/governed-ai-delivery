@@ -676,3 +676,16 @@ class TestMismatchMessagesNameCurrentDigests:
         exp["result"]["summary"] = "Rewritten after the reliance was recorded."
         assessment = run(record(exp), outcome)
         assert result_digest(exp["result"]) in self._message(assessment, "stale-reliance")
+
+
+@pytest.mark.parametrize("status", ["planned", "running"])
+def test_reliance_on_an_experiment_without_a_result_is_invalid_not_stale(status):
+    """Nothing changed; there is simply no passing result to rely on."""
+    outcome = outcome_block(
+        "approved-for-planning",
+        relies_on=[{"experiment": "EXP-001", "result_digest": "0" * 64}],
+    )
+    assessment = run(record(experiment(status=status)), outcome)
+    errors = [f for f in assessment.findings if f.severity == "error"]
+    assert [f.code for f in errors] == ["invalid-reliance"]
+    assert "has no result" in errors[0].message and "None" not in errors[0].message

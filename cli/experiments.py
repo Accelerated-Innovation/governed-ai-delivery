@@ -426,7 +426,14 @@ def _assess_outcome(outcome, records, states, default_record):
             add("unknown-experiment", ERROR, f"{path} does not define {exp_id}")
             continue
         exp_state, exp_findings = states[path][exp_id]
-        if exp_state.result_digest != reliance["result_digest"] or exp_state.effective == "stale":
+        if exp_state.result_digest is None:
+            add(
+                "invalid-reliance",
+                ERROR,
+                f"Preflight relies on {exp_id}, which has no result yet ({exp_state.effective}); "
+                "rely on it only after it passes and is adopted",
+            )
+        elif exp_state.result_digest != reliance["result_digest"] or exp_state.effective == "stale":
             add(
                 "stale-reliance",
                 ERROR,
