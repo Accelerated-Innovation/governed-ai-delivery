@@ -132,6 +132,16 @@ def verify_legacy(baseline):
                 assert kind in {"ui-react", "ui-angular", "ui-nextjs"}
                 assert level in {"4", "5"}
                 entry["src"] = variant
+        # ADR 0020 ships two schemas immediately after the fix-record schema.
+        # Mirror tests/test_legacy_resolution.py: require that exact placement,
+        # then remove them so all other selections keep their original digests.
+        additions = document["governed_additions"]
+        governed = selection[2]
+        if additions["after"] in governed:
+            start = governed.index(additions["after"]) + 1
+            assert governed[start : start + len(additions["paths"])] == additions["paths"], case
+            del governed[start : start + len(additions["paths"])]
+        assert not set(additions["paths"]) & set(governed), case
         actual = hashlib.sha256(
             json.dumps(selection, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest()
