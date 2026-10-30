@@ -117,6 +117,16 @@ def test_spec_compliance_blocks_completion_on_unresolved_outcomes(agent):
 
 
 @pytest.mark.parametrize("agent", AGENTS)
+def test_spec_compliance_requires_outcome_when_experiments_declared(agent):
+    # Features predating the outcome block stay valid; one that declares
+    # experiments.yaml cannot omit the block and skip outcome assessment.
+    text = (REPO / "agents" / agent / SPEC_COMPLIANCE[agent]).read_text(encoding="utf-8")
+    assert "block, when present," not in text
+    assert "exactly one `preflight_outcome` block" in text
+    assert "`experiments.yaml`" in text
+
+
+@pytest.mark.parametrize("agent", AGENTS)
 @pytest.mark.parametrize("doc", ENTRY_DOCS)
 def test_entry_instructions_route_experiments_and_strict_completion(agent, doc):
     text = (REPO / "agents" / agent / ENTRY_DIRS[agent] / f"{doc}.md").read_text(encoding="utf-8")
