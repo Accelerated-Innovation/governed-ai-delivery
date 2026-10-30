@@ -38,7 +38,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   - The GitHub and Azure `quality-gate.yml` templates gain an
     `architecture-experiments` job. It runs the non-strict check only when a
     non-starter feature declares either record.
-  - Change conformance and agent skills do not consume the records yet.
+  - Change conformance does not consume the records yet.
+- **Agent guidance for the experiment workflow** (backend, CLI and data, all
+  three agents).
+  - Architecture preflight gains §6.5, *Uncertainty Classification and
+    Outcome*:
+    - Established boundaries need no experiment.
+    - Known violations still need an ADR.
+    - A material, untested assumption gets an `experiments.yaml` entry and the
+      `experiment-required` outcome.
+  - Spec planning plans only the experiments while one is required.
+  - Implementation planning adds experiment increments, reassessment and a
+    `govkit validate --target . --strict` completion check.
+  - GenAI preflight, the generic spec-compliance rule and the L4/L5 entry
+    instructions follow the same path.
+  - The preflight templates gain §8.5 and the outcome block, and the plan
+    templates gain *Reassessment and Completion*.
+  - The backend, CLI and data starters ship an honest unfinished outcome
+    (`blocked`, "Preflight not yet completed."). Non-strict CI passes on it,
+    and `--strict` blocks completion until the preflight is done.
+  - Mismatched experiment digests now report their current values.
 - **`govkit extension list --installed --target <path> [--json]`** lists the
   extensions a project actually has: legacy copies under `extensions/` and
   declarative packs under `.govkit/packs/`.

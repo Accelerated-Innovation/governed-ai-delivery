@@ -38,6 +38,7 @@ CLI features may be deterministic (no LLM). If mode is `llm`, all L5 contracts a
 
 0. **Multi-agent features only:** run `/govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
 1. Architecture Preflight
+   - If the preflight records `experiment-required`, run only the recorded experiments first, then reassess the preflight before planning further. Established boundaries need no experiment.
 2. GenAI Preflight (if mode: llm)
 3. ADR creation (if required)
 4. Plan finalization
@@ -45,6 +46,7 @@ CLI features may be deterministic (no LLM). If mode is `llm`, all L5 contracts a
 6. Incremental implementation
 7. Automated tests
 8. CI gates
+9. Completion → `govkit validate --target . --strict` (checks feature artifacts and experiment-record consistency; it does not execute tests or prove architecture conformance, so the tests and gates above must already pass)
 
 ---
 

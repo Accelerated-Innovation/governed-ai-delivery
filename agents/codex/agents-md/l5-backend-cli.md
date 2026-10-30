@@ -51,6 +51,7 @@ Implementation must not begin unless all five artifacts exist.
 
 0. **Multi-agent features only:** invoke `$govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
 1. Architecture Preflight → invoke `$govkit-architecture-preflight`
+   - If the preflight records `experiment-required`, run only the recorded experiments first, then reassess the preflight before planning further. Established boundaries need no experiment.
 2. GenAI Preflight → invoke `$govkit-genai-preflight` (if feature uses LLM)
 3. ADR creation (if required by preflight)
 4. Plan finalization → invoke `$govkit-spec-planning`
@@ -59,6 +60,7 @@ Implementation must not begin unless all five artifacts exist.
 7. Incremental implementation → guided by `$govkit-implementation-plan`
 8. Automated tests
 9. Static analysis and evaluation gates
+10. Completion → `govkit validate --target . --strict` (checks feature artifacts and experiment-record consistency; it does not execute tests or prove architecture conformance, so the tests and gates above must already pass)
 
 ---
 

@@ -117,6 +117,8 @@ mapping (staging/intermediate/marts vs medallion bronze/silver/gold).
 
 ## 6. Validation
 
+Preflight records one `preflight_outcome` block. If it is `experiment-required`, run only the recorded experiments first, then reassess the preflight; established boundaries need no experiment. Before declaring a feature complete, run `govkit validate --target . --strict`.
+
 Run `govkit validate` to check that all five artifacts are present and
 internally consistent for every feature. Run `govkit doctor` to check that the
 installed governance still matches your repo (detected stack, CI gates).

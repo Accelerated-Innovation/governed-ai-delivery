@@ -62,12 +62,14 @@ Before proceeding to Architecture Preflight or planning:
 All work follows this sequence:
 
 1. Architecture Preflight (feature-level)
+   - If the preflight records `experiment-required`, run only the recorded experiments first, then reassess the preflight before planning further. Established boundaries need no experiment.
 2. ADR creation (if required)
 3. Plan finalization
 4. Evaluation Compliance Summary
 5. Incremental implementation
 6. Automated tests
 7. Static analysis and evaluation gates
+8. Completion → `govkit validate --target . --strict` (checks feature artifacts and experiment-record consistency; it does not execute tests or prove architecture conformance, so the tests and gates above must already pass)
 
 Steps may not be skipped.
 

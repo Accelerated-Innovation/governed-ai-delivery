@@ -176,6 +176,70 @@ Choose one:
 - List assumptions, open design questions, or external risks
 - Flag any missing constraints, incomplete specs, or potential conflicts
 
+## 6.5 Uncertainty Classification and Outcome
+
+Classify each architectural assumption the design depends on:
+
+| Basis | Action |
+|---|---|
+| An accepted contract, an accepted ADR, or a current passed and adopted experiment | None: an established boundary needs no experiment |
+| A known violation of an accepted boundary | An ADR or an authorized narrower scope; an experiment cannot excuse it |
+| Material and untested: the design could fail on it | An experiment |
+| Not material | Note it under Risks & Unknowns |
+
+Do not label an untested design approved in order to start a prototype.
+Experiments resolve uncertainty; experiments do not change accepted requirements.
+
+For each experiment, add an entry with `status: planned` to
+`features/<feature_name>/experiments.yaml` (schema:
+`governance/schemas/experiment-set.schema.json`). Record:
+
+- the uncertainty, hypothesis and decisions affected
+- the accepted requirements that must stay intact, with their SHA-256 digests
+- the scope, permitted effects (`none`, `local-reversible` or `fixture-external`), conditions and oracle
+- the required evidence class: `application` for real runtime evidence; `synthetic-fixture` only for a fixture or tooling question
+- acceptance criteria with thresholds, limits and stop conditions
+- the files the result will depend on (`depends_on`), with their SHA-256 digests
+
+Minimal record:
+
+```yaml
+schema_version: 1
+kind: experiment-set
+feature: <feature_name>
+experiments:
+  - id: EXP-001
+    title: <short name>
+    uncertainty: <the material architectural question>
+    hypothesis: <what you expect to hold>
+    decisions_affected: [{kind: preflight-section, reference: features/<feature_name>/architecture_preflight.md}]
+    requirements: [{path: features/<feature_name>/acceptance.feature, digest: <sha256>}]
+    scope: {paths: [<path>], permitted_effects: none, excluded: []}
+    conditions: []
+    oracle: deterministic-test
+    required_evidence_class: application
+    acceptance_criteria: [{id: AC-1, statement: <observable result>, threshold: <pass condition>}]
+    limits: {budget: <time or cost>, stop_when: [<stop condition>]}
+    depends_on: [{kind: implementation, path: <file>, digest: <sha256>}]
+    status: planned
+```
+
+End the report with exactly one outcome block:
+
+```yaml
+preflight_outcome:
+  status: experiment-required   # approved-for-planning | experiment-required | adr-required | blocked
+  reason: Skill admission with three runtime skills is untested.
+  experiments: [EXP-001]        # only with experiment-required
+```
+
+Reassess after each experiment result and after any material change to
+requirements, skills, policy, interfaces, runtime or implementation, then set
+the status again. With `approved-for-planning`, list in `relies_on` only passed
+and adopted experiments, each with its result digest. `govkit validate --target
+. --only experiments` reports current digests when recorded ones differ. Run
+`govkit validate --target . --strict` before declaring the feature complete.
+
 ---
 
 Write this report to `features/<feature_name>/architecture_preflight.md`.
