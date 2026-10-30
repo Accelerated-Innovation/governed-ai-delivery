@@ -66,8 +66,10 @@ def test_section_25_mentions_required_concepts(skill_path: Path):
     section = _extract_section(text, SECTION_HEADING)
     required_phrases = [
         "extensions/*/manifest.yaml",  # discovery scan
-        "applies_to",  # applicability check
-        "capabilities",
+        ".govkit/packs/*/*/manifest.yaml",  # declarative install root
+        "govkit extension list --installed",  # verified listing preferred
+        "contract_sets[].applies_to",  # applicability check
+        "contract_sets[].capabilities",
         "relates_to",  # conflict-resolution model
         "extends",
         "supersedes",

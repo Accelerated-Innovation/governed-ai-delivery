@@ -9,6 +9,8 @@ These instructions apply when editing model input, context, output, or tool-call
 
 Contract: `extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md`
 
+Read extension paths under the installed `llm-application` root: `extensions/llm-application/` (legacy) or `.govkit/packs/llm-application/<digest>/` (declarative), as printed by `govkit extension list --installed --target .`.
+
 ---
 
 ## Rules

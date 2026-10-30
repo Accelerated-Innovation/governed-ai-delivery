@@ -1561,15 +1561,14 @@ Every other design question is resolved in §6.
 | 5 UI alignment | deferred | U2: Value Builder is an API project; its UI is a client | Not required for handoff |
 | 6 Declarative integration | not started | — | After 2 |
 | 7 Extension inventory | complete | Merged as #232 (`3d2a36a`): `extension list --installed`, inventory schema, skill-context roots/conflicts, conflict warning in `legacy:extensions`. Declarative SOAA README awaits Increment 9 | — |
-| 8 Routing alignment | in progress | Branch `feat/routing-alignment` | — |
+| 8 Routing alignment | in review | Branch `feat/routing-alignment`: six L5 backend entry docs route LLM (model use), SOAA (behavior, any agent count) and topology (`multi_agent: true`) with identical sentences; GenAI preflight states the three layers; §2.6 (six copies) prefers `extension list --installed`, scans both roots, uses `contract_sets[]` fields and halts on conflicts; LLM and multi-agent rules, multi-agent design, eval-suite planning and L5 UI entry docs name the declarative root; template and L5 starters split §15 into 15a/15b with a SOAA status line. New `tests/test_agent_routing.py` (red first); validate and both gates unchanged | Merge by the user |
 | 9 SOAA 0.2.0 | not started | — | After 4, 7, 8; U1 affects wording only |
 | 10 Applicability check | not started | — | After 9 |
 | 11 Wheel acceptance/handoff | not started | — | After all; U3 |
 
-**Current handoff:** Increments 0–4 and 7 are merged. Next: Increment 8
-(routing alignment), on the critical path to 9–11, then Increment 6
-(declarative request planning and change conformance), which can run in
-parallel. Run the full local wheel-smoke mirror before every PR. Qodo is
+**Current handoff:** Increments 0–4 and 7 are merged and Increment 8 is in
+review. Next: Increment 9 (SOAA 0.2.0) after 8, and Increment 6 (declarative
+request planning and change conformance), which can run in parallel. Run the full local wheel-smoke mirror before every PR. Qodo is
 retired; CodeRabbit reviews each PR.
 
 ## Decision log
@@ -1586,4 +1585,6 @@ retired; CodeRabbit reviews each PR.
 | 2026-10-20 | Starters ship `preflight_outcome: blocked` ("Preflight not yet completed.") rather than an invalid placeholder | A valid, non-approving default keeps non-strict CI green for in-progress features while `--strict` still blocks completion |
 | 2026-10-20 | No separate `experiments.yaml` template; the shared preflight skill carries the record skeleton | Data installs do not get backend templates; avoids another install-list and frozen-baseline change |
 | 2026-10-20 | Mismatch findings report current digests | Agents can record and reassess results; deliberate copying without rerun stays the documented, undetectable limitation (ADR 0020) |
+| 2026-10-30 | Increment 8 sweeps every agent skill, rule and entry doc that names an `extensions/` contract path, not only the files listed | The plan's own test forbids hard-coded paths without the declarative root anywhere in skills and rules; LLM rules, eval-suite planning and L5 UI entry docs would otherwise fail it |
+| 2026-10-30 | L5 backend entry docs load `llm-application` only for model use | §5 table: the LLM layer applies when the feature calls language models; an L5 feature with `mode: deterministic` no longer stops on a missing extension |
 | 2026-10-19 | `multi_agent_evaluation` scores in eval_criteria may be null (placeholders), unlike the plan's `evaluation_prediction` | The starter documents `score: null` / `evidence: ""` until evaluation runs |

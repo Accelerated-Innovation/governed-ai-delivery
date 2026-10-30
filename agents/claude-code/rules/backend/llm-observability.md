@@ -10,6 +10,8 @@ These rules apply when editing model telemetry and observability adapters.
 
 Contract: `extensions/llm-application/docs/backend/architecture/LLM_OBSERVABILITY_CONTRACT.md`
 
+Read extension paths under the installed `llm-application` root: `extensions/llm-application/` (legacy) or `.govkit/packs/llm-application/<digest>/` (declarative), as printed by `govkit extension list --installed --target .`.
+
 ---
 
 ## Rules
