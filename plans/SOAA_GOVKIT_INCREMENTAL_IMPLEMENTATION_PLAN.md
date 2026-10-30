@@ -22,8 +22,8 @@ Each increment is a reviewable change with its own tests, verification commands
 and completion evidence. Execute increments in dependency order (§7). Use test
 first for every behavior change and defect: write the failing test, record the
 red run, then implement. Record each increment in the ledger (§14) with the
-commit, test counts and remaining limits. Run the Qodo local review before
-each PR (CLAUDE.md, *Delivery review*). Follow the user's standing
+commit, test counts and remaining limits. Address the CodeRabbit PR review
+(CLAUDE.md, *Delivery review*). Follow the user's standing
 commit/push/PR instruction. Merging and releasing need separate authorization.
 
 Claim boundary for all increments:
@@ -1412,7 +1412,7 @@ records KD-1 to KD-8; KD-9 to KD-13 are recorded in their increments.
    1. Write the smoke script against the built wheel.
    2. Run the full local verification (§10).
    3. Update the docs and CHANGELOG.
-   4. Run the Qodo review.
+   4. Address the CodeRabbit PR review.
    5. Hand off with the evidence.
 5. **Tests.** The smoke covers the six scenarios:
    - For each of the three agents: legacy `apply --level 5 --type api`, then
@@ -1430,7 +1430,7 @@ records KD-1 to KD-8; KD-9 to KD-13 are recorded in their increments.
    - Smoke output for every scenario, agent and route.
    - `./full_test` counts and skips (expected: Codex nested-AGENTS skip only).
    - The existing wheel smokes are green.
-   - The Qodo result.
+   - The CodeRabbit review outcome.
    - The ledger is updated.
 8. **Dependencies / decisions.** Depends on all prior increments (Increment 5
    per U2). **U3**: release number, publication, and the CI pin.
@@ -1451,7 +1451,8 @@ records KD-1 to KD-8; KD-9 to KD-13 are recorded in their increments.
 - **Per increment:** focused tests, `pytest -k parity -q` for any payload change,
   and scoped Ruff on the changed Python files only. `fix = true` rewrites files,
   so never run Ruff over a whole directory.
-- **Before each PR:** `./run_tests -q` (fast tier) and the Qodo local review.
+- **Before each PR:** `./run_tests -q` (fast tier). Address the CodeRabbit PR
+  review before merging.
 - **Packaging, resources or agent payload:** also the wheel procedure:
   ```bash
   rm -rf dist && python -m build --wheel
@@ -1556,20 +1557,20 @@ Every other design question is resolved in §6.
 | 1 Routing/context defects | complete | R1/R2 merged as #227 (`37a311b`); R3/R4 merged as #229 (`f32ecdc`) | — |
 | 2 Experiment contract | complete | Merged as #230 (`d3585a7`): schemas, pure assessor, bounded store, six scenarios, ADR 0020; 106 tests; ad hoc clean-wheel check of all scenarios. Deviations: bare-hex digests; `adopt-without-pass` | — |
 | 3 Validator/schemas/CI | complete | Merged as #231 (`b0166fa`). Its duplicate frozen-baseline check in `tests/wheel_gate_catalog_smoke.py` was missed; `wheel-smoke` failed on main until #233 (`78f2dec`). CI pins `govkit~=0.22.0` until the 0.23.0 release PR bumps every pin | — |
-| 4 Backend/data payload | in review | Skills (preflight §6.5, GenAI output, spec-planning outcome, implementation-plan reassessment), spec-compliance rule and 15 entry docs for all three agents; preflight/plan templates; five starters (`blocked` placeholder); assessor messages name current digests. No separate `experiments.yaml` template: the shared preflight skill carries the skeleton, so data installs need no install-list change. Qodo local review blocked (CLI not installed) | Merge by the user |
+| 4 Backend/data payload | complete | Skills (preflight §6.5, GenAI output, spec-planning outcome, implementation-plan reassessment), spec-compliance rule and 15 entry docs for all three agents; preflight/plan templates; five starters (`blocked` placeholder); assessor messages name current digests. No separate `experiments.yaml` template: the shared preflight skill carries the skeleton, so data installs need no install-list change. Merged as #234 (`0773c18`); CodeRabbit's three findings fixed, the last by requiring the outcome block whenever `experiments.yaml` exists. Qodo review not run (Qodo since retired) | — |
 | 5 UI alignment | deferred | U2: Value Builder is an API project; its UI is a client | Not required for handoff |
 | 6 Declarative integration | not started | — | After 2 |
 | 7 Extension inventory | complete | Merged as #232 (`3d2a36a`): `extension list --installed`, inventory schema, skill-context roots/conflicts, conflict warning in `legacy:extensions`. Declarative SOAA README awaits Increment 9 | — |
-| 8 Routing alignment | not started | — | After 4 and 7 |
+| 8 Routing alignment | in progress | Branch `feat/routing-alignment` | — |
 | 9 SOAA 0.2.0 | not started | — | After 4, 7, 8; U1 affects wording only |
 | 10 Applicability check | not started | — | After 9 |
 | 11 Wheel acceptance/handoff | not started | — | After all; U3 |
 
-**Current handoff:** Increments 0–3 and 7 are merged and Increment 4 is in
-review. Next: Increment 8 (routing alignment) after 4, and Increment 6
-(declarative request planning and change conformance), which does not depend
-on 4. Run the full local wheel-smoke mirror before every PR. Install or
-connect the Qodo CLI so later PRs can run the required local review.
+**Current handoff:** Increments 0–4 and 7 are merged. Next: Increment 8
+(routing alignment), on the critical path to 9–11, then Increment 6
+(declarative request planning and change conformance), which can run in
+parallel. Run the full local wheel-smoke mirror before every PR. Qodo is
+retired; CodeRabbit reviews each PR.
 
 ## Decision log
 
