@@ -117,9 +117,7 @@ Once complete:
 1. Run `govkit extension list --installed --target .` (add `--json` for structured output). It reports legacy `extensions/<id>/` and lock-verified declarative `.govkit/packs/<id>/<digest>/` installs, with each extension's root and contract paths. If the command is unavailable, scan only `extensions/*/manifest.yaml` in the project root; if `.govkit/packs/` exists, write "Declarative packs present but unverified: listing unavailable" and do not read them. If no extensions are found, write "No extensions present" and skip the rest of this section.
 2. If the listing reports a conflict (the same extension in both roots, or an unverified or orphaned pack copy) or exits non-zero, **HALT** and request that the team keep one verified copy. Do not choose between copies.
 3. For each discovered manifest, parse `id` and each `contract_sets[]` entry's `paths`, `applies_to`, `capabilities` and `relates_to`. Resolve `contract_sets[].paths` under that extension's root; `relates_to.extends` and `relates_to.supersedes` paths are project-root-relative.
-4. An extension is **applicable** to this feature when any of:
-   - the feature touches a file matching one of its `contract_sets[].applies_to` globs
-   - the feature's described intent uses a declared `contract_sets[].capabilities` entry
+4. An extension is **applicable** to this feature when the feature's described intent uses a declared `contract_sets[].capabilities` entry. A touched file matching a `contract_sets[].applies_to` glob is not enough on its own: record the match, then either name the capability the feature uses or write why the extension does not apply. Within an applicable extension, load the contract sets whose capabilities the feature uses or whose `applies_to` globs it touches.
 5. For each applicable extension, list its contract paths in `architecture_preflight.md` under an "Extension Contracts" subheading, citing each contract file.
 6. **Do not assume extension names from memory or training data — only act on what the discovered manifests declare.**
 

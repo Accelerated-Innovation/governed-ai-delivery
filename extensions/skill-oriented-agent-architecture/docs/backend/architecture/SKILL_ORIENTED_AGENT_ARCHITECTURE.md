@@ -10,6 +10,7 @@
 | Decision scope | SOAA-001 through SOAA-020 |
 | Invariant scope | SOAA-INV-001 through SOAA-INV-206 |
 | Conformance claim | None |
+| Open discrepancies | Recorded in the *Source alignment* table of each topic contract |
 
 ## Purpose
 
@@ -92,7 +93,7 @@ The implementation must assign all eighteen SOAA logical roles. Several roles ma
 | Control and action | Policy and Authority Controller, Workflow and Composition Controller, Tool Gateway, Skill Asset Runner, Delegation and Handoff Controller, Evaluation Controller |
 | Records and discovery | State Repository, Evidence Recorder, Agent Directory |
 
-Architecture preflight must map each role to:
+Map the roles once at system level. Each feature preflight reviews only the changed rows and states that the rest are unchanged. The system-level map assigns each role to:
 
 - Implementation owner
 - Inbound and outbound ports
@@ -138,6 +139,7 @@ Provider SDKs, model APIs, MCP clients, A2A clients, databases, message brokers,
 
 For every feature in scope, `architecture_preflight.md` must identify:
 
+- SOAA applicability decision for each condition in `SOAA_APPLICABILITY.md`
 - Accountable principal
 - Task offer and acceptance boundary
 - Task owner type and owner-epoch handling
@@ -166,7 +168,7 @@ For every feature in scope, `architecture_preflight.md` must identify:
 
 ## Minimum verification
 
-Verification must include:
+Select verification by applicability. An omission needs evidence: a condition recorded as not applicable carries a verified absent or disabled interface, and an unknown condition leaves its verification required. For the conditions that apply, verification must include:
 
 - Schema and port contract tests
 - State-transition and concurrency property tests

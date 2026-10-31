@@ -236,3 +236,26 @@ def test_extension_discovery_resolves_relationships_from_project_root(agent):
     assert "Resolve every path under that extension's root" not in body
     assert "project-root-relative" in body
     assert "unverified" in body
+
+
+# --- Increment 9: glob matches prompt a domain check; §15a records applicability
+
+
+@pytest.mark.parametrize("agent", AGENTS)
+@pytest.mark.parametrize(
+    "skill", ("backend/govkit-architecture-preflight", "ui/govkit-ui-architecture-preflight")
+)
+def test_applies_to_glob_alone_never_makes_an_extension_applicable(agent, skill):
+    text = (REPO / "agents" / agent / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
+    body = section(text, "## 2.6 Extension Discovery")
+    assert "A touched file matching a `contract_sets[].applies_to` glob is not enough" in body
+
+
+@pytest.mark.parametrize("agent", AGENTS)
+def test_section_15a_records_applicability_with_the_soaa_template(agent):
+    text = (
+        REPO / "agents" / agent / "skills/backend/govkit-architecture-preflight/SKILL.md"
+    ).read_text(encoding="utf-8")
+    soaa = section(section(text, "## 15. Agent Architecture"), "### 15a. SOAA applicability")
+    assert "templates/preflight-soaa.md" in soaa
+    assert "unknown" in soaa and "change trigger" in soaa

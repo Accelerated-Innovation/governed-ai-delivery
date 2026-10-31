@@ -7,6 +7,7 @@
 | Primary decisions | SOAA-006, SOAA-008, SOAA-009 |
 | Primary invariants | SOAA-INV-021 through SOAA-INV-024 and SOAA-INV-030 through SOAA-INV-037 |
 | Source module | SOAA Packet 2 |
+| Open discrepancies | None recorded |
 
 ## Purpose
 
@@ -87,9 +88,12 @@ The runtime must not silently substitute a different skill after ranking.
 | Mode | Selection source | Required controls |
 |---|---|---|
 | Dynamic | Agent ranks an admitted set | Retrieval, admission, ranking, authority, activation, lifecycle, context, evidence |
-| Fixed workflow | An approved workflow names an exact release or compatible range | Resolution, admission, authority, activation, lifecycle, context, evidence |
+| Fixed menu | The model chooses from a fixed, trusted-code-defined set of skills | Admission of every menu entry, ranking within the menu, null selection, authority, activation, lifecycle, context, evidence |
+| Fixed binding | Trusted code or an approved workflow names an exact release or compatible range | Resolution, admission, compatibility, authority, activation, lifecycle, revocation, context, evidence |
 
-Fixed workflow binding removes ranking for one node. It never bypasses admission or activation.
+Fixed binding removes ranking for one node. It never bypasses admission, compatibility checks, activation or revocation.
+
+A model choosing from a fixed menu is still selection: admission precedes the choice, and null selection remains available. A small menu removes candidate retrieval, not ranking controls.
 
 ## Conflict and composition
 
