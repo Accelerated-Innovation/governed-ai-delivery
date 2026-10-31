@@ -9,7 +9,7 @@ Determine the feature name from the user's request; if it is not provided, ask b
 
 ## Required extension
 
-Confirm `skill-oriented-agent-architecture` is installed. Prefer `govkit extension list --installed --target .`, which prints its root; otherwise look for `extensions/skill-oriented-agent-architecture/manifest.yaml` (legacy) or `.govkit/packs/skill-oriented-agent-architecture/<digest>/manifest.yaml` (declarative). Read each `extensions/skill-oriented-agent-architecture/<path>` below under that root. Stop if the listing reports a conflict. If the extension is missing, stop and report:
+Confirm `skill-oriented-agent-architecture` is installed. Run `govkit extension list --installed --target .`, which prints its root: `extensions/skill-oriented-agent-architecture/` (legacy) or `.govkit/packs/skill-oriented-agent-architecture/<digest>/` (declarative, lock-verified). Read each `extensions/skill-oriented-agent-architecture/<path>` below under that root. Stop if the listing reports a conflict or exits non-zero. If the command is unavailable, use only a legacy `extensions/skill-oriented-agent-architecture/manifest.yaml`; pack copies cannot be verified without it. If the extension is missing, stop and report:
 
 ```bash
 govkit extension add skill-oriented-agent-architecture --target .

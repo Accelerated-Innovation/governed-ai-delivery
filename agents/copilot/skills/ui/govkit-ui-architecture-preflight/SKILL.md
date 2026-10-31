@@ -114,9 +114,9 @@ Once complete:
 
 ## 2.6 Extension Discovery
 
-1. Prefer the verified listing: run `govkit extension list --installed --target .` (add `--json` for structured output). It reports legacy `extensions/<id>/` and lock-verified declarative `.govkit/packs/<id>/<digest>/` installs, with each extension's root and contract paths. If the command is unavailable, scan `extensions/*/manifest.yaml` and `.govkit/packs/*/*/manifest.yaml` in the project root. If none exist, write "No extensions present" and skip the rest of this section.
+1. Run `govkit extension list --installed --target .` (add `--json` for structured output). It reports legacy `extensions/<id>/` and lock-verified declarative `.govkit/packs/<id>/<digest>/` installs, with each extension's root and contract paths. If the command is unavailable, scan only `extensions/*/manifest.yaml` in the project root; if `.govkit/packs/` exists, write "Declarative packs present but unverified: listing unavailable" and do not read them. If no extensions are found, write "No extensions present" and skip the rest of this section.
 2. If the listing reports a conflict (the same extension in both roots, or an unverified or orphaned pack copy) or exits non-zero, **HALT** and request that the team keep one verified copy. Do not choose between copies.
-3. For each discovered manifest, parse `id` and each `contract_sets[]` entry's `paths`, `applies_to`, `capabilities` and `relates_to`. Resolve every path under that extension's root.
+3. For each discovered manifest, parse `id` and each `contract_sets[]` entry's `paths`, `applies_to`, `capabilities` and `relates_to`. Resolve `contract_sets[].paths` under that extension's root; `relates_to.extends` and `relates_to.supersedes` paths are project-root-relative.
 4. An extension is **applicable** to this feature when any of:
    - the feature touches a file matching one of its `contract_sets[].applies_to` globs
    - the feature's described intent uses a declared `contract_sets[].capabilities` entry

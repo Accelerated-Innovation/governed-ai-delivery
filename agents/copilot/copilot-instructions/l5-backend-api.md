@@ -28,7 +28,7 @@ Before planning or generating code:
 * If the feature calls language models (`mode: llm`), confirm `llm-application` is installed. If it is missing, stop and request `govkit extension add llm-application --target .`
 * Read all files under `docs/backend/architecture/`
 * Read `docs/backend/evaluation/eval_criteria.md`
-* For a feature that calls language models, read the contract sets declared by `extensions/llm-application/manifest.yaml`
+* For a feature that calls language models, read the contract sets declared by the `llm-application` manifest under its installed root
 * If the feature uses governed runtime skills, an adaptive agent loop, or their control boundaries, including a single agent with fixed skills, read `extensions/skill-oriented-agent-architecture/docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md` and the applicable runtime, authority, resilience, and completion contracts. Agent count does not decide this. If the extension is missing, stop and request `govkit extension add skill-oriented-agent-architecture --target .`
 * Multi-agent topology (`agent_topology.md`) applies only when `eval_criteria.yaml` declares `multi_agent: true`; such a feature also needs the SOAA contracts above
 * Confirm required feature artifacts exist
@@ -56,10 +56,10 @@ Implementation must not begin unless all artifacts exist and are complete.
 0. **Multi-agent features only (`multi_agent: true`):** run `/govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
 1. Architecture Preflight
    - If the preflight records `experiment-required`, run only the recorded experiments first, then reassess the preflight before planning further. Established boundaries need no experiment.
-2. GenAI Preflight (L5-specific validation)
+2. GenAI Preflight (if mode: llm; L5 model validation)
 3. ADR creation (if required)
 4. Plan finalization
-5. Evaluation Suite Planning (configured quality/adversarial/retrieval evaluators)
+5. Evaluation Suite Planning (if mode: llm; configured quality/adversarial/retrieval evaluators)
 6. Evaluation Compliance Summary
 7. Incremental implementation
 8. Automated tests (unit + LLM evaluation)

@@ -7,6 +7,8 @@ description: Validate Level 5 provider-neutral LLM architecture decisions before
 
 Run after `/govkit-architecture-preflight` for a model-backed feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
+Run this skill only when the feature calls language models (`mode: llm`). Otherwise record Sections 10–14 as not applicable and do not require `llm-application`; architecture preflight completes Section 15.
+
 ## Applicability layers
 
 Three layers apply independently, and a feature may need any combination:
@@ -17,7 +19,7 @@ Three layers apply independently, and a feature may need any combination:
 
 ## Required extension
 
-Confirm `llm-application` is installed. Prefer `govkit extension list --installed --target .`, which prints its root; otherwise look for `extensions/llm-application/manifest.yaml` (legacy) or `.govkit/packs/llm-application/<digest>/manifest.yaml` (declarative). Read each `extensions/llm-application/<path>` below under that root. Stop if the listing reports a conflict. If the extension is missing, stop and report:
+Confirm `llm-application` is installed. Run `govkit extension list --installed --target .`, which prints its root: `extensions/llm-application/` (legacy) or `.govkit/packs/llm-application/<digest>/` (declarative, lock-verified). Read each `extensions/llm-application/<path>` below under that root. Stop if the listing reports a conflict or exits non-zero. If the command is unavailable, use only a legacy `extensions/llm-application/manifest.yaml`; pack copies cannot be verified without it. If the extension is missing, stop and report:
 
 ```bash
 govkit extension add llm-application --target .
@@ -85,7 +87,7 @@ Also read `docs/backend/architecture/TECH_STACK.md` and applicable ADRs for sele
 
 ### 6. Agent architecture (Section 15, when applicable)
 
-When the SOAA layer applies, confirm `skill-oriented-agent-architecture` is installed (in either root, as above) and record its applicable contract sets in Section 15a. Section 15b (topology) applies only when `multi_agent: true`. Do not infer agent controls from the LLM contracts.
+When the SOAA layer also applies, confirm architecture preflight completed Section 15a and add any model-specific agent controls there. Section 15b (topology) applies only when `multi_agent: true`. Do not infer agent controls from the LLM contracts.
 
 Block if a required extension, contract, decision, or control is missing.
 

@@ -71,9 +71,9 @@ For each of the following, state which architectural rules apply (cite file and 
 
 ## 2.6 Extension Discovery
 
-1. Prefer the verified listing: run `govkit extension list --installed --target .` (add `--json` for structured output). It reports legacy `extensions/<id>/` and lock-verified declarative `.govkit/packs/<id>/<digest>/` installs, with each extension's root and contract paths. If the command is unavailable, scan `extensions/*/manifest.yaml` and `.govkit/packs/*/*/manifest.yaml` in the project root. If none exist, write "No extensions present" and skip the rest of this section.
+1. Run `govkit extension list --installed --target .` (add `--json` for structured output). It reports legacy `extensions/<id>/` and lock-verified declarative `.govkit/packs/<id>/<digest>/` installs, with each extension's root and contract paths. If the command is unavailable, scan only `extensions/*/manifest.yaml` in the project root; if `.govkit/packs/` exists, write "Declarative packs present but unverified: listing unavailable" and do not read them. If no extensions are found, write "No extensions present" and skip the rest of this section.
 2. If the listing reports a conflict (the same extension in both roots, or an unverified or orphaned pack copy) or exits non-zero, **HALT** and request that the team keep one verified copy. Do not choose between copies.
-3. For each discovered manifest, parse `id` and each `contract_sets[]` entry's `paths`, `applies_to`, `capabilities` and `relates_to`. Resolve every path under that extension's root.
+3. For each discovered manifest, parse `id` and each `contract_sets[]` entry's `paths`, `applies_to`, `capabilities` and `relates_to`. Resolve `contract_sets[].paths` under that extension's root; `relates_to.extends` and `relates_to.supersedes` paths are project-root-relative.
 4. An extension is **applicable** to this feature when any of:
    - the feature touches a file matching one of its `contract_sets[].applies_to` globs
    - the feature's described intent uses a declared `contract_sets[].capabilities` entry
@@ -249,13 +249,31 @@ If any spec inputs are missing, ask before proceeding.
 
 ---
 
-## 15. Agent Topology (multi-agent features only)
+## 15. Agent Architecture
+
+### 15a. SOAA applicability (one or more agents)
+
+Applies when the feature uses governed runtime skills, an adaptive agent loop, or their control boundaries, including a single agent with fixed skills. Agent count does not decide this. Complete this subsection whether or not GenAI preflight runs.
+
+If **not applicable**, write: "Section 15a: Not applicable — no governed runtime skills or adaptive agent loop."
+
+If **applicable**:
+
+- [ ] `skill-oriented-agent-architecture` is installed, confirmed with `govkit extension list --installed --target .` (stop on a conflict or a non-zero exit); if missing, **HALT** and request `govkit extension add skill-oriented-agent-architecture --target .`
+- [ ] Accountable principal, accepted task boundary, one runtime owner, and completion authority declared
+- [ ] Components classified; each agent run has a bounded responsibility and authority ceiling
+- [ ] Typed runtime state, authoritative writers, legal transitions, ports, and handoffs declared
+- [ ] Time, token, cost, tool, retry, loop, and delegation budgets declared
+- [ ] External operations have fresh authorization, idempotency, recovery, and evidence
+- [ ] Completion requires independent evidence and a trusted controller transition
+
+### 15b. Agent topology (multi-agent features only)
 
 Check if `features/<feature_name>/eval_criteria.yaml` declares `multi_agent: true`.
 
-If **not declared**, write: "Section 15: Not applicable — multi_agent not declared." and skip the rest of this section.
+If **not declared**, write: "Section 15b: Not applicable — multi_agent not declared." and skip the rest of this subsection.
 
-If **declared**:
+If **declared**, complete Section 15a and:
 
 - [ ] `features/<feature_name>/agent_topology.md` exists — if missing, **HALT**: request `/govkit-multi-agent-design <feature_name>` first
 - [ ] Orchestrator section is complete: role, system prompt path, model alias, routing strategy
@@ -266,4 +284,4 @@ If **declared**:
 - [ ] State schema reference is present (TypedDict path declared)
 - [ ] ADR required? (Yes if this is a new multi-agent feature or any topology change from prior preflight)
 
-**Section 15 Status:** Approved / Blocked (strike one — Blocked if any item above is unchecked)
+**Section 15 Status:** Approved / Blocked / Not applicable (Blocked if any applicable item above is unchecked)

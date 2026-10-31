@@ -174,3 +174,65 @@ def test_soaa_only_feature_never_requires_or_passes_topology(tmp_path, topology_
     for check in (check_agent_topology_exists, check_agent_topology_sections):
         status, message = check(tmp_path)
         assert status.name == "PASS" and "not applicable" in message, message
+
+
+# --- PR #237 review findings -------------------------------------------------
+
+
+@pytest.mark.parametrize("agent", AGENTS)
+@pytest.mark.parametrize("doc", L5_BACKEND)
+def test_l5_lifecycle_runs_llm_only_skills_for_model_use(agent, doc):
+    """A deterministic L5 feature must not be sent to skills that require llm-application."""
+    for line in entry(agent, doc).splitlines():
+        if re.match(r"\d+\. (GenAI Preflight|Evaluation Suite Planning)", line):
+            assert "mode: llm" in line or "uses LLM" in line, line
+
+
+@pytest.mark.parametrize("agent", AGENTS)
+def test_architecture_preflight_skill_splits_section_15(agent):
+    text = (
+        REPO / "agents" / agent / "skills/backend/govkit-architecture-preflight/SKILL.md"
+    ).read_text(encoding="utf-8")
+    assert "Section 15: Not applicable" not in text
+    body = section(text, "## 15. Agent Architecture")
+    soaa = section(body, "### 15a. SOAA applicability")
+    topology = section(body, "### 15b. Agent topology")
+    assert "single agent with fixed skills" in soaa and "multi_agent" not in soaa
+    assert "multi_agent: true" in topology and "agent_topology.md" in topology
+
+
+def test_genai_preflight_applies_only_to_model_use():
+    for agent in AGENTS:
+        text = (
+            REPO / "agents" / agent / "skills/backend/govkit-genai-preflight/SKILL.md"
+        ).read_text(encoding="utf-8")
+        assert "Run this skill only when the feature calls language models" in text, agent
+
+
+@pytest.mark.parametrize(
+    "path", list(_payload_files()), ids=lambda p: p.relative_to(REPO).as_posix()
+)
+def test_extension_listing_stops_on_nonzero_and_never_reads_unverified_packs(path):
+    text = path.read_text(encoding="utf-8")
+    if "govkit extension list --installed" in text:
+        assert "non-zero" in text, path.relative_to(REPO)
+    # Without the lock-verifying listing, pack manifests are unverified.
+    assert not re.search(r"look for [^.]*`\.govkit/packs/", text), path.relative_to(REPO)
+    assert ".govkit/packs/*/*/manifest.yaml" not in text, path.relative_to(REPO)
+
+
+@pytest.mark.parametrize("doc", L5_BACKEND)
+def test_copilot_reads_llm_contract_sets_under_the_installed_root(doc):
+    text = entry("copilot", doc)
+    assert "declared by `extensions/llm-application/manifest.yaml`" not in text
+
+
+@pytest.mark.parametrize("agent", AGENTS)
+def test_extension_discovery_resolves_relationships_from_project_root(agent):
+    text = (
+        REPO / "agents" / agent / "skills/backend/govkit-architecture-preflight/SKILL.md"
+    ).read_text(encoding="utf-8")
+    body = section(text, "## 2.6 Extension Discovery")
+    assert "Resolve every path under that extension's root" not in body
+    assert "project-root-relative" in body
+    assert "unverified" in body

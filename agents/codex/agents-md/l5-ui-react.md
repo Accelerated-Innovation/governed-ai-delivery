@@ -20,7 +20,7 @@ Before planning or generating code:
 
 - Read all files under `docs/ui/architecture/`
 - Read `docs/ui/evaluation/eval_criteria.md`
-- If this repository owns model execution, confirm `llm-application` is installed (`extensions/llm-application/` or `.govkit/packs/llm-application/<digest>/`; `govkit extension list --installed --target .` prints the root) and read its applicable contract sets
+- If this repository owns model execution, confirm `llm-application` is installed (`extensions/llm-application/` or `.govkit/packs/llm-application/<digest>/`; `govkit extension list --installed --target .` prints the root; stop if it reports a conflict or exits non-zero) and read its applicable contract sets
 - If model execution belongs to another service, read its versioned API contract and keep all provider access and model controls behind that backend boundary
 - Apply MVVM contract, component conventions, state management rules, evaluation standards, and the backend LLM contracts as binding constraints
 - Confirm required feature artifacts exist

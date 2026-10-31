@@ -23,7 +23,7 @@ Copilot operates aligned to:
 * Governance rules under `governance/`
 * Find installed extensions with `govkit extension list --installed --target .`, which prints each extension root: `extensions/<id>/` (legacy) or `.govkit/packs/<id>/<digest>/` (declarative). Read a path written as `extensions/<id>/<path>` under that root. Stop if the listing reports a conflict or exits non-zero
 * If the feature calls language models (`mode: llm`), confirm `llm-application` is installed. If it is missing, stop and request `govkit extension add llm-application --target .`
-* For a feature that calls language models, the contract sets declared by `extensions/llm-application/manifest.yaml`
+* For a feature that calls language models, the contract sets declared by the `llm-application` manifest under its installed root
 * If the feature uses governed runtime skills, an adaptive agent loop, or their control boundaries, including a single agent with fixed skills, read `extensions/skill-oriented-agent-architecture/docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md` and the applicable runtime, authority, resilience, and completion contracts. Agent count does not decide this. If the extension is missing, stop and request `govkit extension add skill-oriented-agent-architecture --target .`
 * Multi-agent topology (`agent_topology.md`) applies only when `eval_criteria.yaml` declares `multi_agent: true`; such a feature also needs the SOAA contracts above
 

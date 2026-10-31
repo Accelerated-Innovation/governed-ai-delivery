@@ -4,7 +4,7 @@ These rules apply when editing model evaluation definitions, tests, datasets, an
 
 Contract: `extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md`
 
-Read extension paths under the installed `llm-application` root: `extensions/llm-application/` (legacy) or `.govkit/packs/llm-application/<digest>/` (declarative), as printed by `govkit extension list --installed --target .`.
+Read extension paths under the installed `llm-application` root: `extensions/llm-application/` (legacy) or `.govkit/packs/llm-application/<digest>/` (declarative), as printed by `govkit extension list --installed --target .`. Stop if it reports a conflict or exits non-zero.
 
 ---
 
