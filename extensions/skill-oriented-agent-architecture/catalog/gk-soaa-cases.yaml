@@ -1,0 +1,142 @@
+# GovKit local SOAA behavioral cases (GK-SOAA-*).
+#
+# These are proposed consuming-project cases for experiments and feature
+# verification. They are not the SOAA assertion catalog and do not map to the
+# 206 SOAA invariants. Running a case against an application is project work;
+# installing this file demonstrates nothing about any runtime.
+#
+# A case applies when any condition in its applies_when list applies to the
+# feature (see docs/backend/architecture/SOAA_APPLICABILITY.md). A condition
+# recorded as unknown leaves its cases unresolved, never not applicable.
+version: 1
+status: Advisory GovKit local catalog; not normative SOAA and not a conformance suite.
+
+conditions:
+  - id: adaptive-run
+    behavior: Every adaptive agent run
+  - id: skill-activation
+    behavior: Every skill activation, including fixed binding
+  - id: untrusted-input
+    behavior: Any untrusted input or model context
+  - id: external-read
+    behavior: External reads
+  - id: external-mutation
+    behavior: External mutation
+  - id: multi-tenant-data
+    behavior: Multiple tenants or classified data
+  - id: model-selection
+    behavior: Model choice among skills
+  - id: workflow-switching
+    behavior: Workflow or sequential skill switching
+  - id: persistent-memory
+    behavior: Persistent memory or retrieval
+  - id: human-takeover
+    behavior: Human takeover and handback
+  - id: delegation
+    behavior: Delegation, adaptive parallelism or remote agents
+  - id: executable-assets
+    behavior: Executable package assets
+
+cases:
+  - id: GK-SOAA-01
+    trigger: Rejected or replayed task offer
+    observation: Rejection has no owner; replay creates no duplicate work
+    applies_when: [adaptive-run]
+  - id: GK-SOAA-02
+    trigger: Concurrent task claim or advance
+    observation: One writer succeeds; the stale writer is fenced
+    applies_when: [adaptive-run]
+  - id: GK-SOAA-03
+    trigger: Model or skill requests a state, policy or credential write
+    observation: The trusted boundary refuses and records the reason
+    applies_when: [adaptive-run, skill-activation]
+  - id: GK-SOAA-04
+    trigger: Pinned release is incompatible, tampered or revoked
+    observation: Admission or activation fails despite the known name
+    applies_when: [skill-activation]
+  - id: GK-SOAA-05
+    trigger: Activation crash or authority change before commit
+    observation: No partial activation and no early instruction exposure
+    applies_when: [skill-activation]
+  - id: GK-SOAA-06
+    trigger: Grant expires or is revoked after activation
+    observation: The next operation is denied; a cached activation cannot restore access
+    applies_when: [skill-activation]
+  - id: GK-SOAA-07
+    trigger: Input or tool output contains instructions
+    observation: It remains data and cannot expand permissions or change policy
+    applies_when: [untrusted-input]
+  - id: GK-SOAA-08
+    trigger: Skill or evaluator claims success without evidence
+    observation: The gate refuses; the controller cannot commit success
+    applies_when: [adaptive-run]
+  - id: GK-SOAA-09
+    trigger: Evidence failure at state commit
+    observation: The transaction or envelope preserves reconstruction; no evidence-free success
+    applies_when: [adaptive-run]
+  - id: GK-SOAA-10
+    trigger: Effect succeeds; response is lost
+    observation: Operation identity and reconciliation prevent a blind duplicate mutation
+    applies_when: [external-mutation]
+  - id: GK-SOAA-11
+    trigger: Cancel before dispatch, in flight or after the effect
+    observation: Unsafe dispatch stops, late results are recorded and uncertainty is preserved
+    applies_when: [external-mutation]
+  - id: GK-SOAA-12
+    trigger: Restart with active or uncertain work
+    observation: Work is reconstructed, reauthorized and reconciled before any retry
+    applies_when: [adaptive-run]
+  - id: GK-SOAA-13
+    trigger: Retry, time, cost or output budget exhausted
+    observation: Safe stop with bounded recovery capacity
+    applies_when: [adaptive-run]
+  - id: GK-SOAA-14
+    trigger: Workflow advances while an old call is delayed
+    observation: The old binding, context or owner version cannot mutate the new step
+    applies_when: [workflow-switching]
+  - id: GK-SOAA-15
+    trigger: Stale, forged, duplicate or incomplete results
+    observation: No authenticated execution claim and no broader pass
+    applies_when: [adaptive-run]
+  - id: GK-SOAA-16
+    trigger: An omitted condition's interface is reachable
+    observation: Applicability fails or the unsupported operation is denied; run once per condition recorded as not applicable
+    applies_when: [adaptive-run]
+
+conditional_cases:
+  - id: GK-SOAA-C01
+    trigger: Cross-tenant or cross-classification access attempt
+    observation: Access is denied and credentials and evidence stay separated
+    applies_when: [multi-tenant-data]
+  - id: GK-SOAA-C02
+    trigger: Poisoned memory or retrieved content
+    observation: Provenance and freshness checks exclude it; it cannot become instruction
+    applies_when: [persistent-memory]
+  - id: GK-SOAA-C03
+    trigger: No admitted skill fits the request
+    observation: The model chooses null selection; no skill is activated
+    applies_when: [model-selection]
+  - id: GK-SOAA-C04
+    trigger: Approval is revoked before the approved operation runs
+    observation: The operation is denied and requires fresh approval
+    applies_when: [external-mutation]
+  - id: GK-SOAA-C05
+    trigger: Human takeover while work is in flight
+    observation: Quiescence precedes an atomic transfer; the stale owner is rejected
+    applies_when: [human-takeover]
+  - id: GK-SOAA-C06
+    trigger: Delegated child requests wider authority than its parent
+    observation: Authority is attenuated; the widening is refused
+    applies_when: [delegation]
+  - id: GK-SOAA-C07
+    trigger: Remote agent reports completion without local evidence
+    observation: Local verification blocks completion
+    applies_when: [delegation]
+  - id: GK-SOAA-C08
+    trigger: Executable asset runs without explicit invocation or outside its runner
+    observation: Execution is refused; outputs from the runner stay untrusted data
+    applies_when: [executable-assets]
+  - id: GK-SOAA-C09
+    trigger: External read outside the declared scope or after authorization lapses
+    observation: The read is denied and the denial is recorded
+    applies_when: [external-read]

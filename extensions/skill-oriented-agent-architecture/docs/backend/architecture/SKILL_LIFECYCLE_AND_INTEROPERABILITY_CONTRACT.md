@@ -8,6 +8,7 @@
 | Primary invariants | SOAA-INV-147 through SOAA-INV-206 |
 | Source module | SOAA Packet 6 |
 | External format | [Agent Skills specification](https://agentskills.io/specification), accessed 2026-07-20 |
+| Open discrepancies | None recorded |
 
 ## Purpose
 
