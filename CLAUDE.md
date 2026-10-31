@@ -41,7 +41,7 @@ Bootstraps its own `scripts/.venv/` (gitignored) and writes sandboxes under `scr
 
 ## Delivery review
 
-Before creating a PR, run Qodo local review using `qodo-review` with self-contained session context and issue/spec references. Evaluate findings and fix verified bugs test first; record the actual result. Do not silently skip a blocked review or claim it completed. For an existing PR, use `qodo-review-resolver` to inspect and remediate its structured findings. Keep the implementation plan and issue status current, then follow the user's standing commit/push/PR instruction. Merging requires separate authorization.
+CodeRabbit reviews each PR. Evaluate its findings, including outside-diff findings in review bodies, and fix verified bugs test first; reply on the PR with the actual result or the reason for declining. Do not claim a review completed that did not run. Keep the implementation plan and issue status current, then follow the user's standing commit/push/PR instruction. Merging requires separate authorization.
 
 ## Installer architecture (`cli/`)
 

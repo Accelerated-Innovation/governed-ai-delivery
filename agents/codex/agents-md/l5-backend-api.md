@@ -17,15 +17,17 @@ Codex operates aligned to:
 
 Before planning or generating code:
 
-- Confirm `extensions/llm-application/manifest.yaml` exists. If missing, stop and request `govkit extension add llm-application --target .`
+- Find installed extensions with `govkit extension list --installed --target .`, which prints each extension root: `extensions/<id>/` (legacy) or `.govkit/packs/<id>/<digest>/` (declarative). Read a path written as `extensions/<id>/<path>` under that root. Stop if the listing reports a conflict or exits non-zero
+- If the feature calls language models (`mode: llm`), confirm `llm-application` is installed. If it is missing, stop and request `govkit extension add llm-application --target .`
 - Read all files under `docs/backend/architecture/`
 - Read `docs/backend/evaluation/eval_criteria.md`
-- Read L5 contracts:
+- For a feature that calls language models, read the `llm-application` contracts:
   - `extensions/llm-application/docs/backend/architecture/LLM_GATEWAY_CONTRACT.md`
   - `extensions/llm-application/docs/backend/architecture/LLM_OBSERVABILITY_CONTRACT.md`
   - `extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md`
   - `extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md`
-- If `eval_criteria.yaml` declares `multi_agent: true`, read `extensions/skill-oriented-agent-architecture/docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md` and the applicable runtime, authority, resilience, and completion contracts
+- If the feature uses governed runtime skills, an adaptive agent loop, or their control boundaries, including a single agent with fixed skills, read `extensions/skill-oriented-agent-architecture/docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md` and the applicable runtime, authority, resilience, and completion contracts. Agent count does not decide this. If the extension is missing, stop and request `govkit extension add skill-oriented-agent-architecture --target .`
+- Multi-agent topology (`agent_topology.md`) applies only when `eval_criteria.yaml` declares `multi_agent: true`; such a feature also needs the SOAA contracts above
 - Apply architecture, testing, technology, evaluation, and GenAI contracts as binding constraints
 - Confirm required feature artifacts exist
 
@@ -55,13 +57,13 @@ Before proceeding to Architecture Preflight or planning:
 
 ## Feature Lifecycle (Mandatory Order — no steps may be skipped)
 
-0. **Multi-agent features only:** invoke `$govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
+0. **Multi-agent features only (`multi_agent: true`):** invoke `$govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
 1. Architecture Preflight → invoke `$govkit-architecture-preflight`
    - If the preflight records `experiment-required`, run only the recorded experiments first, then reassess the preflight before planning further. Established boundaries need no experiment.
-2. GenAI Preflight → invoke `$govkit-genai-preflight` (validates L5-specific decisions)
+2. GenAI Preflight → invoke `$govkit-genai-preflight` (if mode: llm; validates L5 model decisions)
 3. ADR creation (if required by preflight)
 4. Plan finalization → invoke `$govkit-spec-planning`
-5. Evaluation Suite Planning → invoke `$govkit-eval-suite-planning` (plans configured quality/adversarial/retrieval evaluators suites)
+5. Evaluation Suite Planning → invoke `$govkit-eval-suite-planning` (if mode: llm; plans configured quality/adversarial/retrieval evaluators suites)
 6. Evaluation Compliance Summary (must be in `plan.md`)
 7. Incremental implementation → guided by `$govkit-implementation-plan`
 8. Automated tests (unit + LLM evaluation)
@@ -149,7 +151,7 @@ Layer-specific rules load automatically via nested `AGENTS.md` files when workin
 Before implementation:
 
 - Read `docs/backend/evaluation/eval_criteria.md`
-- Read `extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md`
+- For a feature that calls language models, read `extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md`
 - Read `features/<feature_name>/eval_criteria.yaml`
 - Confirm FIRST, 7 Virtue, and LLM evaluation thresholds
 

@@ -232,25 +232,36 @@ If any LLM NFR is TBD, stop and request completion.
 
 ---
 
-## 15. Agent Topology (multi-agent features only)
+## 15. Agent Architecture
 
-Check `eval_criteria.yaml` for `multi_agent: true`.
+### 15a. SOAA applicability (one or more agents)
 
-If **not declared**: "Section 15: Not applicable — multi_agent not declared."
+Applies when the feature uses governed runtime skills, an adaptive agent loop, or their control boundaries, including a single agent with fixed skills. Agent count does not decide this.
 
-If **declared**, complete each item:
+If **not applicable**: "Section 15a: Not applicable — no governed runtime skills or adaptive agent loop."
 
-- [ ] `skill-oriented-agent-architecture` extension installed
-- [ ] `agent_topology.md` exists — run the `govkit-multi-agent-design` skill if missing
+If **applicable**, complete each item:
+
+- [ ] `skill-oriented-agent-architecture` extension installed (`govkit extension list --installed --target .`)
 - [ ] Accountable principal, accepted task boundary, one runtime owner, and completion authority declared
 - [ ] Components classified; each agent run has a bounded responsibility and authority ceiling
 - [ ] Typed runtime state, authoritative writers, legal transitions, ports, and handoffs declared
 - [ ] Time, token, cost, tool, retry, loop, and delegation budgets declared
 - [ ] External operations have fresh authorization, idempotency, recovery, and evidence
 - [ ] Completion requires independent evidence and a trusted controller transition
+
+### 15b. Agent topology (multi-agent features only)
+
+Check `eval_criteria.yaml` for `multi_agent: true`.
+
+If **not declared**: "Section 15b: Not applicable — multi_agent not declared."
+
+If **declared**, complete Section 15a and each item:
+
+- [ ] `agent_topology.md` exists — run the `govkit-multi-agent-design` skill if missing
 - [ ] ADR required? (Yes for new multi-agent feature or topology change)
 
-**Section 15 Status:** Approved / Blocked
+**Section 15 Status:** Approved / Blocked / Not applicable
 
 ---
 
@@ -258,6 +269,7 @@ If **declared**, complete each item:
 
 - L4 preflight status: approved | blocked
 - L5 GenAI status: approved | blocked
+- SOAA status (if applicable): approved | blocked | n/a
 - Multi-agent status (if applicable): approved | blocked | n/a
 - Combined status: **Approved for planning** | **Experiment required** | **Blocked pending resolution**
 

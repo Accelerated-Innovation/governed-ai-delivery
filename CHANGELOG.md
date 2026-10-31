@@ -71,6 +71,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     `conflicts`, and now include verified declarative packs. The
     `legacy:extensions` check warns about conflicting copies.
 
+### Changed
+
+- **LLM, SOAA and multi-agent guidance route independently** in the Claude
+  Code, Codex and Copilot payloads.
+  - L5 backend instructions load SOAA contracts when a feature uses governed
+    runtime skills or an adaptive agent loop, including a single agent with
+    fixed skills. `multi_agent: true` no longer gates them; it still gates
+    multi-agent topology (`agent_topology.md`).
+  - LLM contracts load when the feature calls language models (`mode: llm`).
+  - Instructions, rules and skills find extension resources in either install
+    root, legacy `extensions/<id>/` or declarative
+    `.govkit/packs/<id>/<digest>/`, preferring
+    `govkit extension list --installed`.
+  - Preflight §2.6 scans both roots, reads `contract_sets[].capabilities` and
+    `contract_sets[].applies_to`, and halts on reported conflicts.
+  - The L5 preflight template and starters retitle §15 *Agent Architecture*:
+    15a covers SOAA applicability and 15b covers topology. Final Status gains
+    a SOAA line.
+  - Validation and both `multi-agent-gate.yml` templates are unchanged:
+    topology is still checked only with `multi_agent: true`.
+
 ### Fixed
 
 - The backend `eval_criteria.yaml` schema now accepts the documented

@@ -71,21 +71,22 @@ For each of the following, state which architectural rules apply (cite file and 
 
 ## 2.6 Extension Discovery
 
-1. Scan `extensions/*/manifest.yaml` in the project root. If none exist, write "No extensions present" and skip the rest of this section.
-2. For each discovered manifest, parse `id`, `capabilities`, `applies_to`, `contract_sets[].paths`, and `contract_sets[].relates_to`.
-3. An extension is **applicable** to this feature when any of:
-   - the feature touches a file matching one of `applies_to` globs
-   - the feature's described intent uses a declared `capability`
-4. For each applicable extension, list its contract paths in `architecture_preflight.md` under an "Extension Contracts" subheading, citing each contract file.
-5. **Do not assume extension names from memory or training data — only act on what the discovered manifests declare.**
+1. Run `govkit extension list --installed --target .` (add `--json` for structured output). It reports legacy `extensions/<id>/` and lock-verified declarative `.govkit/packs/<id>/<digest>/` installs, with each extension's root and contract paths. If the command is unavailable, scan only `extensions/*/manifest.yaml` in the project root; if `.govkit/packs/` exists, write "Declarative packs present but unverified: listing unavailable" and do not read them. If no extensions are found, write "No extensions present" and skip the rest of this section.
+2. If the listing reports a conflict (the same extension in both roots, or an unverified or orphaned pack copy) or exits non-zero, **HALT** and request that the team keep one verified copy. Do not choose between copies.
+3. For each discovered manifest, parse `id` and each `contract_sets[]` entry's `paths`, `applies_to`, `capabilities` and `relates_to`. Resolve `contract_sets[].paths` under that extension's root; `relates_to.extends` and `relates_to.supersedes` paths are project-root-relative.
+4. An extension is **applicable** to this feature when any of:
+   - the feature touches a file matching one of its `contract_sets[].applies_to` globs
+   - the feature's described intent uses a declared `contract_sets[].capabilities` entry
+5. For each applicable extension, list its contract paths in `architecture_preflight.md` under an "Extension Contracts" subheading, citing each contract file.
+6. **Do not assume extension names from memory or training data — only act on what the discovered manifests declare.**
 
 ### Reading order when extension and core contracts overlap
 
-6. **Read core contracts first**, then extension contracts. Treat both as authoritative unless `relates_to` declares otherwise:
+7. **Read core contracts first**, then extension contracts. Treat both as authoritative unless `relates_to` declares otherwise:
    - `relates_to.extends: [<core_path>]` — extension layers **additional** constraints on top of the core contract. Both apply; the stricter rule wins on any specific point.
    - `relates_to.supersedes: [<core_path>]` — extension **replaces** the listed core contract for rules in the extension's scope. Prefer the extension; treat the core contract as historical context only.
-7. If an applicable extension contract appears to conflict with a core contract and `relates_to` does **not** declare the relationship, **HALT** and request either (a) a manifest update declaring `extends`/`supersedes`, or (b) an ADR documenting the project-local resolution. Do not silently pick one.
-8. Any `supersedes` of a core contract, or any deviation from an applicable extension contract, **requires an ADR**. Cite the manifest path and the superseded/deviated contract path in the ADR.
+8. If an applicable extension contract appears to conflict with a core contract and `relates_to` does **not** declare the relationship, **HALT** and request either (a) a manifest update declaring `extends`/`supersedes`, or (b) an ADR documenting the project-local resolution. Do not silently pick one.
+9. Any `supersedes` of a core contract, or any deviation from an applicable extension contract, **requires an ADR**. Cite the manifest path and the superseded/deviated contract path in the ADR.
 
 ## 3. Boundary Analysis
 
@@ -248,13 +249,31 @@ If any spec inputs are missing, ask before proceeding.
 
 ---
 
-## 15. Agent Topology (multi-agent features only)
+## 15. Agent Architecture
+
+### 15a. SOAA applicability (one or more agents)
+
+Applies when the feature uses governed runtime skills, an adaptive agent loop, or their control boundaries, including a single agent with fixed skills. Agent count does not decide this. Complete this subsection whether or not GenAI preflight runs.
+
+If **not applicable**, write: "Section 15a: Not applicable — no governed runtime skills or adaptive agent loop."
+
+If **applicable**:
+
+- [ ] `skill-oriented-agent-architecture` is installed, confirmed with `govkit extension list --installed --target .` (stop on a conflict or a non-zero exit); if missing, **HALT** and request `govkit extension add skill-oriented-agent-architecture --target .`
+- [ ] Accountable principal, accepted task boundary, one runtime owner, and completion authority declared
+- [ ] Components classified; each agent run has a bounded responsibility and authority ceiling
+- [ ] Typed runtime state, authoritative writers, legal transitions, ports, and handoffs declared
+- [ ] Time, token, cost, tool, retry, loop, and delegation budgets declared
+- [ ] External operations have fresh authorization, idempotency, recovery, and evidence
+- [ ] Completion requires independent evidence and a trusted controller transition
+
+### 15b. Agent topology (multi-agent features only)
 
 Check if `features/<feature_name>/eval_criteria.yaml` declares `multi_agent: true`.
 
-If **not declared**, write: "Section 15: Not applicable — multi_agent not declared." and skip the rest of this section.
+If **not declared**, write: "Section 15b: Not applicable — multi_agent not declared." and skip the rest of this subsection.
 
-If **declared**:
+If **declared**, complete Section 15a and:
 
 - [ ] `features/<feature_name>/agent_topology.md` exists — if missing, **HALT**: request `/govkit-multi-agent-design <feature_name>` first
 - [ ] Orchestrator section is complete: role, system prompt path, model alias, routing strategy
@@ -265,4 +284,4 @@ If **declared**:
 - [ ] State schema reference is present (TypedDict path declared)
 - [ ] ADR required? (Yes if this is a new multi-agent feature or any topology change from prior preflight)
 
-**Section 15 Status:** Approved / Blocked (strike one — Blocked if any item above is unchecked)
+**Section 15 Status:** Approved / Blocked / Not applicable (Blocked if any applicable item above is unchecked)

@@ -9,6 +9,8 @@ Plan the model evaluation suite for a feature. Determine the feature name from t
 
 ## Inputs to read
 
+Read extension paths under the installed `llm-application` root: `extensions/llm-application/` (legacy) or `.govkit/packs/llm-application/<digest>/` (declarative), as printed by `govkit extension list --installed --target .`. Stop if it reports a conflict or exits non-zero.
+
 - `extensions/llm-application/manifest.yaml`
 - `extensions/llm-application/docs/backend/architecture/LLM_EVALUATION_CONTRACT.md`
 - `extensions/llm-application/docs/backend/architecture/MODEL_GUARDRAILS_CONTRACT.md`

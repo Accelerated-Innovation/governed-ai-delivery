@@ -16,7 +16,7 @@ This file is the execution source of truth for the agreed GovKit refactor. It co
 - Routine implementation choices can be resolved and recorded by the coding agent. Escalate only unresolved product/architecture decisions, incompatible requirements, or actions beyond the authorized task.
 - Update the execution ledger and handoff record after each increment. An unchecked criterion stays unchecked until its required behavior is demonstrated.
 - Standing delivery instruction (2026-09-23): when an increment is finished and verified, commit the changes, push its branch, and create a PR without waiting for another request. Include plan/issue status updates; do not merge the PR unless separately authorized.
-- Standing review instruction (2026-09-23): run Qodo local review (`qodo-review`) with self-contained session context before creating every future PR. Evaluate findings, remediate verified bugs test first, and record the actual result before delivery. Do not silently skip the review or claim completion if authentication, entitlement or approval blocks it; report the exact limitation. This new explicit instruction supersedes the earlier choice not to attempt local review after I00's export rejection. Existing PR findings use `qodo-review-resolver`; local review is the pre-PR path.
+- Standing review instruction (2026-09-23, **superseded 2026-10-30**: Qodo is retired; follow CLAUDE.md *Delivery review*, which uses the CodeRabbit PR review): run Qodo local review (`qodo-review`) with self-contained session context before creating every future PR. Evaluate findings, remediate verified bugs test first, and record the actual result before delivery. Do not silently skip the review or claim completion if authentication, entitlement or approval blocks it; report the exact limitation. This new explicit instruction supersedes the earlier choice not to attempt local review after I00's export rejection. Existing PR findings use `qodo-review-resolver`; local review is the pre-PR path.
 - Creating this document does not implement any feature. The initial next increment is I00.
 
 ### Start or resume a coding session
@@ -27,7 +27,7 @@ This file is the execution source of truth for the agreed GovKit refactor. It co
 4. Inspect the named code seams and existing tests. Confirm current behavior rather than treating historical line numbers or test counts as facts.
 5. State the bounded change and its relevant acceptance criteria. Implement in small reviewable changes.
 6. Run the narrow checks that prove the changed behavior, then the integration checks required by Section 8.
-7. Before creating a PR, run Qodo local review with the implementation rationale and issue/spec references; evaluate its findings and verify any fixes.
+7. Evaluate the CodeRabbit PR review (CLAUDE.md *Delivery review*); fix verified findings test first and verify the fixes. Qodo local review was retired on 2026-10-30.
 8. Record files changed, results, failures/skips, decisions, and the next step. Do not mark a feature complete just because one of its increments is done.
 
 Suggested instruction for a future session:

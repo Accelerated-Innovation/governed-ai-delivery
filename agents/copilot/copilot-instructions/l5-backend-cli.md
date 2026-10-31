@@ -21,8 +21,11 @@ Copilot operates aligned to:
 * Architecture contracts under `docs/backend/architecture/`
 * Evaluation standards under `docs/backend/evaluation/`
 * Governance rules under `governance/`
-* The contract sets declared by `extensions/llm-application/manifest.yaml`; if the manifest is missing for `mode: llm`, stop and request `govkit extension add llm-application --target .`
-* If `eval_criteria.yaml` declares `multi_agent: true`, read `extensions/skill-oriented-agent-architecture/docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md` and the applicable runtime, authority, resilience, and completion contracts
+* Find installed extensions with `govkit extension list --installed --target .`, which prints each extension root: `extensions/<id>/` (legacy) or `.govkit/packs/<id>/<digest>/` (declarative). Read a path written as `extensions/<id>/<path>` under that root. Stop if the listing reports a conflict or exits non-zero
+* If the feature calls language models (`mode: llm`), confirm `llm-application` is installed. If it is missing, stop and request `govkit extension add llm-application --target .`
+* For a feature that calls language models, the contract sets declared by the `llm-application` manifest under its installed root
+* If the feature uses governed runtime skills, an adaptive agent loop, or their control boundaries, including a single agent with fixed skills, read `extensions/skill-oriented-agent-architecture/docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md` and the applicable runtime, authority, resilience, and completion contracts. Agent count does not decide this. If the extension is missing, stop and request `govkit extension add skill-oriented-agent-architecture --target .`
+* Multi-agent topology (`agent_topology.md`) applies only when `eval_criteria.yaml` declares `multi_agent: true`; such a feature also needs the SOAA contracts above
 
 ---
 
@@ -36,7 +39,7 @@ CLI features may be deterministic (no LLM). If mode is `llm`, all L5 contracts a
 
 ## 3. Feature Lifecycle
 
-0. **Multi-agent features only:** run `/govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
+0. **Multi-agent features only (`multi_agent: true`):** run `/govkit-multi-agent-design` before architecture preflight to produce `agent_topology.md`
 1. Architecture Preflight
    - If the preflight records `experiment-required`, run only the recorded experiments first, then reassess the preflight before planning further. Established boundaries need no experiment.
 2. GenAI Preflight (if mode: llm)

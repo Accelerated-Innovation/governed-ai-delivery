@@ -7,9 +7,19 @@ description: Validate Level 5 provider-neutral LLM architecture decisions before
 
 Run after `/govkit-architecture-preflight` for a model-backed feature. Determine the feature name from the user's request; if it is not provided, ask before proceeding.
 
+Run this skill only when the feature calls language models (`mode: llm`). Otherwise record Sections 10–14 as not applicable and do not require `llm-application`; architecture preflight completes Section 15.
+
+## Applicability layers
+
+Three layers apply independently, and a feature may need any combination:
+
+- **LLM application:** the feature calls language models (`mode: llm`). Load the `llm-application` contracts below.
+- **SOAA:** the feature uses governed runtime skills, an adaptive agent loop, or their control boundaries, including a single agent with fixed skills. Load the `skill-oriented-agent-architecture` contracts (checklist item 6). Agent count does not decide this.
+- **Multi-agent topology:** the feature coordinates multiple agents through delegation, handoff or adaptive parallel work, declared by `multi_agent: true` in `eval_criteria.yaml`. It needs `agent_topology.md` in addition to the SOAA contracts.
+
 ## Required extension
 
-Confirm `extensions/llm-application/manifest.yaml` exists. If it is missing, stop and report:
+Confirm `llm-application` is installed. Run `govkit extension list --installed --target .`, which prints its root: `extensions/llm-application/` (legacy) or `.govkit/packs/llm-application/<digest>/` (declarative, lock-verified). Read each `extensions/llm-application/<path>` below under that root. Stop if the listing reports a conflict or exits non-zero. If the command is unavailable, use only a legacy `extensions/llm-application/manifest.yaml`; pack copies cannot be verified without it. If the extension is missing, stop and report:
 
 ```bash
 govkit extension add llm-application --target .
@@ -77,7 +87,7 @@ Also read `docs/backend/architecture/TECH_STACK.md` and applicable ADRs for sele
 
 ### 6. Agent architecture (Section 15, when applicable)
 
-If the feature uses agents, skills, delegation, adaptive orchestration, or multi-agent execution, confirm `extensions/skill-oriented-agent-architecture/manifest.yaml` exists and load its applicable contract sets. Do not infer agent controls from the LLM contracts.
+When the SOAA layer also applies, confirm architecture preflight completed Section 15a and add any model-specific agent controls there. Section 15b (topology) applies only when `multi_agent: true`. Do not infer agent controls from the LLM contracts.
 
 Block if a required extension, contract, decision, or control is missing.
 

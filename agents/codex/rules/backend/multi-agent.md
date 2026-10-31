@@ -8,6 +8,8 @@ Contracts:
 - `extensions/skill-oriented-agent-architecture/docs/backend/architecture/RUNTIME_STATE_AND_EXECUTION_CONTRACT.md`
 - `extensions/skill-oriented-agent-architecture/docs/backend/architecture/AUTHORITY_AND_APPROVAL_CONTRACT.md`
 
+Read extension paths under the installed `skill-oriented-agent-architecture` root: `extensions/skill-oriented-agent-architecture/` (legacy) or `.govkit/packs/skill-oriented-agent-architecture/<digest>/` (declarative), as printed by `govkit extension list --installed --target .`. Stop if it reports a conflict or exits non-zero.
+
 ---
 
 ## Rules
