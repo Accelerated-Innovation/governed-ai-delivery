@@ -160,6 +160,43 @@ govkit extension add skill-oriented-agent-architecture --target .
 
 The `llm-application` contracts govern the model-facing parts of the system. SOAA remains authoritative for task ownership, skill selection and activation, effective authority, side-effect control, recovery, evidence, and completion. SOAA can also govern a non-LLM runtime, so it does not declare the LLM extension as an unconditional dependency.
 
+## Applicability coverage check
+
+The pack ships an optional check, `soaa-applicability`. It validates a
+feature's applicability block and reports whether the claimed GK-SOAA cases
+are covered by passed experiment criteria:
+
+```bash
+govkit pack check --target . soaa-applicability -- \
+  --preflight features/<feature>/architecture_preflight.md \
+  --experiments features/<feature>/experiments.yaml
+```
+
+- **Arguments:**
+  - `--cases` narrows the claim to listed case IDs. Without it, the claim is
+    every case whose conditions apply.
+  - `--catalog` defaults to the pinned `catalog/gk-soaa-cases.yaml`.
+- **Exit codes:** 0 when satisfied, 1 when not satisfied, 2 for invalid input.
+- **Covered:** a case is covered when it appears in the `refs` of a passed
+  criterion, in a passed experiment that is not closed. The result's evidence
+  class must meet the experiment's `required_evidence_class`.
+- **Not satisfied:**
+  - an unknown or missing condition;
+  - an omission without a reason, evidence, owner and change trigger;
+  - a claimed case none of whose conditions apply.
+- **Output:** canonical JSON, including the SHA-256 of each input file.
+
+With a legacy install, run the script directly:
+`python -I extensions/skill-oriented-agent-architecture/checks/applicability.py --preflight ...`.
+
+The check is advisory (`required: false`). It becomes a required control only
+when accepted policy lists it in `policy.required_checks`. Conformance runs it
+only with `govkit conform --execute-pack-check soaa-applicability`; otherwise it
+reports SKIPPED, which never satisfies a required check. It validates records
+only. It executes no application tests, and it leaves experiment currency to
+`govkit validate`. A passing run is report validation, not observed execution
+or SOAA conformance.
+
 ## Source authority and limits
 
 This package is an implementation-guidance profile. It does not by itself establish SOAA conformance. Keep three claims distinct:

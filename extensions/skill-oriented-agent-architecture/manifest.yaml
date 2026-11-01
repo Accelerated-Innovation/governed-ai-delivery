@@ -83,6 +83,10 @@ capability_pack:
       kind: example
     - path: catalog/gk-soaa-cases.yaml
       kind: reference
+  checks:
+    - id: soaa-applicability
+      path: checks/applicability.py
+      required: false
 
 contract_sets:
   - id: soaa_core

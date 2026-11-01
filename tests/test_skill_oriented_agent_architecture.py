@@ -420,7 +420,9 @@ def test_capability_pack_resources_declare_every_shipped_file_with_its_kind():
     declared = {r["path"]: r["kind"] for r in block["resources"]}
     assert declared == EXPECTED_KINDS
     assert sorted(block["agents"]) == ["claude-code", "codex", "copilot"]
-    assert "checks" not in block  # Increment 10 adds the applicability check
+    assert block["checks"] == [
+        {"id": "soaa-applicability", "path": "checks/applicability.py", "required": False}
+    ]
 
 
 def test_load_pack_includes_readme_and_new_resources_with_declared_kinds():
@@ -429,6 +431,7 @@ def test_load_pack_includes_readme_and_new_resources_with_declared_kinds():
     snapshot = load_pack(EXT_DIR, source_kind="bundled")
     kinds = {f.path: f.kind for f in snapshot.files}
     assert kinds.pop("manifest.yaml") == "manifest"
+    assert kinds.pop("checks/applicability.py") == "check"
     assert kinds == EXPECTED_KINDS
     assert snapshot.version == "0.2.0"
     assert set(snapshot.provides) == set(_manifest()["capability_pack"]["provides"])

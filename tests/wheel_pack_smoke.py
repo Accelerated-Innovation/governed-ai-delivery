@@ -146,6 +146,30 @@ for agent, layout in AGENT_LAYOUTS.items():
                 record.write_text('{"cases":[{"id":"hello","expected":"hello","actual":"wrong"}]}')
                 failed = subprocess.run(check, capture_output=True, text=True)
                 assert failed.returncode == 1 and json.loads(failed.stdout)["failed"] == ["hello"]
+            if pack.id == "skill-oriented-agent-architecture":
+                template = (pack.root / "templates/preflight-soaa.md").read_text()
+                block = template.split("```yaml\n", 1)[1].split("```", 1)[0]
+                (moved / "preflight.md").write_text(f"```yaml\n{block}```\n")
+                check = command + [
+                    "check",
+                    "--target",
+                    str(moved),
+                    "soaa-applicability",
+                    "--",
+                    "--preflight",
+                    "preflight.md",
+                ]
+                unknown = subprocess.run(check, capture_output=True, text=True)
+                report = json.loads(unknown.stdout)
+                assert unknown.returncode == 1 and len(report["conditions"]["unknown"]) == 12
+                omitted = re.sub(
+                    r"status: unknown, reason: \"\", evidence: \"\", owner: \"\", change_trigger: \"\"",
+                    'status: not-applicable, reason: "No such port", evidence: "ports.py", '
+                    'owner: "team", change_trigger: "A port is added"',
+                    block,
+                )
+                (moved / "preflight.md").write_text(f"```yaml\n{omitted}```\n")
+                subprocess.run(check, check=True, capture_output=True, text=True)
             installs += 1
 print(
     f"Pack wheel smoke passed: {len(catalog)} packs, {installs} installs across 3 agents, 2 profiles, portable references and independent checks"

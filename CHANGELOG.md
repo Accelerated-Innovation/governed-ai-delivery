@@ -71,6 +71,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     `conflicts`, and now include verified declarative packs. The
     `legacy:extensions` check warns about conflicting copies.
 
+- **SOAA applicability coverage check.** The `skill-oriented-agent-architecture`
+  pack adds an optional check, `soaa-applicability` (`required: false`). Run it
+  with `govkit pack check` or `govkit conform --execute-pack-check`.
+  - It validates a feature's `soaa_applicability` block. Unknown conditions
+    and incomplete omissions are not satisfied.
+  - It reports whether the claimed GK-SOAA cases are cited by passed experiment
+    criteria with sufficient evidence.
+  - Exit 0 means satisfied, 1 not satisfied, 2 invalid input. The JSON output
+    includes the SHA-256 of each input file.
+
+  It becomes required only when accepted policy lists it. It executes no
+  application tests and makes no SOAA conformance claim.
+
 ### Changed
 
 - **LLM, SOAA and multi-agent guidance route independently** in the Claude

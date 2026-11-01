@@ -64,6 +64,10 @@ Record each experiment in `features/<feature>/experiments.yaml` (schema
 | Runtime, skill, policy and adapter files | `depends_on` (with digests) |
 | Synthetic fixture or application run | `required_evidence_class` |
 
+To check coverage, run the optional `soaa-applicability` pack check (see the
+extension README). It reads the `refs` of passed criteria and the preflight
+applicability block. It does not run the experiments.
+
 A passing experiment supports only its observed scope. Feature completion
 still checks every applicable accepted requirement and control. A changed
 requirement, dependency or result invalidates the affected evidence.
