@@ -242,6 +242,7 @@ If **applicable**, complete each item:
 
 - [ ] `skill-oriented-agent-architecture` extension installed (`govkit extension list --installed --target .`)
 - [ ] Applicability block from the extension's `templates/preflight-soaa.md` copied here and each condition decided (an omission needs a reason, a verified absent interface, an owner and a change trigger; unknown stays unresolved)
+- [ ] Each applying condition names at least one verification family from the core contract's *Minimum verification*; an unknown condition keeps its verification required
 - [ ] Accountable principal, accepted task boundary, one runtime owner, and completion authority declared
 - [ ] Components classified; each agent run has a bounded responsibility and authority ceiling
 - [ ] Typed runtime state, authoritative writers, legal transitions, ports, and handoffs declared

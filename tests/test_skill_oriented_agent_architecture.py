@@ -599,3 +599,33 @@ def test_minimum_govkit_version_resolves_in_the_editable_install():
     minimum = Version(_manifest()["govkit_min_version"])
     assert minimum >= Version("0.21.1")  # first release with explicit capability_pack blocks
     assert Version(version.GOVKIT_VERSION) >= minimum
+
+
+# --- PR #238 review: omission coverage, lifecycle discrepancy, template nesting,
+# and verification selected by applicability.
+
+
+def test_omission_case_covers_fixed_skill_features_without_an_adaptive_loop():
+    cases = {c["id"]: c for c in _yaml(_text(CATALOG))["cases"]}
+    assert {"adaptive-run", "skill-activation"} <= set(cases["GK-SOAA-16"]["applies_when"])
+
+
+def test_lifecycle_contract_references_the_metadata_discrepancy():
+    text = _text(f"{ARCH}/SKILL_LIFECYCLE_AND_INTEROPERABILITY_CONTRACT.md")
+    alignment = text[text.index("## Source alignment") : text.index("## Purpose")]
+    assert "| Open discrepancies | None recorded |" not in alignment
+    assert "Metadata discrepancy" in alignment and "SKILL_CONTRACT.md" in alignment
+    assert "urn:soaa" not in alignment  # referenced, not repeated
+
+
+def test_template_headings_nest_below_section_15a():
+    import re
+
+    headings = re.findall(r"^(#+) ", _text(TEMPLATE), re.MULTILINE)
+    assert headings and all(len(level) >= 4 for level in headings), headings
+
+
+def test_template_asks_for_a_verification_family_per_applying_condition():
+    text = _text(TEMPLATE)
+    assert "| Condition | Status | Controls or omission reason | Verification family |" in text
+    assert "Minimum verification" in text

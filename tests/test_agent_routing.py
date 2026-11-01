@@ -259,3 +259,40 @@ def test_section_15a_records_applicability_with_the_soaa_template(agent):
     soaa = section(section(text, "## 15. Agent Architecture"), "### 15a. SOAA applicability")
     assert "templates/preflight-soaa.md" in soaa
     assert "unknown" in soaa and "change trigger" in soaa
+
+
+# --- PR #238 review: required core sets and verification by applicability
+
+
+@pytest.mark.parametrize("agent", AGENTS)
+@pytest.mark.parametrize(
+    "skill", ("backend/govkit-architecture-preflight", "ui/govkit-ui-architecture-preflight")
+)
+def test_extension_discovery_loads_contract_sets_the_guidance_requires_first(agent, skill):
+    text = (REPO / "agents" / agent / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
+    body = section(text, "## 2.6 Extension Discovery")
+    assert "`agent_guidance.architecture_preflight`" in body
+    assert "load first" in body
+
+
+@pytest.mark.parametrize("agent", AGENTS)
+def test_section_15a_names_a_verification_family_for_each_applying_condition(agent):
+    text = (
+        REPO / "agents" / agent / "skills/backend/govkit-architecture-preflight/SKILL.md"
+    ).read_text(encoding="utf-8")
+    soaa = section(section(text, "## 15. Agent Architecture"), "### 15a. SOAA applicability")
+    assert "verification family" in soaa
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        "governance/backend/templates/l5-architecture-preflight.md",
+        "features/starter_backend_l5/architecture_preflight.md",
+        "features/starter_cli_l5/architecture_preflight.md",
+    ),
+)
+def test_preflight_templates_name_a_verification_family_in_15a(path):
+    text = (REPO / path).read_text(encoding="utf-8")
+    soaa = section(section(text, "## 15. Agent Architecture"), "### 15a. SOAA applicability")
+    assert "verification family" in soaa

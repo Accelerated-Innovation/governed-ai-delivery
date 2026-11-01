@@ -101,7 +101,7 @@ cases:
   - id: GK-SOAA-16
     trigger: An omitted condition's interface is reachable
     observation: Applicability fails or the unsupported operation is denied; run once per condition recorded as not applicable
-    applies_when: [adaptive-run]
+    applies_when: [adaptive-run, skill-activation]
 
 conditional_cases:
   - id: GK-SOAA-C01

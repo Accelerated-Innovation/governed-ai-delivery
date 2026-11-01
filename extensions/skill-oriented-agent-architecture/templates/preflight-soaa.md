@@ -1,28 +1,32 @@
-# SOAA applicability (architecture preflight Section 15a)
+#### SOAA applicability
 
 Copy this into `features/<feature>/architecture_preflight.md` Section 15a.
 Condition IDs and controls come from
 `docs/backend/architecture/SOAA_APPLICABILITY.md`. Replace each `unknown` with
-`applies` or `not-applicable`; an unknown condition stays unresolved.
+`applies` or `not-applicable`; an unknown condition stays unresolved. Keep the
+headings below `### 15a` so the block stays inside that section.
 
-| Condition | Status | Controls or omission reason |
-|---|---|---|
-| `adaptive-run` | unknown | |
-| `skill-activation` | unknown | |
-| `untrusted-input` | unknown | |
-| `external-read` | unknown | |
-| `external-mutation` | unknown | |
-| `multi-tenant-data` | unknown | |
-| `model-selection` | unknown | |
-| `workflow-switching` | unknown | |
-| `persistent-memory` | unknown | |
-| `human-takeover` | unknown | |
-| `delegation` | unknown | |
-| `executable-assets` | unknown | |
+| Condition | Status | Controls or omission reason | Verification family |
+|---|---|---|---|
+| `adaptive-run` | unknown | | |
+| `skill-activation` | unknown | | |
+| `untrusted-input` | unknown | | |
+| `external-read` | unknown | | |
+| `external-mutation` | unknown | | |
+| `multi-tenant-data` | unknown | | |
+| `model-selection` | unknown | | |
+| `workflow-switching` | unknown | | |
+| `persistent-memory` | unknown | | |
+| `human-takeover` | unknown | | |
+| `delegation` | unknown | | |
+| `executable-assets` | unknown | | |
 
 For `not-applicable`, fill `reason`, `evidence` (the verified absent or
 disabled interface), `owner` and `change_trigger`. For `applies`, leave
-`evidence` empty or cite the design record.
+`evidence` empty or cite the design record, and name at least one verification
+family from *Minimum verification* in
+`docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md`. The feature
+plan links each affected control boundary to one of those families.
 
 ```yaml
 soaa_applicability:
@@ -42,7 +46,7 @@ soaa_applicability:
     - {id: executable-assets, status: unknown, reason: "", evidence: "", owner: "", change_trigger: ""}
 ```
 
-## Writer map (changed rows only)
+#### Writer map (changed rows only)
 
 List only the rows this feature adds or changes in the system-level writer map.
 State "No other rows change."
@@ -51,7 +55,7 @@ State "No other rows change."
 |---|---|---|---|---|---|
 | | | | | | |
 
-## Logical roles (changed rows only)
+#### Logical roles (changed rows only)
 
 | Logical role | Implementation owner | Ports | Authoritative state | Trust boundary | Verification |
 |---|---|---|---|---|---|
