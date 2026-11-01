@@ -7,6 +7,7 @@
 | Primary decision | SOAA-014 |
 | Primary invariants | SOAA-INV-068 through SOAA-INV-088 |
 | Source module | SOAA Packet 4 |
+| Open discrepancies | None recorded |
 
 ## Purpose
 

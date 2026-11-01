@@ -91,6 +91,38 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     a SOAA line.
   - Validation and both `multi-agent-gate.yml` templates are unchanged:
     topology is still checked only with `multi_agent: true`.
+- **`skill-oriented-agent-architecture` 0.2.0.** SOAA can now be applied
+  proportionally, starting from one agent with fixed skills. Contract-set IDs,
+  the 32 capability tokens and contract paths are unchanged. The pack digest
+  changes, so profiles pinning 0.1.0 need a pin update.
+  - An explicit `capability_pack` block declares the README, the new advisory
+    files, the catalog and the template, so declarative installs now include
+    them. Legacy `extension add` copies them too.
+  - New advisory `SOAA_APPLICABILITY.md` (applicability matrix with 12
+    condition IDs, the omission rule and a system-level role and writer map)
+    and `SOAA_EXPERIMENTS.md` (patterns E1–E5, stopping conditions and their
+    mapping to `experiments.yaml`).
+  - New `catalog/gk-soaa-cases.yaml`: GovKit local cases GK-SOAA-01 to 16 plus
+    nine conditional cases, each tied to conditions. They are not SOAA
+    assertions.
+  - New `templates/preflight-soaa.md`: the Section 15a applicability block.
+  - The README opens with the single-agent path, the three layers and the
+    claim boundary, and shows legacy and declarative installs.
+  - Contract edits: roles are mapped once at system level, with changed rows
+    per feature; verification follows applicability, and omissions need
+    evidence. Binding modes separate fixed binding from a model choosing from
+    a fixed menu, which keeps null selection.
+  - The authority formula now subtracts `ProhibitedAccess(skill)` explicitly.
+    This is stricter and follows the SOAA v0.2 guide.
+  - The metadata key spelling and instruction-precedence differences from the
+    guide are recorded, not resolved. Keys are not renamed, and the
+    package-profile compatibility claim is marked blocked pending source.
+  - Every contract's *Source alignment* table lists open discrepancies.
+- **Extension applicability no longer follows a file-name glob alone.**
+  Preflight §2.6 (all six copies) treats an `applies_to` match as a prompt to
+  confirm a declared capability, so a feature touching `tests/…` is no longer
+  pulled into SOAA. The backend preflight skill, the L5 template and the L5
+  starters add a §15a item for the applicability block.
 
 ### Fixed
 

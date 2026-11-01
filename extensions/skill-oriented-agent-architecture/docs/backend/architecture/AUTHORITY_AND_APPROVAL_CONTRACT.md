@@ -7,6 +7,7 @@
 | Primary decisions | SOAA-007, SOAA-008 |
 | Primary invariants | SOAA-INV-025 through SOAA-INV-031 |
 | Source module | SOAA Packet 2 |
+| Open discrepancies | Instruction precedence: the SOAA v0.2 Architecture Guide Appendix G source precedence is not reproduced here (see *Instruction precedence*). Prohibited access (Guide Chapter 16) is now subtracted explicitly; that change is stricter and guide-aligned |
 
 ## Purpose
 
@@ -28,8 +29,11 @@ EffectiveAuthority(skill, context) =
     BaseAuthority
     INTERSECT ToolBoundary
     INTERSECT RequestedSkillScope
+    MINUS ProhibitedAccess(skill)
     MINUS ExplicitDenies
 ```
+
+`ProhibitedAccess(skill)` is the access the skill declares it must never use. It is subtracted even when the requested scope also names it. This term follows the SOAA v0.2 Architecture Guide, Chapter 16, and is stricter than the earlier formula, which subtracted only explicit denies.
 
 Activation is permitted only when:
 
@@ -37,7 +41,9 @@ Activation is permitted only when:
 RequiredAccess(skill) SUBSET_OF EffectiveAuthority(skill, context)
 ```
 
-Explicit denies take precedence over grants, prompts, descriptions, model output, user requests, and approval text.
+Explicit denies and prohibited access take precedence over grants, prompts, descriptions, model output, user requests, and approval text.
+
+**Overlap example.** A skill requests `crm.read` and `crm.write`, and prohibits `crm.write` for its own use. Base authority grants both. Effective authority is `crm.read` only. If the skill also requires `crm.write`, activation is refused, because the required access is not a subset of effective authority. A test must cover this overlap of requested and prohibited access.
 
 ## Capability tuple
 
@@ -142,6 +148,8 @@ Lower-precedence content cannot override a higher layer. Same-level conflict blo
 
 Data-to-instruction promotion requires an explicit trusted transformation and policy decision. Content never promotes itself.
 
+**Mapping note.** The SOAA v0.2 Architecture Guide, Appendix G, documents normative source precedence. This runtime instruction order is GovKit guidance and has not been verified against it. Where the two disagree, the source authority wins and the affected claim stays blocked. This note records the discrepancy only; no enforcement change.
+
 ## Tool and side-effect boundary
 
 Every tool contract must declare:
@@ -191,7 +199,8 @@ Record:
 Tests must prove:
 
 - Skill metadata contains no self-issued grant.
-- Effective authority equals the intersection and deny calculation.
+- Effective authority equals the intersection, prohibited-access and deny calculation.
+- A requested scope that overlaps prohibited access leaves the prohibited access unavailable.
 - Every missing required capability blocks activation.
 - Approval leaves package identity unchanged.
 - Revocation blocks the next covered operation.

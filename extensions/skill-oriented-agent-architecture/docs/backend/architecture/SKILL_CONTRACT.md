@@ -8,6 +8,7 @@
 | Primary invariants | SOAA-INV-006 through SOAA-INV-020 and SOAA-INV-175 through SOAA-INV-182 |
 | Source modules | SOAA Packets 1 and 6 |
 | External format | [Agent Skills specification](https://agentskills.io/specification), accessed 2026-07-20 |
+| Open discrepancies | Metadata key spelling and profile identifier (see *Metadata discrepancy*) |
 
 ## Purpose
 
@@ -104,6 +105,8 @@ The four SOAA metadata keys are normative:
 | `soaa-release-id` | Immutable release identity matching the manifest |
 
 All four values must be non-empty strings. Nested SOAA metadata is invalid because Agent Skills metadata values are strings, not mappings. The manifest digest and release identity must match before admission.
+
+**Metadata discrepancy.** The SOAA v0.2 Architecture Guide, Chapter 30, spells these keys with dots (`soaa.*`) and gives the profile example `urn:soaa:agent-skills:1`. This contract uses hyphenated keys and `soaa-agent-skills/0.2`. The keys are not renamed here. Any claim of compatibility with the guide's package profile is blocked pending source: the canonical spelling and profile version must be confirmed, and any alias or migration must be versioned and tested, including packages that declare both spellings.
 
 ### Generic-client behavior
 

@@ -1,14 +1,88 @@
 id: skill-oriented-agent-architecture
 name: Skill-Oriented Agent Architecture Extension
-version: 0.1.0
+version: 0.2.0
 description: Adds provider-neutral architecture contracts for governed applications in which accountable agent runs select and apply versioned procedural skills inside deterministic control boundaries.
-govkit_min_version: 0.13.0
+govkit_min_version: 0.21.1
 extension_type: architecture
 supported_levels:
   - 5
 supported_project_types:
   - api
   - cli
+
+capability_pack:
+  schema_version: 1
+  provides:
+    - skill-oriented-agent-architecture
+    - governed-agent-runtime
+    - procedural-skills
+    - task-ownership
+    - deterministic-control-boundary
+    - provider-neutral-agent-architecture
+    - deterministic-skill-admission
+    - skill-ranking
+    - atomic-skill-activation
+    - effective-authority
+    - scoped-approval
+    - revocation
+    - instruction-precedence
+    - progressive-context
+    - context-snapshots
+    - resource-trust
+    - governed-memory
+    - bounded-retry
+    - reconciliation
+    - compensation
+    - execution-budgets
+    - agent-evaluation
+    - skill-admission-evaluation
+    - completion-gates
+    - durable-evidence
+    - conformance-claims
+    - governed-skill-lifecycle
+    - exact-release-binding
+    - skill-supply-chain
+    - agent-skills-profile
+    - mcp-mapping
+    - a2a-mapping
+    - runtime-portability
+  requires: []
+  conflicts: []
+  agents:
+    - claude-code
+    - codex
+    - copilot
+  resources:
+    - path: docs/backend/architecture/SKILL_ORIENTED_AGENT_ARCHITECTURE.md
+      kind: contract
+    - path: docs/backend/architecture/SKILL_CONTRACT.md
+      kind: contract
+    - path: docs/backend/architecture/RUNTIME_STATE_AND_EXECUTION_CONTRACT.md
+      kind: contract
+    - path: docs/backend/architecture/SKILL_SELECTION_AND_ACTIVATION_CONTRACT.md
+      kind: contract
+    - path: docs/backend/architecture/AUTHORITY_AND_APPROVAL_CONTRACT.md
+      kind: contract
+    - path: docs/backend/architecture/CONTEXT_MEMORY_AND_RESOURCE_CONTRACT.md
+      kind: contract
+    - path: docs/backend/architecture/RESILIENCE_AND_RECOVERY_CONTRACT.md
+      kind: contract
+    - path: docs/backend/architecture/EVALUATION_EVIDENCE_AND_COMPLETION_CONTRACT.md
+      kind: contract
+    - path: docs/backend/architecture/SKILL_LIFECYCLE_AND_INTEROPERABILITY_CONTRACT.md
+      kind: contract
+    - path: docs/backend/architecture/AGENT_RUNTIME_STACK.md
+      kind: defaults
+    - path: README.md
+      kind: advisory
+    - path: docs/backend/architecture/SOAA_APPLICABILITY.md
+      kind: advisory
+    - path: docs/backend/architecture/SOAA_EXPERIMENTS.md
+      kind: advisory
+    - path: templates/preflight-soaa.md
+      kind: example
+    - path: catalog/gk-soaa-cases.yaml
+      kind: reference
 
 contract_sets:
   - id: soaa_core
@@ -156,13 +230,21 @@ implementation_profiles:
     authority: defaults
     product_selection_requires_adr: true
 
+templates:
+  - id: preflight_soaa
+    path: templates/preflight-soaa.md
+
 agent_guidance:
   architecture_preflight:
     - Read this manifest before planning any feature involving agents, skills, adaptive orchestration, tool use, delegation, memory, or agent evaluation.
-    - Load soaa_core first, then load only the additional contract sets matched by feature intent and touched files.
+    - First decide whether the feature is in SOAA's domain (governed runtime skills, an adaptive agent loop, or their control boundaries, including one agent with fixed skills). Agent count does not decide this. A touched file matching an applies_to glob only prompts that decision; it never makes SOAA applicable by itself.
+    - "Keep the three layers separate: llm-application governs model use (mode: llm); SOAA governs runtime skills and agent control boundaries; agent_topology.md applies only when eval_criteria.yaml declares multi_agent: true."
+    - Within the domain, load soaa_core first, then only the additional contract sets matched by feature intent and touched files.
+    - Record applicability with the templates/preflight-soaa.md block in architecture_preflight.md section 15a. Select controls by behavior and consequence (docs/backend/architecture/SOAA_APPLICABILITY.md). Each omission needs a reason, a verified absent or disabled interface, an owner and a change trigger; unknown applicability stays unresolved.
+    - When a material architectural assumption is untested, set the preflight outcome to experiment-required and plan the smallest experiment from docs/backend/architecture/SOAA_EXPERIMENTS.md. Do not label an unproven design aligned to start a contained prototype.
     - Read AGENT_RUNTIME_STACK.md for default runtime product bindings, but treat it as advisory — the runtime contract wins on any conflict, and deviating from a default requires an ADR.
     - Classify every relevant component as agent run, skill, tool, resource, workflow, policy, evaluator, memory, or trusted controller.
-    - Record the accountable principal, accepted task boundary, single runtime owner, authoritative state writers, external side effects, approval routes, and completion evidence.
+    - Record the accountable principal, accepted task boundary, single runtime owner, authoritative state writers, external side effects, approval routes, and completion evidence. Map logical roles and writers once at system level and review only the changed rows per feature.
     - List every applicable SOAA contract in architecture_preflight.md.
     - Require an ADR for an extension, override, or violation of these contracts.
   implementation_plan:

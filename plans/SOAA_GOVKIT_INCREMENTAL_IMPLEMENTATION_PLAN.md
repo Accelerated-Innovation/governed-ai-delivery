@@ -1367,7 +1367,9 @@ records KD-1 to KD-8; KD-9 to KD-13 are recorded in their increments.
        - with `required: false` and absent from policy, the check is advisory.
    - **Positive:**
      - A single-agent fixed-skill fixture (Value Builder-shaped, synthetic)
-       covers GK-SOAA-01..09 with the remaining cases justified N/A.
+       covers the cases its applicable conditions select (GK-SOAA-01..09, 12,
+       13, 15 and 16 under the 0.2.0 catalog) with the remaining conditions
+       justified N/A.
 7. **Verify.**
    ```bash
    pytest tests/test_soaa_applicability_check.py tests/test_pack_check.py tests/test_conformance.py -q
@@ -1561,14 +1563,14 @@ Every other design question is resolved in §6.
 | 5 UI alignment | deferred | U2: Value Builder is an API project; its UI is a client | Not required for handoff |
 | 6 Declarative integration | not started | — | After 2 |
 | 7 Extension inventory | complete | Merged as #232 (`3d2a36a`): `extension list --installed`, inventory schema, skill-context roots/conflicts, conflict warning in `legacy:extensions`. Declarative SOAA README awaits Increment 9 | — |
-| 8 Routing alignment | in review | Branch `feat/routing-alignment`: six L5 backend entry docs route LLM (model use), SOAA (behavior, any agent count) and topology (`multi_agent: true`) with identical sentences; GenAI preflight states the three layers; §2.6 (six copies) prefers `extension list --installed`, scans both roots, uses `contract_sets[]` fields and halts on conflicts; LLM and multi-agent rules, multi-agent design, eval-suite planning and L5 UI entry docs name the declarative root; template and L5 starters split §15 into 15a/15b with a SOAA status line. New `tests/test_agent_routing.py` (red first); validate and both gates unchanged | Merge by the user |
-| 9 SOAA 0.2.0 | not started | — | After 4, 7, 8; U1 affects wording only |
+| 8 Routing alignment | complete | Merged as #237 (`b135ee1`): six L5 backend entry docs route LLM (model use), SOAA (behavior, any agent count) and topology (`multi_agent: true`); §2.6 reads declarative packs only through `extension list --installed` and halts on a conflict or non-zero exit; architecture preflight owns §15a/§15b; GenAI preflight and eval-suite planning run only for `mode: llm`. CodeRabbit/Codex review: 11 of 12 findings fixed, the `applies_to` glob finding deferred to 9 | — |
+| 9 SOAA 0.2.0 | in review | Branch `feat/soaa-0.2.0`: manifest 0.2.0 with explicit `capability_pack` (33 provides, 16 resources with kinds, three agents), `templates:` entry and revised guidance; README single-agent *Start here*, three layers, claim boundary, both installs; advisory `SOAA_APPLICABILITY.md` (12 condition IDs), `SOAA_EXPERIMENTS.md` (E1–E5), `catalog/gk-soaa-cases.yaml` (GK-SOAA-01..16, C01–C09), `templates/preflight-soaa.md`; contract edits (system-level role map, applicability-selected verification, fixed binding vs fixed menu, `ProhibitedAccess`, S1/precedence notes, open-discrepancy rows). Deferred glob finding resolved in §2.6 (six copies); §15a item in skill, template and starters. 22 new extension tests and 9 routing tests, red first. `load_pack` now ships README (11 → 16 files) | Merge by the user |
 | 10 Applicability check | not started | — | After 9 |
 | 11 Wheel acceptance/handoff | not started | — | After all; U3 |
 
-**Current handoff:** Increments 0–4 and 7 are merged and Increment 8 is in
-review. Next: Increment 9 (SOAA 0.2.0) after 8, and Increment 6 (declarative
-request planning and change conformance), which can run in parallel. Run the full local wheel-smoke mirror before every PR. Qodo is
+**Current handoff:** Increments 0–4, 7 and 8 are merged and Increment 9 is in
+review. Next: Increment 10 (SOAA applicability check) after 9, and Increment 6
+(declarative request planning and change conformance), which can run in parallel. Run the full local wheel-smoke mirror before every PR. Qodo is
 retired; CodeRabbit reviews each PR.
 
 ## Decision log
@@ -1590,4 +1592,8 @@ retired; CodeRabbit reviews each PR.
 | 2026-10-31 | §2.6 reads declarative packs only through `govkit extension list --installed`; without it, agents scan legacy `extensions/` only and report packs as unverified. Agents stop on a conflict or a non-zero exit | PR #237 review: an agent reading `.govkit/packs/*/*/manifest.yaml` directly bypasses lock verification. Supersedes the §2.6 scan wording in Increment 8 |
 | 2026-10-31 | Architecture preflight owns §15a/§15b; GenAI preflight and eval-suite planning run only for `mode: llm` | PR #237 review: deterministic SOAA features never reach GenAI preflight, so §15a must not depend on it |
 | 2026-10-31 | Broad `applies_to` globs (SOAA `**/*test*`, LLM `**/*model*`) deferred to Increment 9 | PR #237 review: pre-existing applicability rule; Increment 9 reworks SOAA applicability and the manifests, and should require a domain check before glob matching |
+| 2026-10-31 | SOAA `govkit_min_version` is 0.21.1, not 0.23.0 | The editable and CI installs report 0.22.0, and the shipped-pack resolution test runs at 0.21.1; 0.21.1 matches the other explicit `capability_pack` packs. The 0.23.0 release PR may raise the floor with the CI pins (U3) |
+| 2026-10-31 | An `applies_to` glob match alone never makes an extension applicable; §2.6 requires a declared capability or a written reason | Resolves the deferred PR #237 finding without changing manifest globs (no path or token changes in Increment 9) |
+| 2026-10-31 | Catalog `applies_when` lists any-of condition IDs; GK-SOAA-12, 13, 15 and 16 apply to every adaptive run | Restart, budgets, result integrity and omission checks are common to E1; the Increment 10 positive fixture follows the catalog rather than 01..09 alone |
+| 2026-10-31 | Nine conditional cases, adding external reads (C09) and executable assets (C08) to the seven named in the lightening plan §5 | Every applicability condition has at least one case |
 | 2026-10-19 | `multi_agent_evaluation` scores in eval_criteria may be null (placeholders), unlike the plan's `evaluation_prediction` | The starter documents `score: null` / `evidence: ""` until evaluation runs |

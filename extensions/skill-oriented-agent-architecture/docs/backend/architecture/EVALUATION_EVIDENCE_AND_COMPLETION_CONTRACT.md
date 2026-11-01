@@ -7,6 +7,7 @@
 | Primary decisions | SOAA-016 and SOAA-017 |
 | Primary invariants | SOAA-INV-103 through SOAA-INV-146 |
 | Source module | SOAA Packet 5 |
+| Open discrepancies | None recorded |
 
 ## Purpose
 
