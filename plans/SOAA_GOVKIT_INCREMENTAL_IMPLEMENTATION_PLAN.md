@@ -1,6 +1,6 @@
 # SOAA and GovKit Phase A incremental implementation plan
 
-**Status:** Phase A implemented: Increments 0–4 and 6–11 merged (#226–#241); Increment 5 deferred (U2). The 0.23.0 release (U3) and the Phase B pilot remain. See §14.
+**Status:** Phase A implemented: Increments 0–4 and 6–11 merged (#226–#241); Increment 5 deferred (U2). Released as GovKit 0.23.0 (#243, tag `v0.23.0`, published to PyPI 2026-11-02). The Phase B pilot remains. See §14.
 **Prepared:** 2026-10-19.
 **Baseline inspected:** GovKit 0.22.0 at commit `0ec4568`. The working tree also
 contains the uncommitted manifest-validation fix in `cli/extensions.py`,
@@ -1532,7 +1532,7 @@ SOAA pack supports only `api` and `cli`. The version is 0.23.0 once released
 |---|---|---|
 | U1 | Access to the SOAA v0.2 guide and normative corpus | The Architecture Guide v0.2 (publication revision 1.0) was supplied in conversation; the user will point to the SOAA folder for further sources. Its text confirms Ch. 16 subtracts `ProhibitedAccess(s)` (S2) and Ch. 30 uses dotted `soaa.*` keys with profile `urn:soaa:agent-skills:1` (S1). Its Appendix G precedence and Appendix E conformance model apply. The full TRACE catalog is still not reproduced, so exact assertion mapping stays out of scope |
 | U2 | Value Builder's project type | Backend API project. Its UI is a separate client that reaches everything through the API. SOAA and llm-application (api/cli) apply; Increment 5 stays deferred and is not needed before handoff |
-| U3 | Release identity | 0.23.0. The new consumer gate pins `govkit~=0.23.0`. Publication still needs separate authorization |
+| U3 | Release identity | 0.23.0. The shipped consumer gates pin `govkit~=0.23.0`. Published 2026-11-02 with maintainer authorization: release PR #243 (`68cbdbe`), tag `v0.23.0`, PyPI wheel SHA-256 `546c5e1164b85ad060caa2f2cb636b226fec8dc622c85c00f416c6d8fa498e54` |
 
 The user declined an additional CI step that enforces SOAA from the
 preflight's applicability block (2026-10-19). Increment 10 remains an opt-in
@@ -1571,13 +1571,14 @@ Every other design question is resolved in §6.
 | 8 Routing alignment | complete | Merged as #237 (`b135ee1`): six L5 backend entry docs route LLM (model use), SOAA (behavior, any agent count) and topology (`multi_agent: true`); §2.6 reads declarative packs only through `extension list --installed` and halts on a conflict or non-zero exit; architecture preflight owns §15a/§15b; GenAI preflight and eval-suite planning run only for `mode: llm`. CodeRabbit/Codex review: 11 of 12 findings fixed, the `applies_to` glob finding deferred to 9 | — |
 | 9 SOAA 0.2.0 | complete | Merged as #238 (`e6e50c0`): manifest 0.2.0 with explicit `capability_pack` (33 provides, 16 resources with kinds, three agents), `templates:` entry and revised guidance; README single-agent *Start here*, three layers, claim boundary, both installs; advisory `SOAA_APPLICABILITY.md` (12 condition IDs), `SOAA_EXPERIMENTS.md` (E1–E5), `catalog/gk-soaa-cases.yaml` (GK-SOAA-01..16, C01–C09), `templates/preflight-soaa.md`; contract edits (system-level role map, applicability-selected verification, fixed binding vs fixed menu, `ProhibitedAccess`, S1/precedence notes, open-discrepancy rows). Deferred glob finding resolved in §2.6 (six copies); §15a item in skill, template and starters. 22 new extension tests and 9 routing tests, red first. `load_pack` now ships README (11 → 16 files). CodeRabbit's five findings fixed (`soaa_core` loaded first via `agent_guidance`; GK-SOAA-16 under `skill-activation`; lifecycle discrepancy row; `####` template headings; a verification family per applying condition) | — |
 | 10 Applicability check | complete | Merged as #239 (`0a99aa2`): `checks/applicability.py` (standalone, `python -I`, imports `cli.experiments`/`cli.schema_validation`), manifest `checks` entry `{id: soaa-applicability, path: checks/applicability.py, required: false}`, README and `SOAA_EXPERIMENTS.md` usage, `tests/test_soaa_applicability_check.py` (red first), `wheel_pack_smoke.py` runs it through `govkit pack check` from the wheel. Conformance: SKIPPED and advisory when absent from policy; SKIPPED does not satisfy a policy-required check; executed PASS/FAIL with a changed evidence digest. CodeRabbit's six findings fixed (feature binding, catalog validation, empty catalogs, evidence-less passes, the 0.23.0 requirement, conform arguments) | — |
-| 11 Wheel acceptance/handoff | complete | Merged as #241 (`3f7e60b`): `tests/wheel_experiment_smoke.py` runs S1–S6 from a clean runtime-only wheel for all three agents (legacy L5 api `apply`, both extensions, `init --starter backend`, `validate --only experiments` with and without `--strict` on five scenarios; declarative `profile`/`pack apply` with `project_type: api`, `extension list --installed`, `request plan`, `conform` on six cases; `soaa-applicability`; the path budget) and a CI `wheel-smoke` step; usage guide and pilot start in `docs/ARCHITECTURE_EXPERIMENTS.md`; cross-links; R10 corrected; ADR 0020 accepted with an implementation addendum CodeRabbit's three findings fixed in a follow-up PR (conform example inputs, plan status, all agents run every declarative case) | 0.23.0 release PR (U3) |
+| 11 Wheel acceptance/handoff | complete | Merged as #241 (`3f7e60b`): `tests/wheel_experiment_smoke.py` runs S1–S6 from a clean runtime-only wheel for all three agents (legacy L5 api `apply`, both extensions, `init --starter backend`, `validate --only experiments` with and without `--strict` on five scenarios; declarative `profile`/`pack apply` with `project_type: api`, `extension list --installed`, `request plan`, `conform` on six cases; `soaa-applicability`; the path budget) and a CI `wheel-smoke` step; usage guide and pilot start in `docs/ARCHITECTURE_EXPERIMENTS.md`; cross-links; R10 corrected; ADR 0020 accepted with an implementation addendum CodeRabbit's three findings fixed in a follow-up PR (conform example inputs, plan status, all agents run every declarative case) | Released in 0.23.0 (#243) |
 
-**Current handoff:** Increments 0–4 and 6–11 are merged. The 0.23.0 release PR
-(U3) is in review. It bumps `pyproject.toml`, pins the twelve consumer CI gates
-to `govkit~=0.23.0` and raises the SOAA pack's `govkit_min_version` to 0.23.0.
-Tagging and publishing need separate authorization. Then the Value Builder pilot
-starts from `docs/ARCHITECTURE_EXPERIMENTS.md` (*Starting a consuming-project
+**Current handoff:** Phase A is complete and released. Increments 0–4 and 6–11
+are merged (Increment 5 deferred, U2). GovKit 0.23.0 was published on
+2026-11-02 from release PR #243 (tag `v0.23.0`, publish run 41533545298). A
+clean `pip install govkit==0.23.0` was verified, and the PyPI wheel's SHA-256
+matches the reviewed local build. Next: the Value Builder pilot (Phase B, §11),
+starting from `docs/ARCHITECTURE_EXPERIMENTS.md` (*Starting a consuming-project
 pilot*). Run the full local wheel-smoke mirror before every PR. Qodo is retired;
 CodeRabbit reviews each PR.
 
