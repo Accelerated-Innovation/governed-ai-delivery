@@ -546,7 +546,7 @@ def test_invalid_contract_scope_is_unmeasured_not_vacuous_pass(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "name", ["defect", "enhancement", "refactor", "mcp", "llm", "feature", "architecture"]
+    "name", ["defect", "enhancement", "refactor", "mcp", "llm", "feature", "architecture", "experiment"]
 )
 def test_bundled_pilot_pass_failure_and_local_ci_equivalence(tmp_path, name):
     from tests.wheel_change_smoke import run_pilot

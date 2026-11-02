@@ -523,6 +523,7 @@ def test_bundled_workflow_examples_have_replayable_plans(tmp_path):
         "llm": "bounded",
         "feature": "full-feature",
         "architecture": "architecture",
+        "experiment": "full-feature",
     }
     assert {p.stem for p in (root / "requests").glob("*.json")} == set(expected)
     before = snapshot(tmp_path)

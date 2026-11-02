@@ -113,7 +113,7 @@ A change is rarely one file. Changing a schema means updating starter templates 
 
 ### Request workflow planning
 
-`cmd_request.py` prints proposed templates and per-request plans. `workflows.py` resolves only validated snapshots; `workflow_store.py` owns bounded local reads and deterministic replay. See [ADR 0006](plans/decisions/0006-request-workflows.md) and [request workflows](docs/REQUEST_WORKFLOWS.md). Preserve additive policy/check requirements, existing defect eligibility, independent LLM evaluation and verified pinned guidance. Agent normalization stays outside the deterministic boundary. Planning readiness is not approval or conformance. Supplied scope observations do not replace actual Git capture in `change_conformance.py`. Keep schemas, seven examples and runtime-only wheel smoke aligned.
+`cmd_request.py` prints proposed templates and per-request plans. `workflows.py` resolves only validated snapshots; `workflow_store.py` owns bounded local reads and deterministic replay. See [ADR 0006](plans/decisions/0006-request-workflows.md) and [request workflows](docs/REQUEST_WORKFLOWS.md). Preserve additive policy/check requirements, existing defect eligibility, independent LLM evaluation and verified pinned guidance. Agent normalization stays outside the deterministic boundary. Planning readiness is not approval or conformance. Supplied scope observations do not replace actual Git capture in `change_conformance.py`. Keep schemas, eight examples and runtime-only wheel smoke aligned. An `experiment` reference escalates defect/bounded work to full-feature and adds the `experiment-record` artifact; requests without one must replay unchanged (`tests/fixtures/request-replay-v1`).
 
 ### Architecture experiments
 
@@ -124,12 +124,12 @@ A change is rarely one file. Changing a schema means updating starter templates 
 - **What a clean assessment means.** The records are consistent and current. It is not execution or conformance.
 - **Where it runs.** `govkit validate` reports experiment findings per feature, at any level; `--only experiments` runs just these checks. Errors FAIL. Outstanding or unknown findings WARN, or FAIL with `--strict`. Both `quality-gate.yml` templates run the non-strict `--only experiments` check when a non-starter feature declares either record. Every feature install ships both schemas.
 - **Agent guidance.** The backend, CLI and data preflight, GenAI preflight, spec-planning and implementation-plan skills, the generic spec-compliance rule, the entry instructions, both preflight and plan templates, and the backend, CLI and data starters carry the loop, identically for all three agents. Starters ship `status: blocked` with the reason "Preflight not yet completed." UI payload is a later increment.
-- **Not yet wired in.** Change conformance does not consume the assessor yet.
+- **Request and change wiring.** An `experiment` request reference routes work to full-feature; `change_conformance.py` assesses the referenced records through `experiment_store` (errors FAIL, outstanding/unknown UNKNOWN) and honors a declared preflight outcome. It never executes experiments.
 - **Keep aligned.** The schemas and the six example scenarios, together with their expected results.
 
 ### Actual-change conformance
 
-`change_scope.py` captures bounded Git observations; `change_policy.py` reads accepted provider configuration; `change_architecture.py` measures scoped literal constraints; `change_defects.py` adapts existing eligibility/red-green execution. `change_conformance.py` recomputes request requirements and composes I04 checks. See ADR 0007 and `docs/CHANGE_CONFORMANCE.md`. Keep accepted policy outside the inspected tree, commands explicitly opted in, missing semantic/platform evidence unknown, and synthetic seven-pilot wheel coverage aligned. `migration.py` preserves legacy ownership and obligations; `maintenance.py` separately assesses release, resource, fit and CI facts.
+`change_scope.py` captures bounded Git observations; `change_policy.py` reads accepted provider configuration; `change_architecture.py` measures scoped literal constraints; `change_defects.py` adapts existing eligibility/red-green execution. `change_conformance.py` recomputes request requirements and composes I04 checks. See ADR 0007 and `docs/CHANGE_CONFORMANCE.md`. Keep accepted policy outside the inspected tree, commands explicitly opted in, missing semantic/platform evidence unknown, and synthetic eight-pilot wheel coverage aligned. `artifact:experiment-record` maps assessor errors to FAIL and outstanding/unknown findings to UNKNOWN; `artifact:architecture-preflight` honors a declared outcome block. `migration.py` preserves legacy ownership and obligations; `maintenance.py` separately assesses release, resource, fit and CI facts.
 
 ### Safe legacy migration
 
@@ -149,7 +149,7 @@ A change is rarely one file. Changing a schema means updating starter templates 
 
 ### Change posture projection
 
-`posture_change.py` separately projects replayed I07 change results. See ADR 0015 and `docs/CHANGE_POSTURE.md`. Preserve workflow obligations, independent evaluations, configured versus executed controls, canonical states/findings/actions and error-as-unknown behavior. Use the shared privacy descriptors and check aggregator; never combine maintenance/change identities or infer provider authentication. Reject contradictory repository identity and missing/weakened planned controls. Explicit change publication needs the caller-selected protected target because the source omits its filesystem root. Keep descriptor schema parity, the bundled example and seven real change wheel pilots aligned.
+`posture_change.py` separately projects replayed I07 change results. See ADR 0015 and `docs/CHANGE_POSTURE.md`. Preserve workflow obligations, independent evaluations, configured versus executed controls, canonical states/findings/actions and error-as-unknown behavior. Use the shared privacy descriptors and check aggregator; never combine maintenance/change identities or infer provider authentication. Reject contradictory repository identity and missing/weakened planned controls. Explicit change publication needs the caller-selected protected target because the source omits its filesystem root. Keep descriptor schema parity, the bundled example and eight real change wheel pilots aligned.
 
 ### Offline posture aggregation
 

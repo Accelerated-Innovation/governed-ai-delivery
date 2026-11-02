@@ -1,4 +1,4 @@
-"""Seven bundled actual-change pilots, also run from a runtime-only wheel."""
+"""Eight bundled actual-change pilots, also run from a runtime-only wheel."""
 
 import difflib
 import json
@@ -15,7 +15,19 @@ from cli.posture import reference
 from cli.posture_change import parse_change_posture
 from cli.schema_validation import canonical_json, content_digest
 
-PILOTS = ("defect", "enhancement", "refactor", "mcp", "llm", "feature", "architecture")
+PILOTS = (
+    "defect",
+    "enhancement",
+    "refactor",
+    "mcp",
+    "llm",
+    "feature",
+    "architecture",
+    "experiment",
+)
+# The experiment pilot reuses a bundled record observed on 2026-11-01; assess it
+# at that scenario's documented time so the result is not in the future.
+OBSERVED = {"experiment": "2026-11-10T00:00:00Z"}
 
 
 def run_pilot(workspace, name):
@@ -85,7 +97,7 @@ def run_pilot(workspace, name):
         "--base",
         base,
         "--observed-at",
-        "2026-09-23T12:00:00Z",
+        OBSERVED.get(name, "2026-09-23T12:00:00Z"),
         "--execute-check",
         "project:tests",
         "--execute-check",
@@ -270,5 +282,5 @@ if __name__ == "__main__":
             # The create-only writer rejects symlink parents, including macOS /var.
             run_pilot(Path(directory).resolve(), name)
     print(
-        "Seven actual-change pilots: real outcomes, private posture, planned metadata preservation, source pointer integrity and protected publication verified."
+        "Eight actual-change pilots: real outcomes, private posture, planned metadata preservation, source pointer integrity and protected publication verified."
     )

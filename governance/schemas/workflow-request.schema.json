@@ -174,7 +174,8 @@
               "nfr",
               "contract",
               "established-behavior",
-              "regression-test"
+              "regression-test",
+              "experiment"
             ]
           },
           "reference": {

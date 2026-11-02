@@ -35,7 +35,14 @@ LLM impact requires the independent `llm-evaluation` capability and its pinned e
 
 ## References, replay and changed scope
 
-Acceptance can be recorded inline or reused through an accepted local reference. References have `kind` (`acceptance`, `nfr`, `contract`, `established-behavior`, `regression-test`), `reference`, `authority`, and an optional content `digest`. Files are read within the target, without symlink traversal, up to 64 KiB each. Missing or changed sources used by the plan are unresolved; an unavailable unrelated contract is informational. Source digests record observations, not authenticated authority or passing evidence.
+Acceptance can be recorded inline or reused through an accepted local reference. References have `kind` (`acceptance`, `nfr`, `contract`, `established-behavior`, `regression-test`, `experiment`), `reference`, `authority`, and an optional content `digest`. Files are read within the target, without symlink traversal, up to 64 KiB each. Missing or changed sources used by the plan are unresolved; an unavailable unrelated contract is informational. Source digests record observations, not authenticated authority or passing evidence.
+
+**Experiment references.** A reference with kind `experiment` names a `features/<feature>/experiments.yaml` record ([architecture experiments](ARCHITECTURE_EXPERIMENTS.md)). Material architectural uncertainty never takes the short path:
+- A defect or bounded request that references an experiment routes to `full-feature`. The plan records the non-blocking decision `experiment-escalated`. Architecture work keeps its workflow.
+- The plan adds the `experiment-record` artifact, which [change conformance](CHANGE_CONFORMANCE.md) validates.
+- Omit `digest` on experiment references. A declared digest turns every record edit into a blocking `changed-reference`. Without it, a changed record still changes the plan evidence, so `--previous` reports the plan as needing reassessment.
+
+Requests without experiment references resolve exactly as before.
 
 The versioned plan includes normalized inputs, workflow, required capabilities, guidance with native paths/digests, artifact/check obligations, reused contracts, source snapshots, decisions and identities for profile, request, lock and scope. `RequestPlan.check_specs()` and `.evidence()` expose the shared typed `CheckSpec` and `Evidence` contracts. Every planned check has `execution: not-run`.
 
@@ -47,7 +54,7 @@ govkit request plan request.json --previous request-plan.json --scope observed-s
 
 **Planning boundary:** scope observations supplied to `request plan` are not derived from Git. Actual-change conformance compares accepted intent with real changes and trusted current policy/resources, then executes explicitly selected checks. A ready plan is neither conformance nor approval. CLI exit 0 means a plan was produced, including plans with unresolved decisions; exit 1 means invalid/unreadable inputs. Inspect blocking `decisions` or `RequestPlan.ready` for planning readiness.
 
-Seven runnable fixtures under `governance/examples/workflows/` cover defect, enhancement, refactor, MCP, LLM, full Gherkin delivery and architecture migration. Their shared consumer is illustrative; it is not accepted policy for the GovKit source repository. Fast tests and the runtime-only wheel smoke exercise all seven, with native guidance checked for all three agents.
+Eight runnable fixtures under `governance/examples/workflows/` cover defect, enhancement, refactor, MCP, LLM, full Gherkin delivery, architecture migration and an enhancement that references an experiment record. Their shared consumer is illustrative; it is not accepted policy for the GovKit source repository. Fast tests and the runtime-only wheel smoke exercise all eight, with native guidance checked for all three agents.
 
 ## Checking the actual change
 

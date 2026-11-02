@@ -16,8 +16,10 @@ are for material uncertainty only.
 > validate` and the consumer `quality-gate.yml` (GitHub and Azure) check them,
 > as described below. For backend, CLI and data features, the agent skills,
 > rules, entry instructions, templates and starters guide teams through the
-> workflow. Change conformance and UI guidance are later increments of the
-> [Phase A plan](../plans/SOAA_GOVKIT_INCREMENTAL_IMPLEMENTATION_PLAN.md).
+> workflow. Request planning and change conformance consume the records
+> through `experiment` references ([request workflows](REQUEST_WORKFLOWS.md),
+> [change conformance](CHANGE_CONFORMANCE.md)). UI guidance is a later
+> increment of the [Phase A plan](../plans/SOAA_GOVKIT_INCREMENTAL_IMPLEMENTATION_PLAN.md).
 
 ## Checking a project
 

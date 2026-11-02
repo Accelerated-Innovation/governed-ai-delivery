@@ -93,6 +93,25 @@ supplied outputs, without calling a model. `artifact:change-record` reflects the
 validated intent snapshot. Other artifacts reuse nonempty contained references
 (up to 64 KiB each), proving presence and bytes, not semantic acceptance.
 
+**Experiment records and preflight outcomes.** A request that references an
+experiment record gets the `artifact:experiment-record` check:
+- **What it reads:** each referenced `<feature>/experiments.yaml` in the inspected
+  checkout, assessed with the [experiment assessor](ARCHITECTURE_EXPERIMENTS.md) at
+  `--observed-at`. Without an observation time, expiry stays unverifiable.
+- **FAIL:** a missing or unreadable record, or errors such as contradictions,
+  stale reliance or digest mismatches.
+- **UNKNOWN:** outstanding experiments or unverifiable evidence. UNKNOWN never
+  passes a required check.
+- **PASS:** consistent, current records. The evidence carries the limitation that
+  it validates records and their bound digests and does not authenticate execution
+  or results.
+
+`artifact:architecture-preflight` also honors a declared `preflight_outcome` block
+in its configured references:
+- `blocked` or an invalid block FAILs.
+- `experiment-required` and `adr-required` are UNKNOWN.
+- `approved-for-planning`, or no block, behaves as before.
+
 ## Git scope, transitions and defects
 
 The explicit base is resolved to a commit. The snapshot compares it with Git-visible
@@ -209,7 +228,7 @@ another change. Explicit time/base/request/policy/check inputs yield equivalent
 local and CI results; environment-dependent commands remain the caller's concern.
 
 [The bundled pilot](../governance/examples/change-conformance/README.md) composes
-the seven normalized request examples with an isolated ungoverned Git repository and separately
+the eight normalized request examples with an isolated ungoverned Git repository and separately
 accepted policy. Tests exercise passing measurements, real failures, unchanged
 source bytes/mtimes, and JSON replay with runtime-only dependencies. Architecture
 measurements pass while unavailable platform approval remains unknown. These are

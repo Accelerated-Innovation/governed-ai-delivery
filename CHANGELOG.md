@@ -85,8 +85,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   policy lists it. It executes no application tests and makes no SOAA
   conformance claim.
 
+- **Experiment references in request planning and change conformance.**
+  Requests can reference `features/<feature>/experiments.yaml` records with the
+  new reference kind `experiment`.
+  - A defect or bounded request that references an experiment routes to
+    `full-feature` and records the non-blocking decision
+    `experiment-escalated`. Architecture work keeps its workflow.
+  - The plan adds the `experiment-record` artifact. Change conformance assesses
+    each referenced record at `--observed-at`. Errors such as stale reliance
+    FAIL; outstanding experiments or unverifiable evidence are UNKNOWN, which
+    never passes.
+  - `artifact:architecture-preflight` honors a declared outcome block:
+    `blocked` or an invalid block FAILs, and `experiment-required` and
+    `adr-required` are UNKNOWN.
+
+  Requests without experiment references plan, replay and conform exactly as
+  before. Experiments are never executed. An eighth workflow example and an
+  eighth change pilot cover the path.
+
 ### Changed
 
+- **Application Governance 1.2.0.** The request-planning skill explains
+  experiment references: reference each record without a digest, and never
+  record an experiment as passed or adopted for the owner. Profiles that pin
+  1.1.2 need a pin update. The bundled maintenance example now offers 1.3.0
+  as its synthetic newer release.
 - **LLM, SOAA and multi-agent guidance route independently** in the Claude
   Code, Codex and Copilot payloads.
   - L5 backend instructions load SOAA contracts when a feature uses governed

@@ -188,7 +188,7 @@ def run_pilot(workspace, agent):
         )
     )
     assert not preview["ready"] and preview["protected_customizations"]
-    assert preview["target_version"] == "1.2.0"
+    assert preview["target_version"] == "1.3.0"
     assert snapshot() == before
     skill.write_bytes(original)
     repaired = snapshot()
