@@ -38,7 +38,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   - The GitHub and Azure `quality-gate.yml` templates gain an
     `architecture-experiments` job. It runs the non-strict check only when a
     non-starter feature declares either record.
-  - Change conformance does not consume the records yet.
+  - Request planning and change conformance consume the records through
+    `experiment` references; see *Experiment references in request planning
+    and change conformance* below.
 - **Agent guidance for the experiment workflow** (backend, CLI and data, all
   three agents).
   - Architecture preflight gains §6.5, *Uncertainty Classification and
