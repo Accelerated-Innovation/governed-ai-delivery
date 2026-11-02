@@ -68,7 +68,7 @@ The script will create `c:\users\marty\source\sandbox\govkit-test\.venv\` and `c
 
 ## Expected results
 
-Each smoke feature ships only the **3 spec inputs** — `acceptance.feature`, `nfrs.md`, `eval_criteria.yaml`. `plan.md` and `architecture_preflight.md` are intentionally absent so the `/architecture-preflight` and `/spec-planning` skills can be invoked against the sandbox to generate them. This means L4 (and L5) validate will fail by design.
+The script writes its own smoke feature (`features/hello_world_api/`) with only the **3 spec inputs** — `acceptance.feature`, `nfrs.md`, `eval_criteria.yaml`. It does not use `govkit init`, whose starters ship both `plan.md` and `architecture_preflight.md`. Here those two files are intentionally absent so the `/architecture-preflight` and `/spec-planning` skills can be invoked against the sandbox to generate them. This means L4 (and L5) validate will fail by design.
 
 - **L3 apply + validate** — green. L3 validate short-circuits (no per-feature artifacts).
 - **L4 apply** — green.

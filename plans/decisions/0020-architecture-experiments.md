@@ -1,7 +1,7 @@
 # ADR 0020: Architecture experiment records and preflight outcomes
 
-Status: Proposed with the SOAA Phase A Increment 2 PR. Merging that PR accepts
-the record contracts and assessor below. It does not wire them into
+Status: Accepted (#230). Proposed with the SOAA Phase A Increment 2 PR; merging
+that PR accepted the record contracts and assessor below. It does not wire them into
 `govkit validate`, change conformance, CI templates or agent payload; those are
 later increments in `plans/SOAA_GOVKIT_INCREMENTAL_IMPLEMENTATION_PLAN.md`.
 
@@ -94,3 +94,21 @@ plan or CI template changes until a later increment consumes them.
 Validation is test first: one negative test per finding code, bundled
 example scenarios whose expected states are asserted, read-only and bounded
 store behavior, and the fast suite.
+
+## Implementation addendum
+
+The text above is preserved as decided. Later Phase A increments wired the
+contracts in without changing them:
+
+- `govkit validate`, `--only experiments` and both `quality-gate.yml`
+  templates (#231);
+- backend, CLI and data agent payload, templates and starters (#234);
+- request planning (`experiment` references escalate to full-feature) and change
+  conformance (`artifact:experiment-record`, preflight outcomes) (#240);
+- the SOAA applicability coverage check, an optional pack control that reads
+  passed criteria (#239);
+- installed-wheel acceptance of scenarios S1–S6 for all three agents
+  (`tests/wheel_experiment_smoke.py`).
+
+The boundary is unchanged. Records are validated, never executed, and a clean
+assessment establishes neither observed execution nor SOAA conformance.

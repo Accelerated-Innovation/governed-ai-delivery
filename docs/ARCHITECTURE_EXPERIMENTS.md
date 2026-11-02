@@ -132,6 +132,81 @@ The decision rules keep experiments from weakening requirements:
   stale.
 - The schema has no waiver field.
 
+## The development loop
+
+1. **Preflight.** Architecture preflight decides whether the design rests on
+   an untested assumption. If it doesn't, record `approved-for-planning` and
+   take the short path. For SOAA features, also copy the applicability block
+   from the extension's `templates/preflight-soaa.md` into Section 15a.
+2. **Record the experiment.** Set `experiment-required` and list the
+   experiment IDs. Then add each experiment to `experiments.yaml` with status
+   `planned`: its criteria, scope, permitted effects and the evidence class it
+   needs. `govkit validate` warns until the experiment resolves.
+3. **Run it and record the result.** Record per-criterion outcomes with
+   digest-bound evidence files, then the decision. A failure closes with
+   `revise-design`, `reject-approach` or `narrow-supported-behavior`; a
+   revised design gets a new experiment.
+4. **Rely on the result.** When the design is settled, set
+   `approved-for-planning` and add `relies_on` entries naming passed, adopted
+   experiments with their `result_digest`. If the digest is wrong,
+   `govkit validate` reports the current one.
+5. **Plan and conform.** In `request.json`, reference the record with kind
+   `experiment` and no digest. The request then routes to full-feature work.
+   `govkit conform --request ... --observed-at <time>` assesses the records
+   as `artifact:experiment-record`. See [request workflows](REQUEST_WORKFLOWS.md)
+   and [change conformance](CHANGE_CONFORMANCE.md).
+6. **Optionally check SOAA coverage.** The `soaa-applicability` pack check
+   reports which GK-SOAA cases the passed criteria cover. It needs GovKit
+   0.23.0 or later.
+7. **Complete.** Run `govkit validate --target . --strict`. Any change to a
+   requirement, skill, policy or implementation file named by a result makes
+   it stale, and step 3 repeats for that experiment.
+
+`tests/wheel_experiment_smoke.py` runs this loop from a clean wheel for all
+three agents, on both the legacy and declarative routes, using the bundled
+scenarios.
+
+## Starting a consuming-project pilot
+
+For a backend API project such as the first pilot. Use a wheel built from
+`main` or a published release; the `soaa-applicability` check needs 0.23.0 or
+later.
+
+```bash
+python -m pip install /path/to/govkit-<version>-py3-none-any.whl
+govkit apply --agent <claude-code|codex|copilot> --target . --level 5 --type api --ci <github|azure>
+govkit extension add llm-application --target .     # only if the runtime calls models
+govkit extension add skill-oriented-agent-architecture --target .
+govkit extension list --installed --target .        # resolve any conflict before continuing
+govkit init <feature> --target . --starter backend
+```
+
+**Declarative alternative.** Accept a profile that declares
+`project_type: api` and selects the capabilities:
+- SOAA (`skill-oriented-agent-architecture`);
+- `llm-evaluation`, when the runtime calls models.
+
+Then run `govkit profile apply` and `govkit pack apply`. The SOAA pack supports
+only `api` and `cli` projects. Feature folders still come from `govkit init`.
+
+**First slice.**
+1. Pick one real task and one skill, and write the acceptance criteria.
+2. Run architecture preflight and decide each SOAA applicability condition.
+3. Where an assumption is untested, record EXP-001 with
+   `required_evidence_class: application`, then follow the loop above.
+
+**Facts to collect at the start:**
+- the repository and revision, and the accountable owner;
+- the task, its acceptance criteria, and the actual skills and how they are
+  selected;
+- data, tenant and effect boundaries, and the credentials involved;
+- runtime, skill, dependency and test-adapter pins;
+- the baseline effort, latency, cost and recovery burden.
+
+File findings as GovKit issues. The bundled scenarios are synthetic. The
+pilot's records carry `evidence_class: application` and are first-party
+evidence, not independent verification.
+
 ## What a clean assessment does not show
 
 A clean assessment shows only that the supplied records are well formed,

@@ -1478,8 +1478,13 @@ records KD-1 to KD-8; KD-9 to KD-13 are recorded in their increments.
 
 ## 11. Starting the consuming-project pilot (Phase B handoff)
 
-This section is completed in Increment 11 with exact versions. The intended
-procedure:
+Increment 11 published the user-facing procedure in
+`docs/ARCHITECTURE_EXPERIMENTS.md` (*Starting a consuming-project pilot*),
+exercised from a clean wheel by `tests/wheel_experiment_smoke.py`. Two
+corrections to the draft below: `govkit init` needs `--starter backend` when it
+cannot prompt, and the declarative route needs `project_type: api` because the
+SOAA pack supports only `api` and `cli`. The version is 0.23.0 once released
+(U3); until then, use a wheel built from `main`. The original draft:
 
 1. **Install the package.** From the handoff, either a local wheel or a
    published release (U3):
@@ -1561,18 +1566,21 @@ Every other design question is resolved in §6.
 | 3 Validator/schemas/CI | complete | Merged as #231 (`b0166fa`). Its duplicate frozen-baseline check in `tests/wheel_gate_catalog_smoke.py` was missed; `wheel-smoke` failed on main until #233 (`78f2dec`). CI pins `govkit~=0.22.0` until the 0.23.0 release PR bumps every pin | — |
 | 4 Backend/data payload | complete | Skills (preflight §6.5, GenAI output, spec-planning outcome, implementation-plan reassessment), spec-compliance rule and 15 entry docs for all three agents; preflight/plan templates; five starters (`blocked` placeholder); assessor messages name current digests. No separate `experiments.yaml` template: the shared preflight skill carries the skeleton, so data installs need no install-list change. Merged as #234 (`0773c18`); CodeRabbit's three findings fixed, the last by requiring the outcome block whenever `experiments.yaml` exists. Qodo review not run (Qodo since retired) | — |
 | 5 UI alignment | deferred | U2: Value Builder is an API project; its UI is a client | Not required for handoff |
-| 6 Declarative integration | in review | Branch `feat/experiment-request-planning`: reference kind `experiment`; defect/bounded escalate to full-feature (`experiment-escalated`, non-blocking) and plans add `artifact:experiment-record`; conformance assesses referenced records via `experiment_store` (KD-4) and `architecture-preflight` honors a declared outcome; request-planning skill and Application Governance 1.2.0; eighth workflow example and change pilot; docs; replay goldens in `tests/fixtures/request-replay-v1` (seven baseline plans and one change report) replay byte-identically; `tests/test_experiment_requests.py` and `tests/test_workflow_schema_parity.py` red first | Merge by the user |
+| 6 Declarative integration | complete | Merged as #240 (`f44da4e`): reference kind `experiment`; defect/bounded escalate to full-feature (`experiment-escalated`, non-blocking) and plans add `artifact:experiment-record`; conformance assesses referenced records via `experiment_store` (KD-4) and `architecture-preflight` honors a declared outcome; request-planning skill and Application Governance 1.2.0; eighth workflow example and change pilot; docs; replay goldens in `tests/fixtures/request-replay-v1` (seven baseline plans and one change report) replay byte-identically; `tests/test_experiment_requests.py` and `tests/test_workflow_schema_parity.py` red first. CodeRabbit's one finding (a stale CHANGELOG claim) fixed | — |
 | 7 Extension inventory | complete | Merged as #232 (`3d2a36a`): `extension list --installed`, inventory schema, skill-context roots/conflicts, conflict warning in `legacy:extensions`. Declarative SOAA README awaits Increment 9 | — |
 | 8 Routing alignment | complete | Merged as #237 (`b135ee1`): six L5 backend entry docs route LLM (model use), SOAA (behavior, any agent count) and topology (`multi_agent: true`); §2.6 reads declarative packs only through `extension list --installed` and halts on a conflict or non-zero exit; architecture preflight owns §15a/§15b; GenAI preflight and eval-suite planning run only for `mode: llm`. CodeRabbit/Codex review: 11 of 12 findings fixed, the `applies_to` glob finding deferred to 9 | — |
 | 9 SOAA 0.2.0 | complete | Merged as #238 (`e6e50c0`): manifest 0.2.0 with explicit `capability_pack` (33 provides, 16 resources with kinds, three agents), `templates:` entry and revised guidance; README single-agent *Start here*, three layers, claim boundary, both installs; advisory `SOAA_APPLICABILITY.md` (12 condition IDs), `SOAA_EXPERIMENTS.md` (E1–E5), `catalog/gk-soaa-cases.yaml` (GK-SOAA-01..16, C01–C09), `templates/preflight-soaa.md`; contract edits (system-level role map, applicability-selected verification, fixed binding vs fixed menu, `ProhibitedAccess`, S1/precedence notes, open-discrepancy rows). Deferred glob finding resolved in §2.6 (six copies); §15a item in skill, template and starters. 22 new extension tests and 9 routing tests, red first. `load_pack` now ships README (11 → 16 files). CodeRabbit's five findings fixed (`soaa_core` loaded first via `agent_guidance`; GK-SOAA-16 under `skill-activation`; lifecycle discrepancy row; `####` template headings; a verification family per applying condition) | — |
 | 10 Applicability check | complete | Merged as #239 (`0a99aa2`): `checks/applicability.py` (standalone, `python -I`, imports `cli.experiments`/`cli.schema_validation`), manifest `checks` entry `{id: soaa-applicability, path: checks/applicability.py, required: false}`, README and `SOAA_EXPERIMENTS.md` usage, `tests/test_soaa_applicability_check.py` (red first), `wheel_pack_smoke.py` runs it through `govkit pack check` from the wheel. Conformance: SKIPPED and advisory when absent from policy; SKIPPED does not satisfy a policy-required check; executed PASS/FAIL with a changed evidence digest. CodeRabbit's six findings fixed (feature binding, catalog validation, empty catalogs, evidence-less passes, the 0.23.0 requirement, conform arguments) | — |
-| 11 Wheel acceptance/handoff | not started | — | After all; U3 |
+| 11 Wheel acceptance/handoff | in review | Branch `feat/installed-acceptance`: `tests/wheel_experiment_smoke.py` runs S1–S6 from a clean runtime-only wheel for all three agents (legacy L5 api `apply`, both extensions, `init --starter backend`, `validate --only experiments` with and without `--strict` on five scenarios; declarative `profile`/`pack apply` with `project_type: api`, `extension list --installed`, `request plan`, `conform` on six cases for codex and the passing case for the others; `soaa-applicability`; the path budget) and a CI `wheel-smoke` step; usage guide and pilot start in `docs/ARCHITECTURE_EXPERIMENTS.md`; cross-links; R10 corrected; ADR 0020 accepted with an implementation addendum | Merge by the user; then the 0.23.0 release PR (U3) |
 
-**Current handoff:** Increments 0–4 and 7–10 are merged and Increment 6 is in
-review. Next: Increment 11 (installed-package acceptance and pilot handoff),
-which needs the 0.23.0 release (U3); that release PR must also raise the SOAA
-pack's `govkit_min_version` to 0.23.0. Run the full local wheel-smoke mirror
-before every PR. Qodo is retired; CodeRabbit reviews each PR.
+**Current handoff:** Increments 0–4 and 6–10 are merged and Increment 11 is in
+review. Next: a separate 0.23.0 release PR (U3). It bumps `pyproject.toml`,
+moves the twelve consumer CI pins to `govkit~=0.23.0`, and raises the SOAA
+pack's `govkit_min_version` to 0.23.0. Publishing and tagging need separate
+authorization. Then the Value Builder pilot starts from
+`docs/ARCHITECTURE_EXPERIMENTS.md` (*Starting a consuming-project pilot*). Run
+the full local wheel-smoke mirror before every PR. Qodo is retired; CodeRabbit
+reviews each PR.
 
 ## Decision log
 
@@ -1606,4 +1614,6 @@ before every PR. Qodo is retired; CodeRabbit reviews each PR.
 | 2026-11-02 | `artifact:experiment-record` assesses records in the inspected checkout; the plan's source snapshot comes from the trusted policy checkout, as for every reference | Keeps the existing reference model; a record missing from the change FAILs even when the trusted copy exists |
 | 2026-11-02 | The experiment pilot is observed at 2026-11-10, the bundled `relied` scenario's documented assessment time | Its result is dated 2026-11-01; the other pilots' 2026-09-23 clock would make it `result-in-future` (unknown) |
 | 2026-11-02 | The four pipeline entry-point goldens are regenerated for Application Governance 1.2.0; the maintenance example's synthetic newer release moves to 1.3.0 | Decoding each binding shows only `packs_digest` changed. The maintenance fixture used 1.2.0 as the "newer" release, which the bundled pack now is |
+| 2026-11-02 | The experiment smoke validates five scenarios through the CLI but uses `relied` only in conformance at a fixed `--observed-at` | `validate` measures expiry against the wall clock and only `relied` declares an expiry; the CLI run stays deterministic over time |
+| 2026-11-02 | R10 is a wording fix: the PowerShell smoke writes its own three-input feature; `govkit init` starters ship `plan.md` and `architecture_preflight.md` | The smoke confirms both files in an installed starter |
 | 2026-10-19 | `multi_agent_evaluation` scores in eval_criteria may be null (placeholders), unlike the plan's `evaluation_prediction` | The starter documents `score: null` / `evidence: ""` until evaluation runs |
