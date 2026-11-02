@@ -37,7 +37,7 @@ Ruff has `fix = true` in `pyproject.toml`, so `ruff check` **rewrites files**. S
 .\scripts\smoke.ps1 -Agents claude-code -Levels 4 -Force   # apply+validate across agent×type×level
 ```
 
-Bootstraps its own `scripts/.venv/` (gitignored) and writes sandboxes under `scripts/projects*/`. See [scripts/README.md](scripts/README.md). L4/L5 `validate` is **expected to fail** in these sandboxes — the starter features intentionally omit `plan.md` / `architecture_preflight.md`.
+Bootstraps its own `scripts/.venv/` (gitignored) and writes sandboxes under `scripts/projects*/`. See [scripts/README.md](scripts/README.md). L4/L5 `validate` is **expected to fail** in these sandboxes — the script writes its own `hello_world_api` feature with only the three spec inputs, omitting `plan.md` / `architecture_preflight.md`. `govkit init` starters ship both files.
 
 ## Delivery review
 
@@ -125,7 +125,7 @@ A change is rarely one file. Changing a schema means updating starter templates 
 - **Where it runs.** `govkit validate` reports experiment findings per feature, at any level; `--only experiments` runs just these checks. Errors FAIL. Outstanding or unknown findings WARN, or FAIL with `--strict`. Both `quality-gate.yml` templates run the non-strict `--only experiments` check when a non-starter feature declares either record. Every feature install ships both schemas.
 - **Agent guidance.** The backend, CLI and data preflight, GenAI preflight, spec-planning and implementation-plan skills, the generic spec-compliance rule, the entry instructions, both preflight and plan templates, and the backend, CLI and data starters carry the loop, identically for all three agents. Starters ship `status: blocked` with the reason "Preflight not yet completed." UI payload is a later increment.
 - **Request and change wiring.** An `experiment` request reference routes work to full-feature; `change_conformance.py` assesses the referenced records through `experiment_store` (errors FAIL, outstanding/unknown UNKNOWN) and honors a declared preflight outcome. It never executes experiments.
-- **Keep aligned.** The schemas and the six example scenarios, together with their expected results.
+- **Keep aligned.** The schemas and the six example scenarios, together with their expected results. `tests/wheel_experiment_smoke.py` runs the loop (acceptance scenarios S1–S6) from a clean wheel for all three agents on the legacy and declarative routes.
 
 ### Actual-change conformance
 

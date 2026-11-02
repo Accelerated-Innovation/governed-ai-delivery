@@ -105,6 +105,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   before. Experiments are never executed. An eighth workflow example and an
   eighth change pilot cover the path.
 
+- **Installed-wheel acceptance of the architecture experiment loop.**
+  `tests/wheel_experiment_smoke.py` runs acceptance scenarios S1–S6 from a
+  clean runtime-only wheel for Claude Code, Codex and Copilot. CI runs it in
+  the `wheel-smoke` job.
+  - Legacy route: L5 api apply, both extensions, `init`, then `validate` on the
+    bundled scenarios, with and without `--strict`.
+  - Declarative route: profile and pack apply, `extension list --installed`,
+    `request plan` and `conform` on a real Git repository.
+  - It also runs the `soaa-applicability` check.
+
+  `docs/ARCHITECTURE_EXPERIMENTS.md` gains a step-by-step development loop and
+  *Starting a consuming-project pilot*. All records are synthetic fixtures.
+
 ### Changed
 
 - **Application Governance 1.2.0.** The request-planning skill explains
@@ -165,6 +178,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- CLAUDE.md and `scripts/README.md` no longer say that `govkit init`
+  starters omit `plan.md` and `architecture_preflight.md`. Starters ship both;
+  only the PowerShell smoke script's own feature omits them.
 - The backend `eval_criteria.yaml` schema now accepts the documented
   `multi_agent` topology flag and `multi_agent_evaluation` block. Previously,
   uncommenting the L5 starter's multi-agent block as instructed made the

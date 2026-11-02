@@ -225,4 +225,12 @@ Check execution verifies pinned resources and current accepted policy, then invo
 
 The `llm-evaluation` worked pack contains a real offline exact-match evaluator for supplied `{cases: [{id, expected, actual}]}` JSON. Exit 0 means every nonempty, uniquely identified case matched; 1 means mismatches; 2 means invalid input. Output contains case IDs and counts, not model responses. It does not invoke a model or prove the records' origin, freshness, completeness, or broader model quality. Its example records are demonstrations, never project evidence.
 
+The `skill-oriented-agent-architecture` pack contributes an optional control,
+`soaa-applicability` (`required: false`). It validates a feature's SOAA
+applicability block and reports which GK-SOAA cases passed experiment
+criteria cover. See the extension README and
+[architecture experiments](ARCHITECTURE_EXPERIMENTS.md). It needs GovKit 0.23.0
+or later, executes no application tests, and is advisory unless accepted policy
+lists it.
+
 Profile `policy.required_checks` must have an executable provider among selected packs. Removing an optional capability cannot silently remove a policy-required control: the next plan remains unresolved until a provider is retained or the accepted policy is explicitly changed. Pack preview/apply records `execution: not-run`; loading a skill is never proof that a check passed. Use [request planning](REQUEST_WORKFLOWS.md) and [actual-change conformance](CHANGE_CONFORMANCE.md) to resolve and execute applicable obligations, and [maintenance assessment](MAINTENANCE_ASSESSMENT.md) to review updates and resource drift. [Provider evidence](PROVIDER_EVIDENCE.md) retains imported success claims as unverified; authentication and active enforcement are not established by pack installation.
