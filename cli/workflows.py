@@ -293,6 +293,16 @@ def resolve_workflow(
             (preference, workflow),
             False,
         )
+    experiments = any(r["kind"] == "experiment" for r in req["references"])
+    if experiments and workflow in {"defect", "bounded"}:
+        # Material architectural uncertainty never takes the short path.
+        decide(
+            "experiment-escalated",
+            "Referenced experiment records require the full-feature workflow.",
+            (workflow, "full-feature"),
+            False,
+        )
+        workflow = "full-feature"
     if req["change"] in {"refactor", "maintenance"} and impacts["new-behavior"] is not False:
         decide(
             "behavior-contradiction",
@@ -465,6 +475,10 @@ def resolve_workflow(
                 "architecture-decision": "Reference an accepted scoped decision, never self-approve.",
                 "transition-plan": "Current/target rules, existing exceptions, applicability and exit verification.",
             }
+        )
+    if experiments:
+        artifacts["experiment-record"] = (
+            "Validate referenced experiment records; never self-approve."
         )
     for name in SENSITIVE:
         if impacts[name] is not False:

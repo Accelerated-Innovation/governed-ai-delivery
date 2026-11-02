@@ -37,6 +37,7 @@ expected = {
     "llm": "bounded",
     "feature": "full-feature",
     "architecture": "architecture",
+    "experiment": "full-feature",
 }
 assert {p.stem for p in (root / "requests").glob("*.json")} == set(expected)
 with tempfile.TemporaryDirectory() as directory:
@@ -136,5 +137,5 @@ with tempfile.TemporaryDirectory() as directory:
         assert any(d["blocking"] and d["code"] == "unavailable-lock" for d in drifted["decisions"])
         assert snapshot(target) == drifted_before
 print(
-    "Workflow wheel smoke passed: seven requests, three agents, verified native guidance, replay, maximum scope, user-skill preservation, resource drift and no writes"
+    "Workflow wheel smoke passed: eight requests, three agents, verified native guidance, replay, maximum scope, user-skill preservation, resource drift and no writes"
 )

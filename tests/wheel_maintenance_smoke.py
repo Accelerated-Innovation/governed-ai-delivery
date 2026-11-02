@@ -61,7 +61,7 @@ def run_pilot(workspace, agent):
     assert snapshot() == before and doc["lock_verification"] == "verified"
     assert doc["profile_resolution"]["capabilities"] == ["application-governance"]
     candidate = next(c for c in doc["candidates"] if c["component"] == "application-governance")
-    assert candidate["newest_known"] == "9.0.0" and candidate["selected_target"] == "1.2.0"
+    assert candidate["newest_known"] == "9.0.0" and candidate["selected_target"] == "1.3.0"
     assert not candidate["latest_verified"]
     record = workspace / "inventory.json"
     record.write_text(json.dumps(doc))
@@ -70,7 +70,7 @@ def run_pilot(workspace, agent):
     shutil.copytree(base.root, staged)
     manifest = staged / "manifest.yaml"
     data = yaml.safe_load(manifest.read_text())
-    data["version"] = "1.2.0"
+    data["version"] = "1.3.0"
     manifest.write_text(yaml.safe_dump(data))
     result = json.loads(
         cli(
@@ -87,7 +87,7 @@ def run_pilot(workspace, agent):
             "--json",
         )
     )
-    assert result["ready"] and result["target_version"] == "1.2.0"
+    assert result["ready"] and result["target_version"] == "1.3.0"
     assert snapshot() == before
     skill = next(
         target / r["path"]

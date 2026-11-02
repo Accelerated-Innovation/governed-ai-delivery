@@ -10,7 +10,7 @@ import subprocess
 import sys
 from dataclasses import dataclass, replace
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from . import check_adapters as adapters
 from .change_architecture import assess_architecture
@@ -27,6 +27,8 @@ from .check_models import (
     State,
 )
 from .check_runner import CheckRegistry, CheckReport, parse_report, run_checks
+from .experiment_store import MAX_DOCUMENT_BYTES, RECORD_NAME, assess_feature
+from .experiments import ERROR, parse_preflight_outcome
 from .observation_policy import (
     ObservationBudget,
     capture_observation,
@@ -206,8 +208,109 @@ def _command_check(command, selected):
     return check
 
 
+_RECORD_LIMITATION = "Validates experiment records and their bound digests; does not authenticate execution or results."
+# A declared preflight outcome that withholds planning approval.
+_PREFLIGHT_STATES = {"experiment-required": State.UNKNOWN, "adr-required": State.UNKNOWN}
+
+
+def _experiment_check(request, context, proof):
+    """Assess each referenced record in the change checkout (ADR 0020, KD-4)."""
+    references = sorted(
+        {r["reference"] for r in request.document["references"] if r["kind"] == "experiment"}
+    )
+    if not references:
+        return _outcome(
+            State.UNKNOWN,
+            "No experiment records are referenced",
+            proof,
+            code="unconfigured-artifact",
+        )
+    observed = context.identity.observed_at
+    now = datetime.fromisoformat(observed) if observed else None
+    findings, evidence, states = [], [], set()
+    for reference in references:
+        relative = PurePosixPath(reference)
+        try:
+            if relative.name != RECORD_NAME or len(relative.parts) < 2:
+                raise ValueError(f"Reference must name a <feature>/{RECORD_NAME} record")
+            path = contained_file(context.target, reference)
+            with path.open("rb") as stream:
+                content = stream.read(MAX_DOCUMENT_BYTES + 1)
+            if len(content) > MAX_DOCUMENT_BYTES:
+                raise ValueError("Experiment record exceeds the observation byte limit")
+            assessed = assess_feature(
+                context.target, context.target / relative.parent.as_posix(), now=now
+            )
+        except (OSError, ValueError) as exc:
+            states.add(State.FAIL)
+            findings.append(
+                Finding(
+                    "missing-artifact",
+                    "error",
+                    "change",
+                    f"{reference}: {exc}",
+                    "Commit the referenced experiment record and rerun conformance.",
+                    reference,
+                )
+            )
+            continue
+        evidence.append(
+            Evidence(
+                reference,
+                (reference,),
+                "experiment-assessment",
+                "local-check",
+                content_digest(content),
+                (_RECORD_LIMITATION,),
+            )
+        )
+        for finding in assessed.assessment.findings:
+            failed = finding.severity == ERROR
+            states.add(State.FAIL if failed else State.UNKNOWN)
+            findings.append(
+                Finding(
+                    finding.code,
+                    "error" if failed else "warning",
+                    "change",
+                    finding.message,
+                    "Reassess or rerun the experiment, record the result, and rerun conformance.",
+                    finding.record or reference,
+                )
+            )
+    state = (
+        State.FAIL
+        if State.FAIL in states
+        else State.UNKNOWN
+        if State.UNKNOWN in states
+        else State.PASS
+    )
+    summary = {
+        State.FAIL: "Experiment records are missing, invalid, contradictory or stale",
+        State.UNKNOWN: "Experiment work is outstanding or its evidence cannot be verified",
+        State.PASS: "Referenced experiment records are consistent and current",
+    }[state]
+    return CheckOutcome(
+        state, Execution.EXECUTED, summary, tuple(findings), tuple(evidence) or proof
+    )
+
+
+def _preflight_state(content: bytes) -> tuple[State, str | None]:
+    """Honor a declared preflight_outcome block; an absent block changes nothing."""
+    try:
+        outcome = parse_preflight_outcome(content.decode("utf-8"))
+    except (UnicodeError, DocumentError) as exc:
+        return State.FAIL, f"invalid preflight outcome: {exc}"
+    if outcome is None or outcome["status"] == "approved-for-planning":
+        return State.PASS, None
+    if outcome["status"] == "blocked":
+        return State.FAIL, "preflight outcome is blocked"
+    return _PREFLIGHT_STATES[outcome["status"]], f"preflight outcome is {outcome['status']}"
+
+
 def _artifact_check(identifier, references, request, proof, test_check):
     def check(context):
+        if identifier == "experiment-record":
+            return _experiment_check(request, context, proof)
         if identifier == "change-record":
             return _outcome(
                 State.PASS,
@@ -231,7 +334,7 @@ def _artifact_check(identifier, references, request, proof, test_check):
                 proof,
                 code="unconfigured-artifact",
             )
-        evidence, missing = [], []
+        evidence, missing, withheld = [], [], {}
         for reference in references:
             try:
                 path = contained_file(context.target, reference)
@@ -239,6 +342,10 @@ def _artifact_check(identifier, references, request, proof, test_check):
                     content = stream.read(65537)
                 if not content.strip() or len(content) > 65536:
                     raise ValueError("Unavailable artifact")
+                if identifier == "architecture-preflight":
+                    state, reason = _preflight_state(content)
+                    if reason:
+                        withheld[reference] = (state, reason)
                 evidence.append(
                     Evidence(
                         reference,
@@ -251,6 +358,15 @@ def _artifact_check(identifier, references, request, proof, test_check):
                 )
             except (OSError, ValueError):
                 missing.append(reference)
+        if withheld and not missing:
+            states = {state for state, _ in withheld.values()}
+            return _outcome(
+                State.FAIL if State.FAIL in states else State.UNKNOWN,
+                f"{identifier}: "
+                + "; ".join(f"{ref}: {reason}" for ref, (_, reason) in sorted(withheld.items())),
+                tuple(evidence) or proof,
+                code="preflight-outcome",
+            )
         return _outcome(
             State.FAIL if missing else State.PASS,
             f"{identifier}: "
