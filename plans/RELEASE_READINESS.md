@@ -6,6 +6,22 @@ boundary is approved, announced and integrated through [PR #221](https://github.
 [implementation plan](declarative-governance-implementation-plan.md#10-release-candidate-definition-of-done);
 it does not change release scope, approve publication or start a deprecation clock.
 
+## Interim release 0.23.0 — SOAA Phase A (2026-11-02)
+
+**0.23.0** publishes SOAA Phase A (#226–#242). That covers architecture
+experiment records, their checks in `govkit validate`, request planning and
+change conformance, the SOAA extension 0.2.0 and its applicability check, and
+installed-wheel acceptance of the experiment loop. Release identity 0.23.0 was
+decided with the maintainer on 2026-10-19 (Phase A plan, U3).
+
+It is still not the release candidate defined below, and 1.0.0 stays reserved
+for that.
+- **Exclusions:** the 0.22.0 exclusions (#147, #142) still apply.
+- **Acceptance evidence:** synthetic fixtures only.
+- **Open criteria:** every criterion below stays open.
+- **Publication:** tagging and publishing need separate maintainer
+  authorization.
+
 ## Interim release 0.22.0 — maintainer scope decision (2026-10-08)
 
 The maintainer decided to publish **0.22.0** before the release candidate is

@@ -1573,14 +1573,13 @@ Every other design question is resolved in §6.
 | 10 Applicability check | complete | Merged as #239 (`0a99aa2`): `checks/applicability.py` (standalone, `python -I`, imports `cli.experiments`/`cli.schema_validation`), manifest `checks` entry `{id: soaa-applicability, path: checks/applicability.py, required: false}`, README and `SOAA_EXPERIMENTS.md` usage, `tests/test_soaa_applicability_check.py` (red first), `wheel_pack_smoke.py` runs it through `govkit pack check` from the wheel. Conformance: SKIPPED and advisory when absent from policy; SKIPPED does not satisfy a policy-required check; executed PASS/FAIL with a changed evidence digest. CodeRabbit's six findings fixed (feature binding, catalog validation, empty catalogs, evidence-less passes, the 0.23.0 requirement, conform arguments) | — |
 | 11 Wheel acceptance/handoff | complete | Merged as #241 (`3f7e60b`): `tests/wheel_experiment_smoke.py` runs S1–S6 from a clean runtime-only wheel for all three agents (legacy L5 api `apply`, both extensions, `init --starter backend`, `validate --only experiments` with and without `--strict` on five scenarios; declarative `profile`/`pack apply` with `project_type: api`, `extension list --installed`, `request plan`, `conform` on six cases; `soaa-applicability`; the path budget) and a CI `wheel-smoke` step; usage guide and pilot start in `docs/ARCHITECTURE_EXPERIMENTS.md`; cross-links; R10 corrected; ADR 0020 accepted with an implementation addendum CodeRabbit's three findings fixed in a follow-up PR (conform example inputs, plan status, all agents run every declarative case) | 0.23.0 release PR (U3) |
 
-**Current handoff:** Increments 0–4 and 6–11 are merged. Next: a separate
-0.23.0 release PR (U3). It bumps `pyproject.toml`,
-moves the twelve consumer CI pins to `govkit~=0.23.0`, and raises the SOAA
-pack's `govkit_min_version` to 0.23.0. Publishing and tagging need separate
-authorization. Then the Value Builder pilot starts from
-`docs/ARCHITECTURE_EXPERIMENTS.md` (*Starting a consuming-project pilot*). Run
-the full local wheel-smoke mirror before every PR. Qodo is retired; CodeRabbit
-reviews each PR.
+**Current handoff:** Increments 0–4 and 6–11 are merged. The 0.23.0 release PR
+(U3) is in review. It bumps `pyproject.toml`, pins the twelve consumer CI gates
+to `govkit~=0.23.0` and raises the SOAA pack's `govkit_min_version` to 0.23.0.
+Tagging and publishing need separate authorization. Then the Value Builder pilot
+starts from `docs/ARCHITECTURE_EXPERIMENTS.md` (*Starting a consuming-project
+pilot*). Run the full local wheel-smoke mirror before every PR. Qodo is retired;
+CodeRabbit reviews each PR.
 
 ## Decision log
 
@@ -1616,4 +1615,5 @@ reviews each PR.
 | 2026-11-02 | The four pipeline entry-point goldens are regenerated for Application Governance 1.2.0; the maintenance example's synthetic newer release moves to 1.3.0 | Decoding each binding shows only `packs_digest` changed. The maintenance fixture used 1.2.0 as the "newer" release, which the bundled pack now is |
 | 2026-11-02 | The experiment smoke validates five scenarios through the CLI but uses `relied` only in conformance at a fixed `--observed-at` | `validate` measures expiry against the wall clock and only `relied` declares an expiry; the CLI run stays deterministic over time |
 | 2026-11-02 | R10 is a wording fix: the PowerShell smoke writes its own three-input feature; `govkit init` starters ship `plan.md` and `architecture_preflight.md` | The smoke confirms both files in an installed starter |
+| 2026-11-02 | The 0.23.0 release raises the SOAA pack floor from 0.21.1 to 0.23.0 | The applicability check needs the experiment parser and schema, first shipped in 0.23.0; the floor test now enforces it |
 | 2026-10-19 | `multi_agent_evaluation` scores in eval_criteria may be null (placeholders), unlike the plan's `evaluation_prediction` | The starter documents `score: null` / `evidence: ""` until evaluation runs |

@@ -8,6 +8,40 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.23.0] — 2026-11-02
+
+Architecture decisions that rest on untested assumptions get bounded
+experiments instead of an approval label or an indefinite block.
+- **Recording.** A feature records each experiment's criteria, permitted effects
+  and evidence. `govkit validate`, request planning and change conformance check
+  those records without ever treating missing, stale or outstanding evidence as
+  a pass.
+- **SOAA.** The `skill-oriented-agent-architecture` extension 0.2.0 applies
+  proportionally, starting with a single agent and fixed skills. An optional
+  applicability check reports which local cases passed experiments cover.
+- **Independent routing.** LLM, SOAA and multi-agent guidance now route
+  independently.
+
+### Scope of this release
+
+This is another interim release before 1.0.0. The exclusions recorded for
+0.22.0 still apply:
+
+- **Protected enforcement is not verified** (#147).
+- **No consenting-team pilot observations have been collected** (#142).
+
+Also note:
+
+- **Evidence is synthetic.** The experiment loop's acceptance evidence is
+  bundled synthetic fixtures run from a clean wheel. It shows GovKit's record
+  handling, not observed execution, application behavior or SOAA conformance.
+- **UI preflight is unchanged.** UI features don't yet carry the experiment
+  outcome.
+- **Pin updates.** Profiles that pin `application-governance` 1.1.2 or
+  `skill-oriented-agent-architecture` 0.1.0 need a pin update. The SOAA pack now
+  requires GovKit 0.23.0.
+- **CI templates.** The twelve shipped CI gates pin `govkit~=0.23.0`.
+
 ### Added
 
 - **Architecture experiment records** (ADR 0020). Two versioned contracts let
