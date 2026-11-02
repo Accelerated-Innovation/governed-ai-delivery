@@ -45,7 +45,7 @@ def main() -> int:
         from cli.experiments import parse_experiment_set
         from cli.schema_validation import DocumentError, content_digest, parse_document
     except ImportError as exc:
-        return invalid(f"Requires an installed GovKit: {exc}")
+        return invalid(f"Requires GovKit 0.23.0 or later (experiment records): {exc}")
     try:
         inputs, documents = {}, {}
         for name, path in (
@@ -61,11 +61,10 @@ def main() -> int:
             documents[name] = content
         catalog = parse_catalog(parse_document(documents["catalog"]))
         rows = parse_block(documents["preflight"].decode("utf-8"), catalog, parse_document)
-        records = (
-            parse_experiment_set(parse_document(documents["experiments"]))
-            if "experiments" in documents
-            else {"experiments": []}
-        )
+        records = {"experiments": []}
+        if "experiments" in documents:
+            records = parse_experiment_set(parse_document(documents["experiments"]))
+            check_feature(args.preflight, args.experiments, records["feature"])
         report = assess(rows, catalog, records, args.cases)
     except (OSError, UnicodeError, DocumentError, InvalidInput) as exc:
         return invalid(str(exc))
@@ -79,20 +78,43 @@ def invalid(message: str) -> int:
     return 2
 
 
+def check_feature(preflight: Path, experiments: Path, feature: str) -> None:
+    """Bind the experiment record to the preflight's feature directory."""
+    directory = preflight.absolute().parent
+    if experiments.absolute().parent != directory or directory.name != feature:
+        raise InvalidInput(
+            f"Experiment record for feature {feature!r} must sit beside the preflight "
+            f"in features/{feature}/"
+        )
+
+
 def parse_catalog(document) -> dict:
     """Return {"conditions": [...], "cases": {case_id: applies_when}}."""
     if not isinstance(document, dict) or document.get("version") != 1:
         raise InvalidInput("Catalog must be a version 1 mapping")
-    conditions = [c.get("id") for c in document.get("conditions", []) if isinstance(c, dict)]
-    if not conditions or len(conditions) != len(set(conditions)):
-        raise InvalidInput("Catalog conditions must be nonempty and unique")
+    rows = document.get("conditions")
+    if not isinstance(rows, list) or not rows:
+        raise InvalidInput("Catalog conditions must be a nonempty list")
+    conditions = [c.get("id") if isinstance(c, dict) else None for c in rows]
+    if not all(isinstance(c, str) and c.strip() for c in conditions):
+        raise InvalidInput("Catalog condition ids must be nonempty strings")
+    if len(conditions) != len(set(conditions)):
+        raise InvalidInput("Catalog condition ids must be unique")
+    listed = [document.get(key, []) for key in ("cases", "conditional_cases")]
+    if not all(isinstance(entries, list) for entries in listed) or not sum(listed, []):
+        raise InvalidInput("Catalog must list at least one case")
     cases = {}
-    for case in document.get("cases", []) + document.get("conditional_cases", []):
+    for case in sum(listed, []):
         identifier = case.get("id") if isinstance(case, dict) else None
         applies_when = case.get("applies_when") if isinstance(case, dict) else None
         if not isinstance(identifier, str) or identifier in cases:
             raise InvalidInput(f"Catalog case id missing or duplicated: {identifier}")
-        if not applies_when or not set(applies_when) <= set(conditions):
+        if (
+            not isinstance(applies_when, list)
+            or not applies_when
+            or not all(isinstance(c, str) for c in applies_when)
+            or not set(applies_when) <= set(conditions)
+        ):
             raise InvalidInput(f"Catalog case {identifier} has unknown or no conditions")
         cases[identifier] = list(applies_when)
     return {"conditions": conditions, "cases": cases}
@@ -193,7 +215,8 @@ def coverage(records: dict) -> dict:
         evidence = result["evidence_class"]
         if evidence != experiment["required_evidence_class"] and evidence != "application":
             continue
-        passed = {c["id"] for c in result["criteria"] if c["outcome"] == "pass"}
+        # A pass with no recorded evidence supports nothing.
+        passed = {c["id"] for c in result["criteria"] if c["outcome"] == "pass" and c["evidence"]}
         for criterion in experiment["acceptance_criteria"]:
             if criterion["id"] not in passed:
                 continue

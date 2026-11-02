@@ -81,8 +81,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   - Exit 0 means satisfied, 1 not satisfied, 2 invalid input. The JSON output
     includes the SHA-256 of each input file.
 
-  It becomes required only when accepted policy lists it. It executes no
-  application tests and makes no SOAA conformance claim.
+  It needs GovKit 0.23.0 or later and becomes required only when accepted
+  policy lists it. It executes no application tests and makes no SOAA
+  conformance claim.
 
 ### Changed
 

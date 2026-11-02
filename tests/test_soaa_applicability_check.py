@@ -76,6 +76,7 @@ def preflight(rows, *, version=1):
 
 def experiments(refs=SINGLE_AGENT_CASES, *, outcome="pass", required="synthetic-fixture"):
     document = yaml.safe_load(EXAMPLE.read_text(encoding="utf-8"))
+    document["feature"] = "value-builder"
     experiment = document["experiments"][0]
     experiment["required_evidence_class"] = required
     experiment["acceptance_criteria"][0]["refs"] = list(refs)
@@ -327,3 +328,81 @@ def test_fixture_helpers_do_not_mutate_the_shared_example():
     before = copy.deepcopy(yaml.safe_load(EXAMPLE.read_text(encoding="utf-8")))
     experiments(refs=["GK-SOAA-01"], outcome="fail", required="application")
     assert yaml.safe_load(EXAMPLE.read_text(encoding="utf-8")) == before
+
+
+# --- PR #239 review -----------------------------------------------------------
+
+
+def test_an_experiment_record_for_another_feature_is_invalid(tmp_path):
+    record = experiments()
+    record["feature"] = "discovery"
+    code, report = run(tmp_path, write(tmp_path, record=record))
+    assert code == 2 and "feature" in report["error"]
+
+
+def test_experiments_outside_the_preflight_feature_directory_are_invalid(tmp_path):
+    arguments = write(tmp_path)
+    other = tmp_path / "features/other"
+    other.mkdir(parents=True)
+    other.joinpath("experiments.yaml").write_text(yaml.safe_dump(experiments()))
+    arguments[-1] = "features/other/experiments.yaml"
+    code, report = run(tmp_path, arguments)
+    assert code == 2 and report["status"] == "invalid"
+
+
+def test_a_passed_criterion_without_evidence_does_not_cover(tmp_path):
+    record = experiments()
+    record["experiments"][0]["result"]["criteria"][0]["evidence"] = []
+    code, report = run(tmp_path, write(tmp_path, record=record))
+    assert code == 1
+    assert report["uncovered"] == SINGLE_AGENT_CASES
+
+
+def custom_catalog(tmp_path, document):
+    path = tmp_path / "catalog.yaml"
+    path.write_text(yaml.safe_dump(document))
+    return ["--catalog", str(path)]
+
+
+@pytest.mark.parametrize(
+    "document",
+    [
+        {"version": 1, "conditions": [{"id": ["adaptive-run"]}], "cases": []},
+        {"version": 1, "conditions": [{"id": " "}], "cases": []},
+        {"version": 1, "conditions": [{"id": c} for c in CONDITIONS]},
+        {"version": 1, "conditions": [{"id": c} for c in CONDITIONS], "cases": "none"},
+    ],
+)
+def test_malformed_or_empty_custom_catalogs_are_invalid(tmp_path, document):
+    arguments = [*write(tmp_path), *custom_catalog(tmp_path, document)]
+    code, report = run(tmp_path, arguments)
+    assert code == 2 and report["status"] == "invalid"
+
+
+def test_missing_parser_names_the_required_govkit_release():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "GovKit 0.23.0 or later" in text
+    assert "GovKit 0.23.0 or later" in (EXT_DIR / "README.md").read_text(encoding="utf-8")
+
+
+def test_pack_floor_includes_the_experiment_parser_once_released():
+    from packaging.version import InvalidVersion, Version
+
+    from cli.version import GOVKIT_VERSION
+
+    try:
+        running = Version(GOVKIT_VERSION)
+    except InvalidVersion:
+        pytest.skip("unversioned development install")
+    floor = Version(yaml.safe_load((EXT_DIR / "manifest.yaml").read_text())["govkit_min_version"])
+    if running >= Version("0.23.0"):
+        assert floor >= Version("0.23.0"), "raise govkit_min_version with the 0.23.0 release"
+
+
+def test_readme_conform_example_supplies_pack_arguments():
+    text = (EXT_DIR / "README.md").read_text(encoding="utf-8")
+    section = text[
+        text.index("## Applicability coverage check") : text.index("## Source authority")
+    ]
+    assert "--execute-pack-check soaa-applicability" in section
+    assert "--pack-arguments" in section and "soaa-applicability:" in section
