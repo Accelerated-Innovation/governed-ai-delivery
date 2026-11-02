@@ -152,9 +152,16 @@ The decision rules keep experiments from weakening requirements:
    `govkit validate` reports the current one.
 5. **Plan and conform.** In `request.json`, reference the record with kind
    `experiment` and no digest. The request then routes to full-feature work.
-   `govkit conform --request ... --observed-at <time>` assesses the records
-   as `artifact:experiment-record`. See [request workflows](REQUEST_WORKFLOWS.md)
-   and [change conformance](CHANGE_CONFORMANCE.md).
+   Change conformance assesses the records as `artifact:experiment-record`. It
+   needs the comparison base and a separate trusted policy checkout:
+
+   ```bash
+   govkit conform --request request.json --target . --base <base-sha> \
+     --policy-target <trusted-policy-checkout> --observed-at <time>
+   ```
+
+   See [request workflows](REQUEST_WORKFLOWS.md) and
+   [change conformance](CHANGE_CONFORMANCE.md).
 6. **Optionally check SOAA coverage.** The `soaa-applicability` pack check
    reports which GK-SOAA cases the passed criteria cover. It needs GovKit
    0.23.0 or later.
