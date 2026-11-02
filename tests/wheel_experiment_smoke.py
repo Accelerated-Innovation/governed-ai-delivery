@@ -166,7 +166,7 @@ def results(document):
     return {r["id"]: r for r in document["checks"]["results"]}
 
 
-def declarative_route(workspace, agent, fixture, *, all_scenarios):
+def declarative_route(workspace, agent, fixture):
     policy, target = workspace / f"{agent}-policy", workspace / f"{agent}-consumer"
     for folder in (policy, target):
         for relative, content in fixture["files"].items():
@@ -215,8 +215,7 @@ def declarative_route(workspace, agent, fixture, *, all_scenarios):
     git(target, "commit", "-qm", "pilot baseline")
     arguments = workspace / f"{agent}-arguments.json"
     arguments.write_text('{"llm-exact-match":["--results","results.json"]}')
-    cases = DECLARATIVE if all_scenarios else DECLARATIVE[:1]
-    for scenario, label, fix, code, record, tests in cases:
+    for scenario, label, fix, code, record, tests in DECLARATIVE:
         place(policy, scenario)
         place(target, scenario)
         git(target, "add", ".")
@@ -315,7 +314,7 @@ with tempfile.TemporaryDirectory() as directory:
     for agent in AGENTS:
         print(f"{agent}:")
         legacy_route(workspace, agent)
-        declarative_route(workspace, agent, fixture, all_scenarios=agent == "codex")
+        declarative_route(workspace, agent, fixture)
 path_budget()
 print(
     "Experiment wheel smoke passed: S1-S6 across 3 agents, legacy validate and declarative "
