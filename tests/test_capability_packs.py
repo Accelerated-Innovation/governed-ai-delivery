@@ -10,6 +10,7 @@ import yaml
 from cli.pack_loading import PackError, bundled_catalog, load_pack
 from cli.pack_resolution import resolve_packs
 from cli.profiles import parse_profile
+from cli.version import GOVKIT_VERSION
 
 
 def profile(capabilities, *, agent="codex", checks=(), pins=()):
@@ -238,8 +239,9 @@ def test_all_shipped_packs_and_independent_capability_combinations_resolve():
         "application-governance",
         "gherkin-delivery",
     }
+    # Every shipped pack installs with the release that ships it.
     for pack in catalog:
-        result = resolve_packs(profile([pack.id]), catalog, govkit_version="0.21.1")
+        result = resolve_packs(profile([pack.id]), catalog, govkit_version=GOVKIT_VERSION)
         assert result.ready, (pack.id, result.decisions)
     for combination, absent in [
         (["application-governance", "llm-evaluation"], "gherkin-delivery"),

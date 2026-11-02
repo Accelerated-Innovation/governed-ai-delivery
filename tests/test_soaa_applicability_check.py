@@ -17,6 +17,7 @@ from cli.check_models import State
 from cli.conformance import inspect_repository
 from cli.pack_loading import bundled_catalog
 from cli.pack_store import apply_install, preview_install
+from cli.version import GOVKIT_VERSION
 from tests.test_capability_packs import profile
 from tests.test_pack_store import write_profile
 
@@ -288,7 +289,7 @@ def result(report, identifier):
 
 def install(tmp_path, *, required):
     path = write_profile(tmp_path, profile([PACK], checks=[CHECK] if required else []))
-    apply_install(preview_install(path, tmp_path, bundled_catalog(), govkit_version="0.21.1"))
+    apply_install(preview_install(path, tmp_path, bundled_catalog(), govkit_version=GOVKIT_VERSION))
     return write(tmp_path)
 
 

@@ -13,6 +13,7 @@ from cli.extension_inventory import installed_extensions
 from cli.pack_loading import load_pack
 from cli.pack_store import apply_install, preview_install
 from cli.schema_validation import validate_document
+from cli.version import GOVKIT_VERSION
 from tests.test_capability_packs import profile
 from tests.test_pack_store import snapshot, write_profile
 
@@ -30,7 +31,7 @@ def declarative_install(target, *pack_ids):
         for pack_id in pack_ids
     )
     path = write_profile(target, profile(list(pack_ids)))
-    preview = preview_install(path, target, catalog, govkit_version="0.22.0")
+    preview = preview_install(path, target, catalog, govkit_version=GOVKIT_VERSION)
     assert preview.resolution.ready, preview.resolution
     apply_install(preview)
     return catalog

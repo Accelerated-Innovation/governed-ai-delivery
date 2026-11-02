@@ -2,7 +2,7 @@ id: skill-oriented-agent-architecture
 name: Skill-Oriented Agent Architecture Extension
 version: 0.2.0
 description: Adds provider-neutral architecture contracts for governed applications in which accountable agent runs select and apply versioned procedural skills inside deterministic control boundaries.
-govkit_min_version: 0.21.1
+govkit_min_version: 0.23.0
 extension_type: architecture
 supported_levels:
   - 5

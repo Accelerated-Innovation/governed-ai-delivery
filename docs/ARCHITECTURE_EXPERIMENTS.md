@@ -175,9 +175,9 @@ scenarios.
 
 ## Starting a consuming-project pilot
 
-For a backend API project such as the first pilot. Use a wheel built from
-`main` or a published release; the `soaa-applicability` check needs 0.23.0 or
-later.
+For a backend API project such as the first pilot. Install GovKit 0.23.0 or
+later: it is the first release with experiment records and the
+`soaa-applicability` check.
 
 ```bash
 python -m pip install /path/to/govkit-<version>-py3-none-any.whl
