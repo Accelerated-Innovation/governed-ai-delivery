@@ -176,11 +176,11 @@ scenarios.
 ## Starting a consuming-project pilot
 
 For a backend API project such as the first pilot. Install GovKit 0.23.0 or
-later: it is the first release with experiment records and the
+later from PyPI: it is the first release with experiment records and the
 `soaa-applicability` check.
 
 ```bash
-python -m pip install /path/to/govkit-<version>-py3-none-any.whl
+python -m pip install "govkit>=0.23.0"
 govkit apply --agent <claude-code|codex|copilot> --target . --level 5 --type api --ci <github|azure>
 govkit extension add llm-application --target .     # only if the runtime calls models
 govkit extension add skill-oriented-agent-architecture --target .
