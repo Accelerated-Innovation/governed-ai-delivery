@@ -19,8 +19,13 @@ for that.
 - **Exclusions:** the 0.22.0 exclusions (#147, #142) still apply.
 - **Acceptance evidence:** synthetic fixtures only.
 - **Open criteria:** every criterion below stays open.
-- **Publication:** tagging and publishing need separate maintainer
-  authorization.
+- **Publication:** authorized by the maintainer and completed on 2026-11-02.
+  The release PR [#243](https://github.com/Accelerated-Innovation/governed-ai-delivery/pull/243)
+  merged as `68cbdbe`. Tag `v0.23.0` and the GitHub release triggered publish run
+  41533545298, which uploaded the wheel and the sdist. The PyPI wheel's SHA-256
+  `546c5e1164b85ad060caa2f2cb636b226fec8dc622c85c00f416c6d8fa498e54` matches the
+  reviewed local build. A clean install reports 0.23.0. Publication does not
+  satisfy any open criterion below.
 
 ## Interim release 0.22.0 — maintainer scope decision (2026-10-08)
 
