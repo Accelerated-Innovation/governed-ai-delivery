@@ -63,7 +63,7 @@ Agreed on 2026-11-19 and 2026-11-20.
 
 The later increments compose into one answer with three states:
 
-- **done**: every free required check passed for the selected scope, and nothing that was passing now fails.
+- **done**: all required evidence for the selected scope is satisfied, with nothing unknown, skipped or owed, and nothing that was passing now fails. Required paid or human evidence that is still owed is **escalate**, never done.
 - **continue**: there are findings the agent can act on, each naming the file and the next action.
 - **escalate**: what remains needs a person. Examples are a protected file that would have to change, an evaluation that is paid or human-labelled, a missing precondition, or evidence that is unknown.
 
