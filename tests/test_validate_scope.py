@@ -164,6 +164,27 @@ class TestFeatureSelection:
         assert run_scoped_validation(tmp_path, level="3", features=["anything"]) == 0
         assert "no per-feature artifacts" in capsys.readouterr().out
 
+    @pytest.mark.parametrize(
+        "options",
+        [{"print_record": True}, {"features": ["alpha"]}, {"known_failures": "record"}],
+    )
+    def test_only_experiments_keeps_the_missing_features_directory_error(
+        self, tmp_path, capsys, options
+    ):
+        if "known_failures" in options:
+            options = {
+                "known_failures": write_record(tmp_path.parent / f"{tmp_path.name}-r.json", [])
+            }
+        capsys.readouterr()
+        assert run_scoped_validation(tmp_path, only="experiments", **options) == 1
+        out = capsys.readouterr().out
+        assert "no features/ directory" in out and "known_failures" not in out
+
+    def test_only_experiments_accepts_an_empty_features_directory(self, tmp_path, capsys):
+        (tmp_path / "features").mkdir()
+        code, out = run(tmp_path, capsys, only="experiments", print_record=True)
+        assert code == 0 and json.loads(out)["known_failures"] == []
+
     def test_only_experiments_honours_feature(self, tmp_path, capsys):
         for name in ("alpha", "beta"):
             feature = good(tmp_path, name)
@@ -189,6 +210,17 @@ class TestKnownFailures:
         assert code == 0
         assert "KNOWN" in out and "FAIL" not in out
         assert "0 new failure(s)" in out and "0 resolved" in out
+
+    def test_record_too_large_to_reload_is_an_error_not_output(self, tmp_path, capsys, monkeypatch):
+        bad(tmp_path, "alpha")
+        bad(tmp_path, "beta")
+        monkeypatch.setattr(known_failures, "MAX_ENTRIES", 3)
+        capsys.readouterr()
+        assert run_scoped_validation(tmp_path, level="4", print_record=True) == 1
+        out = capsys.readouterr().out
+        assert "--feature" in out and "schema_version" not in out
+        text = generate(tmp_path, capsys, features=["alpha"])
+        assert len(json.loads(text)["known_failures"]) <= 3
 
     def test_generated_record_honours_feature_selection(self, tmp_path, capsys):
         bad(tmp_path, "alpha")
@@ -499,6 +531,14 @@ class TestSchemaAndExample:
         assert set(schema["$defs"]["scope"]["properties"]["kind"]["enum"]) == set(
             known_failures.CHECKS_BY_SCOPE
         )
+
+    def test_entry_limit_matches_the_schema(self):
+        schema = json.loads(
+            (paths.GOVERNANCE_DIR / "schemas/known-failures.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        assert schema["properties"]["known_failures"]["maxItems"] == known_failures.MAX_ENTRIES
 
     def test_rendered_record_is_deterministic_and_valid(self, tmp_path):
         keys = [("feature", "b", "nfrs-no-tbd", None), ("feature", "a", "completeness", "plan.md")]

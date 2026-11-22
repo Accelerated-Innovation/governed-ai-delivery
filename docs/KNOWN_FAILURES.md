@@ -11,7 +11,8 @@ Two additions make the exit status usable again:
 - `--known-failures` names a reviewed record of failures accepted as already
   existing, so only failures outside that record fail the run.
 
-With neither option, `govkit validate` behaves and prints exactly as before.
+With none of the four options described on this page, `govkit validate`
+behaves and prints exactly as before.
 No check or threshold changes. The contract is recorded in
 [ADR 0021](../plans/decisions/0021-scoped-validate-known-failures.md).
 
@@ -29,7 +30,8 @@ govkit validate --target . --feature order_export --feature billing_sync
 - `--level`, `--strict` and `--only experiments` combine with `--feature` as
   they do without it.
 - At level 3 there are no per-feature artifacts, so the command says so, as
-  the unscoped command does.
+  the unscoped command does. Feature names are not checked at level 3,
+  because a level 3 project has no `features/` directory to match against.
 
 Repository-level checks are not per-feature. Extension manifests, fix records
 and the ADR approval policy still run and still count in a scoped run.
@@ -151,7 +153,12 @@ line, and never reported as resolved:
   this run.
 
 An entry for a feature directory that no longer exists is reported as
-resolved.
+resolved, unless a `--feature` selection leaves it out. Then it is ignored
+like any other entry outside the selection.
+
+A record holds at most 5000 entries and 1 MiB. `--print-known-failures` exits
+non-zero without printing when the current failures would exceed either
+limit; narrow the run with `--feature`.
 
 A record that is missing, unreadable, malformed, invalid against the schema,
 or that names a check identifier GovKit does not know, stops the run with a

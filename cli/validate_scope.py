@@ -159,7 +159,9 @@ def run_scoped_validation(
     artifacts, named = [], []
     if has_features:
         features_dir = target / "features"
-        if not only_experiments and not features_dir.exists():
+        # Both legacy runners refuse a target without features/; a scoped
+        # option must not turn a mistargeted checkout into an empty pass.
+        if not features_dir.exists():
             return _error(f"no features/ directory found in '{target}'.")
         available = {d.name: d for d in list_user_features(features_dir)}
         unknown = [name for name in names if name not in available]
@@ -188,7 +190,14 @@ def run_scoped_validation(
     failures = [r for r in results if r.status is CheckStatus.FAIL]
 
     if print_record:
-        print(kf.render(r.key for r in failures), end="")
+        try:
+            text = kf.render(r.key for r in failures)
+        except kf.RecordError as exc:
+            return _error(
+                f"cannot print a known-failures record: {exc}. "
+                "Narrow the run with --feature and keep one record per selection."
+            )
+        print(text, end="")
         return 0
 
     # A record entry applies to this run when its check was evaluated for its

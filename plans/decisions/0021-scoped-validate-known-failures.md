@@ -30,7 +30,8 @@ and stable identifiers for every result `validate` reports.
   calls the existing runner. Output and exit status are byte-identical.
   Identifiers and the new summary line appear only when an option is used.
 - **Selection.** `--feature` is repeatable and matches a feature directory name
-  exactly. A name that matches nothing is an error. Repository-level checks
+  exactly. A name that matches nothing is an error. Level 3 has no feature
+  contract, so it reports that and does not match names. Repository-level checks
   (extensions, fix records, approval policy) still run in a scoped run.
 - **Identity.** A failure is identified by scope, check identifier and an
   optional finding code. Message text is never part of identity.
@@ -47,7 +48,8 @@ and stable identifiers for every result `validate` reports.
   - An entry that does not apply to the run is ignored: a feature outside the
     selection, a check the run did not evaluate, or a finding that is only a
     warning without `--strict`.
-  - An entry for a feature directory that no longer exists is resolved.
+  - An entry for a feature directory that no longer exists is resolved, unless
+    a `--feature` selection leaves it out; then it is ignored.
   - A check identifier GovKit does not know for the scope kind makes the
     record invalid.
 - **Authority.** GovKit never writes, updates or accepts a record.

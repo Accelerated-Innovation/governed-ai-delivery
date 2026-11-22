@@ -31,6 +31,7 @@ from .validate import FEATURE_CHECK_IDS
 
 SCHEMA = "known-failures"
 MAX_RECORD_BYTES = 1024 * 1024
+MAX_ENTRIES = 5000  # the schema's maxItems; a test keeps the two equal
 
 CHECK_EXTENSION = "extension-manifest"
 CHECK_FIX = "fix-record"
@@ -92,7 +93,10 @@ def load(path: Path) -> Record:
 
 def render(keys) -> str:
     """The record text for `keys`: sorted and free of run-specific data, so the
-    same failures always produce the same bytes and digest."""
+    same failures always produce the same bytes and digest.
+
+    Raises RecordError when the text could not be loaded back.
+    """
     entries = []
     for kind, name, check, finding in sorted(set(keys), key=lambda k: tuple(p or "" for p in k)):
         scope = {"kind": kind} if name is None else {"kind": kind, "name": name}
@@ -100,8 +104,13 @@ def render(keys) -> str:
         if finding is not None:
             entry["finding"] = finding
         entries.append(entry)
+    if len(entries) > MAX_ENTRIES:
+        raise RecordError(f"{len(entries)} failures exceed the {MAX_ENTRIES}-entry limit")
     document = {"schema_version": 1, "kind": SCHEMA, "known_failures": entries}
-    return json.dumps(document, indent=2) + "\n"
+    text = json.dumps(document, indent=2) + "\n"
+    if len(text.encode("utf-8")) > MAX_RECORD_BYTES:
+        raise RecordError(f"the record would exceed the {MAX_RECORD_BYTES}-byte limit")
+    return text
 
 
 def identifier(check: str, finding: str | None) -> str:
