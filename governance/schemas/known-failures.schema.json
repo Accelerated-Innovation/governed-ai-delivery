@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:governed-ai-delivery:schemas:known-failures",
+  "title": "Known validate failures",
+  "description": "A caller-reviewed list of `govkit validate` failures accepted as already existing. A valid record is well-formed; it does not show that anyone reviewed it, and GovKit never writes or accepts one. Entries are matched by scope, check identifier and finding code, never by message text.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "known_failures"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "known-failures"
+    },
+    "known_failures": {
+      "type": "array",
+      "maxItems": 5000,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    }
+  },
+  "$defs": {
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[^\\u0000-\\u001f]+$"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "feature",
+            "extension",
+            "fix",
+            "approval"
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/label",
+          "description": "The feature directory name, the extension id, or the fix record path relative to the repository root. Omitted for the approval scope."
+        }
+      },
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "approval"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "name": false
+        }
+      },
+      "else": {
+        "required": [
+          "kind",
+          "name"
+        ]
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "check"
+      ],
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "check": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "description": "A check identifier printed by a scoped `govkit validate` run. An identifier GovKit does not know for the scope kind makes the record invalid."
+        },
+        "finding": {
+          "$ref": "#/$defs/label",
+          "description": "The finding code within the check, when the check reports one. An entry without a finding matches only a failure that has none."
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Why the failure is accepted. Not read by GovKit."
+        }
+      }
+    }
+  }
+}

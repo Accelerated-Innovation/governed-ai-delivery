@@ -1,6 +1,6 @@
 # Loop-ready gates plan
 
-Status: proposed. L01 is filed as [#248](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/248); nothing is implemented. The order after L02 is provisional until the trial (L00) has been run.
+Status: in progress. L01 ([#248](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/248)) is implemented and in review; no later increment is implemented. The order after L02 is provisional until the trial (L00) has been run.
 Plan version: 0.1.
 Prepared: 2026-11-20.
 Baseline inspected: govkit 0.23.0, commit 606024a.
@@ -90,7 +90,7 @@ The maintainer drives one or two implementation increments in the pilot reposito
 
 ### L01 — Feature-scoped `validate` with a known-failures record
 
-Add `--feature` and `--known-failures` to `govkit validate`, give each per-feature check a stable identifier, and report failures as new, known or resolved. GovKit never writes or accepts the record. Full contract in #248.
+Add `--feature` and `--known-failures` to `govkit validate`, give each per-feature check a stable identifier, and report failures as new, known or resolved. GovKit never writes or accepts the record. Full contract in #248. The contract as built is ADR 0021 and `docs/KNOWN_FAILURES.md`. `govkit conform` keeps its positional feature codes; aligning them is #253.
 
 ### L02 — Declared verification checks
 
@@ -138,3 +138,5 @@ Risks:
 | Date | Increment | Result | Next |
 |---|---|---|---|
 | 2026-11-20 | Plan | Written; #248 opened for L01 | Run L00; agree plan; open epic and L02, L03 |
+| 2026-11-22 | Plan | Merged as #252 | Start L01 |
+| 2026-11-22 | L01 | Implemented test first on `feat/validate-feature-scope-known-failures`: four `validate` options, `known-failures` v1 schema and example, ADR 0021, guide, runtime-only wheel smoke for three agents. Six open points decided and recorded on #248; #253 filed for conform's codes | Review and merge the L01 PR; run L00 |
