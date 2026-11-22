@@ -1483,13 +1483,11 @@ Increment 11 published the user-facing procedure in
 exercised from a clean wheel by `tests/wheel_experiment_smoke.py`. Two
 corrections to the draft below: `govkit init` needs `--starter backend` when it
 cannot prompt, and the declarative route needs `project_type: api` because the
-SOAA pack supports only `api` and `cli`. The version is 0.23.0 once released
-(U3); until then, use a wheel built from `main`. The original draft:
+SOAA pack supports only `api` and `cli`. GovKit 0.23.0 is published (U3), so
+the pilot installs it from PyPI. The original draft:
 
-1. **Install the package.** From the handoff, either a local wheel or a
-   published release (U3):
-   `python -m pip install /path/to/govkit-<version>-py3-none-any.whl`, then
-   `govkit --help`.
+1. **Install the package.** Install the published release (U3):
+   `python -m pip install "govkit>=0.23.0"`, then `govkit --help`.
 2. **Legacy feature-folder route**, recommended because feature scaffolding is
    marker-only (#220):
    ```bash
