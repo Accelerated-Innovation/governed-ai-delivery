@@ -158,7 +158,9 @@ like any other entry outside the selection.
 
 A record holds at most 5000 entries and 1 MiB. `--print-known-failures` exits
 non-zero without printing when the current failures would exceed either
-limit; narrow the run with `--feature`.
+limit; narrow the run with `--feature`. It does the same when a current
+failure cannot be written as a valid entry, for example an extension whose
+manifest declares an empty id. Fix that failure first.
 
 A record that is missing, unreadable, malformed, invalid against the schema,
 or that names a check identifier GovKit does not know, stops the run with a

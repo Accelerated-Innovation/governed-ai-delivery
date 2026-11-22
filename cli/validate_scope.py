@@ -193,10 +193,7 @@ def run_scoped_validation(
         try:
             text = kf.render(r.key for r in failures)
         except kf.RecordError as exc:
-            return _error(
-                f"cannot print a known-failures record: {exc}. "
-                "Narrow the run with --feature and keep one record per selection."
-            )
+            return _error(f"cannot print a known-failures record: {exc}.")
         print(text, end="")
         return 0
 

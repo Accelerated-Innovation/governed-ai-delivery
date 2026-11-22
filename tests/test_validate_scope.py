@@ -532,6 +532,25 @@ class TestSchemaAndExample:
             known_failures.CHECKS_BY_SCOPE
         )
 
+    def test_render_refuses_a_record_the_loader_would_reject(self):
+        with pytest.raises(known_failures.RecordError):
+            known_failures.render([("extension", "", "extension-manifest", None)])
+
+    def test_unrecordable_failure_is_an_error_not_output(self, tmp_path, capsys):
+        good(tmp_path, "alpha")
+        broken = tmp_path / "extensions" / "broken"
+        broken.mkdir(parents=True)
+        (broken / "manifest.yaml").write_text('id: ""\n', encoding="utf-8")
+        capsys.readouterr()
+        code = run_scoped_validation(tmp_path, level="4", strict=True, print_record=True)
+        out = capsys.readouterr().out
+        if code == 0:  # discovery replaced the empty id; the record must load
+            path = tmp_path.parent / f"{tmp_path.name}-r.json"
+            path.write_text(out, encoding="utf-8")
+            known_failures.load(path)
+        else:
+            assert "cannot print a known-failures record" in out and "schema_version" not in out
+
     def test_entry_limit_matches_the_schema(self):
         schema = json.loads(
             (paths.GOVERNANCE_DIR / "schemas/known-failures.schema.json").read_text(

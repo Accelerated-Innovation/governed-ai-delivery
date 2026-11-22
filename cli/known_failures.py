@@ -105,11 +105,21 @@ def render(keys) -> str:
             entry["finding"] = finding
         entries.append(entry)
     if len(entries) > MAX_ENTRIES:
-        raise RecordError(f"{len(entries)} failures exceed the {MAX_ENTRIES}-entry limit")
+        raise RecordError(
+            f"{len(entries)} failures exceed the {MAX_ENTRIES}-entry limit; "
+            "narrow the run with --feature and keep one record per selection"
+        )
     document = {"schema_version": 1, "kind": SCHEMA, "known_failures": entries}
+    try:
+        validate_document(document, SCHEMA)
+    except DocumentError as exc:
+        raise RecordError(f"a current failure cannot be recorded ({exc})") from exc
     text = json.dumps(document, indent=2) + "\n"
     if len(text.encode("utf-8")) > MAX_RECORD_BYTES:
-        raise RecordError(f"the record would exceed the {MAX_RECORD_BYTES}-byte limit")
+        raise RecordError(
+            f"the record would exceed the {MAX_RECORD_BYTES}-byte limit; "
+            "narrow the run with --feature and keep one record per selection"
+        )
     return text
 
 
