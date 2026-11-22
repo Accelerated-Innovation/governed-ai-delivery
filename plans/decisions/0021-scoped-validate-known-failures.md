@@ -99,6 +99,9 @@ The text above is preserved as decided. Two things changed afterwards.
   L07 (the verdict and structured output).
 - **Reach.** A level-free installation made with `govkit profile apply` and
   `govkit pack apply` has no marker. `govkit validate` falls back to level 3
-  there and checks nothing, so these options serve legacy installations only.
-  Later increments build on `govkit evidence` and `govkit conform`. The check
-  identifiers and the record contract are reused there.
+  there. That path runs no per-feature, fix-record or approval check; it
+  still runs the extension manifest checks, which fail only with `--strict`.
+  So `--feature` selects nothing there, and these options serve legacy
+  installations. Later increments build on `govkit evidence` and
+  `govkit conform`. The check identifiers and the record contract are reused
+  there.
