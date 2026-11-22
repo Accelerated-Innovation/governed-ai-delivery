@@ -127,6 +127,16 @@ A change is rarely one file. Changing a schema means updating starter templates 
 - **Request and change wiring.** An `experiment` request reference routes work to full-feature; `change_conformance.py` assesses the referenced records through `experiment_store` (errors FAIL, outstanding/unknown UNKNOWN) and honors a declared preflight outcome. It never executes experiments.
 - **Keep aligned.** The schemas and the six example scenarios, together with their expected results. `tests/wheel_experiment_smoke.py` runs the loop (acceptance scenarios S1–S6) from a clean wheel for all three agents on the legacy and declarative routes.
 
+### Feature-scoped validate and known failures
+
+`validate_scope.py` runs the same checks as `validate.run_validation` for a `--feature` selection and classifies failures against a `--known-failures` record; `known_failures.py` owns the bounded record read, schema validation, digest and rendering. See ADR 0021 and `docs/KNOWN_FAILURES.md`.
+
+- **No options, no change.** `cmd_validate.py` calls the legacy runner unless one of the four options is given. Keep that path byte-identical; identifiers and the new summary line belong to the scoped path only.
+- **Identity.** Scope kind and name, check identifier, optional finding code. Never message text. Check identifiers (`FEATURE_CHECK_IDS`, `CHECKS_BY_SCOPE`) are a public contract: add, never rename. `_named_checks` is the single source for both runners and for `check_adapters`.
+- **Authority.** GovKit never writes or accepts a record. An unusable record stops the run and is never read as empty. A valid record or a matching digest is not evidence of review.
+- **Resolved versus ignored.** Only an entry whose check was evaluated for its scope and is no longer failing or warning is resolved. Entries outside the selection are ignored.
+- **Keep aligned.** The schema, the bundled example, `tests/test_validate_scope.py` and `tests/wheel_validate_smoke.py` (all three agents). `govkit conform` keeps positional feature codes until #253. Payload skills, rules and CI templates do not use these options yet.
+
 ### Actual-change conformance
 
 `change_scope.py` captures bounded Git observations; `change_policy.py` reads accepted provider configuration; `change_architecture.py` measures scoped literal constraints; `change_defects.py` adapts existing eligibility/red-green execution. `change_conformance.py` recomputes request requirements and composes I04 checks. See ADR 0007 and `docs/CHANGE_CONFORMANCE.md`. Keep accepted policy outside the inspected tree, commands explicitly opted in, missing semantic/platform evidence unknown, and synthetic eight-pilot wheel coverage aligned. `artifact:experiment-record` maps assessor errors to FAIL and outstanding/unknown findings to UNKNOWN; `artifact:architecture-preflight` honors a declared outcome block. `migration.py` preserves legacy ownership and obligations; `maintenance.py` separately assesses release, resource, fit and CI facts.

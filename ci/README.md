@@ -525,6 +525,36 @@ that the design conforms to an architecture. See
 
 ---
 
+## Scoping `govkit validate` in your own pipeline
+
+The bundled gate templates run `govkit validate` without these options, and
+this release does not change them. A project whose older features fail checks
+that were added later can adopt the options in its own pipeline:
+
+```bash
+govkit validate --target . --strict \
+  --known-failures known-failures.json \
+  --known-failures-digest "$KNOWN_FAILURES_SHA256"
+```
+
+- **`--known-failures`** names a reviewed record of failures accepted as
+  existing. Only failures outside the record fail the job.
+- **`--strict`** also fails the job when a recorded failure now passes, so the
+  record has to shrink as features are repaired.
+- **`--known-failures-digest`** fails the job when the record's bytes differ
+  from the reviewed ones. Keep the value in a protected CI variable. A record
+  inside the repository can otherwise be edited by the change it checks.
+- **`--feature <name>`** narrows a run to named features. Repository-level
+  checks (extensions, fix records, approval policy) still run.
+
+GovKit never writes or accepts the record; create it with
+`--print-known-failures`, review it and commit it yourself. A passing job means
+the artifacts are consistent apart from the recorded failures. It is not
+review or approval. See
+[`docs/KNOWN_FAILURES.md`](../docs/KNOWN_FAILURES.md).
+
+---
+
 ## Data Common Gate
 
 **File:** `data-common-gate.yml` (GitHub: `ci/github/data-common-gate.yml`, Azure: `ci/azure/data-common-gate.yml`)

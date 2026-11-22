@@ -97,18 +97,27 @@ _STATUS_LABEL = {
 # Individual checks
 # ---------------------------------------------------------------------------
 
+def completeness_problems(
+    feature_dir: Path, artifacts: list[str] | None = None
+) -> list[tuple[str, str]]:
+    """Each required artifact that is `missing` or `empty`, in contract order."""
+    problems = []
+    for artifact in L4_REQUIRED_ARTIFACTS if artifacts is None else artifacts:
+        path = feature_dir / artifact
+        if not path.exists():
+            problems.append((artifact, "missing"))
+        elif path.stat().st_size == 0:
+            problems.append((artifact, "empty"))
+    return problems
+
+
 def check_completeness(feature_dir: Path, artifacts: list[str] | None = None) -> tuple[CheckStatus, str]:
     """Check that all required artifacts exist and are non-empty."""
     if artifacts is None:
         artifacts = L4_REQUIRED_ARTIFACTS
-    missing = []
-    empty = []
-    for artifact in artifacts:
-        path = feature_dir / artifact
-        if not path.exists():
-            missing.append(artifact)
-        elif path.stat().st_size == 0:
-            empty.append(artifact)
+    problems = completeness_problems(feature_dir, artifacts)
+    missing = [artifact for artifact, state in problems if state == "missing"]
+    empty = [artifact for artifact, state in problems if state == "empty"]
     if missing or empty:
         parts = []
         if missing:
@@ -673,15 +682,39 @@ def _data_prediction_not_required(feature_dir: Path) -> tuple[CheckStatus, str]:
     )
 
 
-def _build_checks(
+# Stable identifiers for the per-feature checks. A known-failures record names
+# them, so renaming one invalidates reviewed records: add, never rename.
+CHECK_COMPLETENESS = "completeness"
+CHECK_EXPERIMENTS = "architecture-experiments"
+_L4_CHECK_IDS = (
+    CHECK_COMPLETENESS,
+    "gherkin-syntax",
+    "nfrs-no-tbd",
+    "nfrs-sections",
+    "eval-criteria",
+    "eval-prediction",
+    "gherkin-nfr-coverage",
+)
+_L5_CHECK_IDS = (
+    "llm-nfrs",
+    "l5-eval-criteria",
+    "l5-preflight-sections",
+    "agent-topology-exists",
+    "agent-topology-sections",
+)
+FEATURE_CHECK_IDS = (*_L4_CHECK_IDS, *_L5_CHECK_IDS, CHECK_EXPERIMENTS)
+
+
+def _named_checks(
     level: str, marker_type: str | None = None, *, marker_reader=None, validate_instance=None
-) -> tuple[list[str], list]:
-    """Return the artifact list and check functions for a given level.
+) -> tuple[list[str], list[tuple[str, object]]]:
+    """Return the artifact list and `(identifier, check)` pairs for a level.
 
     L3 is handled by an early no-op return in run_validation() and never reaches
     this function. L4 enforces the 5-artifact governed contract; L5 layers in
     LLM-specific checks on top. `marker_type` swaps the type-specific checks —
-    data features skip the evaluation-prediction gate (ADR-0001).
+    data features skip the evaluation-prediction gate (ADR-0001) — without
+    changing any identifier.
     """
     prediction_check = (
         _data_prediction_not_required if marker_type == "data" else check_plan_eval_prediction
@@ -691,44 +724,46 @@ def _build_checks(
         def evaluation_check(fd):
             return check_eval_criteria(fd, marker_reader=marker_reader, validate_instance=validate_instance)
     artifacts = L4_REQUIRED_ARTIFACTS
+    # L4 (Spec-Driven Add-On) — full 5-artifact governed contract.
+    checks = [
+        lambda fd: check_completeness(fd, artifacts),
+        check_gherkin_syntax,
+        check_nfrs_no_tbd,
+        check_nfrs_sections,
+        evaluation_check,
+        prediction_check,
+        check_gherkin_nfr_coverage,
+    ]
+    names = _L4_CHECK_IDS
     if level == "5":
-        checks = [
-            lambda fd: check_completeness(fd, artifacts),
-            check_gherkin_syntax,
-            check_nfrs_no_tbd,
-            check_nfrs_sections,
-            evaluation_check,
-            prediction_check,
-            check_gherkin_nfr_coverage,
+        checks += [
             check_llm_nfrs,
             check_l5_eval_criteria,
             check_l5_preflight_sections,
             check_agent_topology_exists,
             check_agent_topology_sections,
         ]
-    else:
-        # L4 (Spec-Driven Add-On) — full 5-artifact governed contract.
-        checks = [
-            lambda fd: check_completeness(fd, artifacts),
-            check_gherkin_syntax,
-            check_nfrs_no_tbd,
-            check_nfrs_sections,
-            evaluation_check,
-            prediction_check,
-            check_gherkin_nfr_coverage,
-        ]
-    return artifacts, checks
+        names += _L5_CHECK_IDS
+    return artifacts, list(zip(names, checks, strict=True))
 
 
-def check_architecture_experiments(
+def _build_checks(
+    level: str, marker_type: str | None = None, *, marker_reader=None, validate_instance=None
+) -> tuple[list[str], list]:
+    """Return the artifact list and check functions for a given level."""
+    artifacts, named = _named_checks(
+        level, marker_type, marker_reader=marker_reader, validate_instance=validate_instance
+    )
+    return artifacts, [check for _, check in named]
+
+
+def experiment_results(
     target: Path, feature_dir: Path, *, strict: bool = False, now: datetime | None = None
-) -> list[tuple[CheckStatus, str]]:
-    """Report a feature's preflight outcome and experiment records (ADR 0020).
+) -> list[tuple[CheckStatus, str, str | None]]:
+    """`check_architecture_experiments` results with each finding's stable code.
 
-    Returns no results when the feature declares neither, so existing
-    features keep identical output. Errors fail; outstanding and unverifiable
-    evidence warns, or fails with --strict. A clean result means the records
-    are consistent and current, not that experiments ran.
+    The code is the finding code, joined to the experiment identifier when the
+    finding belongs to one experiment.
     """
     result = assess_feature(target, feature_dir, now=now)
     if result is None:
@@ -741,6 +776,7 @@ def check_architecture_experiments(
             (
                 CheckStatus.PASS,
                 f"architecture experiments: {status}; {count} experiment(s); records current",
+                None,
             )
         ]
     lenient = CheckStatus.FAIL if strict else CheckStatus.WARN
@@ -748,8 +784,27 @@ def check_architecture_experiments(
         (
             CheckStatus.FAIL if finding.severity == ERROR else lenient,
             f"architecture experiments: {finding.code} — {finding.message}",
+            f"{finding.code}:{finding.experiment}" if finding.experiment else finding.code,
         )
         for finding in assessment.findings
+    ]
+
+
+def check_architecture_experiments(
+    target: Path, feature_dir: Path, *, strict: bool = False, now: datetime | None = None
+) -> list[tuple[CheckStatus, str]]:
+    """Report a feature's preflight outcome and experiment records (ADR 0020).
+
+    Returns no results when the feature declares neither, so existing
+    features keep identical output. Errors fail; outstanding and unverifiable
+    evidence warns, or fails with --strict. A clean result means the records
+    are consistent and current, not that experiments ran.
+    """
+    return [
+        (status, message)
+        for status, message, _finding in experiment_results(
+            target, feature_dir, strict=strict, now=now
+        )
     ]
 
 
@@ -791,30 +846,67 @@ def _run_experiment_checks_only(target: Path, strict: bool, now: datetime) -> in
     return 1 if any_fail else 0
 
 
+def extension_results(target: Path, strict: bool) -> list[tuple[str, CheckStatus, str]]:
+    """`(extension id, status, message)` for every discovered extension.
+
+    Issues are warnings unless `strict`.
+    """
+    from .extensions import discover_extensions, validate_extension
+
+    results = []
+    for ext in discover_extensions(target):
+        issues = validate_extension(ext, target)
+        if not issues:
+            results.append((ext.id, CheckStatus.PASS, f"{ext.id} v{ext.version}"))
+            continue
+        status = CheckStatus.FAIL if strict else CheckStatus.WARN
+        results.extend((ext.id, status, f"{ext.id}: {msg}") for msg in issues)
+    return results
+
+
+def fix_results(target: Path) -> list[tuple[str, CheckStatus, str]]:
+    """`(record path, status, message)` for every discovered fix record."""
+    from .fixes import discover_fix_records, validate_fix_record
+
+    results = []
+    for record in discover_fix_records(target):
+        issues, warnings = validate_fix_record(record, target)
+        results.extend((record.rel, CheckStatus.WARN, msg) for msg in warnings)
+        results.extend((record.rel, CheckStatus.FAIL, msg) for msg in issues)
+        if not issues and not warnings:
+            results.append((record.rel, CheckStatus.PASS, record.rel))
+    return results
+
+
+def approval_results(target: Path) -> list[tuple[CheckStatus, str]]:
+    """ADR approval attestation results; empty when the repo never adopted it."""
+    from .approval import POLICY_REL, check_approval_policy
+
+    issues, warnings = check_approval_policy(target)
+    if not issues and not warnings:
+        # Silence means either nothing to check or everything clean. Say so only
+        # when a policy is actually installed, so untouched repos stay quiet.
+        if not (target / POLICY_REL).is_file():
+            return []
+        return [(CheckStatus.PASS, POLICY_REL.as_posix())]
+    return [(CheckStatus.WARN, msg) for msg in warnings] + [
+        (CheckStatus.FAIL, msg) for msg in issues
+    ]
+
+
 def _run_extension_checks(target: Path, strict: bool) -> int:
     """Validate all discovered extensions. Silent when no extensions are
     present — preserves today's behavior for projects that don't use them.
     Returns 1 only when strict and at least one extension has issues."""
-    from .extensions import discover_extensions, validate_extension
-
-    extensions = discover_extensions(target)
-    if not extensions:
+    results = extension_results(target, strict)
+    if not results:
         return 0
 
     print("\ngovkit validate — extensions\n")
-    any_fail = False
-    for ext in extensions:
-        issues = validate_extension(ext, target)
-        if not issues:
-            print(f"  {PASS}  {ext.id} v{ext.version}")
-            continue
-        tag = FAIL if strict else WARN
-        for msg in issues:
-            print(f"  {tag}  {ext.id}: {msg}")
-        if strict:
-            any_fail = True
+    for _ext, status, message in results:
+        print(f"  {_STATUS_LABEL[status]}  {message}")
     print()
-    return 1 if any_fail else 0
+    return 1 if any(status is CheckStatus.FAIL for _ext, status, _msg in results) else 0
 
 
 def _run_fix_checks(target: Path) -> int:
@@ -827,26 +919,17 @@ def _run_fix_checks(target: Path) -> int:
     installed, check-jsonschema missing) stay visible without failing, matching
     check_eval_criteria.
     """
-    from .fixes import FIXES_DIR, discover_fix_records, validate_fix_record
+    from .fixes import FIXES_DIR
 
-    records = discover_fix_records(target)
-    if not records:
+    results = fix_results(target)
+    if not results:
         return 0
 
     print(f"\ngovkit validate — {FIXES_DIR}/\n")
-    any_fail = False
-    for record in records:
-        issues, warnings = validate_fix_record(record, target)
-        for msg in warnings:
-            print(f"  {WARN}  {msg}")
-        if issues:
-            for msg in issues:
-                print(f"  {FAIL}  {msg}")
-            any_fail = True
-        elif not warnings:
-            print(f"  {PASS}  {record.rel}")
+    for _rel, status, message in results:
+        print(f"  {_STATUS_LABEL[status]}  {message}")
     print()
-    return 1 if any_fail else 0
+    return 1 if any(status is CheckStatus.FAIL for _rel, status, _msg in results) else 0
 
 
 def _run_approval_checks(target: Path) -> int:
@@ -859,26 +942,28 @@ def _run_approval_checks(target: Path) -> int:
     migration posture — warn on pre-existing, fail on changed — and only CI can
     see "changed", so nothing here fails on an ADR.
     """
-    from .approval import POLICY_REL, check_approval_policy
-
-    issues, warnings = check_approval_policy(target)
-    if not issues and not warnings:
-        # Silence means either nothing to check or everything clean. Say so only
-        # when a policy is actually installed, so untouched repos stay quiet.
-        if not (target / POLICY_REL).is_file():
-            return 0
-        print("\ngovkit validate — ADR approval attestation\n")
-        print(f"  {PASS}  {POLICY_REL.as_posix()}")
-        print()
+    results = approval_results(target)
+    if not results:
         return 0
 
     print("\ngovkit validate — ADR approval attestation\n")
-    for msg in warnings:
-        print(f"  {WARN}  {msg}")
-    for msg in issues:
-        print(f"  {FAIL}  {msg}")
+    for status, message in results:
+        print(f"  {_STATUS_LABEL[status]}  {message}")
     print()
-    return 1 if issues else 0
+    return 1 if any(status is CheckStatus.FAIL for status, _msg in results) else 0
+
+
+LEVEL_LABELS = {
+    "3": "L3 Governed AI Delivery (Foundations)",
+    "4": "L4 Spec-Driven Add-On",
+    "5": "L5 GenAI Operations",
+}
+LEVEL_3_NOTICE = (
+    "\ngovkit validate — Level 3 (Governed AI Delivery (Foundations))\n"
+    "\nLevel 3 ships agent rules and architecture contracts only;\n"
+    "there are no per-feature artifacts to check at this level.\n"
+    "CI quality-gate is the compliance surface for L3.\n"
+)
 
 
 def run_validation(
@@ -910,12 +995,7 @@ def run_validation(
     # are no per-feature artifacts to validate. The CI quality-gate is the L3
     # compliance surface (lint, tests, import-linter, optional sonar/snyk).
     if level == "3":
-        print(
-            "\ngovkit validate — Level 3 (Governed AI Delivery (Foundations))\n"
-            "\nLevel 3 ships agent rules and architecture contracts only;\n"
-            "there are no per-feature artifacts to check at this level.\n"
-            "CI quality-gate is the compliance surface for L3.\n"
-        )
+        print(LEVEL_3_NOTICE)
         return ext_exit
 
     # The defect lane is L4+, like the feature contract it sits beside. Checked
@@ -944,12 +1024,7 @@ def run_validation(
         print("No feature directories found to validate.")
         return max(ext_exit, fix_exit, approval_exit)
 
-    level_labels = {
-        "3": "L3 Governed AI Delivery (Foundations)",
-        "4": "L4 Spec-Driven Add-On",
-        "5": "L5 GenAI Operations",
-    }
-    level_label = level_labels.get(level, f"L{level}")
+    level_label = LEVEL_LABELS.get(level, f"L{level}")
     print(f"\ngovkit validate — governance compliance check ({level_label})\n")
 
     passed = sum(1 for fd in feature_dirs if _run_feature_checks(fd, checks))

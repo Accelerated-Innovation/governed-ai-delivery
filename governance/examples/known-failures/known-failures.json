@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "kind": "known-failures",
+  "known_failures": [
+    {
+      "scope": {
+        "kind": "approval"
+      },
+      "check": "approval-policy",
+      "note": "Policy rewrite is tracked separately; the current file predates the schema."
+    },
+    {
+      "scope": {
+        "kind": "extension",
+        "name": "skill-oriented-agent-architecture"
+      },
+      "check": "extension-manifest",
+      "note": "Fails only under --strict."
+    },
+    {
+      "scope": {
+        "kind": "feature",
+        "name": "order_export"
+      },
+      "check": "architecture-experiments",
+      "finding": "expired:exp-cache-latency"
+    },
+    {
+      "scope": {
+        "kind": "feature",
+        "name": "order_export"
+      },
+      "check": "completeness",
+      "finding": "plan.md",
+      "note": "Written before plan.md was required."
+    },
+    {
+      "scope": {
+        "kind": "feature",
+        "name": "order_export"
+      },
+      "check": "nfrs-no-tbd"
+    },
+    {
+      "scope": {
+        "kind": "fix",
+        "name": "fixes/task-filter-reset/fix.yaml"
+      },
+      "check": "fix-record"
+    }
+  ]
+}

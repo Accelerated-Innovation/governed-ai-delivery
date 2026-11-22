@@ -248,7 +248,7 @@ Backend installs ship no UI artifacts; UI installs ship no backend artifacts. Th
 | `govkit apply` | Install / scaffold a legacy governance bundle into your project. Detects your stack, writes the `.govkit` marker. |
 | `govkit calibrate` | Guided, type-aware review to make installed defaults match your repo. UI reviews include brand readiness; `--non-interactive` writes a checklist file and `--only <step>` revisits one decision. |
 | `govkit doctor` | Read-only **governance-fit** checks (rule globs, CI/stack/language/framework fit, stale baselines, extensions, and the Next.js database boundary). Run once you have source code, and in CI. Monorepo-aware. |
-| `govkit validate` | Level-aware compliance check over **features** (artifact existence, Gherkin structure, NFR coverage, eval-criteria schema, prediction thresholds), **fix records** (schema, eligibility conditions) and **ADR approval attestation** (the policy is well-formed and names a real approver; ADRs claiming `Accepted` without an approval record). No-op at L3. |
+| `govkit validate` | Level-aware compliance check over **features** (artifact existence, Gherkin structure, NFR coverage, eval-criteria schema, prediction thresholds), **fix records** (schema, eligibility conditions) and **ADR approval attestation** (the policy is well-formed and names a real approver; ADRs claiming `Accepted` without an approval record). No-op at L3. `--feature` narrows the run to named features and `--known-failures` separates new failures from accepted existing ones; see [known failures](docs/KNOWN_FAILURES.md). |
 | `govkit init <feature>` | Scaffold a new feature folder from the appropriate starter (L4+). |
 | `govkit fix init <id>` | Scaffold a defect-lane fix record at `fixes/<id>/fix.yaml` (L4+) — one artifact instead of five, for a change that restores already-established behavior. |
 | `govkit evidence` | Report measured quality evidence from CI artifacts — a verdict per rubric dimension, with unmeasured ones reported as INCONCLUSIVE rather than green. |
@@ -953,6 +953,23 @@ When `govkit validate --target .` reports failures, here's what they mean and ho
 | `predicted FIRST average below 4.0` | Predicted test quality is below threshold | Revise the plan — improve test strategy or split complex increments |
 | `predicted Virtue average below 4.0` | Predicted code quality is below threshold | Revise the plan — simplify design, reduce complexity, improve separation |
 | `NFR tag coverage incomplete` | Some NFR categories lack corresponding Gherkin tags | Add `@nfr-<category>` tags to relevant scenarios in acceptance.feature |
+
+### Checking one feature, and separating new failures from old ones
+
+In a repository where older features fail checks that were added later,
+`govkit validate --target .` exits non-zero on every run. Two options make the
+exit status usable for the feature you are working on:
+
+```bash
+govkit validate --target . --feature my_feature                # only this feature
+govkit validate --target . --print-known-failures > ../kf.json  # review, then save
+govkit validate --target . --known-failures ../kf.json          # only new failures fail
+```
+
+A failure listed in the record is reported as `KNOWN`. One that is not listed
+fails the run. A listed failure that now passes is reported as `RESOLVED`, and
+fails the run with `--strict`. GovKit never writes or accepts the record. See
+[feature-scoped validate and known failures](docs/KNOWN_FAILURES.md).
 
 For governance that has drifted out of sync with your repo (rule globs matching nothing, CI/stack mismatches, stale baselines), run `govkit doctor` — it covers a different surface than `validate`.
 

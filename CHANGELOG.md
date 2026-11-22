@@ -8,6 +8,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Feature-scoped `govkit validate` (#248).** `--feature <name>` (repeatable)
+  checks only the named feature directories. A name that matches no feature
+  directory is an error.
+- **Known-failures record (#248).** `--known-failures <path>` names a
+  caller-reviewed record of failures accepted as existing.
+  - Listed failures are reported as known and do not fail the run. Unlisted
+    failures fail it. A listed failure that now passes is reported as resolved
+    and fails the run only with `--strict`.
+  - The output states whether the record is inside the inspected tree and
+    prints its SHA-256 digest. `--known-failures-digest` pins the reviewed
+    record.
+  - `--print-known-failures` prints the current failures in the record format.
+    GovKit never writes or accepts a record.
+  - Runs that use these options print a stable identifier with every result.
+  - With none of the options, output and exit status are unchanged.
+  - See [docs/KNOWN_FAILURES.md](docs/KNOWN_FAILURES.md) and ADR 0021.
+
 ## [0.23.0] — 2026-11-02
 
 Architecture decisions that rest on untested assumptions get bounded

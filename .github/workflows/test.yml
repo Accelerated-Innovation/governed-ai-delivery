@@ -391,6 +391,11 @@ jobs:
           cd /tmp
           /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_experiment_smoke.py"
 
+      - name: Feature-scoped validate and known-failures records work from the wheel
+        run: |
+          cd /tmp
+          /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_validate_smoke.py"
+
       - name: Legacy migration and rollback work from the wheel
         run: |
           cd /tmp
