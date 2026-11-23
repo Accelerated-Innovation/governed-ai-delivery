@@ -212,6 +212,7 @@ A check on the actual Git diff, composed through `change_conformance.py`, which 
 - **Existing tests.** A test bound to a scenario at the comparison base may not have lines removed or changed. New tests and new test files are allowed. GovKit cannot judge whether an edit weakens a test, so any edit to an existing bound test needs a person.
 - **Shared test support.** A bound test can be weakened through a helper, fixture or settings file it uses, without any of its own lines changing. The project declares its test support paths, and any change to an existing file under them is a finding. GovKit does not trace imports, so with no paths declared the report states that shared test support is not protected.
 - **Other protected files.** The known-failures record and the CI workflows by default; datasets, rubrics, thresholds and test settings when the project declares them. Any change is a finding.
+- **Declarations come from the comparison base.** The test support paths, the other protected files and the escape markers are read as declared at the comparison base, or from accepted policy held outside the inspected tree, never from the change being judged. A change may add to a declaration, and the addition applies. A change that removes or narrows one is a finding that needs a person.
 - **Escape markers.** A project may declare escape markers (skip, xfail, a pending tag). Their count for a feature may fall but not rise against the comparison base.
 
 ### L07 — Preconditions, the verdict and `conform` integration
