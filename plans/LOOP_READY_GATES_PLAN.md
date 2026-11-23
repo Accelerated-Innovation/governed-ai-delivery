@@ -83,7 +83,7 @@ Read from `discovery-engine` (feature 24, the requirements index). Nothing there
 4. **Runs are strict and immutable.** The caller needs a service identity. The whole run is refused unless every revision matches the indexed baseline. An identical re-send is accepted; a different payload under the same reference is a conflict.
 5. **A result carries no score.** The graph compares a criterion with measurements through a separate path, study findings that carry a metric, a value and a unit. A criterion may declare a `target` (metric, comparator, value, unit) for that comparison.
 6. **Nothing pushes runs yet.** The route is documented as called by the build repository's CI. GovKit's graph client only reads commitment status.
-7. **The identifier rule exists in three places.** `aipos-plugins` owns it, the engine mirrors the slug rule with a pinned fixture, and GovKit would be the third.
+7. **The identity rules have two owners.** `aipos-plugins` owns the identifier format and the slug rule; the slug rule exists only as code in one skill's script, and the engine mirrors it with a fixture pinned by hand to a commit. The engine owns the revision digest, which its ADR-AIG-035 defines and no other repository computes. GovKit would be a further copy of both.
 8. **Issue #152 names shapes the engine does not have.** It proposes emitting `Specification` and `EvaluationResult`. The implemented contract is the verification run.
 
 ## 4. Decisions
@@ -169,7 +169,7 @@ This is a defect against the evidence contract. It changes an exit status from 0
 
 `govkit evidence --feature <name>` reports on one feature. It reads the scenarios from `features/<name>/acceptance.feature` and binds each one to a test result.
 
-- **Identity.** Each scenario is identified as the graph identifies it, with the same revision digest (decision 18). A shared fixture pins GovKit's rule to the engine's and to `aipos-plugins`.
+- **Identity.** Each scenario is identified as the graph identifies it, with the same revision digest (decision 18). Copied fixtures pin GovKit's slug rule to `aipos-plugins` and its revision digest to the engine (E3a and E3b).
 - **Binding.** Each scenario reports one of: passed, failed, skipped, or missing (no result found). How a scenario is matched to a JUnit test case is an open question (Section 10).
 - **Outcome.** The feature's "Working" outcome is `PASS` only when every scenario passed.
 - **NFR scenarios.** Scenarios tagged `@nfr-*` are listed with their tags. A passing NFR scenario shows that its test passed. It does not show that the test asserts the value written in the scenario; L04 covers values that are declared as targets.
@@ -257,22 +257,23 @@ A report also carries the repository, the feature, the build commit, the executi
 
 ## 7. Changes needed in other repositories
 
-Nothing in `discovery-engine` has been changed. These are proposals, each to be raised as an issue there if agreed.
+Nothing in `discovery-engine` or `aipos-plugins` has been changed. These are proposals, each to be raised as an issue in the repository named if agreed.
 
-| Id | Change | Needed by | Without it |
-|---|---|---|---|
-| E1 | An optional `measurement` on a verification result: metric, value, unit and an optional sample size. Where the criterion declares a target, the engine compares the value and refuses a run whose outcome contradicts it. | L09, for scores | Runs carry outcomes only; scores reach the graph by no route |
-| E2 | A way for a client to learn which verification-run fields the engine accepts, such as a contract version on an existing route. The request model rejects unknown fields today. | L09 | GovKit must be configured by hand to send or omit measurements |
-| E3 | The identifier, slug and revision-digest rules published as one versioned contract with shared fixtures, covering scenarios and criteria. | L03 | GovKit copies the rule and a fixture, as the engine does today |
-| E4 | A published schema for the verification-run request that GovKit's projection can be validated against. | L09 | GovKit tests against a hand-copied shape |
+| Id | Repository | Change | Needed by | Without it |
+|---|---|---|---|---|
+| E1 | `discovery-engine` | An optional `measurement` on a verification result: metric, value, unit and an optional sample size. Where the criterion declares a target, the engine compares the value and refuses a run whose outcome contradicts it. | L09, for scores | Runs carry outcomes only; scores reach the graph by no route |
+| E2 | `discovery-engine` | A way for a client to learn which verification-run fields the engine accepts, such as a contract version on an existing route. The request model rejects unknown fields today. | L09 | GovKit must be configured by hand to send or omit measurements |
+| E3a | `aipos-plugins` | The slug rule and its test pairs published as a versioned fixture beside the identifier reference document. | L03 | GovKit copies the rule and pins a fixture to a commit by hand, as the engine does today |
+| E3b | `discovery-engine` | The revision digest rule published with a fixture of scenario text and expected digest, and the content digest rule for a criterion. | L03, L05, L06, L09 | GovKit copies the rule from the engine's source; a difference makes the engine refuse a whole run |
+| E4 | `discovery-engine` | A published schema for the verification-run request that GovKit's projection can be validated against. | L09 | GovKit tests against a hand-copied shape |
 
-E3 may belong in `aipos-plugins`, which owns the identifier convention, with the engine and GovKit both consuming it.
+E3 is split by owner. The engine already follows `aipos-plugins` for identifiers and slugs, so E3a belongs there. Neither part blocks L03, which starts from copied fixtures.
 
 Not proposed:
 
 - **Recording local or pre-baseline runs.** Decision 19 keeps the graph for CI results against a tagged baseline.
 - **A paid or human class in the graph.** An owed evaluation shows there as `unverified`, which is accurate.
-- **Splitting the graph into its own repository.** Deferred by the maintainer on 2026-11-22. E3 and E4 are useful either way.
+- **Splitting the graph into its own repository.** Deferred by the maintainer on 2026-11-22. E3a, E3b and E4 are useful either way.
 
 ## 8. Pilot repository
 
@@ -310,7 +311,7 @@ Risks:
 - **Scenario binding varies by test runner.** L03 is promised only for runners whose JUnit output can be matched to a scenario.
 - **An NFR value in prose is not compared.** A test can assert a looser limit than the scenario states. L04 compares only declared targets and says so in the report.
 - **L06 will flag legitimate test refactoring.** That is the intended cost of not letting a change edit its own tests unreviewed.
-- **Three copies of the identity rule can drift.** E3 removes the copies; until then a shared fixture pins them.
+- **Copies of the identity rules can drift.** E3a and E3b give each rule one published fixture; until then copied fixtures pin them.
 - **Probabilistic results have no standard file format.** L04 may have to define one.
 - **L02 turns some green runs red.** Projects with skipped tests will see `INCONCLUSIVE` where they saw `PASS`.
 - **Exports can leak project detail.** Scenario names and failure text may be sensitive. Decision 17 requires an allowlist.
