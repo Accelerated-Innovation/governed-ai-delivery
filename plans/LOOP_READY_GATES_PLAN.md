@@ -170,8 +170,8 @@ This is a defect against the evidence contract. It changes an exit status from 0
 `govkit evidence --feature <name>` reports on one feature. It reads the scenarios from `features/<name>/acceptance.feature` and binds each one to a test result.
 
 - **Identity.** Each scenario is identified as the graph identifies it, with the same revision digest (decision 18). Copied fixtures pin GovKit's slug rule to `aipos-plugins` and its revision digest to the engine (E3a and E3b).
-- **Binding.** Each scenario reports one of: passed, failed, skipped, or missing (no result found). How a scenario is matched to a JUnit test case is an open question (Section 10).
-- **Outcome.** The feature's "Working" outcome is `PASS` only when every scenario passed.
+- **Binding.** Each scenario reports one of: passed, failed, errored, skipped, or missing (no result found). An errored test is kept apart from a failed one, because Section 5 escalates on an error. How a scenario is matched to a JUnit test case is an open question (Section 10).
+- **Outcome.** The feature's "Working" outcome is `PASS` only when every scenario passed. Otherwise it is `ERROR` when any scenario errored, else `FAIL` when any failed, else `INCONCLUSIVE`.
 - **NFR scenarios.** Scenarios tagged `@nfr-*` are listed with their tags. A passing NFR scenario shows that its test passed. It does not show that the test asserts the value written in the scenario; L04 covers values that are declared as targets.
 - **Selection.** A name that matches no feature directory is an error, as in L01.
 - **JSON report.** `--json` prints the canonical report (decision 16), with the fields in Section 6.1 and a bundled schema and example.
@@ -196,15 +196,21 @@ Adding the class changes the three `eval_criteria` schemas (backend, UI, data), 
 
 ### L05 — Results must belong to the current commit and revision
 
-A result counts only when it was produced from the current commit and names the current revision digest of its scenario or criterion. Anything else is `INCONCLUSIVE`, reported as stale. This is the graph's own rule (Section 3.3), applied locally. How a result file records the commit it came from is an open question. Issue #152 should be rewritten around the verification run contract, or closed.
+A result counts only when it was produced from the current commit and names the current revision digest of its scenario or criterion. Anything else is `INCONCLUSIVE`, reported as stale. This is the graph's own rule (Section 3.3), applied locally. How a result file records the commit it came from is an open question.
+
+A local result must also belong to the working tree that produced it. When a tracked or untracked file that the result depends on has changed since the run without a commit (implementation, tests, scenarios or criteria), the commit and the digests can still match. Such a result is `INCONCLUSIVE`, reported as stale. How the working tree is identified, for example by a tree digest recorded with the result, is part of the same open question.
+
+Issue #152 should be rewritten around the verification run contract, or closed.
 
 ### L06 — The definition and its tests cannot be weakened by the change they judge
 
 A check on the actual Git diff, composed through `change_conformance.py`, which already captures it.
 
 - **Scenarios.** In `acceptance.feature`, a change may add scenarios. Every scenario that existed at the comparison base must still exist with the same revision digest. A removed or altered scenario is a finding that needs a person.
+- **Shared steps.** A `Background` runs before every scenario it covers, and the revision digest does not include it. Any change to a `Background` that existed at the comparison base, at feature or `Rule` level, is a finding that needs a person. So is adding one above existing scenarios.
 - **Criteria.** In `eval_criteria.yaml`, a change may add criteria. An existing criterion that is removed or altered is a finding.
 - **Existing tests.** A test bound to a scenario at the comparison base may not have lines removed or changed. New tests and new test files are allowed. GovKit cannot judge whether an edit weakens a test, so any edit to an existing bound test needs a person.
+- **Shared test support.** A bound test can be weakened through a helper, fixture or settings file it uses, without any of its own lines changing. The project declares its test support paths, and any change to an existing file under them is a finding. GovKit does not trace imports, so with no paths declared the report states that shared test support is not protected.
 - **Other protected files.** The known-failures record and the CI workflows by default; datasets, rubrics, thresholds and test settings when the project declares them. Any change is a finding.
 - **Escape markers.** A project may declare escape markers (skip, xfail, a pending tag). Their count for a feature may fall but not rise against the comparison base.
 
@@ -311,6 +317,7 @@ Risks:
 - **Scenario binding varies by test runner.** L03 is promised only for runners whose JUnit output can be matched to a scenario.
 - **An NFR value in prose is not compared.** A test can assert a looser limit than the scenario states. L04 compares only declared targets and says so in the report.
 - **L06 will flag legitimate test refactoring.** That is the intended cost of not letting a change edit its own tests unreviewed.
+- **The graph does not see a `Background` edit.** The engine's revision digest stops at the scenario, so a changed `Background` leaves every scenario current in the graph. L06 catches it in the change that makes it. Whether the digest should cover it is a question for E3b.
 - **Copies of the identity rules can drift.** E3a and E3b give each rule one published fixture; until then copied fixtures pin them.
 - **Probabilistic results have no standard file format.** L04 may have to define one.
 - **L02 turns some green runs red.** Projects with skipped tests will see `INCONCLUSIVE` where they saw `PASS`.
@@ -324,7 +331,7 @@ Risks:
 1. **Scenario binding (L03).** The scenario's identity is settled by decision 18. How is that scenario matched to a JUnit test case: by name, by the `@scenario:` tag, or by a mapping the project declares? Decide from the pilot's real output.
 2. **Measurement file format (L04).** What file carries a measured score for a criterion, and which tools write it today?
 3. **Machine-readable NFR values (L04).** Should an NFR value be declarable as a target, and where: in `nfrs.md`, in the scenario, or in `eval_criteria.yaml`?
-4. **Recording the commit (L05).** How does a result file state the commit it was produced from?
+4. **Recording the commit and working tree (L05).** How does a result file state the commit it was produced from, and the working tree when there are uncommitted changes?
 5. **Schemas on a level-free installation.** Does a pack install the `eval_criteria` schema, and which of the three applies when there is no project type from a marker?
 6. **Accepted skips.** May a project declare a skip as accepted, and if so where, without recreating the escape route of Section 3.1 item 4?
 7. **The legacy pilot.** Can it be converted with `govkit migrate`, so that it also exercises the level-free path?
