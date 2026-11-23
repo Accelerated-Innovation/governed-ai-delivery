@@ -263,7 +263,7 @@ A report also carries the repository, the feature, the build commit, the executi
 
 ## 7. Changes needed in other repositories
 
-Nothing in `discovery-engine` or `aipos-plugins` has been changed. These are proposals, each to be raised as an issue in the repository named if agreed.
+Nothing in `discovery-engine` or `aipos-plugins` has been changed. These are proposals, raised as issues on 2026-11-23: E1 and E2 as discovery-engine#303, E3a as aipos-plugins#108 and E3b as discovery-engine#302. E4 is not yet raised.
 
 | Id | Repository | Change | Needed by | Without it |
 |---|---|---|---|---|
