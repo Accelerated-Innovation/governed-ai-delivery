@@ -153,7 +153,8 @@ def _suite_skips(root: ET.Element) -> tuple[int, int]:
     hides would look passed. A suite's own test cases are its direct children,
     so a nested suite is not counted twice.
     """
-    suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
+    # `iter` yields the root as well when it is itself a suite, and every nested suite.
+    suites = list(root.iter("testsuite"))
     skipped = unidentified = marked_in_suites = 0
     for suite in suites:
         declared = int(suite.get("skipped") or 0)

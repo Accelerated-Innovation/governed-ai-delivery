@@ -437,3 +437,14 @@ class TestReviewCases:
 
         found = _find(paths.GOVERNANCE_DIR / "examples" / "evidence-report", _JUNIT_GLOBS)
         assert found == []
+
+
+def test_an_unmarked_skip_in_a_nested_suite_under_a_suite_root_is_seen(tmp_path):
+    (tmp_path / "junit.xml").write_text(
+        '<testsuite name="outer" tests="1"><testsuite name="inner" tests="1" skipped="1">'
+        '<testcase name="test_target" time="0.0"/></testsuite></testsuite>',
+        encoding="utf-8",
+    )
+    report = _report(_project(tmp_path, "Feature: F\n  Scenario: Target\n    Then ok\n"))
+    assert report["sources"][0]["unidentified_skipped"] == 1
+    assert report["outcome"] == "INCONCLUSIVE", report["detail"]
