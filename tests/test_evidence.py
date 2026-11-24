@@ -610,3 +610,14 @@ class TestNestedSuites:
         )
         v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
         assert v.outcome is Outcome.INCONCLUSIVE, v.detail
+
+
+def test_suites_nested_too_deeply_are_an_error_not_a_crash(tmp_path):
+    depth = 20000
+    (tmp_path / "junit.xml").write_text(
+        '<testsuite tests="1">' * depth + '<testcase name="a" time="0.01"/>' + "</testsuite>" * depth,
+        encoding="utf-8",
+    )
+    v = _by_dimension(collect_evidence(tmp_path))["Working"]
+    assert v.outcome is Outcome.ERROR, v.detail
+    assert "nested" in v.detail, v.detail

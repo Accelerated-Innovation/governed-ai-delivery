@@ -448,3 +448,14 @@ def test_an_unmarked_skip_in_a_nested_suite_under_a_suite_root_is_seen(tmp_path)
     report = _report(_project(tmp_path, "Feature: F\n  Scenario: Target\n    Then ok\n"))
     assert report["sources"][0]["unidentified_skipped"] == 1
     assert report["outcome"] == "INCONCLUSIVE", report["detail"]
+
+
+def test_suites_nested_too_deeply_are_an_error_in_the_feature_report(tmp_path):
+    depth = 20000
+    (tmp_path / "junit.xml").write_text(
+        '<testsuite tests="1">' * depth + '<testcase name="a"/>' + "</testsuite>" * depth,
+        encoding="utf-8",
+    )
+    report = _report(_project(tmp_path))
+    assert report["outcome"] == "ERROR"
+    assert "nested" in report["detail"]

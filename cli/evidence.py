@@ -195,6 +195,8 @@ def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
             skipped, unidentified = _suite_skips(root)
         except ValueError:
             return None, f"{path.name} has a test count that is not a whole number"
+        except RecursionError:
+            return None, f"{path.name} has test suites nested too deeply to read"
         for case in root.iter("testcase"):
             if case.find("skipped") is not None:
                 totals["skipped_names"].append(case.get("name") or "(unnamed)")
@@ -263,6 +265,8 @@ def read_test_reports(target: Path) -> tuple[list[TestReport] | None, str | None
             return None, f"{path.name} could not be parsed: {exc}"
         except ValueError:
             return None, f"{path.name} has a test count that is not a whole number"
+        except RecursionError:
+            return None, f"{path.name} has test suites nested too deeply to read"
         relative = path.relative_to(target).as_posix()
         cases = tuple(
             CaseResult(
