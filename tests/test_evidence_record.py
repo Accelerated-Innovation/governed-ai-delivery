@@ -291,3 +291,16 @@ class TestRecordSize:
         size = (tmp_path / rec.NAME).stat().st_size
         assert 4 * 1024 * 1024 < size <= rec.evaluation_results.MAX_BYTES, size
         assert rec.read_record(tmp_path) == written
+
+
+def test_the_bytes_that_were_measured_are_the_bytes_written(tmp_path):
+    """Text mode turns each newline into two bytes on Windows, after the size check."""
+    data = b'{\n  "a": 1\n}\n'
+    rec._replace(tmp_path / rec.NAME, data)
+    assert (tmp_path / rec.NAME).read_bytes() == data
+
+
+def test_a_record_has_unix_line_endings(tmp_path):
+    _junit(tmp_path)
+    rec.write_record(tmp_path, observe=Tree(), now=NOW)
+    assert b"\r" not in (tmp_path / rec.NAME).read_bytes()

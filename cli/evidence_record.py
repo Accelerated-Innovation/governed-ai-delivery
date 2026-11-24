@@ -115,20 +115,21 @@ def write_record(target: Path, *, observe=None, now: datetime | None = None) -> 
         validate_document(record, SCHEMA)
     except DocumentError as exc:
         raise RecordError(f"the record would not be usable: {exc}") from None
-    text = json.dumps(record, indent=2) + "\n"
-    if len(text.encode("utf-8")) > evaluation_results.MAX_BYTES:
+    # Bytes, not text: the size checked here is the size written, on every platform.
+    data = (json.dumps(record, indent=2) + "\n").encode("utf-8")
+    if len(data) > evaluation_results.MAX_BYTES:
         raise RecordError(
             "the record would be larger than 5 MiB, which the reader refuses. "
             "Point the target at the project, or remove old result files."
         )
-    _replace(target / NAME, text)
+    _replace(target / NAME, data)
     return record
 
 
-def _replace(path: Path, text: str) -> None:
-    """Write `text` to `path`, leaving what was there untouched if anything fails.
+def _replace(path: Path, data: bytes) -> None:
+    """Write `data` to `path`, leaving what was there untouched if anything fails.
 
-    The text goes to a new file beside the destination, which then takes its
+    The bytes go to a new file beside the destination, which then takes its
     place in one step. A link in the destination's place is refused.
     """
     temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
@@ -136,8 +137,9 @@ def _replace(path: Path, text: str) -> None:
         if path.is_symlink() or (path.exists() and not path.is_file()):
             raise RecordError(f"{NAME} exists and is not a regular file; it was not replaced")
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
-        with os.fdopen(os.open(temporary, flags, 0o644), "w", encoding="utf-8") as handle:
-            handle.write(text)
+        flags |= getattr(os, "O_BINARY", 0)
+        with os.fdopen(os.open(temporary, flags, 0o644), "wb") as handle:
+            handle.write(data)
         os.replace(temporary, path)
     except OSError as exc:
         _discard(temporary)
