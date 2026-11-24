@@ -208,7 +208,29 @@
         },
         "weight": { "type": "number", "minimum": 0 },
         "tags": { "type": "array", "items": { "type": "string" } },
-        "notes": { "type": "string" }
+        "notes": { "type": "string" },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Optional. A measurable target in the shape the Product Definition Graph compares. When present, `govkit evidence --feature` compares a measured score with it instead of `threshold` and `fail_on`. The measurement must state the same metric and unit.",
+          "required": ["metric", "comparator", "value", "unit"],
+          "properties": {
+            "metric": { "type": "string", "minLength": 1, "description": "What is measured, for example faithfulness or p95_latency." },
+            "comparator": { "enum": [">=", "<=", "==", "between"] },
+            "value": { "type": "number", "description": "The bound, or the lower bound for `between`." },
+            "value_high": { "type": "number", "description": "The upper bound. Required for `between` and ignored otherwise." },
+            "unit": {
+              "enum": ["seconds", "minutes", "hours", "days", "percent", "ratio", "count", "currency"],
+              "description": "A closed set shared with the Product Definition Graph."
+            }
+          },
+          "if": { "properties": { "comparator": { "const": "between" } }, "required": ["comparator"] },
+          "then": { "required": ["value_high"] }
+        },
+        "execution_class": {
+          "enum": ["free", "paid", "human"],
+          "description": "Optional, default free. Who may run this criterion: `free` may be run by an agent; `paid` costs money; `human` needs a person. A paid or human criterion with no result is reported as owed. GovKit never starts an evaluation."
+        }
       }
     }
   }

@@ -4,17 +4,24 @@
   "feature": {
     "name": "07_invoice_approval",
     "definition": "features/07_invoice_approval/acceptance.feature",
-    "content_digest": "31bcf6c25b2cf87938c91f86ec73c8fc964b33eda3d48ef92de2b468a9b9a281"
+    "content_digest": "31bcf6c25b2cf87938c91f86ec73c8fc964b33eda3d48ef92de2b468a9b9a281",
+    "criteria": {
+      "definition": "features/07_invoice_approval/eval_criteria.yaml",
+      "content_digest": "1a088ca5280c95b59582de241a1f1d54aee4c02094155c8abde084f399fc1452",
+      "form": "named"
+    }
   },
   "outcome": "FAIL",
-  "detail": "1 failed, 1 skipped, 1 missing of 4 scenarios: approval-routing-when-manager-absent (skipped), routing-completes-within-200-ms-at-p95 (failed), a-rejected-invoice-returns-to-its-author (missing)",
+  "detail": "2 failed, 1 skipped, 2 missing, 1 owed of 4 scenarios and 4 criteria: approval-routing-when-manager-absent (skipped), routing-completes-within-200-ms-at-p95 (failed), a-rejected-invoice-returns-to-its-author (missing), routing-p95-latency (failed), refusal-safety (missing) and 1 more",
   "summary": {
     "scenarios": 4,
-    "passed": 1,
-    "failed": 1,
+    "criteria": 4,
+    "passed": 2,
+    "failed": 2,
     "error": 0,
     "skipped": 1,
-    "missing": 1
+    "missing": 2,
+    "owed": 1
   },
   "sources": [
     {
@@ -22,6 +29,11 @@
       "path": "junit.xml",
       "content_digest": "3783b54d76594ac5afcb1c128aa5cfb0e065b6e6d7bcfb2ae0f5daed8d674522",
       "unidentified_skipped": 0
+    },
+    {
+      "tool": "evaluation-results",
+      "path": "govkit-eval-results.json",
+      "content_digest": "d5fa68649ecb253b451fd2d1cfaf72a5c0a178aa55bfc3a6852f23bba5142e93"
     }
   ],
   "results": [
@@ -103,6 +115,92 @@
       "outcome": "missing",
       "binding": "none",
       "tests": []
+    },
+    {
+      "requirement_id": "07_invoice_approval#evaluation:routing-explanation-faithfulness",
+      "revision_digest": "1a088ca5280c95b59582de241a1f1d54aee4c02094155c8abde084f399fc1452",
+      "kind": "evaluation",
+      "title": "routing-explanation-faithfulness",
+      "tags": [],
+      "outcome": "passed",
+      "execution_class": "free",
+      "compared_with": {
+        "target": {
+          "metric": "faithfulness",
+          "comparator": ">=",
+          "value": 0.85,
+          "value_high": null,
+          "unit": "ratio"
+        }
+      },
+      "measurements": [
+        {
+          "value": 0.91,
+          "unit": "ratio",
+          "metric": "faithfulness",
+          "n": 50,
+          "met": true,
+          "source": "govkit-eval-results.json"
+        }
+      ]
+    },
+    {
+      "requirement_id": "07_invoice_approval#evaluation:routing-p95-latency",
+      "revision_digest": "1a088ca5280c95b59582de241a1f1d54aee4c02094155c8abde084f399fc1452",
+      "kind": "evaluation",
+      "title": "routing-p95-latency",
+      "tags": [
+        "nfr-performance"
+      ],
+      "outcome": "failed",
+      "execution_class": "free",
+      "compared_with": {
+        "target": {
+          "metric": "p95_latency",
+          "comparator": "<=",
+          "value": 0.2,
+          "value_high": null,
+          "unit": "seconds"
+        }
+      },
+      "measurements": [
+        {
+          "value": 0.24,
+          "unit": "seconds",
+          "metric": "p95_latency",
+          "n": 100,
+          "met": false,
+          "source": "govkit-eval-results.json"
+        }
+      ]
+    },
+    {
+      "requirement_id": "07_invoice_approval#evaluation:refusal-safety",
+      "revision_digest": "1a088ca5280c95b59582de241a1f1d54aee4c02094155c8abde084f399fc1452",
+      "kind": "evaluation",
+      "title": "refusal-safety",
+      "tags": [],
+      "outcome": "missing",
+      "execution_class": "free",
+      "compared_with": {
+        "threshold": 0.99,
+        "fail_on": "below_threshold"
+      },
+      "measurements": []
+    },
+    {
+      "requirement_id": "07_invoice_approval#evaluation:explanation-tone-review",
+      "revision_digest": "1a088ca5280c95b59582de241a1f1d54aee4c02094155c8abde084f399fc1452",
+      "kind": "evaluation",
+      "title": "explanation-tone-review",
+      "tags": [],
+      "outcome": "owed",
+      "execution_class": "human",
+      "compared_with": {
+        "threshold": 0.8,
+        "fail_on": "below_threshold"
+      },
+      "measurements": []
     }
   ]
 }

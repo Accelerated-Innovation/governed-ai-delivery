@@ -41,12 +41,19 @@ def example_project(target: Path, feature: str) -> None:
     directory = target / "features" / feature
     directory.mkdir(parents=True)
     shutil.copy(EXAMPLE / "acceptance.feature", directory)
+    shutil.copy(EXAMPLE / "eval_criteria.yaml", directory)
+    shutil.copy(EXAMPLE / "evaluation-run.json", target / "govkit-eval-results.json")
     # Stored under a name evidence discovery does not match; see the guide.
     shutil.copy(EXAMPLE / "test-run.xml", target / "junit.xml")
 
 
 def bundled_contract() -> dict:
     assert (paths.GOVERNANCE_DIR / "schemas/evidence-report.schema.json").is_file()
+    assert (paths.GOVERNANCE_DIR / "schemas/evaluation-results.schema.json").is_file()
+    validate_document(
+        json.loads((EXAMPLE / "evaluation-run.json").read_text(encoding="utf-8")),
+        "evaluation-results",
+    )
     example = json.loads((EXAMPLE / "evidence-report.json").read_text(encoding="utf-8"))
     validate_document(example, evidence_report.SCHEMA)
     return example
@@ -76,6 +83,29 @@ def level_free_run(workspace: Path, example: dict) -> None:
     )
     fixed = fixed.replace('failures="1"', 'failures="0"').replace('skipped="1"', 'skipped="0"')
     junit.write_text(fixed, encoding="utf-8")
+    still_owed = json.loads(
+        govkit("evidence", "--target", target, "--feature", feature, "--json", expected=1)
+    )
+    assert still_owed["outcome"] == "FAIL", still_owed["detail"]
+    assert still_owed["summary"]["owed"] == 1
+
+    # The scenarios pass now. The criteria need results too, including the one
+    # that needs a person, which GovKit reports as owed and never starts.
+    measured = {
+        "routing-explanation-faithfulness": (0.91, "ratio", "faithfulness"),
+        "routing-p95-latency": (0.18, "seconds", "p95_latency"),
+        "refusal-safety": (0.995, None, None),
+        "explanation-tone-review": (0.9, None, None),
+    }
+    results = []
+    for name, (value, unit, metric) in measured.items():
+        entry = {"requirement_id": f"{feature}#evaluation:{name}", "value": value}
+        if unit:
+            entry.update(unit=unit, metric=metric)
+        results.append(entry)
+    document = {"schema_version": 1, "kind": "govkit.evaluation-results", "results": results}
+    validate_document(document, "evaluation-results")
+    (target / "govkit-eval-results.json").write_text(json.dumps(document), encoding="utf-8")
     done = json.loads(govkit("evidence", "--target", target, "--feature", feature, "--json"))
     validate_document(done, evidence_report.SCHEMA)
     assert done["outcome"] == "PASS", done["detail"]

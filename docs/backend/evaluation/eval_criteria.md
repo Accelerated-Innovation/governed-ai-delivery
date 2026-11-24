@@ -213,6 +213,27 @@ llm_evaluation:
   fail_on_regression: true
 ```
 
+Two optional fields on a criterion say how its measured score is judged and who may produce it:
+
+```yaml
+    - name: groundedness
+      eval_class: retrieval_match
+      threshold: 0.9
+      fail_on: below_threshold
+      target:                 # optional; compared instead of threshold when present
+        metric: groundedness
+        comparator: ">="      # one of >=, <=, ==, between (between also needs value_high)
+        value: 0.9
+        unit: ratio           # seconds, minutes, hours, days, percent, ratio, count, currency
+      execution_class: paid   # optional; free (default), paid or human
+```
+
+* `target` is the form the Product Definition Graph compares. A measurement must state the same metric and unit.
+* `execution_class` says who may run the criterion. An agent may run a `free` criterion. A `paid` criterion costs money and a `human` criterion needs a person: do not start either without authorisation. With no result they are reported as owed, and the feature is not done.
+* An NFR value that must be checked as a number, such as a latency limit, is declared as a criterion with a target.
+
+`govkit evidence --feature <feature>` reads measured scores from an evaluation results file and compares them. See the GovKit documentation for the feature evidence report.
+
 **mode: deterministic** (use when feature has no LLM output to evaluate):
 
 ```yaml

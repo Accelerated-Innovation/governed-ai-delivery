@@ -1,0 +1,1271 @@
+{
+  "source": {
+    "repository": "discovery-engine",
+    "path": "src/engine/domain/requirements.py",
+    "function": "criteria_from, _meets",
+    "commit": "3806d649984aceaef2bb7d5604d08ae4887a3571",
+    "note": "Expected values were produced by running the engine's rules on each document. GovKit authored the documents."
+  },
+  "package": "07_invoice_approval",
+  "cases": [
+    {
+      "name": "threshold-only",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "faithfulness",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "criteria": [
+          {
+            "id": "07_invoice_approval#evaluation:faithfulness",
+            "name": "faithfulness",
+            "threshold": 0.8,
+            "fail_on": "below_threshold",
+            "metric": null,
+            "comparator": null,
+            "target_value": null,
+            "target_high": null,
+            "unit": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "legacy-criteria-list",
+      "document": {
+        "criteria": [
+          {
+            "name": "old-style",
+            "eval_class": "custom",
+            "threshold": 0.8,
+            "fail_on": "below_threshold"
+          }
+        ]
+      },
+      "expected": {
+        "criteria": [
+          {
+            "id": "07_invoice_approval#evaluation:old-style",
+            "name": "old-style",
+            "threshold": 0.8,
+            "fail_on": "below_threshold",
+            "metric": null,
+            "comparator": null,
+            "target_value": null,
+            "target_high": null,
+            "unit": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "both-lists-in-order",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "a",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold"
+            }
+          ]
+        },
+        "criteria": [
+          {
+            "name": "b",
+            "eval_class": "custom",
+            "threshold": 0.8,
+            "fail_on": "below_threshold"
+          }
+        ]
+      },
+      "expected": {
+        "criteria": [
+          {
+            "id": "07_invoice_approval#evaluation:a",
+            "name": "a",
+            "threshold": 0.8,
+            "fail_on": "below_threshold",
+            "metric": null,
+            "comparator": null,
+            "target_value": null,
+            "target_high": null,
+            "unit": null
+          },
+          {
+            "id": "07_invoice_approval#evaluation:b",
+            "name": "b",
+            "threshold": 0.8,
+            "fail_on": "below_threshold",
+            "metric": null,
+            "comparator": null,
+            "target_value": null,
+            "target_high": null,
+            "unit": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "target-at-least",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "faithfulness",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold",
+              "target": {
+                "metric": "faithfulness",
+                "comparator": ">=",
+                "value": 0.85,
+                "unit": "ratio"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "criteria": [
+          {
+            "id": "07_invoice_approval#evaluation:faithfulness",
+            "name": "faithfulness",
+            "threshold": 0.8,
+            "fail_on": "below_threshold",
+            "metric": "faithfulness",
+            "comparator": ">=",
+            "target_value": 0.85,
+            "target_high": null,
+            "unit": "ratio"
+          }
+        ]
+      }
+    },
+    {
+      "name": "target-at-most",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "latency",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold",
+              "target": {
+                "metric": "p95_latency",
+                "comparator": "<=",
+                "value": 200,
+                "unit": "count"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "criteria": [
+          {
+            "id": "07_invoice_approval#evaluation:latency",
+            "name": "latency",
+            "threshold": 0.8,
+            "fail_on": "below_threshold",
+            "metric": "p95_latency",
+            "comparator": "<=",
+            "target_value": 200.0,
+            "target_high": null,
+            "unit": "count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "target-equal",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "exact",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold",
+              "target": {
+                "metric": "faithfulness",
+                "comparator": "==",
+                "value": 1,
+                "unit": "ratio"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "criteria": [
+          {
+            "id": "07_invoice_approval#evaluation:exact",
+            "name": "exact",
+            "threshold": 0.8,
+            "fail_on": "below_threshold",
+            "metric": "faithfulness",
+            "comparator": "==",
+            "target_value": 1.0,
+            "target_high": null,
+            "unit": "ratio"
+          }
+        ]
+      }
+    },
+    {
+      "name": "target-between",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "band",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold",
+              "target": {
+                "metric": "faithfulness",
+                "comparator": "between",
+                "value": 0.2,
+                "unit": "percent",
+                "value_high": 0.4
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "criteria": [
+          {
+            "id": "07_invoice_approval#evaluation:band",
+            "name": "band",
+            "threshold": 0.8,
+            "fail_on": "below_threshold",
+            "metric": "faithfulness",
+            "comparator": "between",
+            "target_value": 0.2,
+            "target_high": 0.4,
+            "unit": "percent"
+          }
+        ]
+      }
+    },
+    {
+      "name": "value-high-ignored-unless-between",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "c",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold",
+              "target": {
+                "metric": "faithfulness",
+                "comparator": ">=",
+                "value": 0.85,
+                "unit": "ratio",
+                "value_high": 9
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "criteria": [
+          {
+            "id": "07_invoice_approval#evaluation:c",
+            "name": "c",
+            "threshold": 0.8,
+            "fail_on": "below_threshold",
+            "metric": "faithfulness",
+            "comparator": ">=",
+            "target_value": 0.85,
+            "target_high": null,
+            "unit": "ratio"
+          }
+        ]
+      }
+    },
+    {
+      "name": "integer-value",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "c",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold",
+              "target": {
+                "metric": "faithfulness",
+                "comparator": ">=",
+                "value": 1,
+                "unit": "ratio"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "criteria": [
+          {
+            "id": "07_invoice_approval#evaluation:c",
+            "name": "c",
+            "threshold": 0.8,
+            "fail_on": "below_threshold",
+            "metric": "faithfulness",
+            "comparator": ">=",
+            "target_value": 1.0,
+            "target_high": null,
+            "unit": "ratio"
+          }
+        ]
+      }
+    },
+    {
+      "name": "no-criteria",
+      "document": {
+        "version": 1,
+        "mode": "none"
+      },
+      "expected": {
+        "criteria": []
+      }
+    },
+    {
+      "name": "name-with-spaces-and-case",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "Tone Judge v2",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "criteria": [
+          {
+            "id": "07_invoice_approval#evaluation:Tone Judge v2",
+            "name": "Tone Judge v2",
+            "threshold": 0.8,
+            "fail_on": "below_threshold",
+            "metric": null,
+            "comparator": null,
+            "target_value": null,
+            "target_high": null,
+            "unit": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "refused-duplicate-name",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "a",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold"
+            },
+            {
+              "name": "a",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "refused": "slug_collision"
+      }
+    },
+    {
+      "name": "refused-duplicate-across-lists",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "a",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold"
+            }
+          ]
+        },
+        "criteria": [
+          {
+            "name": "a",
+            "eval_class": "custom",
+            "threshold": 0.8,
+            "fail_on": "below_threshold"
+          }
+        ]
+      },
+      "expected": {
+        "refused": "slug_collision"
+      }
+    },
+    {
+      "name": "refused-missing-name",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "threshold": 1
+            }
+          ]
+        }
+      },
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-empty-name",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-name-not-text",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": 7,
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-name-too-long",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "refused": "title_too_long"
+      }
+    },
+    {
+      "name": "refused-criterion-not-a-mapping",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            "faithfulness"
+          ]
+        }
+      },
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-criteria-not-a-list",
+      "document": {
+        "llm_evaluation": {
+          "criteria": {
+            "a": 1
+          }
+        }
+      },
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-llm-evaluation-not-a-mapping",
+      "document": {
+        "llm_evaluation": [
+          "x"
+        ]
+      },
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-target-not-a-mapping",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "c",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold",
+              "target": "high"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-unknown-comparator",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "c",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold",
+              "target": {
+                "metric": "faithfulness",
+                "comparator": ">",
+                "value": 0.85,
+                "unit": "ratio"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-unknown-unit",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "c",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold",
+              "target": {
+                "metric": "faithfulness",
+                "comparator": ">=",
+                "value": 0.85,
+                "unit": "ms"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-missing-metric",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "c",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold",
+              "target": {
+                "comparator": ">=",
+                "value": 1,
+                "unit": "ratio"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-value-not-a-number",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "c",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold",
+              "target": {
+                "metric": "faithfulness",
+                "comparator": ">=",
+                "value": "0.85",
+                "unit": "ratio"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-boolean-value",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "c",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold",
+              "target": {
+                "metric": "faithfulness",
+                "comparator": ">=",
+                "value": true,
+                "unit": "ratio"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-between-without-high",
+      "document": {
+        "llm_evaluation": {
+          "criteria": [
+            {
+              "name": "c",
+              "eval_class": "custom",
+              "threshold": 0.8,
+              "fail_on": "below_threshold",
+              "target": {
+                "metric": "faithfulness",
+                "comparator": "between",
+                "value": 0.85,
+                "unit": "ratio"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "refused": "parse_error"
+      }
+    }
+  ],
+  "meets": [
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 0,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 0.19999,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 0.2,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 0.3,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 0.4,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 0.40001,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 0.84999,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 0.85,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 0.85001,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 1,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 1.0,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 199.9,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 200,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": ">=",
+        "value": 0.85,
+        "unit": "ratio"
+      },
+      "measured": 200.1,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 0,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 0.19999,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 0.2,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 0.3,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 0.4,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 0.40001,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 0.84999,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 0.85,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 0.85001,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 1,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 1.0,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 199.9,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 200,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "<=",
+        "value": 200,
+        "unit": "ratio"
+      },
+      "measured": 200.1,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 0,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 0.19999,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 0.2,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 0.3,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 0.4,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 0.40001,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 0.84999,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 0.85,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 0.85001,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 1,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 1.0,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 199.9,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 200,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "==",
+        "value": 1,
+        "unit": "ratio"
+      },
+      "measured": 200.1,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 0,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 0.19999,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 0.2,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 0.3,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 0.4,
+      "met": true
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 0.40001,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 0.84999,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 0.85,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 0.85001,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 1,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 1.0,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 199.9,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 200,
+      "met": false
+    },
+    {
+      "target": {
+        "metric": "m",
+        "comparator": "between",
+        "value": 0.2,
+        "unit": "ratio",
+        "value_high": 0.4
+      },
+      "measured": 200.1,
+      "met": false
+    }
+  ]
+}

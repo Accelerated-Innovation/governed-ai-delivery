@@ -139,15 +139,18 @@ A change is rarely one file. Changing a schema means updating starter templates 
 
 ### Feature evidence report
 
-`evidence_report.py` builds the canonical report for `govkit evidence --feature`: each scenario in a feature's `acceptance.feature` bound to JUnit test results. `scenario_identity.py` supplies identifiers and revision digests; `evidence.py` reads test cases. See ADR 0022 and `docs/EVIDENCE_REPORT.md`.
+`evidence_report.py` builds the canonical report for `govkit evidence --feature`: each scenario in a feature's `acceptance.feature` bound to JUnit test results, and each criterion in its `eval_criteria.yaml` compared with a measured score. `scenario_identity.py` supplies identifiers and revision digests; `evidence.py` reads test cases. See ADRs 0022 and 0023 and `docs/EVIDENCE_REPORT.md`.
 
 - **Mirrored identity.** `scenario_identity.py` copies the `discovery-engine` reader and the `aipos-plugins` slug rule. Do not make it more forgiving or more correct than its sources: its digests must equal the graph's. Refresh `tests/fixtures/scenario-identity/` by running the engine's reader, never by editing expected values.
 - **Binding.** A `govkit.scenario` property (`id`, then `tag`), then the reduced title. A test that carries the property is never matched by title. Only `id` is exact across features.
 - **Outcome.** `PASS` only when every scenario passed. Missing, skipped and unmarked skips are `INCONCLUSIVE`. Exit 0 only on `PASS`; 2 is a bad invocation.
 - **No feature option, no change.** Without `--feature` the command and its output are unchanged. Feature mode reads no marker and writes nothing.
 - **Public contract.** Requirement identifiers, states, binding names, refusal reasons and exit codes: add, never rename.
-- **Not yet claimed.** The report does not show which commit produced the results, does not read `eval_criteria.yaml`, and cannot detect a removed scenario. Those are L05, L04 and L06.
-- **Keep aligned.** The schema, the bundled example (it must equal the real output for its own inputs), `tests/test_evidence_report.py` and `tests/wheel_evidence_smoke.py`.
+- **Criteria.** `criterion_identity.py` mirrors the engine's criterion identity, target reading and comparison, pinned by `criteria_parity.json`. `evaluation_results.py` reads `govkit-eval-results*.json`, bounded and without following links; an unusable file is an error, never an empty result. See ADR 0023.
+- **Classes.** `execution_class` is `free`, `paid` or `human`. With no result, free is `missing` and the others are `owed`. An unknown class is an error, not `free`. GovKit never starts an evaluation.
+- **Backend form only.** `target` and `execution_class` exist only in the backend `eval_criteria` schema. Data-form criteria are not compared and prevent `PASS`; UI files have none. Do not add the fields to the other two schemas without a criterion they apply to.
+- **Not yet claimed.** The report does not show which commit produced the results, and cannot detect a removed scenario or criterion. Those are L05 and L06.
+- **Keep aligned.** The two schemas, the bundled example (its report must equal the real output for its own inputs), the closed sets shared by `criterion_identity.py` and the schemas, `tests/test_evidence_report.py` and `tests/wheel_evidence_smoke.py`.
 
 ### Actual-change conformance
 
