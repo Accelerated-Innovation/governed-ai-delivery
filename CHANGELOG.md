@@ -31,12 +31,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - **`govkit evidence` no longer counts skipped tests as passed (#256).**
   - "Working" is `PASS` only when at least one test ran and none failed,
-    errored or was skipped. A run with skipped tests is `INCONCLUSIVE`, and the
-    detail gives the counts and names the first skipped tests.
+    errored or was skipped. A run with skipped tests and no failure or error
+    is `INCONCLUSIVE`, and the detail gives the counts and names the first
+    skipped tests. A failure or an error still reports `FAIL`.
   - Skipped tests are read from the suite's `skipped` count and from
     `<skipped>` elements in JUnit XML. An expected failure written as skipped
     is treated as skipped.
-  - A skipped test no longer counts as a measured duration for "Fast".
+  - A skipped test no longer counts as a measured duration for "Fast". Where
+    a report counts skipped tests without marking them, "Fast" is
+    `INCONCLUSIVE` unless a test exceeds the threshold.
   - A test count that is not a whole number reports `ERROR` instead of
     stopping the command.
   - **Behaviour change.** A project with skipped tests now exits 1 where it

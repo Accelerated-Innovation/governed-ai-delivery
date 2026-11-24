@@ -154,6 +154,7 @@ def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
     """
     totals = {
         "tests": 0, "failures": 0, "errors": 0, "skipped": 0, "skipped_names": [],
+        "unidentified_skipped": 0,
         "durations": [], "slowest_name": None,
     }
     slowest = -1.0
@@ -187,6 +188,9 @@ def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
                 slowest = seconds
                 totals["slowest_name"] = case.get("name")
         totals["skipped"] += max(declared_skipped, skipped_cases)
+        # Skips the suite counts but no test case marks. Their durations are in
+        # the list above and cannot be told apart from those of tests that ran.
+        totals["unidentified_skipped"] += max(declared_skipped - skipped_cases, 0)
     return totals, None
 
 
@@ -195,7 +199,7 @@ def _assess_working(totals: dict | None, error: str | None, found: bool) -> Verd
         return Verdict("Working", Outcome.ERROR, error)
     if not found:
         return Verdict("Working", Outcome.INCONCLUSIVE, "no test-run report found")
-    if not totals or totals["tests"] == 0:
+    if not totals or (totals["tests"] == 0 and totals["skipped"] == 0):
         return Verdict(
             "Working", Outcome.INCONCLUSIVE,
             "test-run report contains no tests — an empty analysis, not a clean one",
@@ -211,7 +215,8 @@ def _assess_working(totals: dict | None, error: str | None, found: bool) -> Verd
     if skipped >= totals["tests"]:
         return Verdict(
             "Working", Outcome.INCONCLUSIVE,
-            f"every test was skipped ({skipped}) — nothing ran, so nothing passed",
+            f"every test was skipped ({skipped}) — nothing ran, so nothing passed"
+            f"{_skipped_names(totals['skipped_names'], skipped)}",
             unexecuted=True,
         )
     if skipped:
@@ -264,6 +269,13 @@ def _assess_fast(
             "Fast", Outcome.FAIL,
             f"{len(over)} of {len(durations)} tests exceed {max_seconds:g}s; "
             f"slowest {slowest:g}s{name}",
+        )
+    unidentified = totals["unidentified_skipped"]
+    if unidentified:
+        return Verdict(
+            "Fast", Outcome.INCONCLUSIVE,
+            f"{unidentified} skipped tests are counted but not marked, so their "
+            "durations cannot be told apart from those of tests that ran",
         )
     return Verdict(
         "Fast", Outcome.PASS,

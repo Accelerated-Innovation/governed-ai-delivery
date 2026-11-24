@@ -524,3 +524,46 @@ class TestSkippedTestsBlockTheRun:
         _axe(tmp_path, [])
         exit_code, _ = summarize(collect_evidence(tmp_path))
         assert exit_code == 0
+
+
+class TestSkippedTestReviewCases:
+    def test_every_test_skipped_names_the_tests(self, tmp_path):
+        _junit_statuses(tmp_path, [("first", "skip"), ("second", "skip")])
+        v = _by_dimension(collect_evidence(tmp_path))["Working"]
+        assert "first" in v.detail and "second" in v.detail, v.detail
+
+    def test_skips_block_when_the_report_omits_the_test_count(self, tmp_path):
+        """A report with no `tests` count and a skipped test is not an empty report."""
+        (tmp_path / "junit.xml").write_text(
+            '<testsuite skipped="1"><testcase name="a" time="0.01">'
+            "<skipped/></testcase></testsuite>",
+            encoding="utf-8",
+        )
+        _axe(tmp_path, [])
+        verdicts = collect_evidence(tmp_path)
+        assert _by_dimension(verdicts)["Working"].outcome is Outcome.INCONCLUSIVE
+        exit_code, _ = summarize(verdicts)
+        assert exit_code == 1
+
+    def test_an_empty_report_without_skips_still_does_not_block(self, tmp_path):
+        _junit(tmp_path, [])
+        _axe(tmp_path, [])
+        exit_code, _ = summarize(collect_evidence(tmp_path))
+        assert exit_code == 0
+
+    def test_fast_is_not_judged_when_skipped_tests_cannot_be_identified(self, tmp_path):
+        """With only a suite count, any duration could belong to a skipped test."""
+        _junit_statuses(tmp_path, [("a", "pass"), ("b", "skip")], skipped_elements=False)
+        v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
+        assert v.outcome is Outcome.INCONCLUSIVE, v.detail
+        assert "skipped" in v.detail, v.detail
+
+    def test_fast_still_fails_a_slow_test_when_skips_cannot_be_identified(self, tmp_path):
+        """A skipped test cannot make a slow one fast."""
+        (tmp_path / "junit.xml").write_text(
+            '<testsuite tests="2" failures="0" errors="0" skipped="1">'
+            '<testcase name="slow" time="3.0"/><testcase name="b" time="0.0"/></testsuite>',
+            encoding="utf-8",
+        )
+        v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
+        assert v.outcome is Outcome.FAIL, v.detail
