@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:governed-ai-delivery:schemas:evidence-report",
+  "title": "Feature evidence report",
+  "description": "What `govkit evidence --feature` found for one feature: each scenario in `acceptance.feature` and the test results bound to it. A valid report is well-formed. It does not authenticate where its results came from, and it does not show which commit produced them.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "feature",
+    "outcome",
+    "detail",
+    "summary",
+    "sources",
+    "results"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "govkit.evidence-report"
+    },
+    "feature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "definition",
+        "content_digest"
+      ],
+      "properties": {
+        "name": {
+          "description": "The feature directory name. It is the package in every requirement identifier.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "definition": {
+          "description": "Path of the feature file, relative to the target.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "content_digest": {
+          "description": "SHA-256 of the feature file's bytes, or null when it was not read.",
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "outcome": {
+      "description": "The feature's Working outcome. PASS only when every scenario passed.",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INCONCLUSIVE",
+        "ERROR"
+      ]
+    },
+    "detail": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenarios",
+        "passed",
+        "failed",
+        "error",
+        "skipped",
+        "missing"
+      ],
+      "properties": {
+        "scenarios": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/result"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool",
+        "path",
+        "content_digest",
+        "unidentified_skipped"
+      ],
+      "properties": {
+        "tool": {
+          "const": "junit"
+        },
+        "path": {
+          "description": "Path of the result file, relative to the target.",
+          "type": "string"
+        },
+        "content_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "unidentified_skipped": {
+          "description": "Skipped tests the file counts but does not mark. When it is not zero the outcome cannot be PASS.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_id",
+        "revision_digest",
+        "kind",
+        "title",
+        "id_source",
+        "tags",
+        "outcome",
+        "binding",
+        "tests"
+      ],
+      "properties": {
+        "requirement_id": {
+          "description": "`<feature directory>#scenario:<slug>`, as the Product Definition Graph identifies the scenario.",
+          "type": "string",
+          "pattern": "^[^#]+#scenario:[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "revision_digest": {
+          "description": "SHA-256 of the scenario's normalised text, as the Product Definition Graph computes it.",
+          "$ref": "#/$defs/digest"
+        },
+        "kind": {
+          "const": "test"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "id_source": {
+          "description": "`tag` when the scenario carries `@scenario:<slug>`; `derived` when the slug comes from the title and changes when the title does.",
+          "enum": [
+            "tag",
+            "derived"
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outcome": {
+          "description": "The worst of the bound tests, or `missing` when none was found.",
+          "enum": [
+            "passed",
+            "failed",
+            "error",
+            "skipped",
+            "missing"
+          ]
+        },
+        "binding": {
+          "description": "How the tests were matched: `id` and `tag` from a `govkit.scenario` property, `title` from the test name, `none` when nothing matched. Only `id` is exact across features.",
+          "enum": [
+            "id",
+            "tag",
+            "title",
+            "none"
+          ]
+        },
+        "tests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/test"
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "classname",
+        "outcome",
+        "source"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "classname": {
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "passed",
+            "failed",
+            "error",
+            "skipped"
+          ]
+        },
+        "source": {
+          "description": "The `path` of the source the test case was read from.",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

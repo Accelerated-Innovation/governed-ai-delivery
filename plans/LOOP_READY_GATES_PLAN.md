@@ -1,6 +1,6 @@
 # Loop-ready gates plan
 
-Status: in progress. L01 and L02 are delivered. L03 onward were replanned on 2026-11-22 and none is implemented. The epic is #257.
+Status: in progress. L01 to L03 are delivered. L04 onward were replanned on 2026-11-22 and none is implemented. The epic is #257.
 Plan version: 0.2. Version 0.1 is summarized in Section 12.
 Prepared: 2026-11-20. Replanned: 2026-11-22.
 Baseline inspected: govkit 0.23.0, commit af71fa9; `discovery-engine` commit ebdfc41, read-only.
@@ -138,7 +138,7 @@ Each increment is independently demonstrable and is tried in the pilot repositor
 |---|---|---|---|---|
 | L01 | Feature-scoped `validate` with a known-failures record | `validate` | — | #248, delivered in #254 |
 | L02 | A skipped test is not a pass | `evidence` | — | #256 |
-| L03 | Feature selection, scenario identity and binding, JSON report | `evidence` | L02 | not opened |
+| L03 | Feature selection, scenario identity and binding, JSON report | `evidence` | L02 | #259 |
 | L04 | Thresholds and measurements, with cost and authority classes | `evidence` | L03 | not opened |
 | L05 | Results must belong to the current commit and revision | `evidence` | L03 | not opened |
 | L06 | The definition and its tests cannot be weakened by the change they judge | `conform` | L03 | not opened |
@@ -329,7 +329,7 @@ Risks:
 
 ## 10. Open questions
 
-1. **Scenario binding (L03).** The scenario's identity is settled by decision 18. How is that scenario matched to a JUnit test case: by name, by the `@scenario:` tag, or by a mapping the project declares? Decide from the pilot's real output.
+1. **Scenario binding (L03).** Settled on 2026-11-24 from the first pilot's pytest-bdd output: a `govkit.scenario` JUnit property first, then the scenario title against the test name (ADR 0022). Check it against the new pilot.
 2. **Measurement file format (L04).** What file carries a measured score for a criterion, and which tools write it today?
 3. **Machine-readable NFR values (L04).** Should an NFR value be declarable as a target, and where: in `nfrs.md`, in the scenario, or in `eval_criteria.yaml`?
 4. **Recording the commit and working tree (L05).** How does a result file state the commit it was produced from, and the working tree when there are uncommitted changes?
@@ -376,3 +376,5 @@ Version 0.1 planned L02 to L06 as additions to `govkit validate`, with a new fil
 | 2026-11-22 | Plan | Version 0.2: replanned after finding that new installations have no level, that `govkit evidence` is the level-free foundation, and that the Product Definition Graph already has a verification run contract (Sections 3.2 and 3.3) | Agree version 0.2; decide which Section 7 changes to raise in `discovery-engine`; create the pilot repository; open the epic and the L02 issue |
 | 2026-11-23 | Plan | Version 0.2 merged as #255. Proposals raised as discovery-engine#303, discovery-engine#302 and aipos-plugins#108. Epic opened as #257 | Start L02 |
 | 2026-11-24 | L02 | #256: `govkit evidence` reads skipped tests from JUnit XML; a run with skipped tests and no failure or error is `INCONCLUSIVE` for "Working" and a skipped test has no duration for "Fast". The run exits 1 even when another dimension passes; a dimension with no report still does not block | Open the L03 issue; settle scenario binding from the pilot's output |
+| 2026-11-24 | L02 | Delivered in #258 | Start L03 |
+| 2026-11-24 | L03 | #259: `govkit evidence --feature` with mirrored scenario identity (fixtures produced by the engine's reader at `3806d64`), binding by property then title, JSON report schema version 1, ADR 0022. The commit, run reference and execution time are left to L05 as optional fields | Check binding against the new pilot; open the L04 issue |

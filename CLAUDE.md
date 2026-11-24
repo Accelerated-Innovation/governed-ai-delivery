@@ -137,6 +137,18 @@ A change is rarely one file. Changing a schema means updating starter templates 
 - **Resolved versus ignored.** Only an entry whose check was evaluated for its scope and is no longer failing or warning is resolved. Entries outside the selection are ignored.
 - **Keep aligned.** The schema, the bundled example, `tests/test_validate_scope.py` and `tests/wheel_validate_smoke.py` (all three agents). `govkit conform` keeps positional feature codes until #253. Payload skills, rules and CI templates do not use these options yet.
 
+### Feature evidence report
+
+`evidence_report.py` builds the canonical report for `govkit evidence --feature`: each scenario in a feature's `acceptance.feature` bound to JUnit test results. `scenario_identity.py` supplies identifiers and revision digests; `evidence.py` reads test cases. See ADR 0022 and `docs/EVIDENCE_REPORT.md`.
+
+- **Mirrored identity.** `scenario_identity.py` copies the `discovery-engine` reader and the `aipos-plugins` slug rule. Do not make it more forgiving or more correct than its sources: its digests must equal the graph's. Refresh `tests/fixtures/scenario-identity/` by running the engine's reader, never by editing expected values.
+- **Binding.** A `govkit.scenario` property (`id`, then `tag`), then the reduced title. A test that carries the property is never matched by title. Only `id` is exact across features.
+- **Outcome.** `PASS` only when every scenario passed. Missing, skipped and unmarked skips are `INCONCLUSIVE`. Exit 0 only on `PASS`; 2 is a bad invocation.
+- **No feature option, no change.** Without `--feature` the command and its output are unchanged. Feature mode reads no marker and writes nothing.
+- **Public contract.** Requirement identifiers, states, binding names, refusal reasons and exit codes: add, never rename.
+- **Not yet claimed.** The report does not show which commit produced the results, does not read `eval_criteria.yaml`, and cannot detect a removed scenario. Those are L05, L04 and L06.
+- **Keep aligned.** The schema, the bundled example (it must equal the real output for its own inputs), `tests/test_evidence_report.py` and `tests/wheel_evidence_smoke.py`.
+
 ### Actual-change conformance
 
 `change_scope.py` captures bounded Git observations; `change_policy.py` reads accepted provider configuration; `change_architecture.py` measures scoped literal constraints; `change_defects.py` adapts existing eligibility/red-green execution. `change_conformance.py` recomputes request requirements and composes I04 checks. See ADR 0007 and `docs/CHANGE_CONFORMANCE.md`. Keep accepted policy outside the inspected tree, commands explicitly opted in, missing semantic/platform evidence unknown, and synthetic eight-pilot wheel coverage aligned. `artifact:experiment-record` maps assessor errors to FAIL and outstanding/unknown findings to UNKNOWN; `artifact:architecture-preflight` honors a declared outcome block. `migration.py` preserves legacy ownership and obligations; `maintenance.py` separately assesses release, resource, fit and CI facts.

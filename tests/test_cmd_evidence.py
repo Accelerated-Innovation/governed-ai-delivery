@@ -14,8 +14,15 @@ import pytest
 from cli.cmd_evidence import cmd_evidence, register
 
 
-def _args(target: Path, fast_max_seconds: float | None = None):
-    return argparse.Namespace(target=str(target), fast_max_seconds=fast_max_seconds)
+def _args(
+    target: Path,
+    fast_max_seconds: float | None = None,
+    feature: str | None = None,
+    json: bool = False,
+):
+    return argparse.Namespace(
+        target=str(target), fast_max_seconds=fast_max_seconds, feature=feature, json=json
+    )
 
 
 def _passing_junit(target: Path) -> None:
@@ -151,3 +158,97 @@ class TestProjectTypeFromMarker:
             cmd_evidence(_args(tmp_path))
         out = capsys.readouterr().out
         assert not [d for d in DIMENSIONS if d not in out]
+
+
+class TestFeatureReport:
+    """`--feature` reports one feature's scenarios against the test results."""
+
+    ACCEPTANCE = "Feature: F\n  Scenario: It works\n    Then ok\n"
+
+    def _feature(self, target: Path, passing: bool = True) -> None:
+        directory = target / "features" / "01_first"
+        directory.mkdir(parents=True)
+        (directory / "acceptance.feature").write_text(self.ACCEPTANCE, encoding="utf-8")
+        child = "" if passing else '<failure message="x"/>'
+        (target / "junit.xml").write_text(
+            '<?xml version="1.0"?><testsuite name="s" tests="1" failures="0" errors="0">'
+            f'<testcase classname="s" name="test_it_works" time="0.01">{child}</testcase>'
+            "</testsuite>",
+            encoding="utf-8",
+        )
+
+    def _run(self, capsys, *args, **kwargs):
+        with pytest.raises(SystemExit) as exc:
+            cmd_evidence(_args(*args, **kwargs))
+        captured = capsys.readouterr()
+        return exc.value.code, captured.out, captured.err
+
+    def test_a_passing_feature_exits_zero(self, tmp_path, capsys):
+        self._feature(tmp_path)
+        code, out, _ = self._run(capsys, tmp_path, feature="01_first")
+        assert code == 0, out
+        assert "it-works" in out and "PASS" in out
+
+    def test_a_failing_feature_exits_one(self, tmp_path, capsys):
+        self._feature(tmp_path, passing=False)
+        code, out, _ = self._run(capsys, tmp_path, feature="01_first")
+        assert code == 1
+        assert "FAIL" in out
+
+    def test_json_prints_only_the_report(self, tmp_path, capsys):
+        import json
+
+        from cli.schema_validation import validate_document
+
+        self._feature(tmp_path)
+        code, out, _ = self._run(capsys, tmp_path, feature="01_first", json=True)
+        report = json.loads(out)
+        validate_document(report, "evidence-report")
+        assert (code, report["outcome"]) == (0, "PASS")
+
+    def test_json_keeps_the_exit_code_of_the_outcome(self, tmp_path, capsys):
+        self._feature(tmp_path, passing=False)
+        code, _, _ = self._run(capsys, tmp_path, feature="01_first", json=True)
+        assert code == 1
+
+    def test_an_unknown_feature_exits_two_and_prints_no_report(self, tmp_path, capsys):
+        self._feature(tmp_path)
+        code, out, err = self._run(capsys, tmp_path, feature="nope", json=True)
+        assert code == 2
+        assert out == ""
+        assert "nope" in err and "01_first" in err
+
+    def test_json_needs_a_feature(self, tmp_path, capsys):
+        code, out, err = self._run(capsys, tmp_path, json=True)
+        assert code == 2
+        assert out == ""
+        assert "--feature" in err
+
+    def test_the_duration_ceiling_is_not_silently_ignored(self, tmp_path, capsys):
+        self._feature(tmp_path)
+        code, _, err = self._run(capsys, tmp_path, feature="01_first", fast_max_seconds=0.2)
+        assert code == 2
+        assert "--fast-max-seconds" in err
+
+    def test_the_legacy_marker_is_not_read(self, tmp_path, capsys, monkeypatch):
+        """A feature report needs no level and no project type."""
+
+        def _never(_target):
+            raise AssertionError("the marker was read")
+
+        monkeypatch.setattr("cli.cmd_evidence.read_govkit_marker", _never)
+        self._feature(tmp_path)
+        code, _, _ = self._run(capsys, tmp_path, feature="01_first")
+        assert code == 0
+
+    def test_the_flags_are_registered(self):
+        parser = argparse.ArgumentParser()
+        register(parser.add_subparsers(dest="command"))
+        args = parser.parse_args(["evidence", "--feature", "01_first", "--json"])
+        assert (args.feature, args.json) == ("01_first", True)
+
+    def test_without_a_feature_the_output_is_unchanged(self, tmp_path, capsys):
+        _passing_junit(tmp_path)
+        _, out, _ = self._run(capsys, tmp_path)
+        assert "measured quality evidence" in out
+        assert "feature" not in out.lower()

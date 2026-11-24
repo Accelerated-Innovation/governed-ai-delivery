@@ -567,3 +567,57 @@ class TestSkippedTestReviewCases:
         )
         v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
         assert v.outcome is Outcome.FAIL, v.detail
+
+
+def test_fast_sees_an_unmarked_skip_that_another_suite_would_cancel(tmp_path):
+    (tmp_path / "junit.xml").write_text(
+        '<testsuites><testsuite name="a" tests="1" skipped="1">'
+        '<testcase name="unmarked" time="0.01"/></testsuite>'
+        '<testsuite name="b" tests="2"><testcase name="marked" time="0.0">'
+        '<skipped/></testcase><testcase name="ran" time="0.01"/></testsuite></testsuites>',
+        encoding="utf-8",
+    )
+    verdicts = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))
+    assert verdicts["Fast"].outcome is Outcome.INCONCLUSIVE, verdicts["Fast"].detail
+    assert "2 of 3 tests skipped" in verdicts["Working"].detail, verdicts["Working"].detail
+
+
+class TestNestedSuites:
+    """A suite's skipped count covers the suites nested in it."""
+
+    NESTED = (
+        '<testsuite name="outer" tests="2" failures="0" errors="0" skipped="1">'
+        '<testsuite name="inner" tests="2" skipped="1">'
+        '<testcase name="skipped_one" time="0.0"><skipped/></testcase>'
+        '<testcase name="ran" time="0.01"/></testsuite></testsuite>'
+    )
+
+    def test_a_nested_skip_is_counted_once(self, tmp_path):
+        (tmp_path / "junit.xml").write_text(self.NESTED, encoding="utf-8")
+        v = _by_dimension(collect_evidence(tmp_path))["Working"]
+        assert "1 of 2 tests skipped, 1 passed" in v.detail, v.detail
+
+    def test_a_nested_marked_skip_is_not_unidentified(self, tmp_path):
+        (tmp_path / "junit.xml").write_text(self.NESTED, encoding="utf-8")
+        v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
+        assert v.outcome is Outcome.PASS, v.detail
+
+    def test_a_parent_count_above_its_nested_suites_is_unidentified(self, tmp_path):
+        (tmp_path / "junit.xml").write_text(
+            self.NESTED.replace('tests="2" failures="0" errors="0" skipped="1"',
+                                'tests="2" failures="0" errors="0" skipped="2"'),
+            encoding="utf-8",
+        )
+        v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
+        assert v.outcome is Outcome.INCONCLUSIVE, v.detail
+
+
+def test_suites_nested_too_deeply_are_an_error_not_a_crash(tmp_path):
+    depth = 20000
+    (tmp_path / "junit.xml").write_text(
+        '<testsuite tests="1">' * depth + '<testcase name="a" time="0.01"/>' + "</testsuite>" * depth,
+        encoding="utf-8",
+    )
+    v = _by_dimension(collect_evidence(tmp_path))["Working"]
+    assert v.outcome is Outcome.ERROR, v.detail
+    assert "nested" in v.detail, v.detail

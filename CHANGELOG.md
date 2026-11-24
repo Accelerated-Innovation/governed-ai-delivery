@@ -27,6 +27,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   - With none of the options, output and exit status are unchanged.
   - See [docs/KNOWN_FAILURES.md](docs/KNOWN_FAILURES.md) and ADR 0021.
 
+- **Feature evidence report (#259).** `govkit evidence --feature <name>` lists
+  every scenario in `features/<name>/acceptance.feature` with the test result
+  bound to it.
+  - A scenario is passed, failed, error, skipped or missing. The command exits
+    0 only when every scenario passed, and 2 for a bad invocation.
+  - A test is matched by a `govkit.scenario` JUnit property, or otherwise by
+    the scenario title against the test name. The report says which.
+  - Scenarios carry the identifier and revision digest that the Product
+    Definition Graph computes.
+  - `--json` prints the report in a versioned format, with a bundled schema
+    and example.
+  - Without `--feature`, output and exit status are unchanged.
+  - See [docs/EVIDENCE_REPORT.md](docs/EVIDENCE_REPORT.md) and ADR 0022.
+
 ### Fixed
 
 - **`govkit evidence` no longer counts skipped tests as passed (#256).**

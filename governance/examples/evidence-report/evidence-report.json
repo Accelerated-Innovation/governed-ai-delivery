@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "kind": "govkit.evidence-report",
+  "feature": {
+    "name": "07_invoice_approval",
+    "definition": "features/07_invoice_approval/acceptance.feature",
+    "content_digest": "31bcf6c25b2cf87938c91f86ec73c8fc964b33eda3d48ef92de2b468a9b9a281"
+  },
+  "outcome": "FAIL",
+  "detail": "1 failed, 1 skipped, 1 missing of 4 scenarios: approval-routing-when-manager-absent (skipped), routing-completes-within-200-ms-at-p95 (failed), a-rejected-invoice-returns-to-its-author (missing)",
+  "summary": {
+    "scenarios": 4,
+    "passed": 1,
+    "failed": 1,
+    "error": 0,
+    "skipped": 1,
+    "missing": 1
+  },
+  "sources": [
+    {
+      "tool": "junit",
+      "path": "junit.xml",
+      "content_digest": "3783b54d76594ac5afcb1c128aa5cfb0e065b6e6d7bcfb2ae0f5daed8d674522",
+      "unidentified_skipped": 0
+    }
+  ],
+  "results": [
+    {
+      "requirement_id": "07_invoice_approval#scenario:approval-routing-by-amount",
+      "revision_digest": "98e6e58260763d51f9b7b8691c9741503135204abfe848f3992c882514d1c5b7",
+      "kind": "test",
+      "title": "Invoice amount decides the approval path",
+      "id_source": "tag",
+      "tags": [
+        "@mvp",
+        "@scenario:approval-routing-by-amount"
+      ],
+      "outcome": "passed",
+      "binding": "id",
+      "tests": [
+        {
+          "name": "test_invoice_amount_decides_the_approval_path[9999-team lead]",
+          "classname": "tests.acceptance.test_routing",
+          "outcome": "passed",
+          "source": "junit.xml"
+        },
+        {
+          "name": "test_invoice_amount_decides_the_approval_path[10000-finance manager]",
+          "classname": "tests.acceptance.test_routing",
+          "outcome": "passed",
+          "source": "junit.xml"
+        }
+      ]
+    },
+    {
+      "requirement_id": "07_invoice_approval#scenario:approval-routing-when-manager-absent",
+      "revision_digest": "d3d485d2752583786c6f6f0c4f7440d476280d2e1f7a02943d59314bafb9b776",
+      "kind": "test",
+      "title": "A delegate approves when the finance manager is absent",
+      "id_source": "tag",
+      "tags": [
+        "@v1",
+        "@scenario:approval-routing-when-manager-absent"
+      ],
+      "outcome": "skipped",
+      "binding": "tag",
+      "tests": [
+        {
+          "name": "test_a_delegate_approves_when_the_finance_manager_is_absent",
+          "classname": "tests.acceptance.test_routing",
+          "outcome": "skipped",
+          "source": "junit.xml"
+        }
+      ]
+    },
+    {
+      "requirement_id": "07_invoice_approval#scenario:routing-completes-within-200-ms-at-p95",
+      "revision_digest": "e7b0299edc66c780efa919bc988c58f0f9e0cc0ec78ce2c96ef1f3771b031e78",
+      "kind": "test",
+      "title": "Routing completes within 200 ms at p95",
+      "id_source": "derived",
+      "tags": [
+        "@nfr-performance"
+      ],
+      "outcome": "failed",
+      "binding": "title",
+      "tests": [
+        {
+          "name": "test_routing_completes_within_200_ms_at_p95",
+          "classname": "tests.acceptance.test_routing",
+          "outcome": "failed",
+          "source": "junit.xml"
+        }
+      ]
+    },
+    {
+      "requirement_id": "07_invoice_approval#scenario:a-rejected-invoice-returns-to-its-author",
+      "revision_digest": "974884e2dc8c9b1bd52888e9c2d736429926cb5c3358635438e0cbd318af389a",
+      "kind": "test",
+      "title": "A rejected invoice returns to its author",
+      "id_source": "derived",
+      "tags": [],
+      "outcome": "missing",
+      "binding": "none",
+      "tests": []
+    }
+  ]
+}

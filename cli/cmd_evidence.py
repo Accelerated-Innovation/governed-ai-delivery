@@ -23,10 +23,11 @@ which is the confusion this work exists to remove.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
-from . import paths
+from . import evidence_report, paths
 from .evidence import Outcome, collect_evidence, summarize
 from .marker import read_govkit_marker
 
@@ -43,6 +44,13 @@ def cmd_evidence(args: argparse.Namespace) -> None:
     if not target.is_dir():
         print(f"Error: target directory '{target}' does not exist.", file=sys.stderr)
         sys.exit(1)
+
+    feature = getattr(args, "feature", None)
+    as_json = getattr(args, "json", False)
+    if feature is not None:
+        _feature_report(target, feature, as_json, args.fast_max_seconds)
+    if as_json:
+        _usage_error("--json needs --feature: the JSON report describes one feature.")
 
     # Report the dimensions that describe this project. An unreadable marker
     # reports everything — narrowing on uncertainty would hide a dimension,
@@ -64,6 +72,31 @@ def cmd_evidence(args: argparse.Namespace) -> None:
     sys.exit(exit_code)
 
 
+def _usage_error(message: str) -> None:
+    """Exit 2, so a caller can tell a bad invocation from a feature that is not done."""
+    print(f"Error: {message}", file=sys.stderr)
+    sys.exit(2)
+
+
+def _feature_report(target: Path, feature: str, as_json: bool, fast_max_seconds) -> None:
+    """One feature's scenarios against the test results. Reads no marker: a
+    feature report needs neither a level nor a project type."""
+    if fast_max_seconds is not None:
+        _usage_error(
+            "--fast-max-seconds does not apply with --feature. "
+            "Durations are reported for the whole test run, without --feature."
+        )
+    try:
+        report = evidence_report.build_report(target, feature)
+    except evidence_report.SelectionError as exc:
+        _usage_error(str(exc))
+    if as_json:
+        print(json.dumps(report, indent=2))
+    else:
+        print(evidence_report.render_text(report))
+    sys.exit(evidence_report.exit_code(report))
+
+
 def register(subparsers) -> None:
     """Register the `evidence` subcommand."""
     p = subparsers.add_parser(
@@ -78,5 +111,19 @@ def register(subparsers) -> None:
             "durations but stays INCONCLUSIVE — govkit will not invent a "
             "threshold your team has not calibrated."
         ),
+    )
+    p.add_argument(
+        "--feature",
+        metavar="NAME",
+        default=None,
+        help=(
+            "Report one feature: each scenario in features/NAME/acceptance.feature "
+            "and the test result bound to it. Exits 0 only when every scenario passed."
+        ),
+    )
+    p.add_argument(
+        "--json",
+        action="store_true",
+        help="With --feature, print the report as JSON (schema: evidence-report).",
     )
     p.set_defaults(func=cmd_evidence)

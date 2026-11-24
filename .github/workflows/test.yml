@@ -396,6 +396,11 @@ jobs:
           cd /tmp
           /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_validate_smoke.py"
 
+      - name: Feature evidence reports work from the wheel
+        run: |
+          cd /tmp
+          /tmp/wheel-smoke-venv/bin/python -I "$GITHUB_WORKSPACE/tests/wheel_evidence_smoke.py"
+
       - name: Legacy migration and rollback work from the wheel
         run: |
           cd /tmp

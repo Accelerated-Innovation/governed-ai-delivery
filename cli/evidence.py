@@ -28,6 +28,7 @@ survives review — so every dimension is reported every run, and the ones witho
 evidence say so.
 """
 
+import hashlib
 import json
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -144,6 +145,28 @@ def _find(target: Path, globs) -> list[Path]:
     return found
 
 
+def _suite_skips(element: ET.Element) -> tuple[int, int]:
+    """(skipped, unidentified) for a report or one suite. Raises ValueError on a bad count.
+
+    Counted suite by suite. Over a whole file, a skip that one suite marks
+    would cancel a skip a sibling suite counts without marking, and the test
+    it hides would look passed.
+
+    A suite's count covers the suites nested in it, as its `tests` count does.
+    So a suite's own unidentified skips are what its count leaves after its
+    direct test cases and its nested suites are accounted for.
+    """
+    marked = sum(1 for case in element.findall("testcase") if case.find("skipped") is not None)
+    nested_skipped = nested_unidentified = 0
+    for suite in element.findall("testsuite"):
+        skipped, unidentified = _suite_skips(suite)
+        nested_skipped += skipped
+        nested_unidentified += unidentified
+    declared = int(element.get("skipped") or 0)
+    accounted = marked + nested_skipped
+    return max(declared, accounted), nested_unidentified + max(declared - accounted, 0)
+
+
 def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
     """Aggregate JUnit XML. Returns (totals, error). Never raises.
 
@@ -164,19 +187,18 @@ def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
         except (ET.ParseError, OSError) as exc:
             return None, f"{path.name} could not be parsed: {exc}"
         suites = [root] if root.tag == "testsuite" else root.iter("testsuite")
-        declared_skipped = 0
         try:
             for suite in suites:
                 totals["tests"] += int(suite.get("tests") or 0)
                 totals["failures"] += int(suite.get("failures") or 0)
                 totals["errors"] += int(suite.get("errors") or 0)
-                declared_skipped += int(suite.get("skipped") or 0)
+            skipped, unidentified = _suite_skips(root)
         except ValueError:
             return None, f"{path.name} has a test count that is not a whole number"
-        skipped_cases = 0
+        except RecursionError:
+            return None, f"{path.name} has test suites nested too deeply to read"
         for case in root.iter("testcase"):
             if case.find("skipped") is not None:
-                skipped_cases += 1
                 totals["skipped_names"].append(case.get("name") or "(unnamed)")
                 continue
             try:
@@ -187,11 +209,88 @@ def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
             if seconds > slowest:
                 slowest = seconds
                 totals["slowest_name"] = case.get("name")
-        totals["skipped"] += max(declared_skipped, skipped_cases)
-        # Skips the suite counts but no test case marks. Their durations are in
+        totals["skipped"] += skipped
+        # Skips a suite counts but no test case marks. Their durations are in
         # the list above and cannot be told apart from those of tests that ran.
-        totals["unidentified_skipped"] += max(declared_skipped - skipped_cases, 0)
+        totals["unidentified_skipped"] += unidentified
     return totals, None
+
+
+# The property a test case uses to name the scenario it verifies.
+SCENARIO_PROPERTY = "govkit.scenario"
+
+
+@dataclass(frozen=True)
+class CaseResult:
+    """One JUnit test case. `outcome` is passed, failed, error or skipped."""
+
+    name: str
+    classname: str
+    outcome: str
+    scenarios: tuple[str, ...]  # values of its `govkit.scenario` properties
+    source: str
+
+
+@dataclass(frozen=True)
+class TestReport:
+    __test__ = False  # a report of tests, not a test class
+
+    path: str  # relative to the target, with forward slashes
+    content_digest: str
+    cases: tuple[CaseResult, ...]
+    # Skips the suites count but no test case marks. Any case that looks
+    # passed in this file could be one of them.
+    unidentified_skipped: int
+
+
+def _case_outcome(case: ET.Element) -> str:
+    if case.find("error") is not None:
+        return "error"
+    if case.find("failure") is not None:
+        return "failed"
+    if case.find("skipped") is not None:
+        return "skipped"
+    return "passed"
+
+
+def read_test_reports(target: Path) -> tuple[list[TestReport] | None, str | None]:
+    """Every JUnit test case under `target`. Returns (reports, error). Never raises."""
+    reports = []
+    for path in _find(target, _JUNIT_GLOBS):
+        try:
+            data = path.read_bytes()
+            root = ET.fromstring(data)
+            _, unidentified = _suite_skips(root)
+        except (ET.ParseError, OSError) as exc:
+            return None, f"{path.name} could not be parsed: {exc}"
+        except ValueError:
+            return None, f"{path.name} has a test count that is not a whole number"
+        except RecursionError:
+            return None, f"{path.name} has test suites nested too deeply to read"
+        relative = path.relative_to(target).as_posix()
+        cases = tuple(
+            CaseResult(
+                name=case.get("name") or "",
+                classname=case.get("classname") or "",
+                outcome=_case_outcome(case),
+                scenarios=tuple(
+                    item.get("value") or ""
+                    for item in case.iter("property")
+                    if item.get("name") == SCENARIO_PROPERTY
+                ),
+                source=relative,
+            )
+            for case in root.iter("testcase")
+        )
+        reports.append(
+            TestReport(
+                path=relative,
+                content_digest=hashlib.sha256(data).hexdigest(),
+                cases=cases,
+                unidentified_skipped=unidentified,
+            )
+        )
+    return reports, None
 
 
 def _assess_working(totals: dict | None, error: str | None, found: bool) -> Verdict:
