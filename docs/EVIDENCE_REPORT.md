@@ -104,6 +104,7 @@ The fix is always the same: run the tests, then `govkit evidence --record`, then
 ### What the working tree digest covers
 
 - The commit, the index, and the content of every file Git reports as modified, deleted or untracked.
+- Each submodule checked out inside the repository: its own commit and its own changes.
 - The whole repository, also when the target is a directory below its root. A change in shared code outside the target makes results stale.
 - Not files Git ignores.
 - Not the result files or the record. Running the tests rewrites them, and that must not make their own results stale.
@@ -234,8 +235,10 @@ The slug rule belongs to `aipos-plugins` and the reader and digest to `discovery
 `--json` prints the same report as JSON and nothing else. The exit status is unchanged.
 
 ```bash
-govkit evidence --target . --feature 07_invoice_approval --json > evidence.json
+govkit evidence --target . --feature 07_invoice_approval --json > "$RUNNER_TEMP/evidence.json"
 ```
+
+Write the report outside the repository, as above, or to a path Git ignores. A new untracked file inside the repository changes the working tree, and the next report would call the results stale.
 
 - Schema: `governance/schemas/evidence-report.schema.json`. The record's schema is `governance/schemas/evidence-record.schema.json`.
 - Example, with the inputs that produce it: `governance/examples/evidence-report/`. The JUnit XML is stored as `test-run.xml` and the evaluation results as `evaluation-run.json`, so that discovery does not read an example as a real result. The example report is what the command prints when they are copied to `junit.xml` and `govkit-eval-results.json` and recorded; `record.json` is that record, with a placeholder commit and tree digest.

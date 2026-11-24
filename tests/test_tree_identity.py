@@ -15,8 +15,10 @@ from cli import tree_identity as ti
 
 
 def _git(repo: Path, *args: str) -> str:
+    # A hook or shell may export these; they would redirect the command.
+    inherited = {k: v for k, v in os.environ.items() if k not in ti._LOCATION_VARIABLES}
     environment = dict(
-        os.environ,
+        inherited,
         GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.invalid",
         GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@example.invalid",
         GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull,
@@ -164,3 +166,85 @@ def test_a_missing_git_is_unavailable(repo, monkeypatch):
     monkeypatch.setenv("PATH", "")
     with pytest.raises(ti.Unavailable):
         ti.observe(repo)
+
+
+@pytest.fixture
+def with_submodule(repo, tmp_path):
+    library = tmp_path / "library"
+    library.mkdir()
+    _git(library, "init", "-q", "-b", "main")
+    (library / "lib.py").write_text("v = 1\n", encoding="utf-8")
+    _git(library, "add", "-A")
+    _git(library, "commit", "-q", "-m", "lib one")
+    _git(repo, "-c", "protocol.file.allow=always", "submodule", "add", "-q", str(library), "lib")
+    _git(repo, "commit", "-q", "-m", "add lib")
+    return repo
+
+
+class TestSubmodules:
+    """A dependency checked out inside the repository is part of what was tested."""
+
+    def test_an_edit_inside_a_submodule_changes_the_digest(self, with_submodule):
+        before = ti.observe(with_submodule)
+        (with_submodule / "lib" / "lib.py").write_text("v = 2\n", encoding="utf-8")
+        after = ti.observe(with_submodule)
+        assert after.tree_digest != before.tree_digest
+        assert after.clean is False
+
+    def test_an_untracked_file_inside_a_submodule_changes_the_digest(self, with_submodule):
+        before = ti.observe(with_submodule)
+        (with_submodule / "lib" / "new.py").write_text("x = 1\n", encoding="utf-8")
+        assert ti.observe(with_submodule).tree_digest != before.tree_digest
+
+    def test_each_submodule_commit_has_its_own_digest(self, with_submodule):
+        """The parent reports "modified" for any commit other than the recorded one,
+        so the commit itself has to be part of the identity."""
+        lib = with_submodule / "lib"
+        digests = [ti.observe(with_submodule).tree_digest]
+        for value in (2, 3):
+            (lib / "lib.py").write_text(f"v = {value}\n", encoding="utf-8")
+            _git(lib, "commit", "-q", "-am", f"lib {value}")
+            digests.append(ti.observe(with_submodule).tree_digest)
+        assert len(set(digests)) == 3
+
+    def test_an_unchanged_submodule_is_clean_and_stable(self, with_submodule):
+        first = ti.observe(with_submodule)
+        assert first.clean is True
+        assert ti.observe(with_submodule) == first
+
+    def test_a_submodule_that_is_not_checked_out_is_still_identified(
+        self, with_submodule, tmp_path
+    ):
+        clone = tmp_path / "clone"
+        _git(tmp_path, "clone", "-q", str(with_submodule), str(clone))
+        assert ti.observe(clone) == ti.observe(clone)
+
+
+def test_inherited_git_location_variables_are_not_used(repo, tmp_path, monkeypatch):
+    """A hook exports GIT_DIR and GIT_INDEX_FILE; they must not redirect the observation."""
+    expected = ti.observe(repo)
+    other = tmp_path / "other"
+    other.mkdir()
+    _git(other, "init", "-q", "-b", "main")
+    monkeypatch.setenv("GIT_DIR", str(other / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(other))
+    monkeypatch.setenv("GIT_INDEX_FILE", str(other / ".git" / "index"))
+    assert ti.observe(repo) == expected
+
+
+def test_an_index_that_changes_during_the_observation_is_unavailable(repo, monkeypatch):
+    real = ti._git
+    calls = {"stage": 0}
+
+    def staged_meanwhile(directory, *args):
+        output = real(directory, *args)
+        if args[:2] == ("ls-files", "--stage"):
+            calls["stage"] += 1
+            if calls["stage"] == 2:
+                return output + b"changed"
+        return output
+
+    monkeypatch.setattr(ti, "_git", staged_meanwhile)
+    with pytest.raises(ti.Unavailable) as error:
+        ti.observe(repo)
+    assert "changed while" in str(error.value)

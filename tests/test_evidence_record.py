@@ -224,3 +224,46 @@ def test_the_bundled_example_record_validates_and_is_not_read_as_a_record():
     example = paths.GOVERNANCE_DIR / "examples" / "evidence-report"
     validate_document(json.loads((example / "record.json").read_text("utf-8")), rec.SCHEMA)
     assert rec.read_record(example) is None
+
+
+class TestWritingSafely:
+    def test_a_failed_write_keeps_the_previous_record(self, tmp_path, monkeypatch):
+        _junit(tmp_path)
+        first = rec.write_record(tmp_path, observe=Tree(), now=NOW)
+
+        def fail(*args, **kwargs):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(rec.os, "replace", fail)
+        _junit(tmp_path, body="<testsuite tests='1'/>")
+        with pytest.raises(rec.RecordError):
+            rec.write_record(tmp_path, observe=Tree(), now=NOW)
+        assert json.loads((tmp_path / rec.NAME).read_text(encoding="utf-8")) == first
+        assert [p.name for p in tmp_path.iterdir() if rec.NAME in p.name] == [rec.NAME]
+
+    def test_a_record_the_reader_would_refuse_is_not_written(self, tmp_path, monkeypatch):
+        """More result files than the schema allows: say so now, not on the next read."""
+        _junit(tmp_path)
+        many = [
+            {"tool": "junit", "path": f"junit-{n}.xml", "content_digest": "0" * 64}
+            for n in range(5001)
+        ]
+        monkeypatch.setattr(rec, "discover", lambda target: many)
+        with pytest.raises(rec.RecordError) as error:
+            rec.write_record(tmp_path, observe=Tree(), now=NOW)
+        assert "too many" in str(error.value) or "5000" in str(error.value)
+        assert not (tmp_path / rec.NAME).exists()
+
+    def test_what_is_written_can_be_read_back(self, tmp_path):
+        _junit(tmp_path)
+        written = rec.write_record(tmp_path, observe=Tree(), now=NOW)
+        assert rec.read_record(tmp_path) == written
+
+
+def test_the_result_file_limit_matches_the_schema():
+    from cli import paths
+
+    schema = json.loads(
+        (paths.GOVERNANCE_DIR / "schemas/evidence-record.schema.json").read_text("utf-8")
+    )
+    assert schema["properties"]["results"]["maxItems"] == rec.MAX_RESULTS
