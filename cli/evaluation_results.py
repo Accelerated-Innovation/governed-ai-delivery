@@ -81,6 +81,12 @@ def _read_checked(path: Path, relative: str) -> bytes:
     platform allows, the open handle is what gets checked and is compared with
     the path, and the read stops one byte past the limit so a file that grows
     meanwhile is still refused.
+
+    Known limit: where the platform has no `O_NOFOLLOW`, a link swapped in
+    before the open and swapped out again before the comparison is not seen.
+    The read is not refused outright there, because that would make the
+    report unusable on such a platform, and a results file is not
+    authenticated in any case.
     """
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
     descriptor = os.open(path, flags | getattr(os, "O_BINARY", 0))
