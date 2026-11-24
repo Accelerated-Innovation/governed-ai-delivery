@@ -27,7 +27,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import evidence_report, paths
+from . import evidence_record, evidence_report, paths
 from .evidence import Outcome, collect_evidence, summarize
 from .marker import read_govkit_marker
 
@@ -47,6 +47,13 @@ def cmd_evidence(args: argparse.Namespace) -> None:
 
     feature = getattr(args, "feature", None)
     as_json = getattr(args, "json", False)
+    if getattr(args, "record", False):
+        if feature is not None or as_json:
+            _usage_error(
+                "--record is its own step, run straight after the tests. "
+                "Run it without --feature or --json, then run the report."
+            )
+        _record(target)
     if feature is not None:
         _feature_report(target, feature, as_json, args.fast_max_seconds)
     if as_json:
@@ -76,6 +83,25 @@ def _usage_error(message: str) -> None:
     """Exit 2, so a caller can tell a bad invocation from a feature that is not done."""
     print(f"Error: {message}", file=sys.stderr)
     sys.exit(2)
+
+
+def _record(target: Path) -> None:
+    """Write the evidence record: the one file this command writes."""
+    try:
+        record = evidence_record.write_record(target)
+    except evidence_record.RecordError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    print(f"\ngovkit evidence — recorded {len(record['results'])} result file(s)\n")
+    for result in record["results"]:
+        print(f"  {result['path']}")
+    tree = "matches the commit" if record["clean"] else "has uncommitted changes"
+    print(
+        f"\n  Commit {record['commit'][:12]}; the working tree {tree}."
+        f"\n  Written to {evidence_record.NAME}. Results count until the commit, "
+        "the working tree or a result file changes.\n"
+    )
+    sys.exit(0)
 
 
 def _feature_report(target: Path, feature: str, as_json: bool, fast_max_seconds) -> None:
@@ -120,6 +146,15 @@ def register(subparsers) -> None:
             "Report one feature: each scenario in features/NAME/acceptance.feature "
             "with the test result bound to it, and each criterion in its "
             "eval_criteria.yaml with its measured score. Exits 0 only when all passed."
+        ),
+    )
+    p.add_argument(
+        "--record",
+        action="store_true",
+        help=(
+            "Run straight after the tests. Writes govkit-evidence-record.json with the "
+            "commit, a digest of the working tree and each result file's digest. "
+            "--feature counts results only while that record still holds."
         ),
     )
     p.add_argument(

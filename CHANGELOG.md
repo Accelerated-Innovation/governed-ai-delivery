@@ -52,6 +52,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   - Data-form criteria are not compared, and a feature that has them is
     reported as `INCONCLUSIVE`.
   - See ADR 0023.
+- **Evidence record (#263).** `govkit evidence --record`, run straight after
+  the tests, writes `govkit-evidence-record.json` with the commit, a digest of
+  the working tree and the SHA-256 of each result file.
+  - `govkit evidence --feature` counts results only while the record still
+    holds. Results with no record, or recorded before an edit, a new commit or
+    a rewritten result file, make the feature `INCONCLUSIVE`.
+  - The report gains a `provenance` block.
+  - The target must be inside a Git repository.
+  - See ADR 0024.
   - Without `--feature`, output and exit status are unchanged.
   - See [docs/EVIDENCE_REPORT.md](docs/EVIDENCE_REPORT.md) and ADR 0022.
 

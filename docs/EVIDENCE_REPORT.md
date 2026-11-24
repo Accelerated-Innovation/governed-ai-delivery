@@ -6,8 +6,11 @@ It reads the scenarios in `features/<name>/acceptance.feature` and looks for a t
 
 ```bash
 pytest --junitxml=junit.xml
+govkit evidence --target . --record
 govkit evidence --target . --feature 07_invoice_approval
 ```
+
+The middle step records which commit and working tree the results came from. Without it the results do not count.
 
 ```
 govkit evidence — feature 07_invoice_approval
@@ -26,7 +29,7 @@ govkit evidence — feature 07_invoice_approval
   Working  FAIL  2 failed, 1 skipped, 2 missing, 1 owed of 4 scenarios and 4 criteria: ...
 ```
 
-The command needs no GovKit installation in the project, no level and no marker. It reads files and writes nothing. It never starts a test run or an evaluation.
+The command needs no GovKit installation in the project, no level and no marker. It needs the target to be inside a Git repository. The report reads files and writes nothing; `--record` writes one file. Neither starts a test run or an evaluation.
 
 ## What a result means
 
@@ -48,19 +51,70 @@ The feature's "Working" outcome follows from the scenarios:
 | `PASS` | Every scenario and every criterion passed | 0 |
 | `ERROR` | A scenario or criterion errored, or a definition or result file could not be used | 1 |
 | `FAIL` | A scenario or criterion failed and none errored | 1 |
-| `INCONCLUSIVE` | A scenario is skipped or missing, a criterion is missing or owed, or there is nothing to judge | 1 |
+| `INCONCLUSIVE` | A scenario is skipped or missing, a criterion is missing or owed, the results are not recorded or are stale, or there is nothing to judge | 1 |
 
-A bad invocation exits 2: an unknown feature name, `--json` without `--feature`, or `--fast-max-seconds` with `--feature`.
+A bad invocation exits 2: an unknown feature name, `--json` without `--feature`, `--fast-max-seconds` with `--feature`, or `--record` with `--feature` or `--json`.
 
 ## What a pass does not show
 
-- **Which commit the results came from.** The report reads the result files it finds. A stale file from an earlier run looks the same as a fresh one.
+- **That the tests ran when the record says.** The record ties result files to a commit and working tree. It can be written again without running the tests again.
 - **That a test asserts what its scenario says.** A passing `@nfr-*` scenario shows that its test passed, not that the test checks the value written in the scenario.
 - **Where a measured score came from.** GovKit reads the value in the results file. It does not run the evaluation or check how the value was produced.
 - **Anything about the forecasts in `plan.md`.** FIRST and virtue scores there are forecasts and are not read.
 - **That the definition was not weakened.** A scenario that was deleted is simply no longer listed.
 
 Treat a local `PASS` as a reason to stop and hand over, not as approval. The run that counts for merge is the one CI makes.
+
+## Results must belong to the current commit and working tree
+
+A result file left over from an earlier run, or from before an edit, looks the same as a fresh one. So results count only when a record ties them to the repository as it is now.
+
+### Recording
+
+Run `govkit evidence --record` straight after the tests and evaluations. It writes `govkit-evidence-record.json` in the target, holding:
+
+- the commit;
+- a digest of the working tree;
+- the time;
+- the path and SHA-256 of each result file found.
+
+It exits 1 and writes nothing when there are no result files or the working tree cannot be identified.
+
+### Checking
+
+`govkit evidence --feature <name>` then counts results only when all of these hold:
+
+- a record exists;
+- every result file it reads is in the record with the same SHA-256;
+- the commit is the one recorded;
+- the working tree digest is the one recorded.
+
+| `provenance.state` | Meaning | Outcome |
+|---|---|---|
+| `current` | Everything is as recorded | As the results say |
+| `stale` | The commit, the working tree or a result file changed after the record | `INCONCLUSIVE` |
+| `unrecorded` | There is no record | `INCONCLUSIVE` |
+| `unavailable` | The record cannot be used, or Git cannot identify the working tree | `INCONCLUSIVE` |
+| `not-checked` | No result file was read, so there was nothing to check | As the results say |
+
+When results do not count, each scenario and criterion still shows what the results said, and the detail repeats it after "As found". A stale failure is still worth reading. An `ERROR` stays an `ERROR`.
+
+The fix is always the same: run the tests, then `govkit evidence --record`, then the report.
+
+### What the working tree digest covers
+
+- The commit, the index, and the content of every file Git reports as modified, deleted or untracked.
+- The whole repository, also when the target is a directory below its root. A change in shared code outside the target makes results stale.
+- Not files Git ignores.
+- Not the result files or the record. Running the tests rewrites them, and that must not make their own results stale.
+
+Reverting an edit restores the digest, so results recorded before the edit count again.
+
+Add the result files and `govkit-evidence-record.json` to `.gitignore`. They are local artifacts of a run.
+
+### What a record is not
+
+A record is an observation by the same person or agent that ran the tests. It can be written again without running the tests again, and it does not authenticate the result files. Locally, treat a `PASS` as a reason to stop and hand over. The run that counts is CI on a clean checkout, where the tests, the record and the report run in one job.
 
 ## How a scenario is matched to a test
 
@@ -183,18 +237,19 @@ The slug rule belongs to `aipos-plugins` and the reader and digest to `discovery
 govkit evidence --target . --feature 07_invoice_approval --json > evidence.json
 ```
 
-- Schema: `governance/schemas/evidence-report.schema.json`
-- Example, with the inputs that produce it: `governance/examples/evidence-report/`. The JUnit XML is stored as `test-run.xml` and the evaluation results as `evaluation-run.json`, so that discovery does not read an example as a real result. The example report is what the command prints when they are copied to `junit.xml` and `govkit-eval-results.json`.
+- Schema: `governance/schemas/evidence-report.schema.json`. The record's schema is `governance/schemas/evidence-record.schema.json`.
+- Example, with the inputs that produce it: `governance/examples/evidence-report/`. The JUnit XML is stored as `test-run.xml` and the evaluation results as `evaluation-run.json`, so that discovery does not read an example as a real result. The example report is what the command prints when they are copied to `junit.xml` and `govkit-eval-results.json` and recorded; `record.json` is that record, with a placeholder commit and tree digest.
 
 | Field | Content |
 |---|---|
 | `feature` | The directory name, the feature file's path and SHA-256, and the criteria file's path, SHA-256 and form |
 | `outcome`, `detail` | The "Working" outcome and one line explaining it |
 | `summary` | The number of scenarios and criteria, and how many are in each state |
+| `provenance` | Whether the results belong to the current commit and working tree, with the recorded commit, tree digest and time |
 | `sources` | Each result file read, with its SHA-256. A JUnit file also gives the number of skipped tests it counts but does not mark |
 | `results` | One entry per scenario (`kind: test`): identifier, revision digest, title, tags, state, how it was bound, and the bound tests. One entry per criterion (`kind: evaluation`): identifier, revision digest, name, tags, state, class, what it was compared with, and the measurements |
 
-The report is the same for the same files. It holds scenario titles, test names, criterion names and measured values, and no failure text.
+The report is the same for the same files and the same record. It holds scenario titles, test names, criterion names and measured values, and no failure text.
 
 A valid report is well-formed. It does not authenticate where its results came from.
 

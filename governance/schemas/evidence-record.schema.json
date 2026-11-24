@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:governed-ai-delivery:schemas:evidence-record",
+  "title": "Evidence record",
+  "description": "What `govkit evidence --record` observed straight after a test run: the commit, a digest of the working tree, and the result files present. `govkit evidence --feature` counts results only while this still describes the repository. A record is an observation. It does not show that the tests ran, and it can be written again without running them.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "commit",
+    "tree_digest",
+    "clean",
+    "recorded_at",
+    "results"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "govkit.evidence-record"
+    },
+    "commit": {
+      "description": "The commit checked out when the record was written.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}$"
+    },
+    "tree_digest": {
+      "description": "A digest of the commit, the index and every modified, deleted or untracked file Git does not ignore, leaving out the result files and this record.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "clean": {
+      "description": "True when nothing differed from the commit apart from the result files and this record.",
+      "type": "boolean"
+    },
+    "recorded_at": {
+      "description": "When the record was written, in UTC.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "results": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tool",
+          "path",
+          "content_digest"
+        ],
+        "properties": {
+          "tool": {
+            "enum": [
+              "junit",
+              "evaluation-results"
+            ]
+          },
+          "path": {
+            "description": "Relative to the target, with forward slashes.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "content_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

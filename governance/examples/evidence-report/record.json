@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "govkit.evidence-record",
+  "commit": "cccccccccccccccccccccccccccccccccccccccc",
+  "tree_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "clean": true,
+  "recorded_at": "2026-11-24T12:00:00Z",
+  "results": [
+    {
+      "tool": "evaluation-results",
+      "path": "govkit-eval-results.json",
+      "content_digest": "d5fa68649ecb253b451fd2d1cfaf72a5c0a178aa55bfc3a6852f23bba5142e93"
+    },
+    {
+      "tool": "junit",
+      "path": "junit.xml",
+      "content_digest": "3783b54d76594ac5afcb1c128aa5cfb0e065b6e6d7bcfb2ae0f5daed8d674522"
+    }
+  ]
+}

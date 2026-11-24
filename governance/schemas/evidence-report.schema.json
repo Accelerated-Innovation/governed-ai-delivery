@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:governed-ai-delivery:schemas:evidence-report",
   "title": "Feature evidence report",
-  "description": "What `govkit evidence --feature` found for one feature: each scenario in `acceptance.feature` with the test results bound to it, and each criterion in `eval_criteria.yaml` with the measured scores compared with it. A valid report is well-formed. It does not authenticate where its results came from, and it does not show which commit produced them.",
+  "description": "What `govkit evidence --feature` found for one feature: each scenario in `acceptance.feature` with the test results bound to it, and each criterion in `eval_criteria.yaml` with the measured scores compared with it. A valid report is well-formed. It does not authenticate where its results came from. Its `provenance` says whether an evidence record ties them to the current commit and working tree.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,7 +13,8 @@
     "detail",
     "summary",
     "sources",
-    "results"
+    "results",
+    "provenance"
   ],
   "properties": {
     "schema_version": {
@@ -175,6 +176,59 @@
             "$ref": "#/$defs/evaluation"
           }
         ]
+      }
+    },
+    "provenance": {
+      "description": "Whether the result files belong to the repository as it is now, according to the evidence record. Results count only when the state is `current`.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "detail",
+        "commit",
+        "tree_digest",
+        "recorded_at"
+      ],
+      "properties": {
+        "state": {
+          "description": "`current`: the commit, the working tree and the result files are as recorded. `stale`: one of them changed. `unrecorded`: there is no record. `unavailable`: the record or the working tree could not be read. `not-checked`: no result file was read.",
+          "enum": [
+            "current",
+            "stale",
+            "unrecorded",
+            "unavailable",
+            "not-checked"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        },
+        "commit": {
+          "description": "The recorded commit, or null without a record.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40,64}$"
+        },
+        "tree_digest": {
+          "description": "The recorded working tree digest, or null without a record.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recorded_at": {
+          "description": "When the record was written, in UTC, or null without a record.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     }
   },
