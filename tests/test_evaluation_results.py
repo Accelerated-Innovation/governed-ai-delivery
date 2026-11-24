@@ -5,6 +5,7 @@ project's evaluation run writes. GovKit reads it and starts nothing.
 """
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -238,3 +239,55 @@ class TestCriterionSchema:
 def test_document_error_is_what_validation_raises():
     with pytest.raises(DocumentError):
         validate_document({"kind": "nope"}, evaluation_results.SCHEMA)
+
+
+class TestReviewCases:
+    def _error(self, tmp_path) -> str:
+        files, error = evaluation_results.read_results(tmp_path)
+        assert files is None
+        return error
+
+    def test_a_duplicate_key_is_refused_not_resolved(self, tmp_path):
+        """`json.loads` keeps the last of two keys, which would drop a failing result."""
+        failing = f'[{{"requirement_id": "{REQUIREMENT}", "value": 0.1}}]'
+        passing = f'[{{"requirement_id": "{REQUIREMENT}", "value": 0.9}}]'
+        (tmp_path / "govkit-eval-results.json").write_text(
+            '{"schema_version": 1, "kind": "govkit.evaluation-results", '
+            f'"results": {failing}, "results": {passing}}}',
+            encoding="utf-8",
+        )
+        assert "duplicate" in self._error(tmp_path)
+
+    def test_a_duplicate_key_inside_a_result_is_refused(self, tmp_path):
+        (tmp_path / "govkit-eval-results.json").write_text(
+            '{"schema_version": 1, "kind": "govkit.evaluation-results", "results": '
+            f'[{{"requirement_id": "{REQUIREMENT}", "value": 0.1, "value": 0.9}}]}}',
+            encoding="utf-8",
+        )
+        assert "duplicate" in self._error(tmp_path)
+
+    def test_a_value_too_large_for_a_float_is_refused_not_raised(self, tmp_path):
+        (tmp_path / "govkit-eval-results.json").write_text(
+            '{"schema_version": 1, "kind": "govkit.evaluation-results", "results": '
+            f'[{{"requirement_id": "{REQUIREMENT}", "value": 1{"0" * 400}}}]}}',
+            encoding="utf-8",
+        )
+        assert "govkit-eval-results.json" in self._error(tmp_path)
+
+    @pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="needs named pipes")
+    def test_a_file_that_is_not_regular_is_refused_without_opening_it(self, tmp_path):
+        os.mkfifo(tmp_path / "govkit-eval-results.json")
+        assert "not a regular file" in self._error(tmp_path)
+
+    def test_a_link_is_refused_before_its_destination_is_examined(self, tmp_path):
+        (tmp_path / "govkit-eval-results.json").symlink_to(tmp_path / "missing" / "nowhere.json")
+        assert "symbolic link" in self._error(tmp_path)
+
+    def test_a_long_metric_is_valid_in_both_contracts(self, tmp_path):
+        """A result must repeat the target's metric, so the limits cannot differ."""
+        metric = "m" * 300
+        _write(tmp_path, [{"requirement_id": REQUIREMENT, "value": 1, "metric": metric}])
+        assert _read(tmp_path)[0].results[0].metric == metric
+        target = {"metric": metric, "comparator": ">=", "value": 1, "unit": "ratio"}
+        document = TestCriterionSchema()._document(target=target)
+        assert not list(TestCriterionSchema()._schema().iter_errors(document))

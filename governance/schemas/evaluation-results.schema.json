@@ -68,8 +68,7 @@
         "metric": {
           "description": "What was measured. Required to equal the criterion's target metric when it has a target.",
           "type": "string",
-          "minLength": 1,
-          "maxLength": 200
+          "minLength": 1
         },
         "unit": {
           "description": "Required to equal the criterion's target unit when it has a target.",

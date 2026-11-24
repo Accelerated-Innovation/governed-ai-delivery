@@ -761,3 +761,30 @@ class TestCriteriaText:
         target = _passing_project(tmp_path)
         _criteria(tmp_path, {"name": "faithfulness"})
         assert "GovKit does not start" not in er.render_text(_report(target))
+
+
+class TestCriteriaReviewCases:
+    def test_a_report_stopped_by_a_bad_results_file_still_counts_its_scenarios(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness"})
+        (tmp_path / "govkit-eval-results.json").write_text("{", encoding="utf-8")
+        report = _report(target)
+        assert report["outcome"] == "ERROR"
+        assert (report["summary"]["scenarios"], report["summary"]["passed"]) == (3, 3)
+        assert report["summary"]["criteria"] == 1
+        validate_document(report, er.SCHEMA)
+
+    @pytest.mark.parametrize(
+        "result, outcome",
+        [({"error": "x"}, "ERROR"), ({"value": 0.1}, "FAIL"), ({"value": 0.9}, "INCONCLUSIVE")],
+    )
+    def test_a_criterion_is_judged_even_when_there_are_no_scenarios(
+        self, tmp_path, result, outcome
+    ):
+        target = _project(tmp_path, "Feature: Empty\n")
+        _criteria(tmp_path, {"name": "faithfulness"})
+        _measured(tmp_path, {"requirement_id": FAITHFULNESS, **result})
+        report = _report(target)
+        assert report["outcome"] == outcome, report["detail"]
+        if outcome == "INCONCLUSIVE":
+            assert "no scenarios" in report["detail"]

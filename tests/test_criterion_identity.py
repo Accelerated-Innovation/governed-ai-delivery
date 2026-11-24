@@ -128,3 +128,16 @@ class TestExecutionClass:
     def test_tags_are_read_when_they_are_text(self):
         document = {"criteria": [{"name": "c", "tags": ["safety", 7, "nfr"]}]}
         assert _read(document)[0].tags == ("safety", "nfr")
+
+
+@pytest.mark.parametrize("field", ["value", "value_high"])
+def test_a_number_too_large_for_a_float_is_refused_not_raised(field):
+    target = {"metric": "m", "comparator": ">=", "value": 1, "unit": "ratio", field: 10**400}
+    with pytest.raises(IdentityError) as refused:
+        _read({"criteria": [{"name": "c", "target": target}]})
+    assert refused.value.reason == "parse_error"
+
+
+def test_a_threshold_too_large_for_a_float_is_refused_not_raised():
+    with pytest.raises(IdentityError):
+        _read({"criteria": [{"name": "c", "threshold": 10**400}]})

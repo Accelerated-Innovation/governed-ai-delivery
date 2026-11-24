@@ -179,5 +179,9 @@ def _target(target: object) -> Target | None:
 
 def _number(value: object) -> float | None:
     if isinstance(value, int | float) and not isinstance(value, bool):
-        return float(value)
+        try:
+            return float(value)
+        except OverflowError:
+            # An integer no float can hold. Refused, so it is reported and not raised.
+            raise IdentityError("parse_error") from None
     return None

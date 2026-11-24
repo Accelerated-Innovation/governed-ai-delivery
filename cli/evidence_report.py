@@ -128,9 +128,18 @@ def build_report(target: Path, feature: str) -> dict:
     ]
     cases = [case for source in reports for case in source.cases]
     report["results"] = _bind(scenarios, cases)
+    report["summary"]["scenarios"] = len(scenarios)
+    report["summary"]["criteria"] = len(criteria)
+
+    def count() -> None:
+        for result in report["results"]:
+            report["summary"][result["outcome"]] += 1
+
     if criteria:
         files, error = evaluation_results.read_results(target)
         if error:
+            # The scenarios were judged; only the criteria could not be.
+            count()
             return finish(Outcome.ERROR, error)
         report["sources"] += [
             {"tool": "evaluation-results", "path": f.path, "content_digest": f.content_digest}
@@ -138,10 +147,7 @@ def build_report(target: Path, feature: str) -> dict:
         ]
         measurements = [m for f in files for m in f.results]
         report["results"] += [_judge(criterion, measurements) for criterion in criteria]
-    for result in report["results"]:
-        report["summary"][result["outcome"]] += 1
-    report["summary"]["scenarios"] = len(scenarios)
-    report["summary"]["criteria"] = len(criteria)
+    count()
     return finish(*_outcome(report))
 
 
@@ -340,7 +346,9 @@ def _bind(scenarios, cases: list[CaseResult]) -> list[dict]:
 def _outcome(report: dict) -> tuple[Outcome, str]:
     summary = report["summary"]
     scenarios, criteria = summary["scenarios"], summary["criteria"]
-    if scenarios == 0:
+    # A feature with no scenarios is never done, but a criterion that errored
+    # or failed is still reported as that and not hidden behind it.
+    if scenarios == 0 and not (summary["error"] or summary["failed"]):
         return Outcome.INCONCLUSIVE, f"{DEFINITION} has no scenarios"
     scope = f"{scenarios} scenarios"
     if criteria:

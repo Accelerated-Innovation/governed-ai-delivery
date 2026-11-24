@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -61,44 +62,70 @@ def _refuse_constant(name: str):
     raise ValueError(f"{name} is not a finite number")
 
 
+def _refuse_duplicates(pairs: list) -> dict:
+    """`json.loads` keeps the last of two equal keys, which would drop a result."""
+    found: dict = {}
+    for key, value in pairs:
+        if key in found:
+            raise ValueError(f"duplicate key {key!r}")
+        found[key] = value
+    return found
+
+
+def _read_file(path: Path, relative: str) -> ResultsFile:
+    """One results file. Raises `_Refused` with the reason it cannot be used."""
+    try:
+        # The link check comes first, so a link is refused whatever it points
+        # at. `lstat` does not follow it, and a file that is not regular (a
+        # pipe would block on open) is refused without being opened.
+        status = path.lstat()
+        if stat.S_ISLNK(status.st_mode):
+            raise _Refused(f"{relative} is a symbolic link and was not read")
+        if not stat.S_ISREG(status.st_mode):
+            raise _Refused(f"{relative} is not a regular file and was not read")
+        if status.st_size > MAX_BYTES:
+            raise _Refused(f"{relative} is larger than 5 MiB and was not read")
+        data = path.read_bytes()
+        document = json.loads(
+            data, parse_constant=_refuse_constant, object_pairs_hook=_refuse_duplicates
+        )
+        if not isinstance(document, dict):
+            raise ValueError("the document is not an object")
+        validate_document(document, SCHEMA)
+        results = tuple(
+            Measurement(
+                requirement_id=item["requirement_id"],
+                value=float(item["value"]) if "value" in item else None,
+                unit=item.get("unit"),
+                metric=item.get("metric"),
+                n=item.get("n"),
+                errored="error" in item,
+                source=relative,
+            )
+            for item in document["results"]
+        )
+    except (OSError, ValueError, OverflowError, RecursionError, DocumentError) as exc:
+        raise _Refused(f"{relative} is not a usable evaluation results file: {exc}") from None
+    return ResultsFile(relative, hashlib.sha256(data).hexdigest(), results)
+
+
+class _Refused(Exception):
+    """A results file cannot be used. The message is the report's detail."""
+
+
 def read_results(target: Path) -> tuple[list[ResultsFile] | None, str | None]:
     """Every evaluation results file under `target`. Returns (files, error). Never raises."""
     files = []
     seen: set[Path] = set()
-    for pattern in _GLOBS:
-        for path in sorted(target.glob(pattern)):
-            if path in seen or path.is_dir():
-                continue
-            seen.add(path)
-            relative = path.relative_to(target).as_posix()
-            if path.is_symlink():
-                return None, f"{relative} is a symbolic link and was not read"
-            try:
-                if path.stat().st_size > MAX_BYTES:
-                    return None, f"{relative} is larger than 5 MiB and was not read"
-                data = path.read_bytes()
-                document = json.loads(data, parse_constant=_refuse_constant)
-                if not isinstance(document, dict):
-                    raise ValueError("the document is not an object")
-                validate_document(document, SCHEMA)
-            except (OSError, ValueError, RecursionError, DocumentError) as exc:
-                return None, f"{relative} is not a usable evaluation results file: {exc}"
-            files.append(
-                ResultsFile(
-                    path=relative,
-                    content_digest=hashlib.sha256(data).hexdigest(),
-                    results=tuple(
-                        Measurement(
-                            requirement_id=item["requirement_id"],
-                            value=float(item["value"]) if "value" in item else None,
-                            unit=item.get("unit"),
-                            metric=item.get("metric"),
-                            n=item.get("n"),
-                            errored="error" in item,
-                            source=relative,
-                        )
-                        for item in document["results"]
-                    ),
-                )
-            )
+    try:
+        for pattern in _GLOBS:
+            for path in sorted(target.glob(pattern)):
+                if path in seen:
+                    continue
+                seen.add(path)
+                files.append(_read_file(path, path.relative_to(target).as_posix()))
+    except _Refused as refused:
+        return None, str(refused)
+    except OSError as exc:
+        return None, f"evaluation results could not be searched for: {exc}"
     return files, None
