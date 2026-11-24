@@ -118,7 +118,8 @@ def register(subparsers) -> None:
         default=None,
         help=(
             "Report one feature: each scenario in features/NAME/acceptance.feature "
-            "and the test result bound to it. Exits 0 only when every scenario passed."
+            "with the test result bound to it, and each criterion in its "
+            "eval_criteria.yaml with its measured score. Exits 0 only when all passed."
         ),
     )
     p.add_argument(

@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:governed-ai-delivery:schemas:evaluation-results",
+  "title": "Evaluation results",
+  "description": "Measured scores for criteria in `eval_criteria.yaml`, written by a project's evaluation run and read by `govkit evidence --feature`. GovKit reads this file and never writes one or starts an evaluation. A valid file is well-formed; it does not authenticate where its values came from.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "results"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "govkit.evaluation-results"
+    },
+    "tool": {
+      "description": "Optional. The tool that produced the values.",
+      "type": "string",
+      "maxLength": 100
+    },
+    "results": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": {
+        "$ref": "#/$defs/result"
+      }
+    }
+  },
+  "$defs": {
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_id"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "value"
+          ]
+        },
+        {
+          "required": [
+            "error"
+          ]
+        }
+      ],
+      "properties": {
+        "requirement_id": {
+          "description": "`<feature directory>#evaluation:<criterion name>`.",
+          "type": "string",
+          "pattern": "^[^#]+#evaluation:.+$",
+          "maxLength": 500
+        },
+        "value": {
+          "description": "The measured value.",
+          "type": "number"
+        },
+        "error": {
+          "description": "Present when the evaluation ran and produced no value. A short reason; GovKit does not copy it into its report.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "metric": {
+          "description": "What was measured. Required to equal the criterion's target metric when it has a target.",
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "description": "Required to equal the criterion's target unit when it has a target.",
+          "enum": [
+            "seconds",
+            "minutes",
+            "hours",
+            "days",
+            "percent",
+            "ratio",
+            "count",
+            "currency"
+          ]
+        },
+        "n": {
+          "description": "Sample size.",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

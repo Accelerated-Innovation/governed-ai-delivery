@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "kind": "govkit.evaluation-results",
+  "tool": "deepeval",
+  "results": [
+    {
+      "requirement_id": "07_invoice_approval#evaluation:routing-explanation-faithfulness",
+      "value": 0.91,
+      "unit": "ratio",
+      "metric": "faithfulness",
+      "n": 50
+    },
+    {
+      "requirement_id": "07_invoice_approval#evaluation:routing-p95-latency",
+      "value": 0.24,
+      "unit": "seconds",
+      "metric": "p95_latency",
+      "n": 100
+    }
+  ]
+}

@@ -202,11 +202,13 @@ class TestOutcome:
         assert report["outcome"] == "PASS", report["detail"]
         assert report["summary"] == {
             "scenarios": 3,
+            "criteria": 0,
             "passed": 3,
             "failed": 0,
             "error": 0,
             "skipped": 0,
             "missing": 0,
+            "owed": 0,
         }
 
     def test_fail_when_a_scenario_failed(self, tmp_path):
@@ -314,6 +316,11 @@ class TestReportContent:
             "name": FEATURE,
             "definition": "features/07_invoice_approval/acceptance.feature",
             "content_digest": hashlib.sha256(ACCEPTANCE.encode()).hexdigest(),
+            "criteria": {
+                "definition": "features/07_invoice_approval/eval_criteria.yaml",
+                "content_digest": None,
+                "form": "absent",
+            },
         }
 
     def test_a_source_carries_its_digest(self, tmp_path):
@@ -349,7 +356,13 @@ class TestReportContent:
         (directory / "acceptance.feature").write_bytes(
             (example_dir / "acceptance.feature").read_bytes()
         )
+        (directory / "eval_criteria.yaml").write_bytes(
+            (example_dir / "eval_criteria.yaml").read_bytes()
+        )
         (tmp_path / "junit.xml").write_bytes((example_dir / "test-run.xml").read_bytes())
+        (tmp_path / "govkit-eval-results.json").write_bytes(
+            (example_dir / "evaluation-run.json").read_bytes()
+        )
         assert _report(tmp_path, example["feature"]["name"]) == example
 
     def test_the_report_is_the_same_on_a_second_run(self, tmp_path):
@@ -459,3 +472,319 @@ def test_suites_nested_too_deeply_are_an_error_in_the_feature_report(tmp_path):
     report = _report(_project(tmp_path))
     assert report["outcome"] == "ERROR"
     assert "nested" in report["detail"]
+
+
+FAITHFULNESS = f"{FEATURE}#evaluation:faithfulness"
+TARGET = {"metric": "faithfulness", "comparator": ">=", "value": 0.85, "unit": "ratio"}
+
+
+def _criteria(tmp_path: Path, *criteria, text: str | None = None) -> None:
+    """Write eval_criteria.yaml for FEATURE. Each criterion is a dict of overrides."""
+    import yaml
+
+    items = [
+        {"eval_class": "custom", "threshold": 0.8, "fail_on": "below_threshold", **c}
+        for c in criteria
+    ]
+    document = {"version": 1, "mode": "llm", "llm_evaluation": {"criteria": items}}
+    (tmp_path / "features" / FEATURE / "eval_criteria.yaml").write_text(
+        text if text is not None else yaml.safe_dump(document), encoding="utf-8"
+    )
+
+
+def _measured(tmp_path: Path, *results, name: str = "govkit-eval-results.json") -> None:
+    (tmp_path / name).write_text(
+        json.dumps(
+            {"schema_version": 1, "kind": "govkit.evaluation-results", "results": list(results)}
+        ),
+        encoding="utf-8",
+    )
+
+
+def _passing_project(tmp_path: Path) -> Path:
+    _junit(tmp_path, PASSING)
+    return _project(tmp_path)
+
+
+class TestCriteria:
+    def test_a_feature_without_a_criteria_file_is_unchanged(self, tmp_path):
+        report = _report(_passing_project(tmp_path))
+        assert report["outcome"] == "PASS"
+        assert [r["kind"] for r in report["results"]] == ["test"] * 3
+
+    def test_a_criterion_is_listed_after_the_scenarios_with_its_identity(self, tmp_path):
+        import hashlib
+
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness", "tags": ["safety"]})
+        result = _report(target)["results"][-1]
+        digest = hashlib.sha256(
+            (tmp_path / "features" / FEATURE / "eval_criteria.yaml").read_bytes()
+        ).hexdigest()
+        assert result["requirement_id"] == FAITHFULNESS
+        assert result["kind"] == "evaluation"
+        assert result["revision_digest"] == digest
+        assert result["title"] == "faithfulness"
+        assert result["tags"] == ["safety"]
+        assert result["execution_class"] == "free"
+
+    def test_a_free_criterion_with_no_result_is_missing_and_blocks_a_pass(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness"})
+        report = _report(target)
+        assert _result(report, FAITHFULNESS)["outcome"] == "missing"
+        assert report["outcome"] == "INCONCLUSIVE"
+        assert "faithfulness (missing)" in report["detail"]
+
+    @pytest.mark.parametrize("execution_class", ["paid", "human"])
+    def test_a_paid_or_human_criterion_with_no_result_is_owed(self, tmp_path, execution_class):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness", "execution_class": execution_class})
+        report = _report(target)
+        assert _result(report, FAITHFULNESS)["outcome"] == "owed"
+        assert report["outcome"] == "INCONCLUSIVE"
+        assert report["summary"]["owed"] == 1
+
+    def test_a_paid_criterion_with_a_result_is_judged_like_any_other(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness", "execution_class": "paid"})
+        _measured(tmp_path, {"requirement_id": FAITHFULNESS, "value": 0.9})
+        assert _result(_report(target), FAITHFULNESS)["outcome"] == "passed"
+
+    @pytest.mark.parametrize("value, outcome", [(0.9, "passed"), (0.8, "passed"), (0.79, "failed")])
+    def test_a_value_is_compared_with_the_threshold(self, tmp_path, value, outcome):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness"})
+        _measured(tmp_path, {"requirement_id": FAITHFULNESS, "value": value})
+        result = _result(_report(target), FAITHFULNESS)
+        assert result["outcome"] == outcome
+        assert result["compared_with"] == {"threshold": 0.8, "fail_on": "below_threshold"}
+        assert result["measurements"][0]["met"] is (outcome == "passed")
+
+    @pytest.mark.parametrize("value, outcome", [(0.85, "passed"), (0.84, "failed")])
+    def test_a_value_is_compared_with_the_target_ahead_of_the_threshold(
+        self, tmp_path, value, outcome
+    ):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness", "target": TARGET})
+        _measured(
+            tmp_path,
+            {"requirement_id": FAITHFULNESS, "value": value, "unit": "ratio",
+             "metric": "faithfulness", "n": 50},
+        )  # fmt: skip
+        result = _result(_report(target), FAITHFULNESS)
+        assert result["outcome"] == outcome
+        assert result["compared_with"] == {"target": {**TARGET, "value_high": None}}
+        assert result["measurements"] == [
+            {"value": value, "unit": "ratio", "metric": "faithfulness", "n": 50,
+             "met": outcome == "passed", "source": "govkit-eval-results.json"}
+        ]  # fmt: skip
+
+    @pytest.mark.parametrize(
+        "stated",
+        [{}, {"unit": "ratio"}, {"metric": "faithfulness"},
+         {"unit": "percent", "metric": "faithfulness"}, {"unit": "ratio", "metric": "relevancy"}],
+    )  # fmt: skip
+    def test_a_measurement_in_another_metric_or_unit_is_an_error(self, tmp_path, stated):
+        """0.9 percent is not 0.9 as a ratio; comparing them would be a false pass."""
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness", "target": TARGET})
+        _measured(tmp_path, {"requirement_id": FAITHFULNESS, "value": 0.9, **stated})
+        report = _report(target)
+        result = _result(report, FAITHFULNESS)
+        assert result["outcome"] == "error"
+        assert "metric and unit" in result["note"]
+        assert report["outcome"] == "ERROR"
+
+    def test_an_evaluation_that_errored_is_an_error(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness"})
+        _measured(tmp_path, {"requirement_id": FAITHFULNESS, "error": "judge timed out"})
+        report = _report(target)
+        assert _result(report, FAITHFULNESS)["outcome"] == "error"
+        assert "judge timed out" not in json.dumps(report)
+
+    def test_the_worst_of_several_measurements_decides(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness"})
+        _measured(tmp_path, {"requirement_id": FAITHFULNESS, "value": 0.95})
+        _measured(
+            tmp_path,
+            {"requirement_id": FAITHFULNESS, "value": 0.5},
+            name="govkit-eval-results-second.json",
+        )
+        result = _result(_report(target), FAITHFULNESS)
+        assert result["outcome"] == "failed"
+        assert len(result["measurements"]) == 2
+
+    @pytest.mark.parametrize("fail_on", ["error", "missing_signal"])
+    def test_a_criterion_that_only_needs_a_signal_passes_when_one_exists(self, tmp_path, fail_on):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness", "fail_on": fail_on})
+        _measured(tmp_path, {"requirement_id": FAITHFULNESS, "value": 0.1})
+        result = _result(_report(target), FAITHFULNESS)
+        assert result["outcome"] == "passed"
+        assert result["measurements"][0]["met"] is None
+        assert "not compared" in result["note"]
+
+    def test_another_features_result_is_not_used(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness"})
+        _measured(tmp_path, {"requirement_id": "99_other#evaluation:faithfulness", "value": 0.9})
+        assert _result(_report(target), FAITHFULNESS)["outcome"] == "missing"
+
+    def test_pass_needs_every_scenario_and_every_criterion(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness"}, {"name": "tone"})
+        _measured(
+            tmp_path,
+            {"requirement_id": FAITHFULNESS, "value": 0.9},
+            {"requirement_id": f"{FEATURE}#evaluation:tone", "value": 0.9},
+        )
+        report = _report(target)
+        assert report["outcome"] == "PASS", report["detail"]
+        assert report["detail"] == "3 of 3 scenarios and 2 of 2 criteria passed"
+        assert report["summary"]["criteria"] == 2
+        assert er.exit_code(report) == 0
+
+    def test_a_failed_criterion_fails_the_feature(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness"})
+        _measured(tmp_path, {"requirement_id": FAITHFULNESS, "value": 0.1})
+        report = _report(target)
+        assert report["outcome"] == "FAIL"
+        assert "3 scenarios and 1 criterion" in report["detail"]
+
+    def test_the_sources_include_the_results_file(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness"})
+        _measured(tmp_path, {"requirement_id": FAITHFULNESS, "value": 0.9})
+        tools = {s["tool"]: s for s in _report(target)["sources"]}
+        assert set(tools) == {"junit", "evaluation-results"}
+        assert "unidentified_skipped" not in tools["evaluation-results"]
+
+    def test_the_feature_names_its_criteria_file(self, tmp_path):
+        import hashlib
+
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness"})
+        path = tmp_path / "features" / FEATURE / "eval_criteria.yaml"
+        assert _report(target)["feature"]["criteria"] == {
+            "definition": f"features/{FEATURE}/eval_criteria.yaml",
+            "content_digest": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "form": "named",
+        }
+
+
+class TestCriteriaProblems:
+    def test_an_unusable_results_file_is_an_error(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness"})
+        (tmp_path / "govkit-eval-results.json").write_text("{", encoding="utf-8")
+        report = _report(target)
+        assert report["outcome"] == "ERROR"
+        assert "govkit-eval-results.json" in report["detail"]
+
+    @pytest.mark.parametrize(
+        "text, expected",
+        [
+            (": not yaml: [", "could not be read"),
+            ("- a\n- list\n", "could not be read"),
+            ("criteria:\n  - name: a\n  - name: a\n", "slug_collision"),
+            ("criteria:\n  - name: a\n    execution_class: pricey\n", "execution_class"),
+            ("criteria:\n  - name: a\n    target: high\n", "parse_error"),
+        ],
+    )
+    def test_a_criteria_file_that_cannot_be_used_is_an_error(self, tmp_path, text, expected):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, text=text)
+        report = _report(target)
+        assert report["outcome"] == "ERROR"
+        assert expected in report["detail"], report["detail"]
+        validate_document(report, er.SCHEMA)
+
+    def test_a_symlinked_criteria_file_is_not_read(self, tmp_path):
+        target = _passing_project(tmp_path)
+        outside = tmp_path / "elsewhere.yaml"
+        outside.write_text("criteria: []\n", encoding="utf-8")
+        (tmp_path / "features" / FEATURE / "eval_criteria.yaml").symlink_to(outside)
+        report = _report(target)
+        assert report["outcome"] == "ERROR"
+        assert "symbolic link" in report["detail"]
+
+    def test_data_form_criteria_are_not_compared_and_cannot_pass(self, tmp_path):
+        """The data schema's criteria have an id and a predicate in words, not a
+        name and a number. Reporting PASS would claim they were checked."""
+        target = _passing_project(tmp_path)
+        _criteria(
+            tmp_path,
+            text=(
+                "version: 1\nmode: deterministic\ncriteria:\n"
+                "  - id: pk-uniqueness\n    description: unique\n    measurement: dbt test\n"
+                "    threshold: zero duplicate rows\n    severity: error\n"
+            ),
+        )
+        report = _report(target)
+        assert report["feature"]["criteria"]["form"] == "data"
+        assert report["outcome"] == "INCONCLUSIVE"
+        assert "data form" in report["detail"]
+        assert [r["kind"] for r in report["results"]] == ["test"] * 3
+        validate_document(report, er.SCHEMA)
+
+    def test_a_criteria_file_with_no_criteria_adds_nothing(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, text="version: 1\nmode: none\nrationale: nothing to evaluate\n")
+        report = _report(target)
+        assert report["outcome"] == "PASS"
+        assert report["feature"]["criteria"]["form"] == "named"
+
+
+class TestCriteriaText:
+    def test_the_text_shows_value_bound_and_class(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(
+            tmp_path,
+            {"name": "faithfulness", "target": TARGET},
+            {"name": "tone-review", "execution_class": "human"},
+        )
+        _measured(
+            tmp_path,
+            {"requirement_id": FAITHFULNESS, "value": 0.91, "unit": "ratio",
+             "metric": "faithfulness"},
+        )  # fmt: skip
+        text = er.render_text(_report(target))
+        assert "0.91 ratio, target >= 0.85 ratio" in text
+        assert "owed" in text and "human" in text
+        assert "GovKit does not start" in text
+
+    def test_no_owed_note_without_owed_criteria(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness"})
+        assert "GovKit does not start" not in er.render_text(_report(target))
+
+
+class TestCriteriaReviewCases:
+    def test_a_report_stopped_by_a_bad_results_file_still_counts_its_scenarios(self, tmp_path):
+        target = _passing_project(tmp_path)
+        _criteria(tmp_path, {"name": "faithfulness"})
+        (tmp_path / "govkit-eval-results.json").write_text("{", encoding="utf-8")
+        report = _report(target)
+        assert report["outcome"] == "ERROR"
+        assert (report["summary"]["scenarios"], report["summary"]["passed"]) == (3, 3)
+        assert report["summary"]["criteria"] == 1
+        validate_document(report, er.SCHEMA)
+
+    @pytest.mark.parametrize(
+        "result, outcome",
+        [({"error": "x"}, "ERROR"), ({"value": 0.1}, "FAIL"), ({"value": 0.9}, "INCONCLUSIVE")],
+    )
+    def test_a_criterion_is_judged_even_when_there_are_no_scenarios(
+        self, tmp_path, result, outcome
+    ):
+        target = _project(tmp_path, "Feature: Empty\n")
+        _criteria(tmp_path, {"name": "faithfulness"})
+        _measured(tmp_path, {"requirement_id": FAITHFULNESS, **result})
+        report = _report(target)
+        assert report["outcome"] == outcome, report["detail"]
+        if outcome == "INCONCLUSIVE":
+            assert "no scenarios" in report["detail"]

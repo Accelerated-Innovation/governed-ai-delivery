@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:governed-ai-delivery:schemas:evidence-report",
   "title": "Feature evidence report",
-  "description": "What `govkit evidence --feature` found for one feature: each scenario in `acceptance.feature` and the test results bound to it. A valid report is well-formed. It does not authenticate where its results came from, and it does not show which commit produced them.",
+  "description": "What `govkit evidence --feature` found for one feature: each scenario in `acceptance.feature` with the test results bound to it, and each criterion in `eval_criteria.yaml` with the measured scores compared with it. A valid report is well-formed. It does not authenticate where its results came from, and it does not show which commit produced them.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -28,7 +28,8 @@
       "required": [
         "name",
         "definition",
-        "content_digest"
+        "content_digest",
+        "criteria"
       ],
       "properties": {
         "name": {
@@ -52,11 +53,46 @@
               "type": "null"
             }
           ]
+        },
+        "criteria": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "definition",
+            "content_digest",
+            "form"
+          ],
+          "properties": {
+            "definition": {
+              "description": "Path of the criteria file, relative to the target.",
+              "type": "string",
+              "maxLength": 1000
+            },
+            "content_digest": {
+              "description": "SHA-256 of the criteria file's bytes, or null when it was not read. It is the revision of every criterion.",
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/digest"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "form": {
+              "description": "`absent` when the feature has no criteria file; `named` when its criteria carry a name and are compared; `data` when they are in the data form, which is not compared and prevents PASS.",
+              "enum": [
+                "absent",
+                "named",
+                "data"
+              ]
+            }
+          }
         }
       }
     },
     "outcome": {
-      "description": "The feature's Working outcome. PASS only when every scenario passed.",
+      "description": "The feature's Working outcome. PASS only when every scenario and every criterion passed.",
       "enum": [
         "PASS",
         "FAIL",
@@ -72,14 +108,20 @@
       "additionalProperties": false,
       "required": [
         "scenarios",
+        "criteria",
         "passed",
         "failed",
         "error",
         "skipped",
-        "missing"
+        "missing",
+        "owed"
       ],
       "properties": {
         "scenarios": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "criteria": {
           "type": "integer",
           "minimum": 0
         },
@@ -102,19 +144,37 @@
         "missing": {
           "type": "integer",
           "minimum": 0
+        },
+        "owed": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
     "sources": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/source"
+        "oneOf": [
+          {
+            "$ref": "#/$defs/source"
+          },
+          {
+            "$ref": "#/$defs/results_file"
+          }
+        ]
       }
     },
     "results": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/result"
+        "oneOf": [
+          {
+            "$ref": "#/$defs/result"
+          },
+          {
+            "$ref": "#/$defs/evaluation"
+          }
+        ]
       }
     }
   },
@@ -250,6 +310,240 @@
         },
         "source": {
           "description": "The `path` of the source the test case was read from.",
+          "type": "string"
+        }
+      }
+    },
+    "results_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool",
+        "path",
+        "content_digest"
+      ],
+      "properties": {
+        "tool": {
+          "const": "evaluation-results"
+        },
+        "path": {
+          "description": "Path of the evaluation results file, relative to the target.",
+          "type": "string"
+        },
+        "content_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_id",
+        "revision_digest",
+        "kind",
+        "title",
+        "tags",
+        "outcome",
+        "execution_class",
+        "compared_with",
+        "measurements"
+      ],
+      "properties": {
+        "requirement_id": {
+          "description": "`<feature directory>#evaluation:<criterion name>`, as the Product Definition Graph identifies the criterion.",
+          "type": "string",
+          "pattern": "^[^#]+#evaluation:.+$"
+        },
+        "revision_digest": {
+          "description": "SHA-256 of the criteria file's bytes.",
+          "$ref": "#/$defs/digest"
+        },
+        "kind": {
+          "const": "evaluation"
+        },
+        "title": {
+          "description": "The criterion's name.",
+          "type": "string",
+          "maxLength": 200
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outcome": {
+          "description": "The worst of the measurements. With none, `missing` for a free criterion and `owed` for a paid or human one.",
+          "enum": [
+            "passed",
+            "failed",
+            "error",
+            "missing",
+            "owed"
+          ]
+        },
+        "execution_class": {
+          "description": "Who may run the criterion. GovKit starts none of them.",
+          "enum": [
+            "free",
+            "paid",
+            "human"
+          ]
+        },
+        "compared_with": {
+          "description": "What a measurement was compared with: the target when the criterion declares one, otherwise its threshold, otherwise null.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "target"
+              ],
+              "properties": {
+                "target": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "metric",
+                    "comparator",
+                    "value",
+                    "value_high",
+                    "unit"
+                  ],
+                  "properties": {
+                    "metric": {
+                      "type": "string"
+                    },
+                    "comparator": {
+                      "enum": [
+                        ">=",
+                        "<=",
+                        "==",
+                        "between"
+                      ]
+                    },
+                    "value": {
+                      "type": "number"
+                    },
+                    "value_high": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "unit": {
+                      "enum": [
+                        "seconds",
+                        "minutes",
+                        "hours",
+                        "days",
+                        "percent",
+                        "ratio",
+                        "count",
+                        "currency"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "threshold",
+                "fail_on"
+              ],
+              "properties": {
+                "threshold": {
+                  "type": "number"
+                },
+                "fail_on": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "measurements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/measurement"
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "unit",
+        "metric",
+        "n",
+        "met",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "description": "The measured value, or null when the evaluation errored.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "oneOf": [
+            {
+              "enum": [
+                "seconds",
+                "minutes",
+                "hours",
+                "days",
+                "percent",
+                "ratio",
+                "count",
+                "currency"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metric": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n": {
+          "description": "Sample size, when the results file gave one.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "met": {
+          "description": "Whether the value satisfied what it was compared with. Null when it was not compared.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "source": {
+          "description": "The `path` of the source the measurement was read from.",
           "type": "string"
         }
       }

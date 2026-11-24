@@ -38,6 +38,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     Definition Graph computes.
   - `--json` prints the report in a versioned format, with a bundled schema
     and example.
+- **Criteria in the feature evidence report (#261).** The report also lists
+  each criterion in the feature's `eval_criteria.yaml`.
+  - Measured scores are read from an evaluation results file,
+    `govkit-eval-results*.json`, that the project's evaluation run writes.
+    GovKit never starts an evaluation.
+  - A backend criterion may declare a `target` (metric, comparator, value,
+    unit), which is compared instead of `threshold`.
+  - A backend criterion may declare an `execution_class` of `free` (default),
+    `paid` or `human`. With no result, a free criterion is missing and a paid
+    or human one is owed.
+  - The command exits 0 only when every scenario and every criterion passed.
+  - Data-form criteria are not compared, and a feature that has them is
+    reported as `INCONCLUSIVE`.
+  - See ADR 0023.
   - Without `--feature`, output and exit status are unchanged.
   - See [docs/EVIDENCE_REPORT.md](docs/EVIDENCE_REPORT.md) and ADR 0022.
 

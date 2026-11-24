@@ -1,0 +1,44 @@
+# Example criteria for the evidence report example. See docs/EVIDENCE_REPORT.md.
+version: 1
+feature: 07_invoice_approval
+mode: llm
+unit_tests:
+  enforce_FIRST: true
+  minimum_FIRST_average: 4.0
+code_quality:
+  enforce_virtues: true
+  minimum_virtue_average: 4.0
+llm_evaluation:
+  criteria:
+    # Measured and compared with a target.
+    - name: routing-explanation-faithfulness
+      eval_class: deepeval_faithfulness
+      threshold: 0.85
+      fail_on: below_threshold
+      target:
+        metric: faithfulness
+        comparator: ">="
+        value: 0.85
+        unit: ratio
+    # An NFR value declared as a criterion, so the number itself is compared.
+    - name: routing-p95-latency
+      eval_class: custom
+      threshold: 0.2
+      fail_on: above_threshold
+      tags: [nfr-performance]
+      target:
+        metric: p95_latency
+        comparator: "<="
+        value: 0.2
+        unit: seconds
+    # Free, with no result yet: missing.
+    - name: refusal-safety
+      eval_class: safety_classifier
+      threshold: 0.99
+      fail_on: below_threshold
+    # Needs a person, with no result yet: owed.
+    - name: explanation-tone-review
+      eval_class: custom
+      threshold: 0.8
+      fail_on: below_threshold
+      execution_class: human

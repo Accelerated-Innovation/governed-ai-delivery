@@ -1,6 +1,6 @@
 # Loop-ready gates plan
 
-Status: in progress. L01 to L03 are delivered. L04 onward were replanned on 2026-11-22 and none is implemented. The epic is #257.
+Status: in progress. L01 to L04 are delivered. L05 onward were replanned on 2026-11-22 and none is implemented. The epic is #257.
 Plan version: 0.2. Version 0.1 is summarized in Section 12.
 Prepared: 2026-11-20. Replanned: 2026-11-22.
 Baseline inspected: govkit 0.23.0, commit af71fa9; `discovery-engine` commit ebdfc41, read-only.
@@ -139,7 +139,7 @@ Each increment is independently demonstrable and is tried in the pilot repositor
 | L01 | Feature-scoped `validate` with a known-failures record | `validate` | — | #248, delivered in #254 |
 | L02 | A skipped test is not a pass | `evidence` | — | #256 |
 | L03 | Feature selection, scenario identity and binding, JSON report | `evidence` | L02 | #259 |
-| L04 | Thresholds and measurements, with cost and authority classes | `evidence` | L03 | not opened |
+| L04 | Thresholds and measurements, with cost and authority classes | `evidence` | L03 | #261 |
 | L05 | Results must belong to the current commit and revision | `evidence` | L03 | not opened |
 | L06 | The definition and its tests cannot be weakened by the change they judge | `conform` | L03 | not opened |
 | L07 | Preconditions, the three-state verdict and `conform` integration | `conform` | L02–L06 | not opened |
@@ -192,7 +192,7 @@ This increment replaces per-project tests that prove every scenario has a runnab
   - A `paid` or `human` criterion without a result is reported as owed. GovKit never starts a paid or human evaluation.
 - **Forecasts.** The FIRST and virtue forecasts in `plan.md` remain forecasts. They are not read as results.
 
-Adding the class changes the three `eval_criteria` schemas (backend, UI, data), their starters and their worked examples together.
+As delivered (ADR 0023): the fields are `target` and `execution_class`, and they are added to the backend `eval_criteria` schema only. The three schemas do not share a criterion shape: the data schema lists an `id` with a predicate in words, and the UI schema has no criteria list. Data-form criteria are not compared and prevent `PASS`. Measured scores come from `govkit-eval-results*.json`.
 
 ### L05 — Results must belong to the current commit and revision
 
@@ -330,8 +330,8 @@ Risks:
 ## 10. Open questions
 
 1. **Scenario binding (L03).** Settled on 2026-11-24 from the first pilot's pytest-bdd output: a `govkit.scenario` JUnit property first, then the scenario title against the test name (ADR 0022). Check it against the new pilot.
-2. **Measurement file format (L04).** What file carries a measured score for a criterion, and which tools write it today?
-3. **Machine-readable NFR values (L04).** Should an NFR value be declarable as a target, and where: in `nfrs.md`, in the scenario, or in `eval_criteria.yaml`?
+2. **Measurement file format (L04).** Settled on 2026-11-24: a GovKit results file, `govkit-eval-results*.json`, that the project's evaluation run writes (ADR 0023). No tool writes it today; a project adapts its tool's output.
+3. **Machine-readable NFR values (L04).** Settled on 2026-11-24: no new form. A value to be compared is declared as a criterion with a target in `eval_criteria.yaml`.
 4. **Recording the commit and working tree (L05).** How does a result file state the commit it was produced from, and the working tree when there are uncommitted changes?
 5. **Schemas on a level-free installation.** Does a pack install the `eval_criteria` schema, and which of the three applies when there is no project type from a marker?
 6. **Accepted skips.** May a project declare a skip as accepted, and if so where, without recreating the escape route of Section 3.1 item 4?
@@ -378,3 +378,5 @@ Version 0.1 planned L02 to L06 as additions to `govkit validate`, with a new fil
 | 2026-11-24 | L02 | #256: `govkit evidence` reads skipped tests from JUnit XML; a run with skipped tests and no failure or error is `INCONCLUSIVE` for "Working" and a skipped test has no duration for "Fast". The run exits 1 even when another dimension passes; a dimension with no report still does not block | Open the L03 issue; settle scenario binding from the pilot's output |
 | 2026-11-24 | L02 | Delivered in #258 | Start L03 |
 | 2026-11-24 | L03 | #259: `govkit evidence --feature` with mirrored scenario identity (fixtures produced by the engine's reader at `3806d64`), binding by property then title, JSON report schema version 1, ADR 0022. The commit, run reference and execution time are left to L05 as optional fields | Check binding against the new pilot; open the L04 issue |
+| 2026-11-24 | L03 | Delivered in #260 | Start L04 |
+| 2026-11-24 | L04 | #261: criteria in the feature report, mirrored criterion identity and comparison (fixture produced by the engine at `3806d64`), the `evaluation-results` file, `target` and `execution_class` on backend criteria, ADR 0023. Found that the data and UI criteria schemas have a different shape; data-form criteria are not compared and prevent `PASS` | Open the L05 issue. Data-form criteria wait for a data architect's review of GovKit (maintainer, 2026-11-24); no issue is raised here or in `discovery-engine` until then |
