@@ -124,7 +124,7 @@ A valid report is well-formed. It does not authenticate where its results came f
 
 ## Skipped tests that are not marked
 
-Some reporters count skipped tests on the suite without marking which test cases were skipped. The count is taken suite by suite. Any test in that file that looks passed could be one of them, so a feature that would otherwise be `PASS` is `INCONCLUSIVE` and the report names the file.
+Some reporters count skipped tests on the suite without marking which test cases were skipped. The count is taken suite by suite, and a suite's count covers the suites nested in it. Any test in that file that looks passed could be one of them, so a feature that would otherwise be `PASS` is `INCONCLUSIVE` and the report names the file.
 
 ## Without `--feature`
 

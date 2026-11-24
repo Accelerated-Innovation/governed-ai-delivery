@@ -145,25 +145,26 @@ def _find(target: Path, globs) -> list[Path]:
     return found
 
 
-def _suite_skips(root: ET.Element) -> tuple[int, int]:
-    """(skipped, unidentified) for one report. Raises ValueError on a bad count.
+def _suite_skips(element: ET.Element) -> tuple[int, int]:
+    """(skipped, unidentified) for a report or one suite. Raises ValueError on a bad count.
 
-    Counted suite by suite. Over the whole file, a skip that one suite marks
-    would cancel a skip another suite counts without marking, and the test it
-    hides would look passed. A suite's own test cases are its direct children,
-    so a nested suite is not counted twice.
+    Counted suite by suite. Over a whole file, a skip that one suite marks
+    would cancel a skip a sibling suite counts without marking, and the test
+    it hides would look passed.
+
+    A suite's count covers the suites nested in it, as its `tests` count does.
+    So a suite's own unidentified skips are what its count leaves after its
+    direct test cases and its nested suites are accounted for.
     """
-    # `iter` yields the root as well when it is itself a suite, and every nested suite.
-    suites = list(root.iter("testsuite"))
-    skipped = unidentified = marked_in_suites = 0
-    for suite in suites:
-        declared = int(suite.get("skipped") or 0)
-        marked = sum(1 for case in suite.findall("testcase") if case.find("skipped") is not None)
-        marked_in_suites += marked
-        skipped += max(declared, marked)
-        unidentified += max(declared - marked, 0)
-    marked_anywhere = sum(1 for case in root.iter("testcase") if case.find("skipped") is not None)
-    return skipped + marked_anywhere - marked_in_suites, unidentified
+    marked = sum(1 for case in element.findall("testcase") if case.find("skipped") is not None)
+    nested_skipped = nested_unidentified = 0
+    for suite in element.findall("testsuite"):
+        skipped, unidentified = _suite_skips(suite)
+        nested_skipped += skipped
+        nested_unidentified += unidentified
+    declared = int(element.get("skipped") or 0)
+    accounted = marked + nested_skipped
+    return max(declared, accounted), nested_unidentified + max(declared - accounted, 0)
 
 
 def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
