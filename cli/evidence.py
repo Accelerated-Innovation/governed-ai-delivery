@@ -28,6 +28,7 @@ survives review — so every dimension is reported every run, and the ones witho
 evidence say so.
 """
 
+import hashlib
 import json
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -192,6 +193,83 @@ def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
         # the list above and cannot be told apart from those of tests that ran.
         totals["unidentified_skipped"] += max(declared_skipped - skipped_cases, 0)
     return totals, None
+
+
+# The property a test case uses to name the scenario it verifies.
+SCENARIO_PROPERTY = "govkit.scenario"
+
+
+@dataclass(frozen=True)
+class CaseResult:
+    """One JUnit test case. `outcome` is passed, failed, error or skipped."""
+
+    name: str
+    classname: str
+    outcome: str
+    scenarios: tuple[str, ...]  # values of its `govkit.scenario` properties
+    source: str
+
+
+@dataclass(frozen=True)
+class TestReport:
+    __test__ = False  # a report of tests, not a test class
+
+    path: str  # relative to the target, with forward slashes
+    content_digest: str
+    cases: tuple[CaseResult, ...]
+    # Skips the suites count but no test case marks. Any case that looks
+    # passed in this file could be one of them.
+    unidentified_skipped: int
+
+
+def _case_outcome(case: ET.Element) -> str:
+    if case.find("error") is not None:
+        return "error"
+    if case.find("failure") is not None:
+        return "failed"
+    if case.find("skipped") is not None:
+        return "skipped"
+    return "passed"
+
+
+def read_test_reports(target: Path) -> tuple[list[TestReport] | None, str | None]:
+    """Every JUnit test case under `target`. Returns (reports, error). Never raises."""
+    reports = []
+    for path in _find(target, _JUNIT_GLOBS):
+        try:
+            data = path.read_bytes()
+            root = ET.fromstring(data)
+            suites = [root] if root.tag == "testsuite" else root.iter("testsuite")
+            declared = sum(int(suite.get("skipped") or 0) for suite in suites)
+        except (ET.ParseError, OSError) as exc:
+            return None, f"{path.name} could not be parsed: {exc}"
+        except ValueError:
+            return None, f"{path.name} has a test count that is not a whole number"
+        relative = path.relative_to(target).as_posix()
+        cases = tuple(
+            CaseResult(
+                name=case.get("name") or "",
+                classname=case.get("classname") or "",
+                outcome=_case_outcome(case),
+                scenarios=tuple(
+                    item.get("value") or ""
+                    for item in case.iter("property")
+                    if item.get("name") == SCENARIO_PROPERTY
+                ),
+                source=relative,
+            )
+            for case in root.iter("testcase")
+        )
+        marked = sum(1 for case in cases if case.outcome == "skipped")
+        reports.append(
+            TestReport(
+                path=relative,
+                content_digest=hashlib.sha256(data).hexdigest(),
+                cases=cases,
+                unidentified_skipped=max(declared - marked, 0),
+            )
+        )
+    return reports, None
 
 
 def _assess_working(totals: dict | None, error: str | None, found: bool) -> Verdict:

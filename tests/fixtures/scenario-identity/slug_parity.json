@@ -1,0 +1,127 @@
+{
+  "source": {
+    "repository": "aipos-plugins",
+    "path": "plugins/aipos/skills/aipos-map-render/scripts/repo_ingest.py",
+    "function": "slugify",
+    "commit": "ab2e368d68efcffbeb024b43228f1db37db055c1"
+  },
+  "copied_from": {
+    "repository": "discovery-engine",
+    "path": "tests/unit/engine/fixtures/requirements/slug_parity.json",
+    "commit": "3806d649984aceaef2bb7d5604d08ae4887a3571"
+  },
+  "pairs": [
+    [
+      "Ingest once",
+      "ingest-once"
+    ],
+    [
+      "Ingest once!",
+      "ingest-once"
+    ],
+    [
+      "A baseline is ingested whole",
+      "a-baseline-is-ingested-whole"
+    ],
+    [
+      "Digests are computed",
+      "digests-are-computed"
+    ],
+    [
+      "  Leading and trailing spaces  ",
+      "leading-and-trailing-spaces"
+    ],
+    [
+      "--already-kebab--",
+      "already-kebab"
+    ],
+    [
+      "MixedCASE_with_underscores",
+      "mixedcase-with-underscores"
+    ],
+    [
+      "100% coverage (v2)",
+      "100-coverage-v2"
+    ],
+    [
+      "A 404 for p-404",
+      "a-404-for-p-404"
+    ],
+    [
+      "dots.and/slashes\\and|pipes",
+      "dots-and-slashes-and-pipes"
+    ],
+    [
+      "Tabs\tand\nnewlines",
+      "tabs-and-newlines"
+    ],
+    [
+      "Café déjà vu",
+      "caf-d-j-vu"
+    ],
+    [
+      "naïve résumé",
+      "na-ve-r-sum"
+    ],
+    [
+      "日本語のテスト",
+      "unnamed"
+    ],
+    [
+      "emoji 🚀 launch",
+      "emoji-launch"
+    ],
+    [
+      "Ünïcödé only ünïcödé",
+      "n-c-d-only-n-c-d"
+    ],
+    [
+      "",
+      "unnamed"
+    ],
+    [
+      "   ",
+      "unnamed"
+    ],
+    [
+      "___",
+      "unnamed"
+    ],
+    [
+      "!!!",
+      "unnamed"
+    ],
+    [
+      "x",
+      "x"
+    ],
+    [
+      "007 Bond",
+      "007-bond"
+    ],
+    [
+      "Scenario: nested keyword",
+      "scenario-nested-keyword"
+    ],
+    [
+      "<placeholder> in outline",
+      "placeholder-in-outline"
+    ],
+    [
+      "\"quoted\" and 'single'",
+      "quoted-and-single"
+    ],
+    [
+      "a--b__c  d",
+      "a-b-c-d"
+    ],
+    [
+      "trailing digits 2026",
+      "trailing-digits-2026"
+    ],
+    [
+      "UPPER CASE TITLE",
+      "upper-case-title"
+    ]
+  ]
+}

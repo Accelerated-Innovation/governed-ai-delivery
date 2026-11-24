@@ -1,0 +1,289 @@
+{
+  "source": {
+    "repository": "discovery-engine",
+    "path": "src/engine/domain/requirements_gherkin.py",
+    "function": "read_feature",
+    "commit": "3806d649984aceaef2bb7d5604d08ae4887a3571",
+    "note": "Expected values were produced by running the engine's reader on each feature text. GovKit authored the feature texts."
+  },
+  "package": "07_invoice_approval",
+  "cases": [
+    {
+      "name": "authored-and-derived",
+      "feature": "@feature\nFeature: Invoice approval routing\n\n  @rule:invoice-approval-threshold\n  Rule: Invoices of $10,000 or more require finance manager approval\n\n    @mvp @functional @scenario:approval-routing-by-amount\n    Scenario: Invoice amount decides the approval path\n      Given an invoice of 12000\n      When it is submitted\n      Then it is routed to the finance manager\n\n    @nfr-performance\n    Scenario: Routing completes within 200 ms at p95\n      Given 100 invoices\n      When they are submitted\n      Then routing takes at most 200 ms at p95\n",
+      "expected": {
+        "scenarios": [
+          {
+            "id": "07_invoice_approval#scenario:approval-routing-by-amount",
+            "id_source": "tag",
+            "title": "Invoice amount decides the approval path",
+            "tags": [
+              "@mvp",
+              "@functional",
+              "@scenario:approval-routing-by-amount"
+            ],
+            "revision_digest": "b375de0b67894c7509263e1c8c5c7f09724f1277208f4e3b7c4a18cb16e762a3"
+          },
+          {
+            "id": "07_invoice_approval#scenario:routing-completes-within-200-ms-at-p95",
+            "id_source": "derived",
+            "title": "Routing completes within 200 ms at p95",
+            "tags": [
+              "@nfr-performance"
+            ],
+            "revision_digest": "e7b0299edc66c780efa919bc988c58f0f9e0cc0ec78ce2c96ef1f3771b031e78"
+          }
+        ]
+      }
+    },
+    {
+      "name": "comments-and-trailing-whitespace",
+      "feature": "Feature: Comments   \n  # a comment before the scenario\n  @scenario:first   # trailing tag comment\n  Scenario: First   \n    Given a step   \t\n    # a comment inside\n    Then a result\n\n  # a comment between\n  Scenario: Second\n    Given another step\n",
+      "expected": {
+        "scenarios": [
+          {
+            "id": "07_invoice_approval#scenario:first",
+            "id_source": "tag",
+            "title": "First",
+            "tags": [
+              "@scenario:first"
+            ],
+            "revision_digest": "2b9b5bb089913bd3070fbdf1fed118c80c0bdeeece1c65166b59a8f0a0a985bb"
+          },
+          {
+            "id": "07_invoice_approval#scenario:second",
+            "id_source": "derived",
+            "title": "Second",
+            "tags": [],
+            "revision_digest": "38de979bfb233baeb9174b66794e40b07714a7ed9b3169195b9a294d2c8d3dee"
+          }
+        ]
+      }
+    },
+    {
+      "name": "outline-with-examples",
+      "feature": "Feature: Outline\n\n  @scenario:routing-outline\n  Scenario Outline: Amount <amount> goes to <approver>\n    Given an invoice of <amount>\n    Then it goes to <approver>\n\n    @small\n    Examples: Small\n      | amount | approver |\n      | 100    | clerk    |\n\n    Examples: Large\n      | amount | approver |\n      | 20000  | manager  |\n\n  Scenario Template: A template\n    Given <x>\n    Scenarios:\n      | x |\n      | 1 |\n",
+      "expected": {
+        "scenarios": [
+          {
+            "id": "07_invoice_approval#scenario:routing-outline",
+            "id_source": "tag",
+            "title": "Amount <amount> goes to <approver>",
+            "tags": [
+              "@scenario:routing-outline"
+            ],
+            "revision_digest": "720f8680925212fbff6de20c717158822b8826387ff1e7caf875ab0a8b7c3a38"
+          },
+          {
+            "id": "07_invoice_approval#scenario:a-template",
+            "id_source": "derived",
+            "title": "A template",
+            "tags": [],
+            "revision_digest": "6ee952e09513d5d287452f747c427626bb49c0622aa73b46b9fee84def53c0ae"
+          }
+        ]
+      }
+    },
+    {
+      "name": "background-ends-a-span",
+      "feature": "Feature: Background\n\n  Background:\n    Given a signed-in user\n\n  Scenario: Before the rule\n    Then something\n\n  Rule: A rule sentence\n\n    Background:\n      Given a rule-level setup\n\n    Example: An example keyword\n      Then something else\n",
+      "expected": {
+        "scenarios": [
+          {
+            "id": "07_invoice_approval#scenario:before-the-rule",
+            "id_source": "derived",
+            "title": "Before the rule",
+            "tags": [],
+            "revision_digest": "feb44f311ff7273107b6ccc073e09373a8a8b0ceee63d4367267dd8aa79ad604"
+          },
+          {
+            "id": "07_invoice_approval#scenario:an-example-keyword",
+            "id_source": "derived",
+            "title": "An example keyword",
+            "tags": [],
+            "revision_digest": "290243419a2dcb4380f5df049a00dde38ff03bae056861b7291e3234146431df"
+          }
+        ]
+      }
+    },
+    {
+      "name": "doc-strings-hide-keywords",
+      "feature": "Feature: Doc strings\n\n  Scenario: Text that looks like Gherkin\n    Given a document\n      \"\"\"\n      Scenario: not a scenario\n      @scenario:not-a-tag\n      # not a comment\n      \"\"\"\n    And a fenced block\n      ```\n      Feature: also not one\n      ```\n    Then it is stored\n\n  Scenario: After the doc strings\n    Then it still parses\n",
+      "expected": {
+        "scenarios": [
+          {
+            "id": "07_invoice_approval#scenario:text-that-looks-like-gherkin",
+            "id_source": "derived",
+            "title": "Text that looks like Gherkin",
+            "tags": [],
+            "revision_digest": "a0d6f9a81d41ce0d2c2d1689e90dbc7390f20286cefd0b1f935dbc4c18158dd5"
+          },
+          {
+            "id": "07_invoice_approval#scenario:after-the-doc-strings",
+            "id_source": "derived",
+            "title": "After the doc strings",
+            "tags": [],
+            "revision_digest": "d0eab909fc75c66b7c695e6689f9e66938dc2d1a44e01c31e9b23a6f3aba4aa4"
+          }
+        ]
+      }
+    },
+    {
+      "name": "crlf-line-endings",
+      "feature": "Feature: CRLF\r\n\r\n  @scenario:windows\r\n  Scenario: Windows endings\r\n    Given a step\r\n    Then a result\r\n",
+      "expected": {
+        "scenarios": [
+          {
+            "id": "07_invoice_approval#scenario:windows",
+            "id_source": "tag",
+            "title": "Windows endings",
+            "tags": [
+              "@scenario:windows"
+            ],
+            "revision_digest": "244df329a8bfad52a71b7efb4d828e08903b297d81974ac659f635b878c9f029"
+          }
+        ]
+      }
+    },
+    {
+      "name": "multiple-tag-lines",
+      "feature": "Feature: Tag lines\n\n  @mvp\n  @scenario:tagged-twice @nfr-security\n\n  Scenario: Tags on two lines with a blank between\n    Then ok\n",
+      "expected": {
+        "scenarios": [
+          {
+            "id": "07_invoice_approval#scenario:tagged-twice",
+            "id_source": "tag",
+            "title": "Tags on two lines with a blank between",
+            "tags": [
+              "@mvp",
+              "@scenario:tagged-twice",
+              "@nfr-security"
+            ],
+            "revision_digest": "f81d865b0379e0c2dcfc83f628c2ec15f0fb9b6ecf05d82ba08a53aee5ce45ad"
+          }
+        ]
+      }
+    },
+    {
+      "name": "no-trailing-newline",
+      "feature": "Feature: Tail\n  Scenario: Ends without a newline\n    Then ok",
+      "expected": {
+        "scenarios": [
+          {
+            "id": "07_invoice_approval#scenario:ends-without-a-newline",
+            "id_source": "derived",
+            "title": "Ends without a newline",
+            "tags": [],
+            "revision_digest": "247292d6eb8fccc7b62d191e7fc03aaecfeeddfa99153448db010e751a9781fd"
+          }
+        ]
+      }
+    },
+    {
+      "name": "derived-slug-shapes",
+      "feature": "Feature: Slugs\n\n  Scenario: 100% coverage (v2)\n    Then ok\n\n  Scenario: Café déjà vu\n    Then ok\n\n  Scenario: --already-kebab--\n    Then ok\n",
+      "expected": {
+        "scenarios": [
+          {
+            "id": "07_invoice_approval#scenario:100-coverage-v2",
+            "id_source": "derived",
+            "title": "100% coverage (v2)",
+            "tags": [],
+            "revision_digest": "2d4f17cf545ce49ee115905a85986d23229ede955ada214dcecd1fe8502595a4"
+          },
+          {
+            "id": "07_invoice_approval#scenario:caf-d-j-vu",
+            "id_source": "derived",
+            "title": "Café déjà vu",
+            "tags": [],
+            "revision_digest": "890b78a2a07211ee87197cb19ea66c0899eae5b043f767099534a8df8c8c800e"
+          },
+          {
+            "id": "07_invoice_approval#scenario:already-kebab",
+            "id_source": "derived",
+            "title": "--already-kebab--",
+            "tags": [],
+            "revision_digest": "e899b06db0d287658b34d8e93816cb82f3e5b2761e3dde22f0077604a7d973cc"
+          }
+        ]
+      }
+    },
+    {
+      "name": "refused-two-scenario-tags",
+      "feature": "Feature: Two tags\n  @scenario:a @scenario:b\n  Scenario: Has two\n    Then ok\n",
+      "expected": {
+        "refused": "invalid_identifier"
+      }
+    },
+    {
+      "name": "refused-malformed-slug",
+      "feature": "Feature: Bad slug\n  @scenario:Not_Kebab\n  Scenario: Has a bad slug\n    Then ok\n",
+      "expected": {
+        "refused": "invalid_identifier"
+      }
+    },
+    {
+      "name": "refused-slug-collision",
+      "feature": "Feature: Collision\n  @scenario:same-title\n  Scenario: One\n    Then ok\n  Scenario: Same title\n    Then ok\n",
+      "expected": {
+        "refused": "slug_collision"
+      }
+    },
+    {
+      "name": "refused-title-too-long",
+      "feature": "Feature: Long\n  Scenario: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n    Then ok\n",
+      "expected": {
+        "refused": "title_too_long"
+      }
+    },
+    {
+      "name": "refused-two-features",
+      "feature": "Feature: One\nFeature: Two\n",
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-not-english",
+      "feature": "# language: fr\nFonctionnalité: Non\n",
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-unclosed-doc-string",
+      "feature": "Feature: Open\n  Scenario: Open\n    Given\n      \"\"\"\n      never closed\n",
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-scenario-before-feature",
+      "feature": "@x\nScenario: Early\n  Then ok\nFeature: Late\n",
+      "expected": {
+        "refused": "parse_error"
+      }
+    },
+    {
+      "name": "refused-rule-collision",
+      "feature": "Feature: Rules\n  Rule: Same rule\n    Scenario: One\n      Then ok\n  @rule:same-rule\n  Rule: Another sentence\n    Scenario: Two\n      Then ok\n",
+      "expected": {
+        "refused": "slug_collision"
+      }
+    },
+    {
+      "name": "refused-malformed-rule-slug",
+      "feature": "Feature: Rules\n  @rule:Bad_Slug\n  Rule: A rule\n    Scenario: One\n      Then ok\n",
+      "expected": {
+        "refused": "invalid_identifier"
+      }
+    },
+    {
+      "name": "no-scenarios",
+      "feature": "Feature: Empty\n",
+      "expected": {
+        "scenarios": []
+      }
+    }
+  ]
+}

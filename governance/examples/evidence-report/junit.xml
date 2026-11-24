@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="pytest" tests="5" failures="1" errors="0" skipped="1">
+    <testcase classname="tests.acceptance.test_routing" name="test_invoice_amount_decides_the_approval_path[9999-team lead]" time="0.012">
+      <properties><property name="govkit.scenario" value="07_invoice_approval#scenario:approval-routing-by-amount"/></properties>
+    </testcase>
+    <testcase classname="tests.acceptance.test_routing" name="test_invoice_amount_decides_the_approval_path[10000-finance manager]" time="0.011">
+      <properties><property name="govkit.scenario" value="07_invoice_approval#scenario:approval-routing-by-amount"/></properties>
+    </testcase>
+    <testcase classname="tests.acceptance.test_routing" name="test_a_delegate_approves_when_the_finance_manager_is_absent" time="0.000">
+      <properties><property name="govkit.scenario" value="@scenario:approval-routing-when-manager-absent"/></properties>
+      <skipped message="directory service unavailable"/>
+    </testcase>
+    <testcase classname="tests.acceptance.test_routing" name="test_routing_completes_within_200_ms_at_p95" time="0.310">
+      <failure message="p95 was 240 ms">assert 240 &lt;= 200</failure>
+    </testcase>
+    <testcase classname="tests.unit.test_amounts" name="test_amount_parses" time="0.001"/>
+  </testsuite>
+</testsuites>
