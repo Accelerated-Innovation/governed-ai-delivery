@@ -267,3 +267,27 @@ def test_the_result_file_limit_matches_the_schema():
         (paths.GOVERNANCE_DIR / "schemas/evidence-record.schema.json").read_text("utf-8")
     )
     assert schema["properties"]["results"]["maxItems"] == rec.MAX_RESULTS
+
+
+class TestRecordSize:
+    def _many(self, length: int) -> list[dict]:
+        return [
+            {"tool": "junit", "path": f"{n:04d}/" + "p" * length, "content_digest": "0" * 64}
+            for n in range(rec.MAX_RESULTS)
+        ]
+
+    def test_a_record_larger_than_the_reader_accepts_is_not_written(self, tmp_path, monkeypatch):
+        _junit(tmp_path)
+        monkeypatch.setattr(rec, "discover", lambda target: self._many(1100))
+        with pytest.raises(rec.RecordError) as error:
+            rec.write_record(tmp_path, observe=Tree(), now=NOW)
+        assert "larger" in str(error.value)
+        assert not (tmp_path / rec.NAME).exists()
+
+    def test_a_large_record_within_the_limit_is_written_and_read_back(self, tmp_path, monkeypatch):
+        _junit(tmp_path)
+        monkeypatch.setattr(rec, "discover", lambda target: self._many(700))
+        written = rec.write_record(tmp_path, observe=Tree(), now=NOW)
+        size = (tmp_path / rec.NAME).stat().st_size
+        assert 4 * 1024 * 1024 < size <= rec.evaluation_results.MAX_BYTES, size
+        assert rec.read_record(tmp_path) == written

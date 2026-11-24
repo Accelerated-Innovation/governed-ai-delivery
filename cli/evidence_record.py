@@ -115,7 +115,13 @@ def write_record(target: Path, *, observe=None, now: datetime | None = None) -> 
         validate_document(record, SCHEMA)
     except DocumentError as exc:
         raise RecordError(f"the record would not be usable: {exc}") from None
-    _replace(target / NAME, json.dumps(record, indent=2) + "\n")
+    text = json.dumps(record, indent=2) + "\n"
+    if len(text.encode("utf-8")) > evaluation_results.MAX_BYTES:
+        raise RecordError(
+            "the record would be larger than 5 MiB, which the reader refuses. "
+            "Point the target at the project, or remove old result files."
+        )
+    _replace(target / NAME, text)
     return record
 
 

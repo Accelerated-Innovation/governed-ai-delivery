@@ -153,7 +153,9 @@ def _describe(root: Path, excluded: set[str], depth: int = 0) -> tuple[dict, boo
             # Not checked out: nothing of it can have been tested or edited.
             submodules.append([os.fsencode(name).hex(), "absent", ""])
             continue
-        inner, inner_dirty = _describe(root / name, set(), depth + 1)
+        # Exclusions below this submodule still apply, relative to it.
+        within = {path[len(name) + 1 :] for path in excluded if path.startswith(f"{name}/")}
+        inner, inner_dirty = _describe(root / name, within, depth + 1)
         dirty = dirty or inner_dirty or inner["commit"] != links[name]
         digest = hashlib.sha256(canonical_json(inner).encode()).hexdigest()
         submodules.append([os.fsencode(name).hex(), inner["commit"], digest])

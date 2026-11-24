@@ -235,7 +235,7 @@ The slug rule belongs to `aipos-plugins` and the reader and digest to `discovery
 `--json` prints the same report as JSON and nothing else. The exit status is unchanged.
 
 ```bash
-govkit evidence --target . --feature 07_invoice_approval --json > "$RUNNER_TEMP/evidence.json"
+govkit evidence --target . --feature 07_invoice_approval --json > "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/evidence.json"
 ```
 
 Write the report outside the repository, as above, or to a path Git ignores. A new untracked file inside the repository changes the working tree, and the next report would call the results stale.

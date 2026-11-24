@@ -248,3 +248,13 @@ def test_an_index_that_changes_during_the_observation_is_unavailable(repo, monke
     with pytest.raises(ti.Unavailable) as error:
         ti.observe(repo)
     assert "changed while" in str(error.value)
+
+
+def test_an_excluded_path_inside_a_submodule_stays_excluded(with_submodule):
+    """A result file written inside a submodule must not make its own results stale."""
+    exclude = ("lib/junit.xml",)
+    before = ti.observe(with_submodule, exclude=exclude)
+    (with_submodule / "lib" / "junit.xml").write_text("<testsuite/>", encoding="utf-8")
+    assert ti.observe(with_submodule, exclude=exclude).tree_digest == before.tree_digest
+    (with_submodule / "lib" / "other.xml").write_text("<x/>", encoding="utf-8")
+    assert ti.observe(with_submodule, exclude=exclude).tree_digest != before.tree_digest
