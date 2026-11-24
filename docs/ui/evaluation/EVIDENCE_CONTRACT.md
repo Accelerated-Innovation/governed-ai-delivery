@@ -57,6 +57,14 @@ information* — and reading "no violations found" out of them would give an
 artifact that says nothing the same verdict as a clean scan. That is the same
 failure as a fabricated score, arriving by a different route.
 
+**A skipped test is not a pass.** A skipped test did not run, so it is
+unmeasured. A test run with skipped tests reports `INCONCLUSIVE` and names them,
+even when every test that ran passed. A run in which every test was skipped is
+the same as a run with no tests. A failure or an error still reports `FAIL`.
+Skipped tests fail the gate even when another dimension passes: they are
+missing execution, which never becomes a pass through aggregation.
+An expected failure that a reporter writes as skipped is treated as skipped.
+
 The distinction between the two non-verdicts is worth keeping sharp:
 
 - `INCONCLUSIVE` — we did not evaluate this. Nothing was produced, or what was

@@ -49,6 +49,9 @@ _BLOCKING_IMPACTS = ("critical", "serious")
 _JUNIT_GLOBS = ("junit*.xml", "**/junit*.xml", "**/*junit*.xml", "**/test-results*.xml")
 _AXE_GLOBS = ("axe*.json", "**/axe*.json", "**/*axe-results*.json")
 
+# How many skipped tests the Working detail names before it counts the rest.
+_SKIPPED_NAMES_SHOWN = 3
+
 # Dimensions with no instrument today. The reason is carried into the report so
 # a reader learns what to wire up rather than just seeing a blank.
 _NOT_INSTRUMENTED = {
@@ -125,6 +128,10 @@ class Verdict:
     dimension: str
     outcome: Outcome
     detail: str
+    # A report was produced and says part of it did not execute. Unlike a
+    # dimension with no report, this blocks: the contract says missing
+    # execution never becomes a pass through aggregation.
+    unexecuted: bool = False
 
 
 def _find(target: Path, globs) -> list[Path]:
@@ -138,8 +145,17 @@ def _find(target: Path, globs) -> list[Path]:
 
 
 def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
-    """Aggregate JUnit XML. Returns (totals, error). Never raises."""
-    totals = {"tests": 0, "failures": 0, "errors": 0, "durations": [], "slowest_name": None}
+    """Aggregate JUnit XML. Returns (totals, error). Never raises.
+
+    A skipped test did not run. Reporters record one in two ways, and not all
+    of them use both: a `skipped` count on the suite, and a `<skipped>` element
+    in the test case. Each file contributes the larger of the two, so a
+    reporter that writes only one of them is still counted.
+    """
+    totals = {
+        "tests": 0, "failures": 0, "errors": 0, "skipped": 0, "skipped_names": [],
+        "durations": [], "slowest_name": None,
+    }
     slowest = -1.0
     for path in paths:
         try:
@@ -147,11 +163,21 @@ def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
         except (ET.ParseError, OSError) as exc:
             return None, f"{path.name} could not be parsed: {exc}"
         suites = [root] if root.tag == "testsuite" else root.iter("testsuite")
-        for suite in suites:
-            totals["tests"] += int(suite.get("tests") or 0)
-            totals["failures"] += int(suite.get("failures") or 0)
-            totals["errors"] += int(suite.get("errors") or 0)
+        declared_skipped = 0
+        try:
+            for suite in suites:
+                totals["tests"] += int(suite.get("tests") or 0)
+                totals["failures"] += int(suite.get("failures") or 0)
+                totals["errors"] += int(suite.get("errors") or 0)
+                declared_skipped += int(suite.get("skipped") or 0)
+        except ValueError:
+            return None, f"{path.name} has a test count that is not a whole number"
+        skipped_cases = 0
         for case in root.iter("testcase"):
+            if case.find("skipped") is not None:
+                skipped_cases += 1
+                totals["skipped_names"].append(case.get("name") or "(unnamed)")
+                continue
             try:
                 seconds = float(case.get("time") or 0.0)
             except ValueError:
@@ -160,6 +186,7 @@ def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
             if seconds > slowest:
                 slowest = seconds
                 totals["slowest_name"] = case.get("name")
+        totals["skipped"] += max(declared_skipped, skipped_cases)
     return totals, None
 
 
@@ -174,12 +201,36 @@ def _assess_working(totals: dict | None, error: str | None, found: bool) -> Verd
             "test-run report contains no tests — an empty analysis, not a clean one",
         )
     broken = totals["failures"] + totals["errors"]
+    skipped = totals["skipped"]
     if broken:
+        also_skipped = f"; {skipped} skipped" if skipped else ""
         return Verdict(
             "Working", Outcome.FAIL,
-            f"{broken} of {totals['tests']} tests failed or errored",
+            f"{broken} of {totals['tests']} tests failed or errored{also_skipped}",
+        )
+    if skipped >= totals["tests"]:
+        return Verdict(
+            "Working", Outcome.INCONCLUSIVE,
+            f"every test was skipped ({skipped}) — nothing ran, so nothing passed",
+            unexecuted=True,
+        )
+    if skipped:
+        return Verdict(
+            "Working", Outcome.INCONCLUSIVE,
+            f"{skipped} of {totals['tests']} tests skipped, {totals['tests'] - skipped} passed "
+            f"— a skipped test did not run{_skipped_names(totals['skipped_names'], skipped)}",
+            unexecuted=True,
         )
     return Verdict("Working", Outcome.PASS, f"{totals['tests']} tests passed")
+
+
+def _skipped_names(names: list[str], skipped: int) -> str:
+    """The first few skipped tests by name, then how many more there are."""
+    if not names:
+        return ""
+    shown = names[:_SKIPPED_NAMES_SHOWN]
+    more = skipped - len(shown)
+    return f"; skipped: {', '.join(shown)}" + (f" and {more} more" if more > 0 else "")
 
 
 def _assess_fast(
@@ -326,6 +377,10 @@ def summarize(verdicts: list[Verdict]) -> tuple[int, str]:
 
     Partial coverage is not a blocker — it reports how much went unmeasured, so
     adoption is possible without pretending the gaps are closed.
+
+    Tests that a report says did not run are a blocker. That is not partial
+    coverage: the evidence was asked for and the execution is missing, and
+    another dimension passing does not make up for it.
     """
     blocking = [v for v in verdicts if v.outcome in (Outcome.FAIL, Outcome.ERROR)]
     measured = [v for v in verdicts if v.outcome in (Outcome.PASS, Outcome.FAIL)]
@@ -342,6 +397,13 @@ def summarize(verdicts: list[Verdict]) -> tuple[int, str]:
         return 1, (
             f"{len(blocking)} dimension(s) failed; "
             f"{len(measured)} measured, {len(unmeasured)} unmeasured."
+        )
+    unexecuted = [v for v in verdicts if v.unexecuted]
+    if unexecuted:
+        return 1, (
+            f"{len(unexecuted)} dimension(s) report tests that did not run; "
+            f"{len(measured)} measured, {len(unmeasured)} unmeasured.\n"
+            "This is a failure, not a pass: a skipped test was not assessed."
         )
     return 0, (
         f"{len(measured)} measured, {len(unmeasured)} unmeasured. "

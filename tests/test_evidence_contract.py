@@ -105,6 +105,14 @@ def test_contract_is_honest_about_what_is_unmeasured(path: Path):
     assert re.search(r"judgement|judgemental|not mechanically", text, re.I), _rel(path)
 
 
+@pytest.mark.parametrize("path", CONTRACT_PATHS, ids=_rel)
+def test_contract_states_a_skipped_test_is_not_a_pass(path: Path):
+    """A skipped test did not run. The contract must say it is unmeasured, or a
+    red run can be turned green by skipping the tests that fail."""
+    text = path.read_text(encoding="utf-8")
+    assert "**A skipped test is not a pass.**" in text, _rel(path)
+
+
 def test_contract_body_is_identical_across_areas():
     """[[feedback_agent_parity]] applied to a governed doc: the vocabulary must
     mean the same thing in a backend repo and a UI one."""
