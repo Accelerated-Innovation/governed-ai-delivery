@@ -1,18 +1,19 @@
 # Loop-ready gates plan
 
-Status: in progress. L01 ([#248](https://github.com/Accelerated-Innovation/governed-ai-delivery/issues/248)) is implemented and in review; no later increment is implemented. The order after L02 is provisional until the trial (L00) has been run.
-Plan version: 0.1.
-Prepared: 2026-11-20.
-Baseline inspected: govkit 0.23.0, commit 606024a.
-Epic: not yet opened. Draft text exists; open it once this plan is agreed.
+Status: in progress. L01 is delivered. L02 onward were replanned on 2026-11-22 and none is implemented.
+Plan version: 0.2. Version 0.1 is summarized in Section 12.
+Prepared: 2026-11-20. Replanned: 2026-11-22.
+Baseline inspected: govkit 0.23.0, commit af71fa9; `discovery-engine` commit ebdfc41, read-only.
+Epic: not yet opened. Open it once this version is agreed.
 
 ## 1. Purpose and how to use this plan
 
-This plan makes GovKit's checks usable as the stop condition of an agent loop, without GovKit running any loop itself. A coding agent or maintainer should be able to continue the work from this file and the repository alone.
+This plan makes a feature's own definition of done checkable by a tool, so that it can be the stop condition of an agent loop. GovKit does not run the loop. A coding agent or maintainer should be able to continue the work from this file and the repository alone.
 
 - Follow current maintainer instructions and CLAUDE.md first. Use this plan for scope, order and completion evidence.
 - Each increment is delivered test first, through its own issue and PR, under CLAUDE.md *Delivery review*.
-- Update the ledger in Section 8 after each increment. An unchecked criterion stays unchecked until the behaviour is demonstrated.
+- Each increment is tried in the pilot repository (Section 8) before the next one is designed in detail.
+- Update the ledger in Section 13 after each increment. An unchecked criterion stays unchecked until the behaviour is demonstrated.
 - Writing this document implements nothing.
 
 ## 2. Background
@@ -28,115 +29,348 @@ Anthropic's Claude Code team defines a loop as an agent repeating cycles of work
 
 Its recurring advice is to give the agent a way to verify its own work, to define deterministic success and stop criteria, and to have code-writing loops checked by an independent reviewer.
 
-A project that installs GovKit already has much of this: skills and rules, feature artifacts with acceptance criteria, `validate`, `doctor`, `conform`, and quality-gate templates. What it lacks is a stop condition an agent can be handed. GovKit's commands are one-shot checks with no trigger, iteration or turn limit, and that is intended to stay true.
+A project that follows GovKit's feature workflow already writes down what done means:
 
-## 3. Evidence from the pilot repository
+- `acceptance.feature` holds the behaviour as Gherkin scenarios, including scenarios tagged `@nfr-*` that carry the non-functional values to test.
+- Tests are written first and fail before the implementation exists.
+- `eval_criteria.yaml` states the acceptable values for probabilistic evaluation.
 
-A level 5 Python and FastAPI consumer repository on govkit 0.23.0, with 30 feature packages, was reviewed read-only on 2026-11-20 to write a `/goal` prompt for one implementation increment. Each item below had to be discovered by hand, and each one shaped the prompt.
+What is missing is a tool that reports whether that definition was met. GovKit checks that the definition is written and well-formed. It does not check that a scenario ran and passed, or that an evaluation scored above its threshold.
 
-1. **`validate` cannot be the stop condition.** `govkit validate --target .` exits 1 because 10 older packages fail later-added checks. There is no per-feature selector.
-2. **The real checks are prose.** Lint, type check, boundary check and the three test tiers are named in CI YAML and in the project's CLAUDE.md. Three of them (`ruff`, `mypy`, `lint-imports`) run only locally.
-3. **A skip reads as a pass.** Integration scenarios skip when a service is unreachable, unless CI-only environment variables turn the skip into a failure. `validate` itself reports a warning and continues when `check-jsonschema` is absent.
+## 3. Evidence
+
+### 3.1 The first pilot repository
+
+A level 5 Python and FastAPI consumer repository on govkit 0.23.0, with 30 feature packages, was reviewed read-only on 2026-11-20 to write a `/goal` prompt for one implementation increment. Each item below had to be discovered by hand.
+
+1. **`validate` could not be the stop condition.** `govkit validate --target .` exited 1 because 10 older packages failed later-added checks. L01 addressed this.
+2. **The real checks are prose.** Lint, type check, boundary check and the three test tiers are named in CI YAML and in the project's CLAUDE.md.
+3. **A skip reads as a pass.** Integration scenarios skip when a service is unreachable, unless CI-only environment variables turn the skip into a failure.
 4. **Legitimate skip markers are an escape route.** The project marks unbound scenarios `@pending`. A loop could reach green by adding more.
 5. **The verifier is editable.** Acceptance files, thresholds, datasets, rubrics, CI workflows and test settings all sit in the tree the loop edits.
-6. **Some evaluations are paid or need a person.** LLM-judge runs cost money under an owner-set cap, and some criteria need human labels. A loop must never start them and cannot satisfy them.
-7. **The unit of work is prose.** "Increment N" and the scenarios it covers exist only in a plan document. The project wrote its own test to prove every acceptance scenario is bound to a runnable copy.
+6. **Some evaluations are paid or need a person.** LLM-judge runs cost money under an owner-set cap, and some criteria need human labels.
+7. **The unit of work is prose.** The project wrote its own test to prove every acceptance scenario is bound to a runnable copy.
 8. **Preconditions are implicit.** Services had to be started before any check could give a meaningful answer.
 
-This is one repository and one stack. The trial in L00 is the first evidence from a loop actually running.
+### 3.2 Findings in GovKit on 2026-11-22
+
+Found by running commands against a fresh installation and by reading the evidence modules.
+
+1. **New installations have no level.** `govkit profile apply` followed by `govkit pack apply` writes a profile, a resolution, a pack lock, pinned packs and agent skills. It writes no `.govkit/marker.json`, the schemas have no level field, and `--level` is rejected.
+2. **`govkit validate` runs no feature checks there.** Without a marker it falls back to level 3. That path skips every per-feature check, the fix-record checks and the approval check, and prints the level 3 notice. It still runs the extension manifest checks, which fail the run only with `--strict`. The L01 options run and select no feature.
+3. **`govkit conform` runs no feature checks there.** It passed on the profile and the pack lock. The feature checks were reported as not applicable because they require legacy configuration. The `gherkin-delivery` pack ships skills and no checks.
+4. **Issue #220 does not list `validate`.** It tracks the features that work only through a marker or a level and need a profile equivalent before legacy removal.
+5. **The evidence contract already states the principle.** `docs/<area>/evaluation/EVIDENCE_CONTRACT.md` says a forecast is not evidence, a producer self-check is advisory, and `INCONCLUSIVE` is not a pass.
+6. **`govkit evidence` already runs locally and without a level.** It reads JUnit XML and axe JSON from the working tree. The evidence gate template runs the project's tests and then the same command.
+7. **`govkit evidence` counts a skipped test as passed.** A report with one passing and three skipped tests printed `Working PASS 4 tests passed` and exited 0.
+8. **`govkit evidence` is not connected to the definition of done.**
+   - It never reads `acceptance.feature` or `eval_criteria.yaml`.
+   - It reports on the whole repository, with no feature selection.
+   - It accepts any matching result file in the tree, whatever commit produced it.
+
+The first pilot is a legacy level 5 installation. Sections 3.2 and 6 rest on one level-free installation made from a bundled example until the new pilot reports.
+
+### 3.3 Findings in the Product Definition Graph on 2026-11-22
+
+Read from `discovery-engine` (feature 24, the requirements index). Nothing there was changed.
+
+1. **The graph indexes feature packages from git at tagged baselines.** Each scenario and each `eval_criteria` criterion is a requirement with a stable identifier.
+   - A scenario is `<package>#scenario:<slug>`. The slug is an authored `@scenario:` tag, or is derived from the title.
+   - A criterion is `<package>#evaluation:<name>`.
+   - A scenario has a revision digest: SHA-256 of its text without comment lines. A criterion uses the content digest of its file.
+2. **The graph accepts verification runs.** `POST /v1/verification-runs` records a run reference, the repository, the baseline tag, the build commit, the execution time, an `https://` artifact link, and one result per requirement. A result names the requirement, the revision that ran, a kind of `test` or `evaluation`, and an outcome of `passed`, `failed`, `skipped` or `error`.
+3. **The graph computes status.** A read route reports each requirement as passed, failed, skipped, error, `unverified` (no run names the current revision) or `stale` (runs name only an earlier revision).
+4. **Runs are strict and immutable.** The caller needs a service identity. The whole run is refused unless every revision matches the indexed baseline. An identical re-send is accepted; a different payload under the same reference is a conflict.
+5. **A result carries no score.** The graph compares a criterion with measurements through a separate path, study findings that carry a metric, a value and a unit. A criterion may declare a `target` (metric, comparator, value, unit) for that comparison.
+6. **Nothing pushes runs yet.** The route is documented as called by the build repository's CI. GovKit's graph client only reads commitment status.
+7. **The identity rules have two owners.** `aipos-plugins` owns the identifier format and the slug rule; the slug rule exists only as code in one skill's script, and the engine mirrors it with a fixture pinned by hand to a commit. The engine owns the revision digest, which its ADR-AIG-035 defines and no other repository computes. GovKit would be a further copy of both.
+8. **Issue #152 names shapes the engine does not have.** It proposes emitting `Specification` and `EvaluationResult`. The implemented contract is the verification run.
 
 ## 4. Decisions
 
-Agreed on 2026-11-19 and 2026-11-20.
+Decisions 1 to 9 were agreed on 2026-11-19 and 2026-11-20. Decisions 10 to 21 were agreed on 2026-11-22.
 
 1. **GovKit does not run loops.** It does not spawn, schedule or re-prompt an agent. The agent's own primitives own the trigger and the iteration. GovKit owns the stop condition, the limits and the record.
-2. **Core and pack are separate.** Improvements that are useful with no loop at all go in the core installer. Everything that is specifically about driving a loop goes in an opt-in declarative pack in this repository, so no project is forced to take it.
+2. **Core and pack are separate.** Improvements that are useful with no loop at all go in the core installer. Everything that is specifically about driving a loop goes in an opt-in declarative pack in this repository.
 3. **No "loop" in core names.** Options, schemas and commands in core are named for what they do. Only the pack carries the loop-engineering label.
 4. **Claude Code only at first.** Pack skills are written agent-neutrally. The guidance on how to drive them (`/goal`, `/loop`, `/schedule`) ships for Claude Code only until the other agents have equivalent primitives.
-5. **Backend, CLI and data first.** UI types follow later, as with architecture experiments.
+5. **Backend, CLI and data first.** UI types follow later.
 6. **A loop finishing is not approval.** Reaching the stop condition does not replace review, merge authorization or a release decision.
 7. **Unknown is never done.** Required evidence that is skipped, degraded, unverified or owed cannot produce a passing result.
 8. **"Baseline" is not reused.** `govkit validate-baseline` already means an approved behavioural baseline. The record of accepted existing failures is called "known failures".
-9. **Plan plus issues.** This plan holds shared decisions and order. An epic tracks the whole; each increment has its own issue. Issues are opened a few at a time, because later increments depend on what earlier ones teach.
+9. **Plan plus issues.** This plan holds shared decisions and order. An epic tracks the whole; each increment has its own issue. Issues are opened a few at a time.
+10. **The definition of done is the feature's existing artifacts.** These are the scenarios in `acceptance.feature` including their NFR values, the tests that implement them, and the thresholds in `eval_criteria.yaml`. GovKit adds no parallel declaration of what done means. It may add the minimum needed to bind a criterion to a result.
+11. **Build on the level-free path.** New work extends `govkit evidence` and `govkit conform`, which do not depend on a level. No later increment extends `govkit validate`. L01 stays as shipped, and its identifiers and known-failures record are reused where they fit.
+12. **Local first, then CI, with one command.** Each check must work in a working tree while code is being written and tested. CI runs the same command. Nothing is built for CI only, except pushing results to another system (decision 19).
+13. **A local result is a stop condition, not a gate.** The evidence contract says the task owner never commits its own final gate. A local run tells the agent to continue, stop or escalate. The independent run in CI is the one that counts for merge.
+14. **One vocabulary.** Results use the evidence contract's outcomes: `PASS`, `FAIL`, `INCONCLUSIVE` and `ERROR`. The three states in Section 5 are derived from them.
+15. **Test-first ordering is deferred.** Whether a test failed before the code existed is not verified for feature work in this plan. The evidence contract's "Timely" dimension stays unmeasured.
+16. **The JSON report is canonical.** `govkit evidence` produces one lossless, versioned JSON report. Every other form is a projection of it: the text output, a verification run for the Product Definition Graph, and OpenTelemetry signals. A custom application reads the JSON directly.
+17. **Nothing is transmitted automatically.** GovKit sends nothing anywhere by default. Each export is an explicit, opt-in step with an allowlist of what may leave the repository, as posture export already has.
+18. **Use the graph's identity.** GovKit identifies a scenario and a criterion exactly as the Product Definition Graph does, and computes the same revision digest (Section 3.3). The JSON report is a superset of the graph's verification run.
+19. **Only CI pushes to the graph.** The graph requires a service identity, an artifact link and a tagged baseline. A local run, or work on a feature with no baseline yet, is not recorded there.
+20. **Scores travel in the verification run.** A measured score is carried as an optional measurement on a result, bound to the commit and revision that produced it. This needs a change in `discovery-engine` (Section 7). Scores are not sent as study findings.
+21. **OpenTelemetry is an optional projection.**
+    - It emits one event (log record) per scenario or criterion result, and metrics at feature level.
+    - Scenario names are never metric labels, because vendors bill custom metrics by label combination.
+    - Traces are deferred.
+    - The OpenTelemetry SDK is not a core dependency. The exporter is an optional extra or writes a file a collector can ingest.
+    - Endpoint and credentials come from the standard OpenTelemetry environment variables.
 
 ## 5. Target behaviour
 
-The later increments compose into one answer with three states:
+For a selected feature, the later increments compose into one answer with three states. The report always lists every item; the state is a single value chosen in this order:
 
-- **done**: all required evidence for the selected scope is satisfied, with nothing unknown, skipped or owed, and nothing that was passing now fails. Required paid or human evidence that is still owed is **escalate**, never done.
-- **continue**: there are findings the agent can act on, each naming the file and the next action.
-- **escalate**: what remains needs a person. Examples are a protected file that would have to change, an evaluation that is paid or human-labelled, a missing precondition, or evidence that is unknown.
+1. **escalate**, when the change itself needs a person now: it weakened the definition or an existing test (L06), or evidence is `ERROR`.
+2. **continue**, when at least one required item is `FAIL` and the agent may fix it. Work the agent can do comes before waiting for a person.
+3. **escalate**, when no fixable `FAIL` remains and a required item is still `INCONCLUSIVE`: a paid or human evaluation is owed, a precondition is missing, or a result is stale.
+4. **done**, when every required item is `PASS` and nothing that was passing now fails.
 
-The third state is the reason for the design. A two-state stop condition leaves an agent working on something it cannot legitimately fix, or tempts it to weaken the check.
+Required paid or human evidence that is still owed can never produce done.
+
+The escalate state is the reason for the design. A two-state stop condition leaves an agent working on something it cannot legitimately fix, or tempts it to weaken the check.
 
 ## 6. Increments
 
-Each increment is independently demonstrable. L01 to L05 are gate improvements that stand without L06 and L07.
+Each increment is independently demonstrable and is tried in the pilot repository before the next is detailed.
 
 | Id | Increment | Where | Depends on | Issue |
 |---|---|---|---|---|
-| L00 | Hand-run trial in the pilot repository | No code | — | — |
-| L01 | Feature-scoped `validate` with a known-failures record | Core | — | #248 |
-| L02 | Declared verification checks with cost and authority classes | Core | — | drafted |
-| L03 | Skipped and degraded results as unknown; escape-marker ratchet | Core | L02 | drafted |
-| L04 | Protected paths checked against the actual diff | Core | L02 | not written |
-| L05 | Machine-readable increments and scenario binding | Core | — | not written |
-| L06 | Preconditions and the three-state verdict | Core | L01–L05 | not written |
-| L07 | Opt-in pack: skills, Claude Code guidance, prompt writer, run records | Pack | L06 | not written |
+| L01 | Feature-scoped `validate` with a known-failures record | `validate` | — | #248, delivered in #254 |
+| L02 | A skipped test is not a pass | `evidence` | — | not opened |
+| L03 | Feature selection, scenario identity and binding, JSON report | `evidence` | L02 | not opened |
+| L04 | Thresholds and measurements, with cost and authority classes | `evidence` | L03 | not opened |
+| L05 | Results must belong to the current commit and revision | `evidence` | L03 | not opened |
+| L06 | The definition and its tests cannot be weakened by the change they judge | `conform` | L03 | not opened |
+| L07 | Preconditions, the three-state verdict and `conform` integration | `conform` | L02–L06 | not opened |
+| L08 | CI templates use the feature-scoped checks | payload | L07 | not opened |
+| L09 | Push verification runs to the Product Definition Graph | CI step | L08, E1 | not opened |
+| L10 | OpenTelemetry exporter | optional extra | L07 | not opened |
+| L11 | Opt-in pack: skills, Claude Code guidance, prompt writer, run records | pack | L07 | not opened |
 
-### L00 — Trial
+The order after L03 is provisional. The pilot decides it. E1 is a `discovery-engine` change (Section 7).
 
-The maintainer drives one or two implementation increments in the pilot repository with `/goal`, using the existing commands as the stop condition, and records: why the loop stopped, whether it touched any verifier file, whether "done" survived an independent rerun, what it could not fix, how it read GovKit's output, and the cost. The findings revise the order and content of L03 onward.
+### L01 — Feature-scoped `validate` with a known-failures record (delivered)
 
-### L01 — Feature-scoped `validate` with a known-failures record
+`--feature`, `--known-failures`, `--known-failures-digest` and `--print-known-failures` on `govkit validate`, with stable check identifiers. The contract is ADR 0021 and `docs/KNOWN_FAILURES.md`. It serves legacy installations; on a level-free installation it selects no feature (Section 3.2). `govkit conform` keeps its positional feature codes; aligning them is #253.
 
-Add `--feature` and `--known-failures` to `govkit validate`, give each per-feature check a stable identifier, and report failures as new, known or resolved. GovKit never writes or accepts the record. Full contract in #248. The contract as built is ADR 0021 and `docs/KNOWN_FAILURES.md`. `govkit conform` keeps its positional feature codes; aligning them is #253.
+### L02 — A skipped test is not a pass
 
-### L02 — Declared verification checks
+`govkit evidence` reads the skipped count and skipped test cases from JUnit XML.
 
-A project declares its verification checks in one validated file: an identifier, the command, required environment and services, what the check proves, and a class of `free`, `paid` or `human`. The per-criterion class is also added to `eval_criteria.yaml`. GovKit reports where the declaration and the installed CI workflow disagree. Before designing the schema, read `gate_catalog.py` and ADR 0011; this should extend the existing GateSpec declarations if they fit, not add a parallel registry.
+- "Working" is `PASS` only when at least one test ran and none failed, errored or was skipped.
+- A report in which tests were skipped is `INCONCLUSIVE`, and the detail gives the counts and names the first few skipped tests.
+- A report in which every test was skipped is `INCONCLUSIVE`, as an empty report is today.
+- Failures and errors still take precedence and report `FAIL`.
 
-### L03 — Skipped and degraded results; escape-marker ratchet
+This is a defect against the evidence contract. It changes an exit status from 0 to 1 for projects that have skipped tests, so the changelog must say so. Whether a project may declare accepted skips is decided in L06, not here.
 
-A required check whose result is skipped, deselected or degraded is reported as unknown. Where a check produces a standard results file, GovKit reads skip counts from it. A project can declare escape markers (skip, xfail, a pending tag), and their count for a scope may fall but not rise against the comparison base.
+### L03 — Feature selection, scenario identity and binding, JSON report
 
-### L04 — Protected paths
+`govkit evidence --feature <name>` reports on one feature. It reads the scenarios from `features/<name>/acceptance.feature` and binds each one to a test result.
 
-A change must not weaken its own verifier. Protected paths are derived from what GovKit already knows (feature specification artifacts, governed contracts, CI workflows, the known-failures record) plus paths the project declares (datasets, rubrics, thresholds, test settings). `change_conformance.py` already captures the actual Git diff; this adds a check on it. Adding tests is allowed; deleting or loosening existing ones is a finding.
+- **Identity.** Each scenario is identified as the graph identifies it, with the same revision digest (decision 18). Copied fixtures pin GovKit's slug rule to `aipos-plugins` and its revision digest to the engine (E3a and E3b).
+- **Binding.** Each scenario reports one of: passed, failed, errored, skipped, or missing (no result found). An errored test is kept apart from a failed one, because Section 5 escalates on an error. How a scenario is matched to a JUnit test case is an open question (Section 10).
+- **Outcome.** The feature's "Working" outcome is `PASS` only when every scenario passed. Otherwise it is `ERROR` when any scenario errored, else `FAIL` when any failed, else `INCONCLUSIVE`.
+- **NFR scenarios.** Scenarios tagged `@nfr-*` are listed with their tags. A passing NFR scenario shows that its test passed. It does not show that the test asserts the value written in the scenario; L04 covers values that are declared as targets.
+- **Selection.** A name that matches no feature directory is an error, as in L01.
+- **JSON report.** `--json` prints the canonical report (decision 16), with the fields in Section 6.1 and a bundled schema and example.
 
-### L05 — Machine-readable increments and scenario binding
+This increment replaces per-project tests that prove every scenario has a runnable copy.
 
-An implementation plan names its increments and the acceptance scenarios each one covers in a form GovKit can read. A general check proves every acceptance scenario has a runnable bound copy, replacing per-project tests of the same idea.
+### L04 — Thresholds and measurements
 
-### L06 — Preconditions and the verdict
+`govkit evidence --feature <name>` reads the feature's criteria and compares each against a measured result.
 
-A read-only command composes L01 to L05 into the three states of Section 5, with stable exit codes and structured output. Preconditions (services reachable, clean tree, record present) are checked first, so a missing one is reported before work starts.
+- **Identity.** Each criterion is identified as the graph identifies it.
+- **Measurement.** A result may carry a measurement: a metric, a value, a unit and optionally a sample size. The format of the file that supplies it is an open question.
+- **Comparison.** Where a criterion declares a `target`, the measurement is compared with it. A criterion with only a `threshold` is compared with that threshold.
+- **Declared NFR targets.** An NFR value is compared in the same way when it is declared as a target. An NFR value that exists only as scenario prose is covered by its test passing, and the report says the value itself was not compared. Whether NFR values gain a machine-readable form is an open question.
+- **Class.** Each criterion has a class: `free`, `paid` or `human`.
+  - A `free` criterion with a result reports `PASS` or `FAIL`.
+  - A `free` criterion without a result is `INCONCLUSIVE`.
+  - A `paid` or `human` criterion without a result is reported as owed. GovKit never starts a paid or human evaluation.
+- **Forecasts.** The FIRST and virtue forecasts in `plan.md` remain forecasts. They are not read as results.
 
-### L07 — Opt-in pack
+Adding the class changes the three `eval_criteria` schemas (backend, UI, data), their starters and their worked examples together.
 
-A declarative pack under `extensions/` with agent-neutral skills for a feature loop and a pull request loop, Claude Code guidance for driving them, a skill that writes the goal prompt from the declarations, and a schema for self-reported run records. Proactive maintenance entry points are generated but never activated by GovKit.
+### L05 — Results must belong to the current commit and revision
 
-## 7. Non-goals and risks
+A result counts only when it was produced from the current commit and names the current revision digest of its scenario or criterion. Anything else is `INCONCLUSIVE`, reported as stale. This is the graph's own rule (Section 3.3), applied locally. How a result file records the commit it came from is an open question.
+
+A local result must also belong to the working tree that produced it. When a tracked or untracked file that the result depends on has changed since the run without a commit (implementation, tests, scenarios or criteria), the commit and the digests can still match. Such a result is `INCONCLUSIVE`, reported as stale. How the working tree is identified, for example by a tree digest recorded with the result, is part of the same open question.
+
+Issue #152 should be rewritten around the verification run contract, or closed.
+
+### L06 — The definition and its tests cannot be weakened by the change they judge
+
+A check on the actual Git diff, composed through `change_conformance.py`, which already captures it.
+
+- **Scenarios.** In `acceptance.feature`, a change may add scenarios. Every scenario that existed at the comparison base must still exist with the same revision digest. A removed or altered scenario is a finding that needs a person.
+- **Shared steps.** A `Background` runs before every scenario it covers, and the revision digest does not include it. Any change to a `Background` that existed at the comparison base, at feature or `Rule` level, is a finding that needs a person. So is adding one above existing scenarios.
+- **Criteria.** In `eval_criteria.yaml`, a change may add criteria. An existing criterion that is removed or altered is a finding.
+- **Existing tests.** A test bound to a scenario at the comparison base may not have lines removed or changed. New tests and new test files are allowed. GovKit cannot judge whether an edit weakens a test, so any edit to an existing bound test needs a person.
+- **Shared test support.** A bound test can be weakened through a helper, fixture or settings file it uses, without any of its own lines changing. The project declares its test support paths, and any change to an existing file under them is a finding. GovKit does not trace imports, so with no paths declared the report states that shared test support is not protected.
+- **Other protected files.** The known-failures record and the CI workflows by default; datasets, rubrics, thresholds and test settings when the project declares them. Any change is a finding.
+- **Declarations come from the comparison base.** The test support paths, the other protected files and the escape markers are read as declared at the comparison base, or from accepted policy held outside the inspected tree, never from the change being judged. A change may add to a declaration, and the addition applies. A change that removes or narrows one is a finding that needs a person.
+- **Escape markers.** A project may declare escape markers (skip, xfail, a pending tag). Their count for a feature may fall but not rise against the comparison base.
+
+### L07 — Preconditions, the verdict and `conform` integration
+
+A read-only command composes L02 to L06 into the single state of Section 5, with stable exit codes and structured output.
+
+- Preconditions are checked first: the feature exists, its artifacts are present, result files exist, and required services are reachable where the project declares them.
+- The feature artifact checks that `validate` runs today become selectable by capability and reportable through `govkit conform`, so a level-free installation has them. This closes the gap in #220.
+- L01's check identifiers and the known-failures record are reused.
+
+### L08 — CI templates use the feature-scoped checks
+
+The evidence gate templates for GitHub and Azure, and `ci/README.md`, are updated together to run the feature-scoped checks and to treat `INCONCLUSIVE` as the contract requires.
+
+### L09 — Push verification runs to the Product Definition Graph
+
+An explicit CI step projects the JSON report into a verification run and posts it.
+
+- It runs only in CI, with a service token the pipeline supplies. GovKit stores no credential.
+- It sends identifiers, revision digests, outcomes, the build commit and the artifact link. With E1, it also sends measurements.
+- It omits measurements when the engine does not accept them (E2).
+- A refused run fails the step and changes no local result.
+
+### L10 — OpenTelemetry exporter
+
+An opt-in exporter projects the JSON report into OpenTelemetry events and feature-level metrics (decision 21), for local runs and CI alike. The attribute names follow the current OpenTelemetry semantic conventions for test results and evaluation scores, which must be checked when this increment is designed.
+
+### L11 — Opt-in pack
+
+A declarative pack under `extensions/` with agent-neutral skills for a feature loop and a pull request loop, Claude Code guidance for driving them, a skill that writes the goal prompt from the feature's artifacts, and a schema for self-reported run records. Proactive maintenance entry points are generated but never activated by GovKit.
+
+### 6.1 Fields of a result
+
+Fixed in L03 and L04, because an exporter cannot reconstruct them afterwards.
+
+| Field | Meaning |
+|---|---|
+| Requirement identifier | `<package>#scenario:<slug>` or `<package>#evaluation:<name>` |
+| Revision digest | The scenario or criterion revision that ran |
+| Kind | `test` or `evaluation` |
+| Outcome | Passed, failed, skipped, error, missing or owed |
+| Tags | The scenario's tags, including `@nfr-*` |
+| Measurement | Metric, value, unit, and sample size when known |
+| Target | The declared target or threshold the value was compared with |
+| Class | `free`, `paid` or `human` |
+| Source | The tool and result file the outcome came from |
+
+A report also carries the repository, the feature, the build commit, the execution time, a run reference and the report's schema version.
+
+## 7. Changes needed in other repositories
+
+Nothing in `discovery-engine` or `aipos-plugins` has been changed. These are proposals, raised as issues on 2026-11-23: E1 and E2 as discovery-engine#303, E3a as aipos-plugins#108 and E3b as discovery-engine#302. E4 is not yet raised.
+
+| Id | Repository | Change | Needed by | Without it |
+|---|---|---|---|---|
+| E1 | `discovery-engine` | An optional `measurement` on a verification result: metric, value, unit and an optional sample size. Where the criterion declares a target, the engine compares the value and refuses a run whose outcome contradicts it. | L09, for scores | Runs carry outcomes only; scores reach the graph by no route |
+| E2 | `discovery-engine` | A way for a client to learn which verification-run fields the engine accepts, such as a contract version on an existing route. The request model rejects unknown fields today. | L09 | GovKit must be configured by hand to send or omit measurements |
+| E3a | `aipos-plugins` | The slug rule and its test pairs published as a versioned fixture beside the identifier reference document. | L03 | GovKit copies the rule and pins a fixture to a commit by hand, as the engine does today |
+| E3b | `discovery-engine` | The revision digest rule published with a fixture of scenario text and expected digest, and the content digest rule for a criterion. | L03, L05, L06, L09 | GovKit copies the rule from the engine's source; a difference makes the engine refuse a whole run |
+| E4 | `discovery-engine` | A published schema for the verification-run request that GovKit's projection can be validated against. | L09 | GovKit tests against a hand-copied shape |
+
+E3 is split by owner. The engine already follows `aipos-plugins` for identifiers and slugs, so E3a belongs there. Neither part blocks L03, which starts from copied fixtures.
+
+Not proposed:
+
+- **Recording local or pre-baseline runs.** Decision 19 keeps the graph for CI results against a tagged baseline.
+- **A paid or human class in the graph.** An owed evaluation shows there as `unverified`, which is accurate.
+- **Splitting the graph into its own repository.** Deferred by the maintainer on 2026-11-22. E3a, E3b and E4 are useful either way.
+
+## 8. Pilot repository
+
+The maintainer is creating a pilot repository to try each increment. It replaces the single hand-run trial (L00) of version 0.1. To exercise this plan it needs:
+
+- a level-free installation: `govkit profile apply` then `govkit pack apply`, with `application-governance`, `gherkin-delivery` and `llm-evaluation`;
+- a test runner that executes Gherkin scenarios and writes JUnit XML;
+- at least three features:
+  - one deterministic feature whose scenarios all pass;
+  - one with `@nfr-*` scenarios that carry values to test;
+  - one with `mode: llm` criteria, including a criterion that is paid or needs a person;
+- at least one scenario that skips when a service is unavailable, to exercise L02;
+- one older feature left failing, to exercise the known-failures record;
+- for L09, a tagged baseline that the graph has indexed.
+
+After each increment, record in the ledger: what the pilot run showed, whether "done" survived an independent rerun, what the agent could not fix, how it read GovKit's output, and the cost.
+
+## 9. Non-goals and risks
 
 Non-goals:
 
 - Invoking, scheduling or supervising an agent.
-- Telemetry. Run records stay local unless explicitly published.
-- Changing what existing checks test.
+- Automatic transmission of anything. Exports are explicit and opt-in (decision 17).
+- Further changes to `govkit validate`.
+- Verifying that tests were written before the code.
+- Judging whether an edit to an existing test weakens it. L06 flags the edit for a person.
+- Scoring judgement-only dimensions such as "Clear" mechanically.
+- Vendor-specific telemetry integrations. Standard OpenTelemetry output only.
 - Parity of loop-driving guidance across all three agents in the first release.
+- UI project types in the first pass.
 
 Risks:
 
+- **The agent grades its own work locally.** Decision 13 keeps the local result advisory; L05 and L06 limit what a local run can claim.
+- **Scenario binding varies by test runner.** L03 is promised only for runners whose JUnit output can be matched to a scenario.
+- **An NFR value in prose is not compared.** A test can assert a looser limit than the scenario states. L04 compares only declared targets and says so in the report.
+- **L06 will flag legitimate test refactoring.** That is the intended cost of not letting a change edit its own tests unreviewed.
+- **The graph does not see a `Background` edit.** The engine's revision digest stops at the scenario, so a changed `Background` leaves every scenario current in the graph. L06 catches it in the change that makes it. Whether the digest should cover it is a question for E3b.
+- **Copies of the identity rules can drift.** E3a and E3b give each rule one published fixture; until then copied fixtures pin them.
+- **Probabilistic results have no standard file format.** L04 may have to define one.
+- **L02 turns some green runs red.** Projects with skipped tests will see `INCONCLUSIVE` where they saw `PASS`.
+- **Exports can leak project detail.** Scenario names and failure text may be sensitive. Decision 17 requires an allowlist.
+- **Two commands could drift.** `validate` and `evidence` both gain a `--feature` option. L07 brings them under `conform`.
 - **The term may not last.** Decision 3 limits the exposure to the pack.
-- **Skip detection varies by stack.** L03 is promised only where a standard results file exists.
-- **Declarations can drift from CI.** L02 must detect disagreement, not just store a second copy.
-- **A record can hide failures.** L01 prints the record's digest; L04 protects the file.
-- **Thin evidence.** Sections 3 and 6 rest on one repository until L00 reports.
+- **Thin evidence.** One legacy pilot and one synthetic level-free installation, until the new pilot reports.
 
-## 8. Execution ledger
+## 10. Open questions
+
+1. **Scenario binding (L03).** The scenario's identity is settled by decision 18. How is that scenario matched to a JUnit test case: by name, by the `@scenario:` tag, or by a mapping the project declares? Decide from the pilot's real output.
+2. **Measurement file format (L04).** What file carries a measured score for a criterion, and which tools write it today?
+3. **Machine-readable NFR values (L04).** Should an NFR value be declarable as a target, and where: in `nfrs.md`, in the scenario, or in `eval_criteria.yaml`?
+4. **Recording the commit and working tree (L05).** How does a result file state the commit it was produced from, and the working tree when there are uncommitted changes?
+5. **Schemas on a level-free installation.** Does a pack install the `eval_criteria` schema, and which of the three applies when there is no project type from a marker?
+6. **Accepted skips.** May a project declare a skip as accepted, and if so where, without recreating the escape route of Section 3.1 item 4?
+7. **The legacy pilot.** Can it be converted with `govkit migrate`, so that it also exercises the level-free path?
+8. **Telemetry consumers (L10).** The first consumer is a custom application reading the JSON. Which OpenTelemetry backend should the exporter be proven against?
+
+## 11. Related issues
+
+- #152 proposes an evidence record and an emission to the graph. Rewrite it around the verification run contract, or close it in favour of L05 and L09.
+- #220 tracks profile equivalents for marker-only features. L07 adds feature validation to that list.
+- #253 aligns `govkit conform`'s feature codes with the named identifiers from L01.
+
+## 12. What changed from version 0.1
+
+Version 0.1 planned L02 to L06 as additions to `govkit validate`, with a new file in which a project declared its verification checks.
+
+- **The definition of done moved.** It is the feature's own scenarios, tests and criteria (decision 10), so the separate declaration file is dropped.
+- **The foundation moved.** New installations have no level and `validate` runs no feature checks there, so the work builds on `evidence` and `conform` (decision 11).
+- **The order changed.** Skipped results come first, because the defect exists today. Scenario binding moved from fifth to third, because it connects the checks to the definition.
+- **The trial changed.** A single hand-run trial became a pilot repository used after every increment.
+- **Results became exportable.** One JSON report feeds a custom application, the Product Definition Graph and OpenTelemetry (decisions 16 to 21).
+
+| Version 0.1 | Version 0.2 |
+|---|---|
+| L00 Hand-run trial | Section 8, the pilot repository |
+| L01 Feature-scoped `validate` | L01, delivered |
+| L02 Declared verification checks with classes | Dropped as a separate file; the classes move to L04 |
+| L03 Skipped and degraded results; escape-marker ratchet | L02 (skipped results) and L06 (ratchet) |
+| L04 Protected paths | L06 |
+| L05 Machine-readable increments and scenario binding | L03 (scenario binding); machine-readable increments dropped |
+| L06 Preconditions and the verdict | L07 |
+| L07 Opt-in pack | L11 |
+| — | L04 thresholds, L05 commit scoping, L08 CI templates, L09 graph push and L10 OpenTelemetry are new |
+
+## 13. Execution ledger
 
 | Date | Increment | Result | Next |
 |---|---|---|---|
-| 2026-11-20 | Plan | Written; #248 opened for L01 | Run L00; agree plan; open epic and L02, L03 |
-| 2026-11-22 | Plan | Merged as #252 | Start L01 |
-| 2026-11-22 | L01 | Implemented test first on `feat/validate-feature-scope-known-failures`: four `validate` options, `known-failures` v1 schema and example, ADR 0021, guide, runtime-only wheel smoke for three agents. Six open points decided and recorded on #248; #253 filed for conform's codes | Review and merge the L01 PR; run L00 |
+| 2026-11-20 | Plan | Version 0.1 written; #248 opened for L01 | Agree plan |
+| 2026-11-22 | Plan | Version 0.1 merged as #252 | Start L01 |
+| 2026-11-22 | L01 | Delivered in #254 (`af71fa9`): four `validate` options, `known-failures` v1 schema and example, ADR 0021, guide, runtime-only wheel smoke for three agents. Six open points recorded on #248; #253 filed for conform's codes | — |
+| 2026-11-22 | Plan | Version 0.2: replanned after finding that new installations have no level, that `govkit evidence` is the level-free foundation, and that the Product Definition Graph already has a verification run contract (Sections 3.2 and 3.3) | Agree version 0.2; decide which Section 7 changes to raise in `discovery-engine`; create the pilot repository; open the epic and the L02 issue |

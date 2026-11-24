@@ -1,7 +1,7 @@
 # ADR 0021: Feature-scoped validate and the known-failures record
 
-Status: Proposed with the L01 PR for #248. Merging that PR accepts the
-contract below.
+Status: Accepted (#254). Proposed with the L01 PR for #248; merging that PR
+accepted the contract below.
 
 ## Context
 
@@ -88,3 +88,20 @@ checks as unknown is L03. Structured output is L06.
 Validation is test first: the acceptance criteria in #248 as unit tests, a
 parity test between the named and legacy check lists, schema and example
 tests, and a runtime-only wheel smoke for all three agents.
+
+## Addendum (2026-11-22)
+
+The text above is preserved as decided. Two things changed afterwards.
+
+- **Increment numbers.** Version 0.2 of `plans/LOOP_READY_GATES_PLAN.md`
+  renumbered the later increments. Where this ADR says L03, L04 and L06, the
+  current plan says L02 (skipped results), L06 (protecting the definition) and
+  L07 (the verdict and structured output).
+- **Reach.** A level-free installation made with `govkit profile apply` and
+  `govkit pack apply` has no marker. `govkit validate` falls back to level 3
+  there. That path runs no per-feature, fix-record or approval check; it
+  still runs the extension manifest checks, which fail only with `--strict`.
+  So `--feature` selects nothing there, and these options serve legacy
+  installations. Later increments build on `govkit evidence` and
+  `govkit conform`. The check identifiers and the record contract are reused
+  there.
