@@ -373,3 +373,197 @@ class TestDimensionsApplyByProjectType:
         _axe(tmp_path, ["critical"])
         verdicts = collect_evidence(tmp_path, project_type="ui-react")
         assert summarize(verdicts)[0] == 1
+
+
+def _junit_statuses(
+    tmp_path: Path,
+    cases: list[tuple[str, str]],
+    *,
+    skipped_attribute: bool = True,
+    skipped_elements: bool = True,
+    name: str = "junit.xml",
+) -> Path:
+    """cases = [(test name, "pass" | "fail" | "error" | "skip")]"""
+    children = {
+        "pass": "",
+        "fail": '<failure message="boom">trace</failure>',
+        "error": '<error message="broke">trace</error>',
+        "skip": '<skipped message="not today"/>' if skipped_elements else "",
+    }
+    count = {status: sum(1 for _, s in cases if s == status) for status in children}
+    body = "".join(
+        f'<testcase classname="suite" name="{n}" time="0.01">{children[s]}</testcase>'
+        for n, s in cases
+    )
+    skipped = f' skipped="{count["skip"]}"' if skipped_attribute else ""
+    path = tmp_path / name
+    path.write_text(
+        f'<?xml version="1.0"?><testsuites><testsuite name="suite" tests="{len(cases)}" '
+        f'failures="{count["fail"]}" errors="{count["error"]}"{skipped}>{body}'
+        "</testsuite></testsuites>",
+        encoding="utf-8",
+    )
+    return path
+
+
+class TestSkippedTestsAreNotAPass:
+    """A skipped test did not run, so it is unmeasured. Counting it as passed
+    lets a red run turn green by skipping the tests that fail."""
+
+    def test_a_skipped_test_makes_working_inconclusive(self, tmp_path):
+        _junit_statuses(tmp_path, [("a", "pass"), ("b", "skip"), ("c", "skip"), ("d", "skip")])
+        v = _by_dimension(collect_evidence(tmp_path))["Working"]
+        assert v.outcome is Outcome.INCONCLUSIVE, v.detail
+
+    def test_the_detail_gives_the_counts_and_names_skipped_tests(self, tmp_path):
+        _junit_statuses(tmp_path, [("a", "pass"), ("b", "skip"), ("c", "skip"), ("d", "skip")])
+        v = _by_dimension(collect_evidence(tmp_path))["Working"]
+        assert "3 of 4 tests skipped" in v.detail, v.detail
+        assert "1 passed" in v.detail, v.detail
+        assert "b" in v.detail and "c" in v.detail and "d" in v.detail, v.detail
+
+    def test_only_the_first_few_skipped_tests_are_named(self, tmp_path):
+        cases = [("ran", "pass")] + [(f"skip{i}", "skip") for i in range(8)]
+        _junit_statuses(tmp_path, cases)
+        v = _by_dimension(collect_evidence(tmp_path))["Working"]
+        assert "skip0" in v.detail and "skip2" in v.detail, v.detail
+        assert "skip3" not in v.detail, v.detail
+        assert "5 more" in v.detail, v.detail
+
+    def test_every_test_skipped_is_inconclusive(self, tmp_path):
+        _junit_statuses(tmp_path, [("a", "skip"), ("b", "skip")])
+        v = _by_dimension(collect_evidence(tmp_path))["Working"]
+        assert v.outcome is Outcome.INCONCLUSIVE, v.detail
+        assert "every" in v.detail.lower(), v.detail
+
+    def test_skipped_tests_with_nothing_else_measured_fail_the_run(self, tmp_path):
+        _junit_statuses(tmp_path, [("a", "pass"), ("b", "skip")])
+        exit_code, _ = summarize(collect_evidence(tmp_path))
+        assert exit_code == 1
+
+    @pytest.mark.parametrize("status", ["fail", "error"])
+    def test_a_failure_or_error_takes_precedence(self, tmp_path, status):
+        _junit_statuses(tmp_path, [("a", "pass"), ("b", "skip"), ("c", status)])
+        v = _by_dimension(collect_evidence(tmp_path))["Working"]
+        assert v.outcome is Outcome.FAIL, v.detail
+        assert "1 skipped" in v.detail, v.detail
+
+    def test_skipped_elements_are_counted_without_the_suite_attribute(self, tmp_path):
+        """Some reporters write `<skipped>` in the test case and no suite count."""
+        _junit_statuses(tmp_path, [("a", "pass"), ("b", "skip")], skipped_attribute=False)
+        v = _by_dimension(collect_evidence(tmp_path))["Working"]
+        assert v.outcome is Outcome.INCONCLUSIVE, v.detail
+        assert "1 of 2 tests skipped" in v.detail, v.detail
+
+    def test_the_suite_attribute_is_counted_without_skipped_elements(self, tmp_path):
+        _junit_statuses(tmp_path, [("a", "pass"), ("b", "skip")], skipped_elements=False)
+        v = _by_dimension(collect_evidence(tmp_path))["Working"]
+        assert v.outcome is Outcome.INCONCLUSIVE, v.detail
+        assert "1 of 2 tests skipped" in v.detail, v.detail
+
+    def test_skips_are_summed_across_report_files(self, tmp_path):
+        _junit_statuses(tmp_path, [("a", "pass"), ("b", "skip")], name="junit-one.xml")
+        _junit_statuses(tmp_path, [("c", "skip"), ("d", "pass")], name="junit-two.xml")
+        v = _by_dimension(collect_evidence(tmp_path))["Working"]
+        assert "2 of 4 tests skipped" in v.detail, v.detail
+
+    def test_a_malformed_skipped_count_is_an_error(self, tmp_path):
+        (tmp_path / "junit.xml").write_text(
+            '<testsuite tests="1" failures="0" errors="0" skipped="lots">'
+            '<testcase name="a" time="0.01"/></testsuite>',
+            encoding="utf-8",
+        )
+        v = _by_dimension(collect_evidence(tmp_path))["Working"]
+        assert v.outcome is Outcome.ERROR, v.detail
+
+    def test_a_report_with_no_skips_is_unchanged(self, tmp_path):
+        _junit_statuses(tmp_path, [("a", "pass"), ("b", "pass")])
+        v = _by_dimension(collect_evidence(tmp_path))["Working"]
+        assert (v.outcome, v.detail) == (Outcome.PASS, "2 tests passed")
+
+    def test_a_skipped_test_has_no_duration(self, tmp_path):
+        """A test that did not run was not fast."""
+        _junit_statuses(tmp_path, [("a", "skip"), ("b", "skip")])
+        v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
+        assert v.outcome is Outcome.INCONCLUSIVE, v.detail
+
+    def test_fast_counts_only_the_tests_that_ran(self, tmp_path):
+        _junit_statuses(tmp_path, [("a", "pass"), ("b", "skip")])
+        v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
+        assert v.outcome is Outcome.PASS, v.detail
+        assert "all 1 tests" in v.detail, v.detail
+
+
+class TestSkippedTestsBlockTheRun:
+    """The evidence contract: missing execution never becomes a pass through
+    aggregation. Another dimension passing does not make up for tests that a
+    report says did not run."""
+
+    def test_a_passing_dimension_does_not_outvote_skipped_tests(self, tmp_path):
+        _junit_statuses(tmp_path, [("a", "pass"), ("b", "skip")])
+        verdicts = collect_evidence(tmp_path, fast_max_seconds=0.2)
+        assert _by_dimension(verdicts)["Fast"].outcome is Outcome.PASS
+        exit_code, summary = summarize(verdicts)
+        assert exit_code == 1
+        assert "did not run" in summary, summary
+
+    def test_a_clean_accessibility_scan_does_not_outvote_skipped_tests(self, tmp_path):
+        _junit_statuses(tmp_path, [("a", "pass"), ("b", "skip")])
+        _axe(tmp_path, [])
+        exit_code, _ = summarize(collect_evidence(tmp_path))
+        assert exit_code == 1
+
+    def test_a_failure_is_reported_ahead_of_skipped_tests(self, tmp_path):
+        _junit_statuses(tmp_path, [("a", "fail"), ("b", "skip")])
+        exit_code, summary = summarize(collect_evidence(tmp_path))
+        assert exit_code == 1
+        assert "failed" in summary, summary
+
+    def test_a_dimension_with_no_report_still_does_not_block(self, tmp_path):
+        """Partial coverage stays possible: a missing report is not a skipped test."""
+        _axe(tmp_path, [])
+        exit_code, _ = summarize(collect_evidence(tmp_path))
+        assert exit_code == 0
+
+
+class TestSkippedTestReviewCases:
+    def test_every_test_skipped_names_the_tests(self, tmp_path):
+        _junit_statuses(tmp_path, [("first", "skip"), ("second", "skip")])
+        v = _by_dimension(collect_evidence(tmp_path))["Working"]
+        assert "first" in v.detail and "second" in v.detail, v.detail
+
+    def test_skips_block_when_the_report_omits_the_test_count(self, tmp_path):
+        """A report with no `tests` count and a skipped test is not an empty report."""
+        (tmp_path / "junit.xml").write_text(
+            '<testsuite skipped="1"><testcase name="a" time="0.01">'
+            "<skipped/></testcase></testsuite>",
+            encoding="utf-8",
+        )
+        _axe(tmp_path, [])
+        verdicts = collect_evidence(tmp_path)
+        assert _by_dimension(verdicts)["Working"].outcome is Outcome.INCONCLUSIVE
+        exit_code, _ = summarize(verdicts)
+        assert exit_code == 1
+
+    def test_an_empty_report_without_skips_still_does_not_block(self, tmp_path):
+        _junit(tmp_path, [])
+        _axe(tmp_path, [])
+        exit_code, _ = summarize(collect_evidence(tmp_path))
+        assert exit_code == 0
+
+    def test_fast_is_not_judged_when_skipped_tests_cannot_be_identified(self, tmp_path):
+        """With only a suite count, any duration could belong to a skipped test."""
+        _junit_statuses(tmp_path, [("a", "pass"), ("b", "skip")], skipped_elements=False)
+        v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
+        assert v.outcome is Outcome.INCONCLUSIVE, v.detail
+        assert "skipped" in v.detail, v.detail
+
+    def test_fast_still_fails_a_slow_test_when_skips_cannot_be_identified(self, tmp_path):
+        """A skipped test cannot make a slow one fast."""
+        (tmp_path / "junit.xml").write_text(
+            '<testsuite tests="2" failures="0" errors="0" skipped="1">'
+            '<testcase name="slow" time="3.0"/><testcase name="b" time="0.0"/></testsuite>',
+            encoding="utf-8",
+        )
+        v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
+        assert v.outcome is Outcome.FAIL, v.detail

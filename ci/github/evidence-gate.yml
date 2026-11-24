@@ -25,6 +25,8 @@
 #     - JUnit XML  (pytest --junitxml=junit.xml | vitest --reporter=junit | jest --reporters=jest-junit)
 #     - axe JSON   (UI only — write your axe results to axe.json)
 #   Anything you do not emit reports INCONCLUSIVE, which is not a pass.
+#   A test run with skipped tests also reports INCONCLUSIVE: a skipped test
+#   did not run.
 #
 # Copy this file to .github/workflows/evidence-gate.yml.
 

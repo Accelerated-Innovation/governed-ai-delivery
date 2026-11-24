@@ -13,6 +13,8 @@
 # CONFIGURE THIS: replace the "Run tests and produce evidence" step with your
 #   own test command, emitting JUnit XML (and, for UI, axe JSON). Anything you
 #   do not emit reports INCONCLUSIVE, which is not a pass.
+#   A test run with skipped tests also reports INCONCLUSIVE: a skipped test
+#   did not run.
 trigger: none
 
 pr:
