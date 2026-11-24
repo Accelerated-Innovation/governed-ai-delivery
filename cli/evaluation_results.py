@@ -77,9 +77,10 @@ def _read_checked(path: Path, relative: str) -> bytes:
     """The bytes of the file that was checked, and no more than the limit.
 
     The path could be replaced between the examination above and a read by
-    name. So the file is opened once without following a link, the open handle
-    is what gets checked, and the read stops one byte past the limit so a file
-    that grows meanwhile is still refused.
+    name. So the file is opened once without following a link where the
+    platform allows, the open handle is what gets checked and is compared with
+    the path, and the read stops one byte past the limit so a file that grows
+    meanwhile is still refused.
     """
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
     descriptor = os.open(path, flags | getattr(os, "O_BINARY", 0))
@@ -87,6 +88,12 @@ def _read_checked(path: Path, relative: str) -> bytes:
         status = os.fstat(handle.fileno())
         if not stat.S_ISREG(status.st_mode):
             raise _Refused(f"{relative} is not a regular file and was not read")
+        # Not every platform can refuse a link at open. So the path is looked
+        # at again: it must still be a plain file, and the same one as the
+        # handle. Anything else means it was replaced, and the read is refused.
+        named = path.lstat()
+        if stat.S_ISLNK(named.st_mode) or not os.path.samestat(status, named):
+            raise _Refused(f"{relative} changed while it was being read and was not used")
         data = handle.read(MAX_BYTES + 1)
     if status.st_size > MAX_BYTES or len(data) > MAX_BYTES:
         raise _Refused(f"{relative} is larger than 5 MiB and was not read")
@@ -104,6 +111,8 @@ def _read_file(path: Path, relative: str) -> ResultsFile:
             raise _Refused(f"{relative} is a symbolic link and was not read")
         if not stat.S_ISREG(status.st_mode):
             raise _Refused(f"{relative} is not a regular file and was not read")
+        if status.st_size > MAX_BYTES:
+            raise _Refused(f"{relative} is larger than 5 MiB and was not read")
         data = _read_checked(path, relative)
         document = json.loads(
             data, parse_constant=_refuse_constant, object_pairs_hook=_refuse_duplicates

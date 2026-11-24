@@ -333,3 +333,44 @@ class TestCheckedHandle:
         files, error = evaluation_results.read_results(tmp_path)
         assert files is None, files
         assert "govkit-eval-results.json" in error
+
+
+class TestWithoutNoFollow:
+    """Where the platform cannot refuse a link at open, the handle is compared
+    with the path afterwards and a mismatch is refused."""
+
+    def test_a_swapped_link_is_refused_without_o_nofollow(self, tmp_path, monkeypatch):
+        path = _write(tmp_path, [])
+        elsewhere = _write(
+            tmp_path, [{"requirement_id": REQUIREMENT, "value": 1}], name="other.json"
+        )
+        real = os.open
+
+        def swapped(name, flags, *args, **kwargs):
+            if str(name) == str(path) and not getattr(swapped, "done", False):
+                swapped.done = True
+                path.unlink()
+                path.symlink_to(elsewhere)
+            return real(name, flags, *args, **kwargs)
+
+        monkeypatch.delattr(evaluation_results.os, "O_NOFOLLOW", raising=False)
+        monkeypatch.setattr(evaluation_results.os, "open", swapped)
+        files, error = evaluation_results.read_results(tmp_path)
+        assert files is None, files
+        assert "changed while it was being read" in error
+
+    def test_an_ordinary_file_is_still_read_without_o_nofollow(self, tmp_path, monkeypatch):
+        _write(tmp_path, [{"requirement_id": REQUIREMENT, "value": 1}])
+        monkeypatch.delattr(evaluation_results.os, "O_NOFOLLOW", raising=False)
+        assert len(_read(tmp_path)[0].results) == 1
+
+    def test_an_oversized_file_is_refused_before_it_is_opened(self, tmp_path, monkeypatch):
+        path = _write(tmp_path, [])
+        path.write_text(" " * (evaluation_results.MAX_BYTES + 1), encoding="utf-8")
+
+        def never(*args, **kwargs):
+            raise AssertionError("the file was opened")
+
+        monkeypatch.setattr(evaluation_results.os, "open", never)
+        files, error = evaluation_results.read_results(tmp_path)
+        assert files is None and "larger" in error
