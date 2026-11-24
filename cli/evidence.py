@@ -145,6 +145,26 @@ def _find(target: Path, globs) -> list[Path]:
     return found
 
 
+def _suite_skips(root: ET.Element) -> tuple[int, int]:
+    """(skipped, unidentified) for one report. Raises ValueError on a bad count.
+
+    Counted suite by suite. Over the whole file, a skip that one suite marks
+    would cancel a skip another suite counts without marking, and the test it
+    hides would look passed. A suite's own test cases are its direct children,
+    so a nested suite is not counted twice.
+    """
+    suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
+    skipped = unidentified = marked_in_suites = 0
+    for suite in suites:
+        declared = int(suite.get("skipped") or 0)
+        marked = sum(1 for case in suite.findall("testcase") if case.find("skipped") is not None)
+        marked_in_suites += marked
+        skipped += max(declared, marked)
+        unidentified += max(declared - marked, 0)
+    marked_anywhere = sum(1 for case in root.iter("testcase") if case.find("skipped") is not None)
+    return skipped + marked_anywhere - marked_in_suites, unidentified
+
+
 def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
     """Aggregate JUnit XML. Returns (totals, error). Never raises.
 
@@ -165,19 +185,16 @@ def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
         except (ET.ParseError, OSError) as exc:
             return None, f"{path.name} could not be parsed: {exc}"
         suites = [root] if root.tag == "testsuite" else root.iter("testsuite")
-        declared_skipped = 0
         try:
             for suite in suites:
                 totals["tests"] += int(suite.get("tests") or 0)
                 totals["failures"] += int(suite.get("failures") or 0)
                 totals["errors"] += int(suite.get("errors") or 0)
-                declared_skipped += int(suite.get("skipped") or 0)
+            skipped, unidentified = _suite_skips(root)
         except ValueError:
             return None, f"{path.name} has a test count that is not a whole number"
-        skipped_cases = 0
         for case in root.iter("testcase"):
             if case.find("skipped") is not None:
-                skipped_cases += 1
                 totals["skipped_names"].append(case.get("name") or "(unnamed)")
                 continue
             try:
@@ -188,10 +205,10 @@ def _read_junit(paths: list[Path]) -> tuple[dict | None, str | None]:
             if seconds > slowest:
                 slowest = seconds
                 totals["slowest_name"] = case.get("name")
-        totals["skipped"] += max(declared_skipped, skipped_cases)
-        # Skips the suite counts but no test case marks. Their durations are in
+        totals["skipped"] += skipped
+        # Skips a suite counts but no test case marks. Their durations are in
         # the list above and cannot be told apart from those of tests that ran.
-        totals["unidentified_skipped"] += max(declared_skipped - skipped_cases, 0)
+        totals["unidentified_skipped"] += unidentified
     return totals, None
 
 
@@ -239,8 +256,7 @@ def read_test_reports(target: Path) -> tuple[list[TestReport] | None, str | None
         try:
             data = path.read_bytes()
             root = ET.fromstring(data)
-            suites = [root] if root.tag == "testsuite" else root.iter("testsuite")
-            declared = sum(int(suite.get("skipped") or 0) for suite in suites)
+            _, unidentified = _suite_skips(root)
         except (ET.ParseError, OSError) as exc:
             return None, f"{path.name} could not be parsed: {exc}"
         except ValueError:
@@ -260,13 +276,12 @@ def read_test_reports(target: Path) -> tuple[list[TestReport] | None, str | None
             )
             for case in root.iter("testcase")
         )
-        marked = sum(1 for case in cases if case.outcome == "skipped")
         reports.append(
             TestReport(
                 path=relative,
                 content_digest=hashlib.sha256(data).hexdigest(),
                 cases=cases,
-                unidentified_skipped=max(declared - marked, 0),
+                unidentified_skipped=unidentified,
             )
         )
     return reports, None

@@ -349,7 +349,7 @@ class TestReportContent:
         (directory / "acceptance.feature").write_bytes(
             (example_dir / "acceptance.feature").read_bytes()
         )
-        (tmp_path / "junit.xml").write_bytes((example_dir / "junit.xml").read_bytes())
+        (tmp_path / "junit.xml").write_bytes((example_dir / "test-run.xml").read_bytes())
         assert _report(tmp_path, example["feature"]["name"]) == example
 
     def test_the_report_is_the_same_on_a_second_run(self, tmp_path):
@@ -403,3 +403,37 @@ class TestText:
         _junit(tmp_path, PASSING)
         assert er.exit_code(_report(target)) == 0
         assert Outcome(_report(target)["outcome"]) is Outcome.PASS
+
+
+class TestReviewCases:
+    def test_id_and_tag_bindings_are_combined(self, tmp_path):
+        """Both tests name the scenario, so the failing one cannot be dropped."""
+        _junit(
+            tmp_path,
+            [
+                ("test_one", "pass", BY_ID),
+                ("test_two", "fail", "@scenario:approval-routing-by-amount"),
+            ],
+        )
+        result = _result(_report(_project(tmp_path)), BY_ID)
+        assert (result["outcome"], result["binding"]) == ("failed", "id")
+        assert len(result["tests"]) == 2
+
+    def test_a_marked_skip_in_one_suite_does_not_hide_an_unmarked_one_in_another(self, tmp_path):
+        (tmp_path / "junit.xml").write_text(
+            '<testsuites><testsuite name="a" tests="1" skipped="1">'
+            '<testcase name="test_target" time="0.0"/></testsuite>'
+            '<testsuite name="b" tests="1"><testcase name="test_other" time="0.0">'
+            "<skipped/></testcase></testsuite></testsuites>",
+            encoding="utf-8",
+        )
+        report = _report(_project(tmp_path, "Feature: F\n  Scenario: Target\n    Then ok\n"))
+        assert report["sources"][0]["unidentified_skipped"] == 1
+        assert report["outcome"] == "INCONCLUSIVE", report["detail"]
+
+    def test_the_bundled_example_is_not_discovered_as_a_test_result(self):
+        """A checked-in example must not read as this repository's own evidence."""
+        from cli.evidence import _JUNIT_GLOBS, _find
+
+        found = _find(paths.GOVERNANCE_DIR / "examples" / "evidence-report", _JUNIT_GLOBS)
+        assert found == []

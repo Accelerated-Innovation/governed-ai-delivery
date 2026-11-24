@@ -63,6 +63,7 @@ In this order:
 
 Rules that keep a match honest:
 
+- Every test that names a scenario by property counts, whether it uses the identifier or the tag.
 - A test that carries a `govkit.scenario` property is never matched by title.
 - When two scenarios in the feature reduce to the same test name, neither is matched by title. The report says so.
 - Only the full identifier is exact across features. A tag is unique within one feature file, and a title can repeat anywhere, so a test in another feature with the same tag or title is bound as well. Use the full identifier when that can happen.
@@ -107,7 +108,7 @@ govkit evidence --target . --feature 07_invoice_approval --json > evidence.json
 ```
 
 - Schema: `governance/schemas/evidence-report.schema.json`
-- Example, with the feature file and JUnit XML that produce it: `governance/examples/evidence-report/`
+- Example, with the feature file and JUnit XML that produce it: `governance/examples/evidence-report/`. The JUnit XML is stored as `test-run.xml` so that evidence discovery does not read an example as a real result; the example report is what the command prints when it is copied to `junit.xml`.
 
 | Field | Content |
 |---|---|
@@ -123,7 +124,7 @@ A valid report is well-formed. It does not authenticate where its results came f
 
 ## Skipped tests that are not marked
 
-Some reporters count skipped tests on the suite without marking which test cases were skipped. Any test in that file that looks passed could be one of them, so a feature that would otherwise be `PASS` is `INCONCLUSIVE` and the report names the file.
+Some reporters count skipped tests on the suite without marking which test cases were skipped. The count is taken suite by suite. Any test in that file that looks passed could be one of them, so a feature that would otherwise be `PASS` is `INCONCLUSIVE` and the report names the file.
 
 ## Without `--feature`
 

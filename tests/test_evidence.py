@@ -567,3 +567,16 @@ class TestSkippedTestReviewCases:
         )
         v = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))["Fast"]
         assert v.outcome is Outcome.FAIL, v.detail
+
+
+def test_fast_sees_an_unmarked_skip_that_another_suite_would_cancel(tmp_path):
+    (tmp_path / "junit.xml").write_text(
+        '<testsuites><testsuite name="a" tests="1" skipped="1">'
+        '<testcase name="unmarked" time="0.01"/></testsuite>'
+        '<testsuite name="b" tests="2"><testcase name="marked" time="0.0">'
+        '<skipped/></testcase><testcase name="ran" time="0.01"/></testsuite></testsuites>',
+        encoding="utf-8",
+    )
+    verdicts = _by_dimension(collect_evidence(tmp_path, fast_max_seconds=0.2))
+    assert verdicts["Fast"].outcome is Outcome.INCONCLUSIVE, verdicts["Fast"].detail
+    assert "2 of 3 tests skipped" in verdicts["Working"].detail, verdicts["Working"].detail

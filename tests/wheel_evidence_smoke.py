@@ -41,7 +41,8 @@ def example_project(target: Path, feature: str) -> None:
     directory = target / "features" / feature
     directory.mkdir(parents=True)
     shutil.copy(EXAMPLE / "acceptance.feature", directory)
-    shutil.copy(EXAMPLE / "junit.xml", target)
+    # Stored under a name evidence discovery does not match; see the guide.
+    shutil.copy(EXAMPLE / "test-run.xml", target / "junit.xml")
 
 
 def bundled_contract() -> dict:

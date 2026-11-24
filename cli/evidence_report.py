@@ -154,13 +154,13 @@ def _bind(scenarios, cases: list[CaseResult]) -> list[dict]:
     results = []
     for scenario, key in zip(scenarios, keys, strict=True):
         tag = f"@scenario:{scenario.slug}"
-        by_id = [case for case in cases if scenario.id in case.scenarios]
-        by_tag = [case for case in cases if tag in case.scenarios]
+        # Every test that names the scenario counts, in either form. Keeping
+        # only the id-bound ones would drop a failing test that used the tag.
+        named = [case for case in cases if scenario.id in case.scenarios or tag in case.scenarios]
         note = None
-        if by_id:
-            binding, bound = "id", by_id
-        elif by_tag:
-            binding, bound = "tag", by_tag
+        if named:
+            by_id = any(scenario.id in case.scenarios for case in named)
+            binding, bound = "id" if by_id else "tag", named
         elif key and keys.count(key) > 1:
             binding, bound = "none", []
             note = (
