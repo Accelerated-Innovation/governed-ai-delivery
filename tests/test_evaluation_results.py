@@ -291,3 +291,45 @@ class TestReviewCases:
         target = {"metric": metric, "comparator": ">=", "value": 1, "unit": "ratio"}
         document = TestCriterionSchema()._document(target=target)
         assert not list(TestCriterionSchema()._schema().iter_errors(document))
+
+
+class TestCheckedHandle:
+    """The file that was checked is the file that is read."""
+
+    def test_the_limit_holds_when_the_file_grows_after_it_was_examined(self, tmp_path, monkeypatch):
+        path = _write(tmp_path, [])
+        real = os.fstat
+
+        def grown(descriptor):
+            # After the size check: the file is enlarged before it is read.
+            status = real(descriptor)
+            if not getattr(grown, "done", False):
+                grown.done = True
+                with open(path, "ab") as handle:
+                    handle.write(b" " * (evaluation_results.MAX_BYTES + 1))
+            return status
+
+        monkeypatch.setattr(evaluation_results.os, "fstat", grown)
+        files, error = evaluation_results.read_results(tmp_path)
+        assert files is None and "larger" in error
+
+    @pytest.mark.skipif(not hasattr(os, "O_NOFOLLOW"), reason="needs O_NOFOLLOW")
+    def test_a_link_swapped_in_after_the_check_is_not_followed(self, tmp_path, monkeypatch):
+        path = _write(tmp_path, [])
+        elsewhere = _write(
+            tmp_path, [{"requirement_id": REQUIREMENT, "value": 1}], name="other.json"
+        )
+        real = os.open
+
+        def swapped(name, flags, *args, **kwargs):
+            # Between the examination and the open: the file becomes a link.
+            if str(name) == str(path) and not getattr(swapped, "done", False):
+                swapped.done = True
+                path.unlink()
+                path.symlink_to(elsewhere)
+            return real(name, flags, *args, **kwargs)
+
+        monkeypatch.setattr(evaluation_results.os, "open", swapped)
+        files, error = evaluation_results.read_results(tmp_path)
+        assert files is None, files
+        assert "govkit-eval-results.json" in error

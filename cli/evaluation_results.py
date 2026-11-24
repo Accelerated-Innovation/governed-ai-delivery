@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import stat
 from dataclasses import dataclass
 from pathlib import Path
@@ -72,6 +73,26 @@ def _refuse_duplicates(pairs: list) -> dict:
     return found
 
 
+def _read_checked(path: Path, relative: str) -> bytes:
+    """The bytes of the file that was checked, and no more than the limit.
+
+    The path could be replaced between the examination above and a read by
+    name. So the file is opened once without following a link, the open handle
+    is what gets checked, and the read stops one byte past the limit so a file
+    that grows meanwhile is still refused.
+    """
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    descriptor = os.open(path, flags | getattr(os, "O_BINARY", 0))
+    with os.fdopen(descriptor, "rb") as handle:
+        status = os.fstat(handle.fileno())
+        if not stat.S_ISREG(status.st_mode):
+            raise _Refused(f"{relative} is not a regular file and was not read")
+        data = handle.read(MAX_BYTES + 1)
+    if status.st_size > MAX_BYTES or len(data) > MAX_BYTES:
+        raise _Refused(f"{relative} is larger than 5 MiB and was not read")
+    return data
+
+
 def _read_file(path: Path, relative: str) -> ResultsFile:
     """One results file. Raises `_Refused` with the reason it cannot be used."""
     try:
@@ -83,9 +104,7 @@ def _read_file(path: Path, relative: str) -> ResultsFile:
             raise _Refused(f"{relative} is a symbolic link and was not read")
         if not stat.S_ISREG(status.st_mode):
             raise _Refused(f"{relative} is not a regular file and was not read")
-        if status.st_size > MAX_BYTES:
-            raise _Refused(f"{relative} is larger than 5 MiB and was not read")
-        data = path.read_bytes()
+        data = _read_checked(path, relative)
         document = json.loads(
             data, parse_constant=_refuse_constant, object_pairs_hook=_refuse_duplicates
         )
