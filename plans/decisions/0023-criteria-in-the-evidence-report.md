@@ -39,7 +39,7 @@ The maintainer decided on 2026-11-24: a GovKit results file, an optional target,
 
 - "Done" for a feature now includes its thresholds, and an agent can tell missing work from work that needs a person.
 - A project must write a short step that turns its evaluation tool's output into the results file.
-- A data feature with criteria cannot reach `PASS` until the data form is supported. That is a follow-up.
-- The graph refuses a data-form criteria file outright, which is a question for `discovery-engine`.
+- A data feature with criteria cannot reach `PASS` until the data form is supported. The maintainer deferred that on 2026-11-24 until a data architect has reviewed GovKit.
+- The graph refuses a data-form criteria file outright. That question for `discovery-engine` waits for the same review.
 - The value in a results file is whatever the project wrote. The report does not authenticate it, and L05 binds it to a commit.
 - `execution_class`, the results file format, the criterion states and the `compared_with` shapes are public. Add, never rename.
