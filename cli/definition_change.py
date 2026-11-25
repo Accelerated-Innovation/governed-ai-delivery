@@ -223,10 +223,11 @@ def _typed(value: object) -> object:
     if isinstance(value, bool) or value is None:
         return (type(value).__name__, value)
     if isinstance(value, int | float):
-        try:
-            return ("number", float(value))
-        except OverflowError:
-            return ("number", repr(value))
+        # An integral float becomes its integer, so `1` equals `1.0` and large
+        # integers stay exact. `repr` keeps "not a number" equal to itself.
+        if isinstance(value, float) and value.is_integer():
+            value = int(value)
+        return ("number", repr(value))
     if isinstance(value, str):
         return ("str", value)
     if isinstance(value, list):

@@ -308,3 +308,16 @@ class TestReviewOfCriteriaComparison:
         assert _codes(self._assess(base, base.replace("11-01", "11-02"))) == [
             ("criteria-changed", None)
         ]
+
+
+def test_adjacent_large_integers_are_different_thresholds():
+    """A float cannot tell them apart; the comparison must."""
+    base = "criteria:\n  - name: a\n    threshold: 9007199254740993\n"
+    result = _assess(base, base.replace("0993", "0992"), path=CRITERIA)
+    assert _codes(result) == [("criterion-altered", "07_invoice#evaluation:a")]
+    assert _assess(base, base, path=CRITERIA).findings == ()
+
+
+def test_a_value_that_is_not_a_number_equals_itself():
+    base = "criteria:\n  - name: a\n    threshold: .nan\n    limit: .inf\n"
+    assert _assess(base, base + "# a comment\n", path=CRITERIA).findings == ()
