@@ -204,14 +204,42 @@ def _criteria(package: str, data: bytes) -> dict:
             seen.add(name)
             items[(source, criterion_id(package, name))] = item
     rest = {key: value for key, value in document.items() if key != "criteria"}
-    if "llm_evaluation" in document:
-        rest["llm_evaluation"] = {key: value for key, value in llm.items() if key != "criteria"}
+    # Only what is beside the criteria. A wrapper that holds nothing else is
+    # left out, so adding the first criterion under it is still only an addition.
+    rest.pop("llm_evaluation", None)
+    beside = {key: value for key, value in llm.items() if key != "criteria"}
+    if beside:
+        rest["llm_evaluation"] = beside
     return {"named": named, "items": items, "rest": rest, "document": document}
+
+
+def _typed(value: object) -> object:
+    """A form in which two parsed values are equal only when they mean the same.
+
+    Python holds `True == 1`, so plain equality would let `threshold: 1` become
+    `threshold: true`, which is no threshold at all. A number equals the same
+    number however it is written.
+    """
+    if isinstance(value, bool) or value is None:
+        return (type(value).__name__, value)
+    if isinstance(value, int | float):
+        try:
+            return ("number", float(value))
+        except OverflowError:
+            return ("number", repr(value))
+    if isinstance(value, str):
+        return ("str", value)
+    if isinstance(value, list):
+        return ("list", tuple(_typed(item) for item in value))
+    if isinstance(value, dict):
+        pairs = ((_typed(key), _typed(item)) for key, item in value.items())
+        return ("dict", tuple(sorted(pairs, key=repr)))
+    return (type(value).__name__, repr(value))  # a date, for one
 
 
 def _compare_criteria(path: str, was: dict, now: dict) -> list[DefinitionFinding]:
     if not was["named"] or not now["named"]:
-        if was["document"] == now["document"]:
+        if _typed(was["document"]) == _typed(now["document"]):
             return []
         return [
             DefinitionFinding(
@@ -226,14 +254,14 @@ def _compare_criteria(path: str, was: dict, now: dict) -> list[DefinitionFinding
     for (source, identifier), item in was["items"].items():
         if (source, identifier) not in now["items"]:
             code, what = "criterion-removed", "was removed"
-        elif now["items"][(source, identifier)] != item:
+        elif _typed(now["items"][(source, identifier)]) != _typed(item):
             code, what = "criterion-altered", "was altered"
         else:
             continue
         findings.append(
             DefinitionFinding(code, path, identifier, f"{path}: criterion {identifier} {what}")
         )
-    if was["rest"] != now["rest"]:
+    if _typed(was["rest"]) != _typed(now["rest"]):
         findings.append(
             DefinitionFinding(
                 "criteria-changed", path, None, f"{path} changed outside its list of criteria"

@@ -223,7 +223,7 @@ A feature is done when its scenarios pass and its criteria are met. A change cou
 What passes:
 
 - a new scenario, criterion or definition file;
-- a comment, reordering or reformatting that leaves the content the same.
+- a comment, reordering or reformatting that leaves the content the same. A number written another way (`1` and `1.0`) is the same; `1` and `true` are not.
 
 What fails, each with its own finding:
 
@@ -234,7 +234,7 @@ What fails, each with its own finding:
 | `shared-steps-changed` | A `Background` above it was changed, added or removed, or it was moved under another |
 | `criterion-removed` | A criterion that was at the base is gone from its list |
 | `criterion-altered` | Its threshold, target or any other field changed |
-| `criteria-changed` | Something else in `eval_criteria.yaml` changed, or its criteria are not all named and the file changed |
+| `criteria-changed` | Something else in `eval_criteria.yaml` changed, or its criteria are not all named and its parsed content changed |
 | `definition-removed` | The file was deleted |
 | `definition-unreadable` | The file can no longer be identified or parsed |
 

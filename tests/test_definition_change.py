@@ -263,3 +263,48 @@ class TestContract:
         big = FEATURE + "#" * size
         assert len(_assess(big, FEATURE).unknown) == 1
         assert _codes(_assess(FEATURE, big)) == [("definition-unreadable", None)]
+
+
+class TestReviewOfCriteriaComparison:
+    def _assess(self, before, after):
+        return _assess(before, after, path=CRITERIA)
+
+    def test_the_same_number_written_another_way_is_not_a_change(self):
+        base = "criteria:\n  - name: a\n    threshold: 1\n"
+        assert self._assess(base, base.replace("threshold: 1", "threshold: 1.0")).findings == ()
+
+    @pytest.mark.parametrize("value", ["true", '"1"'])
+    def test_a_change_of_type_alone_is_an_alteration(self, value):
+        """`True == 1` in Python, and a boolean threshold is no threshold at all."""
+        base = "criteria:\n  - name: a\n    threshold: 1\n"
+        result = self._assess(base, base.replace("threshold: 1", f"threshold: {value}"))
+        assert _codes(result) == [("criterion-altered", "07_invoice#evaluation:a")]
+
+    def test_a_change_of_type_outside_the_criteria_is_a_finding(self):
+        base = "enabled: 1\ncriteria:\n  - name: a\n    threshold: 1\n"
+        assert _codes(self._assess(base, base.replace("enabled: 1", "enabled: true"))) == [
+            ("criteria-changed", None)
+        ]
+
+    def test_a_change_of_type_in_an_unnamed_criterion_is_a_finding(self):
+        base = "criteria:\n  - id: C1\n    limit: 0\n"
+        assert _codes(self._assess(base, base.replace("limit: 0", "limit: false"))) == [
+            ("criteria-changed", None)
+        ]
+
+    def test_the_first_llm_criterion_may_be_added(self):
+        base = "criteria:\n  - name: a\n    threshold: 1\n"
+        added = base + "llm_evaluation:\n  criteria:\n    - name: b\n      threshold: 0.9\n"
+        assert self._assess(base, added).findings == ()
+
+    def test_other_llm_settings_stay_protected(self):
+        base = "criteria:\n  - name: a\n    threshold: 1\n"
+        added = base + "llm_evaluation:\n  judge: lenient\n  criteria: []\n"
+        assert _codes(self._assess(base, added)) == [("criteria-changed", None)]
+
+    def test_values_json_cannot_hold_are_still_compared(self):
+        base = "reviewed: 2026-11-01\ncriteria:\n  - name: a\n    threshold: 1\n"
+        assert self._assess(base, base).findings == ()
+        assert _codes(self._assess(base, base.replace("11-01", "11-02"))) == [
+            ("criteria-changed", None)
+        ]
