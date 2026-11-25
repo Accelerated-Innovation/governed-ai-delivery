@@ -19,9 +19,14 @@ def _args(
     fast_max_seconds: float | None = None,
     feature: str | None = None,
     json: bool = False,
+    record: bool = False,
 ):
     return argparse.Namespace(
-        target=str(target), fast_max_seconds=fast_max_seconds, feature=feature, json=json
+        target=str(target),
+        fast_max_seconds=fast_max_seconds,
+        feature=feature,
+        json=json,
+        record=record,
     )
 
 
@@ -165,7 +170,18 @@ class TestFeatureReport:
 
     ACCEPTANCE = "Feature: F\n  Scenario: It works\n    Then ok\n"
 
-    def _feature(self, target: Path, passing: bool = True) -> None:
+    @pytest.fixture(autouse=True)
+    def _unchanging_tree(self, monkeypatch):
+        """Git is stood in for by a working tree that never changes."""
+        from cli import tree_identity
+
+        monkeypatch.setattr(
+            tree_identity,
+            "observe",
+            lambda target, exclude=(): tree_identity.Identity("c" * 40, "d" * 64, True),
+        )
+
+    def _feature(self, target: Path, passing: bool = True, record: bool = True) -> None:
         directory = target / "features" / "01_first"
         directory.mkdir(parents=True)
         (directory / "acceptance.feature").write_text(self.ACCEPTANCE, encoding="utf-8")
@@ -176,6 +192,10 @@ class TestFeatureReport:
             "</testsuite>",
             encoding="utf-8",
         )
+        if record:
+            from cli import evidence_record
+
+            evidence_record.write_record(target)
 
     def _run(self, capsys, *args, **kwargs):
         with pytest.raises(SystemExit) as exc:
@@ -245,7 +265,39 @@ class TestFeatureReport:
         parser = argparse.ArgumentParser()
         register(parser.add_subparsers(dest="command"))
         args = parser.parse_args(["evidence", "--feature", "01_first", "--json"])
-        assert (args.feature, args.json) == ("01_first", True)
+        assert (args.feature, args.json, args.record) == ("01_first", True, False)
+        assert parser.parse_args(["evidence", "--record"]).record is True
+
+    def test_results_that_were_not_recorded_do_not_pass(self, tmp_path, capsys):
+        self._feature(tmp_path, record=False)
+        code, out, _ = self._run(capsys, tmp_path, feature="01_first")
+        assert code == 1
+        assert "unrecorded" in out and "--record" in out
+
+    def test_record_writes_the_record_and_says_what_it_recorded(self, tmp_path, capsys):
+        from cli import evidence_record
+
+        self._feature(tmp_path, record=False)
+        code, out, _ = self._run(capsys, tmp_path, record=True)
+        assert code == 0
+        assert (tmp_path / evidence_record.NAME).is_file()
+        assert "junit.xml" in out and "cccccccccccc" in out
+        code, _, _ = self._run(capsys, tmp_path, feature="01_first")
+        assert code == 0
+
+    def test_record_with_nothing_to_record_exits_one(self, tmp_path, capsys):
+        code, _, err = self._run(capsys, tmp_path, record=True)
+        assert code == 1
+        assert "no result files" in err
+
+    @pytest.mark.parametrize("extra", [{"feature": "01_first"}, {"json": True}])
+    def test_record_is_its_own_step(self, tmp_path, capsys, extra):
+        """Recording in the same call as the report would make every result current."""
+        self._feature(tmp_path, record=False)
+        code, out, err = self._run(capsys, tmp_path, record=True, **extra)
+        assert code == 2
+        assert out == ""
+        assert "--record" in err
 
     def test_without_a_feature_the_output_is_unchanged(self, tmp_path, capsys):
         _passing_junit(tmp_path)

@@ -6,12 +6,13 @@ scenario with no result is missing, which is not a pass.
 """
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
 
+from cli import evidence_record, paths, scenario_identity, tree_identity
 from cli import evidence_report as er
-from cli import paths, scenario_identity
 from cli.evidence import Outcome
 from cli.schema_validation import validate_document
 
@@ -83,8 +84,20 @@ def _junit(tmp_path: Path, cases, name: str = "junit.xml", attributes: str = "")
     )
 
 
-def _report(target: Path, feature: str = FEATURE) -> dict:
-    return er.build_report(target, feature)
+COMMIT = "c" * 40
+RECORDED = datetime(2026, 11, 24, 12, 0, 0, tzinfo=timezone.utc)
+
+
+def _tree(target, exclude=()):
+    """A stand-in for Git: a working tree that never changes."""
+    return tree_identity.Identity(COMMIT, "d" * 64, True)
+
+
+def _report(target: Path, feature: str = FEATURE, record: bool = True) -> dict:
+    """The report for results recorded just now from an unchanged tree."""
+    if record and evidence_record.discover(target):
+        evidence_record.write_record(target, observe=_tree, now=RECORDED)
+    return er.build_report(target, feature, observe=_tree)
 
 
 def _result(report: dict, requirement: str) -> dict:
@@ -788,3 +801,92 @@ class TestCriteriaReviewCases:
         assert report["outcome"] == outcome, report["detail"]
         if outcome == "INCONCLUSIVE":
             assert "no scenarios" in report["detail"]
+
+
+class TestProvenance:
+    """Results count only for the commit and working tree they were recorded from."""
+
+    def _changed(self, target, exclude=()):
+        return tree_identity.Identity(COMMIT, "e" * 64, False)
+
+    def test_recorded_results_from_an_unchanged_tree_count(self, tmp_path):
+        report = _report(_passing_project(tmp_path))
+        assert report["outcome"] == "PASS"
+        assert report["provenance"] == {
+            "state": "current",
+            "detail": "the commit and the working tree are as they were recorded",
+            "commit": COMMIT,
+            "tree_digest": "d" * 64,
+            "recorded_at": "2026-11-24T12:00:00Z",
+        }
+
+    def test_results_with_no_record_do_not_count(self, tmp_path):
+        report = _report(_passing_project(tmp_path), record=False)
+        assert report["provenance"]["state"] == "unrecorded"
+        assert report["outcome"] == "INCONCLUSIVE"
+        assert report["detail"].startswith("the results are unrecorded")
+        assert er.exit_code(report) == 1
+
+    def test_results_from_before_an_edit_do_not_count(self, tmp_path):
+        target = _passing_project(tmp_path)
+        evidence_record.write_record(target, observe=_tree, now=RECORDED)
+        report = er.build_report(target, FEATURE, observe=self._changed)
+        assert report["provenance"]["state"] == "stale"
+        assert report["outcome"] == "INCONCLUSIVE"
+        assert "working tree changed" in report["detail"]
+
+    def test_what_stale_results_said_stays_visible(self, tmp_path):
+        """A stale failure is still worth reading; only its authority is gone."""
+        cases = list(PASSING)
+        cases[0] = (cases[0][0], "fail", None)
+        _junit(tmp_path, cases)
+        target = _project(tmp_path)
+        evidence_record.write_record(target, observe=_tree, now=RECORDED)
+        report = er.build_report(target, FEATURE, observe=self._changed)
+        assert report["outcome"] == "INCONCLUSIVE"
+        assert "As found: 1 failed of 3 scenarios" in report["detail"]
+        assert _result(report, BY_ID)["outcome"] == "failed"
+        assert report["summary"]["failed"] == 1
+
+    def test_a_result_file_rewritten_after_the_record_does_not_count(self, tmp_path):
+        target = _passing_project(tmp_path)
+        evidence_record.write_record(target, observe=_tree, now=RECORDED)
+        _junit(tmp_path, PASSING, attributes=' hostname="other"')
+        report = er.build_report(target, FEATURE, observe=_tree)
+        assert report["provenance"]["state"] == "stale"
+        assert "junit.xml changed" in report["detail"]
+
+    def test_an_error_is_not_softened_by_staleness(self, tmp_path):
+        cases = list(PASSING)
+        cases[0] = (cases[0][0], "error", None)
+        _junit(tmp_path, cases)
+        report = _report(_project(tmp_path), record=False)
+        assert report["outcome"] == "ERROR"
+        assert report["provenance"]["state"] == "unrecorded"
+
+    def test_with_no_result_files_nothing_is_checked(self, tmp_path):
+        report = _report(_project(tmp_path))
+        assert report["provenance"]["state"] == "not-checked"
+        assert "unrecorded" not in report["detail"]
+
+    def test_git_is_the_default_and_its_absence_is_reported(self, tmp_path):
+        """No stand-in: the temporary directory is not a repository."""
+        target = _passing_project(tmp_path)
+        evidence_record.write_record(target, observe=_tree, now=RECORDED)
+        report = er.build_report(target, FEATURE)
+        assert report["provenance"]["state"] == "unavailable"
+        assert report["outcome"] == "INCONCLUSIVE"
+
+    @pytest.mark.parametrize("record", [True, False])
+    def test_every_provenance_state_validates(self, tmp_path, record):
+        validate_document(_report(_passing_project(tmp_path), record=record), er.SCHEMA)
+
+    def test_the_text_says_where_current_results_came_from(self, tmp_path):
+        text = er.render_text(_report(_passing_project(tmp_path)))
+        assert "recorded at 2026-11-24T12:00:00Z from commit cccccccccccc" in text
+        assert "CI on a clean checkout" in text
+
+    def test_the_text_says_why_results_do_not_count(self, tmp_path):
+        text = er.render_text(_report(_passing_project(tmp_path), record=False))
+        assert "INCONCLUSIVE" in text
+        assert "govkit evidence --record" in text

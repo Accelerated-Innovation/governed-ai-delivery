@@ -37,14 +37,35 @@ def govkit(*args, expected=0):
     return result.stdout
 
 
+def git(target: Path, *args) -> None:
+    environment = dict(
+        os.environ,
+        GIT_AUTHOR_NAME="smoke", GIT_AUTHOR_EMAIL="smoke@example.invalid",
+        GIT_COMMITTER_NAME="smoke", GIT_COMMITTER_EMAIL="smoke@example.invalid",
+    )  # fmt: skip
+    subprocess.run(
+        ["git", "-C", str(target), *args], check=True, capture_output=True, env=environment
+    )
+
+
+def without_provenance(report: dict) -> dict:
+    """The commit, tree digest and time are this run's own; the rest is the example's."""
+    return {key: value for key, value in report.items() if key != "provenance"}
+
+
 def example_project(target: Path, feature: str) -> None:
+    """A committed project, then the results of a test run and its record."""
     directory = target / "features" / feature
-    directory.mkdir(parents=True)
+    directory.mkdir(parents=True, exist_ok=True)
     shutil.copy(EXAMPLE / "acceptance.feature", directory)
     shutil.copy(EXAMPLE / "eval_criteria.yaml", directory)
+    git(target, "init", "-q", "-b", "main")
+    git(target, "add", "-A")
+    git(target, "commit", "-q", "-m", "project")
     shutil.copy(EXAMPLE / "evaluation-run.json", target / "govkit-eval-results.json")
     # Stored under a name evidence discovery does not match; see the guide.
     shutil.copy(EXAMPLE / "test-run.xml", target / "junit.xml")
+    govkit("evidence", "--target", target, "--record")
 
 
 def bundled_contract() -> dict:
@@ -56,6 +77,10 @@ def bundled_contract() -> dict:
     )
     example = json.loads((EXAMPLE / "evidence-report.json").read_text(encoding="utf-8"))
     validate_document(example, evidence_report.SCHEMA)
+    assert (paths.GOVERNANCE_DIR / "schemas/evidence-record.schema.json").is_file()
+    validate_document(
+        json.loads((EXAMPLE / "record.json").read_text(encoding="utf-8")), "evidence-record"
+    )
     return example
 
 
@@ -68,7 +93,8 @@ def level_free_run(workspace: Path, example: dict) -> None:
     report = json.loads(
         govkit("evidence", "--target", target, "--feature", feature, "--json", expected=1)
     )
-    assert report == example, report
+    assert without_provenance(report) == without_provenance(example), report
+    assert report["provenance"]["state"] == "current", report["provenance"]
     assert sorted(p.as_posix() for p in target.rglob("*")) == before, "the report wrote a file"
     text = govkit("evidence", "--target", target, "--feature", feature, expected=1)
     assert "FAIL" in text and "missing" in text, text
@@ -83,6 +109,14 @@ def level_free_run(workspace: Path, example: dict) -> None:
     )
     fixed = fixed.replace('failures="1"', 'failures="0"').replace('skipped="1"', 'skipped="0"')
     junit.write_text(fixed, encoding="utf-8")
+
+    # Rewritten results are stale until they are recorded again.
+    stale = json.loads(
+        govkit("evidence", "--target", target, "--feature", feature, "--json", expected=1)
+    )
+    assert stale["provenance"]["state"] == "stale", stale["provenance"]
+    assert stale["outcome"] == "INCONCLUSIVE", stale["detail"]
+    govkit("evidence", "--target", target, "--record")
     still_owed = json.loads(
         govkit("evidence", "--target", target, "--feature", feature, "--json", expected=1)
     )
@@ -106,16 +140,42 @@ def level_free_run(workspace: Path, example: dict) -> None:
     document = {"schema_version": 1, "kind": "govkit.evaluation-results", "results": results}
     validate_document(document, "evaluation-results")
     (target / "govkit-eval-results.json").write_text(json.dumps(document), encoding="utf-8")
+    govkit("evidence", "--target", target, "--record")
     done = json.loads(govkit("evidence", "--target", target, "--feature", feature, "--json"))
     validate_document(done, evidence_report.SCHEMA)
     assert done["outcome"] == "PASS", done["detail"]
+
+    # An edit after the record: the same results no longer count.
+    source = target / "features" / feature / "acceptance.feature"
+    original = source.read_text(encoding="utf-8")
+    source.write_text(original + "\n# edited after the tests ran\n", encoding="utf-8")
+    edited = json.loads(
+        govkit("evidence", "--target", target, "--feature", feature, "--json", expected=1)
+    )
+    assert edited["provenance"]["state"] == "stale", edited["provenance"]
+    source.write_text(original, encoding="utf-8")
+    govkit("evidence", "--target", target, "--feature", feature)
+
+    # A new commit: stale again until the tests are run and recorded.
+    (target / "notes.txt").write_text("a change\n", encoding="utf-8")
+    git(target, "add", "-A", "--", "notes.txt")
+    git(target, "commit", "-q", "-m", "change")
+    committed = json.loads(
+        govkit("evidence", "--target", target, "--feature", feature, "--json", expected=1)
+    )
+    assert committed["provenance"]["state"] == "stale", committed["provenance"]
+    govkit("evidence", "--target", target, "--record")
+    govkit("evidence", "--target", target, "--feature", feature)
+    govkit("evidence", "--target", target, "--record", "--feature", feature, expected=2)
     assert [r["revision_digest"] for r in done["results"]] == [
         r["revision_digest"] for r in example["results"]
     ]
 
     govkit("evidence", "--target", target, "--feature", "nope", expected=2)
     govkit("evidence", "--target", target, "--json", expected=2)
-    print("  level-free: report, schema, fix-and-rerun and usage errors [bundled-example]")
+    print(
+        "  level-free: report, record, staleness, fix-and-rerun and usage errors [bundled-example]"
+    )
 
 
 def legacy_run(workspace: Path, example: dict) -> None:
@@ -131,7 +191,8 @@ def legacy_run(workspace: Path, example: dict) -> None:
     report = json.loads(
         govkit("evidence", "--target", target, "--feature", feature, "--json", expected=1)
     )
-    assert report == example, report
+    assert without_provenance(report) == without_provenance(example), report
+    assert report["provenance"]["state"] == "current", report["provenance"]
     print("  legacy level 4: the same report [bundled-example]")
 
 

@@ -202,5 +202,12 @@
       },
       "measurements": []
     }
-  ]
+  ],
+  "provenance": {
+    "state": "current",
+    "detail": "the commit and the working tree are as they were recorded",
+    "commit": "cccccccccccccccccccccccccccccccccccccccc",
+    "tree_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "recorded_at": "2026-11-24T12:00:00Z"
+  }
 }

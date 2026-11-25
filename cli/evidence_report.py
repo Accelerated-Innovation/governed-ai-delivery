@@ -25,8 +25,9 @@ is a rendering of it, and so is every later export. It is read-only and
 offline: it reads the feature file and the JUnit XML under the target and
 writes nothing, and starts no test run or evaluation. A `PASS` shows that every
 scenario has a passing test result and every criterion a passing score in the
-files found. It does not show which commit produced those files, or
-that a test asserts what its scenario says. See docs/EVIDENCE_REPORT.md.
+files found, and that an evidence record ties those files to the current
+commit and working tree. It does not show that the tests ran when the record
+says, or that a test asserts what its scenario says. See docs/EVIDENCE_REPORT.md.
 """
 
 from __future__ import annotations
@@ -34,7 +35,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from . import criterion_identity, evaluation_results, scenario_identity
+from . import criterion_identity, evaluation_results, evidence_record, scenario_identity
 from .evidence import SCENARIO_PROPERTY, CaseResult, Outcome, read_test_reports
 from .features import list_user_features
 from .schema_validation import DocumentError, parse_document
@@ -56,6 +57,11 @@ _DATA_FORM = (
     f"{CRITERIA} lists criteria in the data form (an id and a predicate in words), "
     "which is not compared yet"
 )
+_PROVENANCE = {
+    evidence_record.STALE: "stale",
+    evidence_record.UNRECORDED: "unrecorded",
+    evidence_record.UNAVAILABLE: "of unknown origin",
+}
 _NFR_NOTE = (
     "A passing @nfr scenario shows that its test passed. "
     "It does not show that the test asserts the value written in the scenario."
@@ -66,8 +72,11 @@ class SelectionError(ValueError):
     """`--feature` named no feature directory."""
 
 
-def build_report(target: Path, feature: str) -> dict:
-    """The canonical report for one feature. Raises `SelectionError`."""
+def build_report(target: Path, feature: str, *, observe=None) -> dict:
+    """The canonical report for one feature. Raises `SelectionError`.
+
+    `observe` identifies the working tree; it defaults to Git.
+    """
     directory = _select(target, feature)
     definition = directory / DEFINITION
     report = {
@@ -88,6 +97,7 @@ def build_report(target: Path, feature: str) -> dict:
         "summary": {"scenarios": 0, "criteria": 0, **{state: 0 for state in STATES}},
         "sources": [],
         "results": [],
+        "provenance": evidence_record.provenance(target, []),
     }
 
     def finish(outcome: Outcome, detail: str) -> dict:
@@ -148,7 +158,21 @@ def build_report(target: Path, feature: str) -> dict:
         measurements = [m for f in files for m in f.results]
         report["results"] += [_judge(criterion, measurements) for criterion in criteria]
     count()
-    return finish(*_outcome(report))
+    outcome, detail = _outcome(report)
+    report["provenance"] = evidence_record.provenance(target, report["sources"], observe=observe)
+    state = report["provenance"]["state"]
+    if outcome is not Outcome.ERROR and state not in (
+        evidence_record.CURRENT,
+        evidence_record.NOT_CHECKED,
+    ):
+        # The results may describe another commit or an earlier edit, so they
+        # do not count. What they said stays in the detail and in each result.
+        return finish(
+            Outcome.INCONCLUSIVE,
+            f"the results are {_PROVENANCE[state]}: {report['provenance']['detail']}. "
+            f"As found: {detail}",
+        )
+    return finish(outcome, detail)
 
 
 class _Unusable(Exception):
@@ -476,8 +500,14 @@ def render_text(report: dict) -> str:
         lines.append(f"\n{_NFR_NOTE}")
     if report["summary"]["owed"]:
         lines.append(f"\n{_OWED_NOTE}")
-    lines.append(
-        "\nThis reports the results found under the target. "
-        "Which commit produced them is not checked.\n"
-    )
+    provenance = report["provenance"]
+    if provenance["state"] == evidence_record.CURRENT:
+        lines.append(
+            f"\nThe results were recorded at {provenance['recorded_at']} from commit "
+            f"{provenance['commit'][:12]}, and the commit and working tree have not changed "
+            "since. A record can be rewritten without running the tests again; "
+            "the run that counts is CI on a clean checkout.\n"
+        )
+    else:
+        lines.append("")
     return "\n".join(lines)

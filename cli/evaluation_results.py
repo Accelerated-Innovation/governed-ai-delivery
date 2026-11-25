@@ -93,39 +93,52 @@ def _read_checked(path: Path, relative: str) -> bytes:
     with os.fdopen(descriptor, "rb") as handle:
         status = os.fstat(handle.fileno())
         if not stat.S_ISREG(status.st_mode):
-            raise _Refused(f"{relative} is not a regular file and was not read")
+            raise Refused(f"{relative} is not a regular file and was not read")
         # Not every platform can refuse a link at open. So the path is looked
         # at again: it must still be a plain file, and the same one as the
         # handle. Anything else means it was replaced, and the read is refused.
         named = path.lstat()
         if stat.S_ISLNK(named.st_mode) or not os.path.samestat(status, named):
-            raise _Refused(f"{relative} changed while it was being read and was not used")
+            raise Refused(f"{relative} changed while it was being read and was not used")
         data = handle.read(MAX_BYTES + 1)
     if status.st_size > MAX_BYTES or len(data) > MAX_BYTES:
-        raise _Refused(f"{relative} is larger than 5 MiB and was not read")
+        raise Refused(f"{relative} is larger than 5 MiB and was not read")
     return data
 
 
-def _read_file(path: Path, relative: str) -> ResultsFile:
-    """One results file. Raises `_Refused` with the reason it cannot be used."""
+def load_document(path: Path, relative: str, schema: str, what: str) -> tuple[dict, bytes]:
+    """A bounded, link-refusing, duplicate-refusing read of one JSON document.
+
+    Returns the validated document and its bytes. Raises `Refused` with the
+    reason it cannot be used. `what` names the kind of file in that reason.
+    """
     try:
         # The link check comes first, so a link is refused whatever it points
         # at. `lstat` does not follow it, and a file that is not regular (a
         # pipe would block on open) is refused without being opened.
         status = path.lstat()
         if stat.S_ISLNK(status.st_mode):
-            raise _Refused(f"{relative} is a symbolic link and was not read")
+            raise Refused(f"{relative} is a symbolic link and was not read")
         if not stat.S_ISREG(status.st_mode):
-            raise _Refused(f"{relative} is not a regular file and was not read")
+            raise Refused(f"{relative} is not a regular file and was not read")
         if status.st_size > MAX_BYTES:
-            raise _Refused(f"{relative} is larger than 5 MiB and was not read")
+            raise Refused(f"{relative} is larger than 5 MiB and was not read")
         data = _read_checked(path, relative)
         document = json.loads(
             data, parse_constant=_refuse_constant, object_pairs_hook=_refuse_duplicates
         )
         if not isinstance(document, dict):
             raise ValueError("the document is not an object")
-        validate_document(document, SCHEMA)
+        validate_document(document, schema)
+    except (OSError, ValueError, RecursionError, DocumentError) as exc:
+        raise Refused(f"{relative} is not a usable {what}: {exc}") from None
+    return document, data
+
+
+def _read_file(path: Path, relative: str) -> ResultsFile:
+    """One results file. Raises `Refused` with the reason it cannot be used."""
+    document, data = load_document(path, relative, SCHEMA, "evaluation results file")
+    try:
         results = tuple(
             Measurement(
                 requirement_id=item["requirement_id"],
@@ -138,27 +151,32 @@ def _read_file(path: Path, relative: str) -> ResultsFile:
             )
             for item in document["results"]
         )
-    except (OSError, ValueError, OverflowError, RecursionError, DocumentError) as exc:
-        raise _Refused(f"{relative} is not a usable evaluation results file: {exc}") from None
+    except OverflowError as exc:
+        raise Refused(f"{relative} is not a usable evaluation results file: {exc}") from None
     return ResultsFile(relative, hashlib.sha256(data).hexdigest(), results)
 
 
-class _Refused(Exception):
+class Refused(Exception):
     """A results file cannot be used. The message is the report's detail."""
+
+
+def find(target: Path) -> list[Path]:
+    """Every path under `target` that is named as an evaluation results file."""
+    found: list[Path] = []
+    for pattern in _GLOBS:
+        for path in sorted(target.glob(pattern)):
+            if path not in found:
+                found.append(path)
+    return found
 
 
 def read_results(target: Path) -> tuple[list[ResultsFile] | None, str | None]:
     """Every evaluation results file under `target`. Returns (files, error). Never raises."""
     files = []
-    seen: set[Path] = set()
     try:
-        for pattern in _GLOBS:
-            for path in sorted(target.glob(pattern)):
-                if path in seen:
-                    continue
-                seen.add(path)
-                files.append(_read_file(path, path.relative_to(target).as_posix()))
-    except _Refused as refused:
+        for path in find(target):
+            files.append(_read_file(path, path.relative_to(target).as_posix()))
+    except Refused as refused:
         return None, str(refused)
     except OSError as exc:
         return None, f"evaluation results could not be searched for: {exc}"
