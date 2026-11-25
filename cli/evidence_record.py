@@ -273,6 +273,23 @@ def junit_patterns(target: Path, loaded=None) -> tuple[str, ...] | None:
     return tuple(record["junit_patterns"]) if record and "junit_patterns" in record else None
 
 
+def _lost(target: Path, record: dict) -> str | None:
+    """Why a recorded result file no longer counts as present, or None.
+
+    A report reads what is there. Without this, deleting the one file that
+    holds a failure would leave the rest current.
+    """
+    for result in record["results"]:
+        path = result["path"]
+        try:
+            status = (target / path).lstat()
+        except OSError:
+            return f"{path} was removed after it was recorded; {_AGAIN}"
+        if not stat.S_ISREG(status.st_mode):
+            return f"{path} is no longer a regular file; {_AGAIN}"
+    return None
+
+
 def provenance(target: Path, sources: list[dict], *, observe=None, loaded=None) -> dict:
     """Whether the result files in `sources` belong to the repository as it is now.
 
@@ -288,14 +305,20 @@ def provenance(target: Path, sources: list[dict], *, observe=None, loaded=None) 
         "tree_digest": None,
         "recorded_at": None,
     }
-    if not sources:
-        return answer
 
     def settle(state: str, detail: str) -> dict:
         answer["state"], answer["detail"] = state, detail
         return answer
 
     record, error = loaded or load(target)
+    if not sources:
+        # Nothing was read. That is only "not checked" when no recorded file
+        # was lost; deleting every result file is still a removal.
+        lost = _lost(target, record) if record else None
+        if lost:
+            answer.update({key: record[key] for key in ("commit", "tree_digest", "recorded_at")})
+            return settle(STALE, lost)
+        return answer
     if error:
         return settle(UNAVAILABLE, error)
     if record is None:
@@ -311,15 +334,9 @@ def provenance(target: Path, sources: list[dict], *, observe=None, loaded=None) 
             return settle(STALE, f"{source['path']} was written after the record; {_AGAIN}")
         if recorded[source["path"]] != source["content_digest"]:
             return settle(STALE, f"{source['path']} changed after it was recorded; {_AGAIN}")
-    # A report reads what is there. Without this, deleting the one file that
-    # holds a failure would leave the rest current.
-    for path in recorded:
-        try:
-            status = (target / path).lstat()
-        except OSError:
-            return settle(STALE, f"{path} was removed after it was recorded; {_AGAIN}")
-        if not stat.S_ISREG(status.st_mode):
-            return settle(STALE, f"{path} is no longer a regular file; {_AGAIN}")
+    lost = _lost(target, record)
+    if lost:
+        return settle(STALE, lost)
     try:
         now = _observe(target, record["results"], observe)
     except tree_identity.Unavailable as exc:

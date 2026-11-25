@@ -97,7 +97,7 @@ def build_report(target: Path, feature: str, *, observe=None) -> dict:
         "summary": {"scenarios": 0, "criteria": 0, **{state: 0 for state in STATES}},
         "sources": [],
         "results": [],
-        "provenance": evidence_record.provenance(target, []),
+        "provenance": evidence_record.provenance(target, [], loaded=(None, None)),
     }
 
     def finish(outcome: Outcome, detail: str) -> dict:

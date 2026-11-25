@@ -501,3 +501,20 @@ class TestReviewOfTheStatedLocation:
             ]
             == "unavailable"
         )
+
+
+class TestEveryRecordedFileGone:
+    def test_losing_the_only_recorded_file_is_stale_not_unchecked(self, tmp_path):
+        _junit(tmp_path)
+        tree = Tree()
+        rec.write_record(tmp_path, observe=tree, now=NOW)
+        (tmp_path / "junit.xml").unlink()
+        answer = rec.provenance(tmp_path, _sources(tmp_path), observe=tree)
+        assert answer["state"] == "stale"
+        assert "junit.xml was removed" in answer["detail"]
+
+    @pytest.mark.parametrize("content", [None, "{"])
+    def test_no_result_and_no_usable_record_is_still_not_checked(self, tmp_path, content):
+        if content:
+            (tmp_path / rec.NAME).write_text(content, encoding="utf-8")
+        assert rec.provenance(tmp_path, [], observe=Tree())["state"] == "not-checked"
