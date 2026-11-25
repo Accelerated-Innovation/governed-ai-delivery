@@ -330,6 +330,56 @@ def definition_change(write, git, invoke, args, posture):
     assert codes(invoke(args, expected=1)) == ["definition-removed"]
 
 
+def protected_change(write, git, invoke, args, posture):
+    """A change may add tests; it may not alter existing tests or protected files (L06b)."""
+    target = Path(args[args.index("--target") + 1])
+    trusted = Path(args[args.index("--policy-target") + 1])
+    test, workflow = "tests/test_result.py", ".github/workflows/ci.yml"
+    body = "from src.service import result\n\n\ndef test_result():\n    assert result() == 42\n"
+    write(target, test, body)
+    write(target, workflow, "on: push\n")
+    git("add", ".")
+    git("commit", "-qm", "tests and a workflow")
+    args = list(args)
+    args[args.index("--base") + 1] = git("rev-parse", "HEAD")
+
+    def check(report):
+        return next((r for r in report["checks"]["results"] if r["id"] == "change:protected"), None)
+
+    def codes(report):
+        return sorted(f["code"] for f in check(report)["findings"] if f["category"] == "change")
+
+    write(target, test, body.replace("== 42", "is not None"))
+    assert check(invoke(args, expected=None)) is None, "no declaration, no check"
+
+    config = trusted / "conformance.json"
+    policy = json.loads(config.read_text())
+    policy["protected"] = {
+        "tests": ["tests"],
+        "files": [".github/workflows"],
+        "escape_markers": ["pytest.mark.skip"],
+    }
+    config.write_text(json.dumps(policy))
+    weakened = invoke(args, expected=1)
+    assert check(weakened)["state"] == "fail" and codes(weakened) == ["test-altered"]
+    posture(weakened, "protected")
+
+    write(target, test, body + "\n\ndef test_again():\n    assert result() == 42\n")
+    write(target, "tests/test_more.py", "def test_more():\n    assert True\n")
+    added = invoke(args, expected=None)
+    assert check(added)["state"] == "pass", check(added)
+
+    write(target, workflow, "on: workflow_dispatch\n")
+    write(
+        target,
+        "tests/test_more.py",
+        "import pytest\n\n\n@pytest.mark.skip\ndef test_more():\n    assert False\n",
+    )
+    assert codes(invoke(args, expected=1)) == ["escape-marker-added", "protected-file-changed"]
+    (target / test).unlink()
+    assert "test-removed" in codes(invoke(args, expected=1))
+
+
 if __name__ == "__main__":
     assert Path(change_conformance.__file__).is_relative_to(sys.prefix)
     example = json.loads((paths.GOVERNANCE_DIR / "examples/posture/change.json").read_text())
@@ -340,6 +390,8 @@ if __name__ == "__main__":
             run_pilot(Path(directory).resolve(), name)
     with tempfile.TemporaryDirectory(prefix="govkit-change-pilot-") as directory:
         run_pilot(Path(directory).resolve(), "enhancement", definition_change)
+    with tempfile.TemporaryDirectory(prefix="govkit-change-pilot-") as directory:
+        run_pilot(Path(directory).resolve(), "enhancement", protected_change)
     print(
-        "Eight actual-change pilots and the definition check: real outcomes, private posture, planned metadata preservation, source pointer integrity and protected publication verified."
+        "Eight actual-change pilots, the definition check and the protected-file check: real outcomes, private posture, planned metadata preservation, source pointer integrity and protected publication verified."
     )

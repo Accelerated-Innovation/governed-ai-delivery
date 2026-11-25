@@ -242,7 +242,55 @@ A finding does not say the edit made the definition worse. GovKit cannot tell a 
 
 A base file that cannot be identified gives `unknown` with `definition-not-compared`, never a pass. The check runs nothing and reads only the captured snapshot. A change that touches no definition file has no such check.
 
-Not covered yet: edits to existing tests, shared test support and other protected files. See ADR 0026.
+See ADR 0026. Existing tests and other files are covered by the next section.
+
+## A change cannot weaken the tests and files that check it
+
+A change could also pass by editing an existing test, a fixture, a test setting or the CI workflow, or by marking a test as skipped. GovKit cannot guess which paths these are, so the accepted conformance configuration declares them:
+
+```json
+"protected": {
+  "tests": ["tests"],
+  "files": ["tests/conftest.py", "pytest.ini", ".github/workflows", "known-failures.json"],
+  "escape_markers": ["pytest.mark.skip", "pytest.mark.xfail", "@wip"]
+}
+```
+
+The section is optional, and it is read from the trusted policy checkout, so the change being judged cannot edit it. When it is present, the report includes `change:protected`.
+
+| Key | Rule for an existing file | A new file |
+|---|---|---|
+| `tests` | It may only gain lines. Every line it had at the base must still be there, in the same order | Passes |
+| `files` | It may not change | Passes |
+
+A path under both follows `files`. Paths are literal and relative to the repository root; a folder covers everything under it.
+
+`escape_markers` are literal text. The number of times each appears in the files under `tests` and in feature definition files may fall and may not rise.
+
+| Code | Meaning |
+|---|---|
+| `test-altered` | An existing test file lost or changed a line |
+| `test-removed` | An existing test file was deleted |
+| `protected-file-changed` | An existing file under `files` changed |
+| `protected-file-removed` | An existing file under `files` was deleted |
+| `escape-marker-added` | A file has more of a declared marker than at the base, and the total rose |
+
+A finding means a person must look. It does not say the edit made a test worse.
+
+What to declare:
+
+- under `tests`, the folders that hold tests;
+- under `files`, shared fixtures and helpers, the test runner's settings, CI workflows, the known-failures record, and any datasets or rubrics an evaluation reads;
+- under `escape_markers`, the ways your runner skips or expects failure, and any pending tag you use in Gherkin.
+
+Limits to know:
+
+- A line inserted inside an existing test, such as an early return, keeps every earlier line and is not seen.
+- GovKit does not trace imports. A helper outside the declared paths is not protected.
+- A marker is counted as text, so a comment that mentions it counts.
+- Nothing is protected by default. Without the section there is no such check.
+
+See ADR 0027.
 
 ## Local/CI record and pilot
 

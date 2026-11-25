@@ -40,6 +40,7 @@ from .observation_policy import (
 )
 from .pack_loading import contained_file
 from .pack_store import locked_check_requirements
+from .protected_change import assess as assess_protected
 from .schema_validation import (
     DocumentError,
     canonical_json,
@@ -421,6 +422,38 @@ def _definition_check(change, proof):
     return CheckOutcome(state, Execution.EXECUTED, summary, findings, proof)
 
 
+_PROTECTED_ACTION = (
+    "A person must confirm the change to a protected file. Restore it, or have "
+    "the change accepted, and rerun conformance."
+)
+
+
+def _protected_check(declared, change, proof):
+    """Compare each changed test and protected file with its content at the base."""
+    if not change.complete:
+        return _outcome(
+            State.UNKNOWN,
+            "The change could not be captured completely, so protected files were not compared",
+            proof,
+            code="incomplete-scope",
+        )
+    assessed = assess_protected(declared, change.base_files, change.files, change.paths)
+    findings = tuple(
+        Finding(f.code, "error", "change", f.message, _PROTECTED_ACTION, f.path, proof)
+        for f in assessed.findings
+    )
+    if findings:
+        state, summary = State.FAIL, f"{len(findings)} protected file finding(s)"
+    else:
+        count = len(assessed.checked)
+        state = State.PASS
+        summary = (
+            f"{count} changed file{'' if count == 1 else 's'} under the declared paths; "
+            "no existing test lost a line, no protected file changed and no escape marker was added"
+        )
+    return CheckOutcome(state, Execution.EXECUTED, summary, findings, proof)
+
+
 def inspect_change(
     target: Path,
     request: NormalizedRequest,
@@ -688,6 +721,14 @@ def inspect_change(
             lambda _: _definition_check(change, proof),
             "A change may add to the definition it is judged by, not remove or alter it",
             scope=definitions,
+        )
+    if "protected" in policy:
+        # Present only when accepted policy declares it, so a configuration
+        # without the section reports what it always did.
+        add(
+            "change:protected",
+            lambda _: _protected_check(policy["protected"], change, proof),
+            "A change may add tests, not alter the tests and files that check it",
         )
     if (
         "review:architecture" in required

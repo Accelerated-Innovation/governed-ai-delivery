@@ -211,6 +211,49 @@
         }
       },
       "additionalProperties": false
+    },
+    "protected": {
+      "description": "Optional. What a change may not weaken, checked by `change:protected`. Paths are literal and relative to the repository root; a folder covers every file under it.",
+      "type": "object",
+      "properties": {
+        "tests": {
+          "description": "Test files and folders. A new file passes. An existing file may only gain lines.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "\\S"
+          },
+          "maxItems": 256,
+          "uniqueItems": true
+        },
+        "files": {
+          "description": "Test support, settings, CI workflows and other files. A new file passes. An existing file may not change. A path also under `tests` follows this rule.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "\\S"
+          },
+          "maxItems": 256,
+          "uniqueItems": true
+        },
+        "escape_markers": {
+          "description": "Literal text that takes a test out of the run, such as a skip marker. Its count in the files under `tests` and in feature definitions may not rise.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "\\S"
+          },
+          "maxItems": 64,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": [
