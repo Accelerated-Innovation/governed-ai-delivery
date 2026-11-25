@@ -206,7 +206,14 @@ def stated_location_run(workspace: Path, example: dict) -> None:
         govkit("evidence", "--target", target, "--feature", feature, "--json", expected=1)
     )
     assert report["provenance"]["state"] == "current", report["provenance"]
-    assert report["results"] == example["results"], "the same results, found where stated"
+    # The same verdicts as the example; only the file each test came from differs.
+    assert report["outcome"] == example["outcome"] and report["summary"] == example["summary"]
+    assert [(r["requirement_id"], r["outcome"]) for r in report["results"]] == [
+        (r["requirement_id"], r["outcome"]) for r in example["results"]
+    ], report["results"]
+    assert [s["path"] for s in report["sources"] if s["tool"] == "junit"] == [
+        "target/surefire-reports/TEST-com.example.RoutingTest.xml"
+    ]
 
     # A recorded result file that is deleted: what is left no longer counts.
     (reports / "TEST-com.example.RoutingTest.xml").unlink()
