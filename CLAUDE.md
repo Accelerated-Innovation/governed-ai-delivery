@@ -159,12 +159,20 @@ A change is rarely one file. Changing a schema means updating starter templates 
   - Every stated match must be JUnit XML inside the target. Recorded files are left out of the tree digest, so do not loosen this.
   - Check patterns when reading a record as well as when writing one.
   - Only JUnit XML is read, and binding is verified with pytest-bdd only. Do not claim another runner works without a real run.
-- **Not yet claimed.** The report cannot detect a removed scenario or criterion. That is L06.
+- **Not claimed here.** The report cannot detect a removed scenario or criterion. `change:definition` in change conformance does (ADR 0026).
 - **Keep aligned.** The three schemas, the bundled example (its report must equal the real output for its own inputs), the closed sets shared by `criterion_identity.py` and the schemas, `tests/test_evidence_report.py` and `tests/wheel_evidence_smoke.py`.
 
 ### Actual-change conformance
 
 `change_scope.py` captures bounded Git observations; `change_policy.py` reads accepted provider configuration; `change_architecture.py` measures scoped literal constraints; `change_defects.py` adapts existing eligibility/red-green execution. `change_conformance.py` recomputes request requirements and composes I04 checks. See ADR 0007 and `docs/CHANGE_CONFORMANCE.md`. Keep accepted policy outside the inspected tree, commands explicitly opted in, missing semantic/platform evidence unknown, and synthetic eight-pilot wheel coverage aligned. `artifact:experiment-record` maps assessor errors to FAIL and outstanding/unknown findings to UNKNOWN; `artifact:architecture-preflight` honors a declared outcome block. `migration.py` preserves legacy ownership and obligations; `maintenance.py` separately assesses release, resource, fit and CI facts.
+
+`definition_change.py` backs `change:definition` (ADR 0026): a change may add scenarios and criteria, and a removed or altered one, or a changed `Background` above an existing scenario, fails.
+
+- The check is added only when the change touches a feature definition file. Keep every other report byte-identical.
+- It is pure and reads the captured snapshot. It never judges whether an edit weakens; any change to what existed is a finding for a person.
+- `CODES` is a public contract: add, never rename. Messages hold no step text or values.
+- It reuses `scenario_identity.py` for identifiers and digests. Do not change that module for it.
+- Bound tests, test support and protected files are L06b and are not covered.
 
 ### Safe legacy migration
 

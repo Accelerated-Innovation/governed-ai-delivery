@@ -216,6 +216,34 @@ exit status does not distinguish every possible infrastructure failure from an
 assertion failure. Only the configured tests are evidenced; record assertions alone are
 not test execution. Broader changes escalate through request routing.
 
+## A change cannot weaken a feature's definition
+
+A feature is done when its scenarios pass and its criteria are met. A change could reach that by editing the scenarios or criteria instead of the code. When a change touches `features/<name>/acceptance.feature` or `features/<name>/eval_criteria.yaml`, the report includes `change:definition`, which compares each file with what it was at the base.
+
+What passes:
+
+- a new scenario, criterion or definition file;
+- a comment, reordering or reformatting that leaves the content the same. A number written another way (`1` and `1.0`) is the same; `1` and `true` are not.
+
+What fails, each with its own finding:
+
+| Code | Meaning |
+|---|---|
+| `scenario-removed` | A scenario that was at the base is gone, or was renamed without a `@scenario:` tag |
+| `scenario-altered` | Its steps, tags, title or examples changed |
+| `shared-steps-changed` | A `Background` above it was changed, added or removed, or it was moved under another |
+| `criterion-removed` | A criterion that was at the base is gone from its list |
+| `criterion-altered` | Its threshold, target or any other field changed |
+| `criteria-changed` | Something else in `eval_criteria.yaml` changed, or its criteria are not all named and its parsed content changed |
+| `definition-removed` | The file was deleted |
+| `definition-unreadable` | The file can no longer be identified or parsed |
+
+A finding does not say the edit made the definition worse. GovKit cannot tell a correction from a weakening, so any change to what existed needs a person. The message names the file and the scenario or criterion, and holds no step text or values.
+
+A base file that cannot be identified gives `unknown` with `definition-not-compared`, never a pass. The check runs nothing and reads only the captured snapshot. A change that touches no definition file has no such check.
+
+Not covered yet: edits to existing tests, shared test support and other protected files. See ADR 0026.
+
 ## Local/CI record and pilot
 
 `--json` emits `kind: change-results`, versioned by

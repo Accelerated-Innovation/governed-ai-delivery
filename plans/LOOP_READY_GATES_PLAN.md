@@ -141,7 +141,8 @@ Each increment is independently demonstrable and is tried in the pilot repositor
 | L03 | Feature selection, scenario identity and binding, JSON report | `evidence` | L02 | #259 |
 | L04 | Thresholds and measurements, with cost and authority classes | `evidence` | L03 | #261 |
 | L05 | Results must belong to the current commit and revision | `evidence` | L03 | #263 |
-| L06 | The definition and its tests cannot be weakened by the change they judge | `conform` | L03 | not opened |
+| L06a | Scenarios, shared steps and criteria cannot be weakened by the change they judge | `conform` | L03 | #267 |
+| L06b | Existing tests, test support and protected files cannot be weakened | `conform` | L06a | not opened |
 | L07 | Preconditions, the three-state verdict and `conform` integration | `conform` | L02–L06 | not opened |
 | L08 | CI templates use the feature-scoped checks | payload | L07 | not opened |
 | L09 | Push verification runs to the Product Definition Graph | CI step | L08, E1 | not opened |
@@ -205,6 +206,8 @@ Issue #152 should be rewritten around the verification run contract, or closed.
 ### L06 — The definition and its tests cannot be weakened by the change they judge
 
 A check on the actual Git diff, composed through `change_conformance.py`, which already captures it.
+
+Split on 2026-11-25. L06a covers scenarios, shared steps and criteria, which need no declaration from the project. L06b covers the rest, which needs the declarations described below.
 
 - **Scenarios.** In `acceptance.feature`, a change may add scenarios. Every scenario that existed at the comparison base must still exist with the same revision digest. A removed or altered scenario is a finding that needs a person.
 - **Shared steps.** A `Background` runs before every scenario it covers, and the revision digest does not include it. Any change to a `Background` that existed at the comparison base, at feature or `Rule` level, is a finding that needs a person. So is adding one above existing scenarios.
@@ -384,3 +387,5 @@ Version 0.1 planned L02 to L06 as additions to `govkit validate`, with a new fil
 | 2026-11-24 | L05 | #263: `govkit evidence --record` and the freshness check, a Git-based working tree digest that leaves out the result files, `provenance` in the report, ADR 0024. A stale result keeps its state and loses its authority. The plan's Section 5 treats stale as escalate; a stale local result needs a rerun, which L07 should treat as continue | Open the L06 issue |
 | 2026-11-25 | L05 | Delivered in #264 | Before L06, let a project say where its test results are (maintainer, 2026-11-25; the first runner to verify is Python) |
 | 2026-11-25 | — | #265: `govkit evidence --record --junit PATTERN`, kept in the record and read by the report, ADR 0025. Stated matches must be JUnit XML inside the target. Also closes a gap in L05: a recorded result file that was deleted left the rest current. Verified with a real pytest-bdd run; other runners are not verified, and TRX is not read | Open the L06 issue. Bind against other runners in L08 |
+| 2026-11-25 | — | #265 delivered in #266 | Start L06 |
+| 2026-11-25 | L06a | #267: `change:definition` in change conformance and the pure `definition_change.py`, ADR 0026. L06 was split: this half needs no project declaration. Criteria are compared by name, stricter than the graph's file digest. A file whose criteria are not all named is compared whole; no data-form rule is defined | Open L06b: bound tests, test support, protected files, declarations and escape markers. It needs a decision on where a level-free project declares paths |
