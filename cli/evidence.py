@@ -253,10 +253,24 @@ def _case_outcome(case: ET.Element) -> str:
     return "passed"
 
 
-def read_test_reports(target: Path) -> tuple[list[TestReport] | None, str | None]:
-    """Every JUnit test case under `target`. Returns (reports, error). Never raises."""
+def is_junit(data: bytes) -> bool:
+    """Whether `data` is XML whose root is a JUnit test suite or a set of them."""
+    try:
+        return ET.fromstring(data).tag in ("testsuite", "testsuites")
+    except (ET.ParseError, ValueError, RecursionError):
+        return False
+
+
+def read_test_reports(
+    target: Path, patterns=None
+) -> tuple[list[TestReport] | None, str | None]:
+    """Every JUnit test case under `target`. Returns (reports, error). Never raises.
+
+    `patterns` are where the project said its results are; they replace the
+    name rule. The caller has checked that they stay inside the target.
+    """
     reports = []
-    for path in _find(target, _JUNIT_GLOBS):
+    for path in _find(target, patterns or _JUNIT_GLOBS):
         try:
             data = path.read_bytes()
             root = ET.fromstring(data)

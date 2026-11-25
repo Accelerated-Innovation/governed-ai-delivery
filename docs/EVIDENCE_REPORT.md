@@ -53,7 +53,7 @@ The feature's "Working" outcome follows from the scenarios:
 | `FAIL` | A scenario or criterion failed and none errored | 1 |
 | `INCONCLUSIVE` | A scenario is skipped or missing, a criterion is missing or owed, the results are not recorded or are stale, or there is nothing to judge | 1 |
 
-A bad invocation exits 2: an unknown feature name, `--json` without `--feature`, `--fast-max-seconds` with `--feature`, or `--record` with `--feature` or `--json`.
+A bad invocation exits 2: an unknown feature name, `--json` without `--feature`, `--fast-max-seconds` with `--feature`, `--record` with `--feature` or `--json`, or `--junit` without `--record`.
 
 ## What a pass does not show
 
@@ -80,12 +80,38 @@ Run `govkit evidence --record` straight after the tests and evaluations. It writ
 
 It exits 1 and writes nothing when there are no result files or the working tree cannot be identified.
 
+### Where the test results are
+
+By default, test results are found by file name: `junit*.xml`, `*junit*.xml` and `test-results*.xml`, anywhere under the target. Many runners use other names. Say where yours writes its JUnit XML when you record:
+
+```bash
+govkit evidence --target . --record --junit 'target/surefire-reports/TEST-*.xml'
+govkit evidence --target . --feature 07_invoice_approval
+```
+
+- `--junit` is a pattern relative to the target, with forward slashes. `*` matches within a folder and `**` matches any depth of folders. Repeat the option for more than one place. Quote it so the shell does not expand it.
+- Stated patterns replace the search by file name. Evaluation results are still found by their name.
+- The record keeps the patterns and the report reads them from it, so you state the location once. `--junit` without `--record` exits 2.
+- Recording exits 1 and writes nothing when a pattern matches no file, matches a file that is not JUnit XML, or could match outside the target. A pattern must match test results only, because recorded result files are left out of the working tree digest.
+
+| Runner | Usual pattern |
+|---|---|
+| pytest with `--junit-xml=junit.xml` | none needed |
+| Maven Surefire | `target/surefire-reports/TEST-*.xml` |
+| Gradle | `build/test-results/test/TEST-*.xml` |
+| Jest with `jest-junit` | none needed (`junit.xml`) |
+| Go with `gotestsum --junit-file` | the path you gave |
+| .NET with a JUnit logger | the path you gave |
+
+Only JUnit XML is read. A .NET project needs a JUnit logger, because TRX is not read. Finding the files does not mean every scenario binds: that depends on the test names or the `govkit.scenario` property the runner writes (see "How a scenario is matched to a test" below). So far binding is verified with pytest-bdd only.
+
 ### Checking
 
 `govkit evidence --feature <name>` then counts results only when all of these hold:
 
 - a record exists;
 - every result file it reads is in the record with the same SHA-256;
+- every result file in the record is still there;
 - the commit is the one recorded;
 - the working tree digest is the one recorded.
 

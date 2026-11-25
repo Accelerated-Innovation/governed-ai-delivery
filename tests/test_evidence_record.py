@@ -248,7 +248,7 @@ class TestWritingSafely:
             {"tool": "junit", "path": f"junit-{n}.xml", "content_digest": "0" * 64}
             for n in range(5001)
         ]
-        monkeypatch.setattr(rec, "discover", lambda target: many)
+        monkeypatch.setattr(rec, "discover", lambda target, patterns=None: many)
         with pytest.raises(rec.RecordError) as error:
             rec.write_record(tmp_path, observe=Tree(), now=NOW)
         assert "too many" in str(error.value) or "5000" in str(error.value)
@@ -278,7 +278,7 @@ class TestRecordSize:
 
     def test_a_record_larger_than_the_reader_accepts_is_not_written(self, tmp_path, monkeypatch):
         _junit(tmp_path)
-        monkeypatch.setattr(rec, "discover", lambda target: self._many(1100))
+        monkeypatch.setattr(rec, "discover", lambda target, patterns=None: self._many(1100))
         with pytest.raises(rec.RecordError) as error:
             rec.write_record(tmp_path, observe=Tree(), now=NOW)
         assert "larger" in str(error.value)
@@ -286,7 +286,7 @@ class TestRecordSize:
 
     def test_a_large_record_within_the_limit_is_written_and_read_back(self, tmp_path, monkeypatch):
         _junit(tmp_path)
-        monkeypatch.setattr(rec, "discover", lambda target: self._many(700))
+        monkeypatch.setattr(rec, "discover", lambda target, patterns=None: self._many(700))
         written = rec.write_record(tmp_path, observe=Tree(), now=NOW)
         size = (tmp_path / rec.NAME).stat().st_size
         assert 4 * 1024 * 1024 < size <= rec.evaluation_results.MAX_BYTES, size
@@ -304,3 +304,161 @@ def test_a_record_has_unix_line_endings(tmp_path):
     _junit(tmp_path)
     rec.write_record(tmp_path, observe=Tree(), now=NOW)
     assert b"\r" not in (tmp_path / rec.NAME).read_bytes()
+
+
+SUREFIRE = "target/surefire-reports/TEST-com.example.RoutingTest.xml"
+SUREFIRE_BODY = (
+    '<?xml version="1.0" encoding="UTF-8"?>'
+    '<testsuite name="com.example.RoutingTest" tests="1" errors="0" skipped="0" failures="0">'
+    '<testcase name="routesAnInvoice" classname="com.example.RoutingTest" time="0.01"/>'
+    "</testsuite>"
+)
+
+
+class TestARemovedResultFile:
+    """Deleting the file that holds a failure must not leave the rest current."""
+
+    def test_a_recorded_file_that_is_gone_is_stale(self, tmp_path):
+        _junit(tmp_path)
+        _junit(tmp_path, name="junit-failing.xml")
+        tree = Tree()
+        rec.write_record(tmp_path, observe=tree, now=NOW)
+        (tmp_path / "junit-failing.xml").unlink()
+        answer = rec.provenance(tmp_path, _sources(tmp_path), observe=tree)
+        assert answer["state"] == "stale"
+        assert "junit-failing.xml was removed" in answer["detail"]
+
+    def test_a_recorded_file_the_report_did_not_read_may_stay(self, tmp_path):
+        """A feature with no criteria reads no evaluation results; they are still there."""
+        _junit(tmp_path)
+        (tmp_path / "govkit-eval-results.json").write_text("{}", encoding="utf-8")
+        tree = Tree()
+        rec.write_record(tmp_path, observe=tree, now=NOW)
+        only_junit = [s for s in _sources(tmp_path) if s["tool"] == "junit"]
+        assert rec.provenance(tmp_path, only_junit, observe=tree)["state"] == "current"
+
+
+class TestAStatedLocation:
+    """`--junit`: a project says where its test results are, once, when it records them."""
+
+    def test_a_pattern_finds_results_the_name_rule_does_not(self, tmp_path):
+        _junit(tmp_path, name=SUREFIRE, body=SUREFIRE_BODY)
+        assert rec.discover(tmp_path) == []
+        record = rec.write_record(
+            tmp_path, junit=["target/surefire-reports/TEST-*.xml"], observe=Tree(), now=NOW
+        )
+        assert [r["path"] for r in record["results"]] == [SUREFIRE]
+        assert record["junit_patterns"] == ["target/surefire-reports/TEST-*.xml"]
+        validate_document(record, rec.SCHEMA)
+        assert rec.read_record(tmp_path) == record
+
+    def test_patterns_replace_the_name_rule(self, tmp_path):
+        _junit(tmp_path, name=SUREFIRE, body=SUREFIRE_BODY)
+        _junit(tmp_path, name="node_modules/pkg/junit.xml")
+        record = rec.write_record(tmp_path, junit=["target/**/*.xml"], observe=Tree(), now=NOW)
+        assert [r["path"] for r in record["results"]] == [SUREFIRE]
+
+    def test_evaluation_results_are_still_found_by_name(self, tmp_path):
+        _junit(tmp_path, name=SUREFIRE, body=SUREFIRE_BODY)
+        (tmp_path / "govkit-eval-results.json").write_text("{}", encoding="utf-8")
+        record = rec.write_record(tmp_path, junit=["target/**/*.xml"], observe=Tree(), now=NOW)
+        assert [r["tool"] for r in record["results"]] == ["evaluation-results", "junit"]
+
+    def test_without_a_pattern_the_record_is_as_before(self, tmp_path):
+        _junit(tmp_path)
+        record = rec.write_record(tmp_path, observe=Tree(), now=NOW)
+        assert "junit_patterns" not in record
+        assert rec.junit_patterns(tmp_path) is None
+
+    def test_the_report_can_read_the_patterns_back(self, tmp_path):
+        _junit(tmp_path, name=SUREFIRE, body=SUREFIRE_BODY)
+        rec.write_record(tmp_path, junit=["target/**/*.xml"], observe=Tree(), now=NOW)
+        assert rec.junit_patterns(tmp_path) == ("target/**/*.xml",)
+
+    def test_no_record_or_an_unusable_one_states_no_location(self, tmp_path):
+        assert rec.junit_patterns(tmp_path) is None
+        (tmp_path / rec.NAME).write_text("{", encoding="utf-8")
+        assert rec.junit_patterns(tmp_path) is None
+
+    def test_a_file_that_is_not_junit_xml_is_refused(self, tmp_path):
+        """Recorded result files are left out of the tree digest. A pattern must
+        not be able to hide a source file from the freshness check that way."""
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "app.py").write_text("print('hi')\n", encoding="utf-8")
+        (tmp_path / "src" / "config.xml").write_text("<settings/>", encoding="utf-8")
+        for pattern in ("src/*.py", "src/*.xml"):
+            with pytest.raises(rec.RecordError) as error:
+                rec.write_record(tmp_path, junit=[pattern], observe=Tree(), now=NOW)
+            assert "is not JUnit XML" in str(error.value)
+        assert not (tmp_path / rec.NAME).exists()
+
+    def test_a_pattern_that_matches_nothing_is_refused(self, tmp_path):
+        _junit(tmp_path, name=SUREFIRE, body=SUREFIRE_BODY)
+        with pytest.raises(rec.RecordError) as error:
+            rec.write_record(
+                tmp_path, junit=["target/**/*.xml", "build/**/*.xml"], observe=Tree(), now=NOW
+            )
+        assert "build/**/*.xml" in str(error.value) and "matched no file" in str(error.value)
+        assert not (tmp_path / rec.NAME).exists()
+
+    @pytest.mark.parametrize(
+        "pattern",
+        ["", "/abs/*.xml", "../other/*.xml", "a/../../b.xml", "a\\b.xml", "C:/x/*.xml", "a/**b/*.xml", "x" * 513],
+    )  # fmt: skip
+    def test_a_pattern_that_cannot_stay_inside_the_target_is_refused(self, tmp_path, pattern):
+        _junit(tmp_path)
+        with pytest.raises(rec.RecordError) as error:
+            rec.write_record(tmp_path, junit=[pattern], observe=Tree(), now=NOW)
+        assert "--junit" in str(error.value)
+        assert not (tmp_path / rec.NAME).exists()
+
+    def test_too_many_patterns_are_refused(self, tmp_path):
+        _junit(tmp_path)
+        with pytest.raises(rec.RecordError):
+            rec.write_record(
+                tmp_path,
+                junit=[f"a{n}/*.xml" for n in range(rec.MAX_PATTERNS + 1)],
+                observe=Tree(),
+                now=NOW,
+            )
+
+    def test_the_pattern_limit_matches_the_schema(self):
+        from cli import paths
+
+        schema = json.loads(
+            (paths.GOVERNANCE_DIR / "schemas/evidence-record.schema.json").read_text("utf-8")
+        )
+        patterns = schema["properties"]["junit_patterns"]
+        assert patterns["maxItems"] == rec.MAX_PATTERNS
+        assert patterns["items"]["maxLength"] == rec.MAX_PATTERN_LENGTH
+
+    def test_a_match_reached_through_a_link_out_of_the_target_is_refused(self, tmp_path):
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "r.xml").write_text("<testsuite/>", encoding="utf-8")
+        target = tmp_path / "project"
+        target.mkdir()
+        (target / "reports").symlink_to(outside, target_is_directory=True)
+        with pytest.raises(rec.RecordError) as error:
+            rec.write_record(target, junit=["reports/*.xml"], observe=Tree(), now=NOW)
+        assert "outside the target" in str(error.value)
+
+    def test_a_record_whose_patterns_leave_the_target_is_not_usable(self, tmp_path):
+        """A hand-edited record is read with the same rules it was written with."""
+        _junit(tmp_path, name=SUREFIRE, body=SUREFIRE_BODY)
+        tree = Tree()
+        record = rec.write_record(tmp_path, junit=["target/**/*.xml"], observe=tree, now=NOW)
+        record["junit_patterns"] = ["../elsewhere/*.xml"]
+        (tmp_path / rec.NAME).write_text(json.dumps(record), encoding="utf-8")
+        with pytest.raises(rec.RecordError):
+            rec.read_record(tmp_path)
+        sources = rec.discover(tmp_path, ["target/**/*.xml"])
+        assert rec.provenance(tmp_path, sources, observe=tree)["state"] == "unavailable"
+
+    def test_a_new_file_at_the_stated_location_is_stale(self, tmp_path):
+        _junit(tmp_path, name=SUREFIRE, body=SUREFIRE_BODY)
+        tree = Tree()
+        rec.write_record(tmp_path, junit=["target/**/*.xml"], observe=tree, now=NOW)
+        _junit(tmp_path, name="target/surefire-reports/TEST-Other.xml", body=SUREFIRE_BODY)
+        sources = rec.discover(tmp_path, rec.junit_patterns(tmp_path))
+        assert rec.provenance(tmp_path, sources, observe=tree)["state"] == "stale"

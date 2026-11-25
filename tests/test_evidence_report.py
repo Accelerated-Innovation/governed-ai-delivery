@@ -890,3 +890,49 @@ class TestProvenance:
         text = er.render_text(_report(_passing_project(tmp_path), record=False))
         assert "INCONCLUSIVE" in text
         assert "govkit evidence --record" in text
+
+
+class TestAStatedLocation:
+    """The report searches where the record says the test results are."""
+
+    ELSEWHERE = "build/reports/results.xml"
+
+    def _recorded(self, tmp_path) -> Path:
+        target = _project(tmp_path)
+        (target / "build" / "reports").mkdir(parents=True)
+        _junit(target, [("test_x", "pass", s) for s in (BY_ID, OUTLINE)], name=self.ELSEWHERE)
+        evidence_record.write_record(
+            target, junit=["build/reports/*.xml"], observe=_tree, now=RECORDED
+        )
+        return target
+
+    def test_results_under_another_name_are_missing_without_a_stated_location(self, tmp_path):
+        target = _project(tmp_path)
+        (target / "build" / "reports").mkdir(parents=True)
+        _junit(target, [("test_x", "pass", BY_ID)], name=self.ELSEWHERE)
+        report = _report(target)
+        assert report["sources"] == []
+        assert _result(report, BY_ID)["outcome"] == "missing"
+
+    def test_the_report_reads_the_location_from_the_record(self, tmp_path):
+        report = er.build_report(self._recorded(tmp_path), FEATURE, observe=_tree)
+        assert [s["path"] for s in report["sources"]] == [self.ELSEWHERE]
+        assert report["provenance"]["state"] == "current"
+        assert _result(report, BY_ID)["outcome"] == "passed"
+
+    def test_a_file_the_name_rule_would_find_is_not_read(self, tmp_path):
+        target = self._recorded(tmp_path)
+        _junit(target, [("test_x", "fail", BY_ID)], name="node_modules-junit.xml")
+        report = er.build_report(target, FEATURE, observe=_tree)
+        assert [s["path"] for s in report["sources"]] == [self.ELSEWHERE]
+
+    def test_a_removed_result_file_is_stale(self, tmp_path):
+        target = self._recorded(tmp_path)
+        _junit(target, [("test_y", "fail", BY_ID)], name="build/reports/more.xml")
+        evidence_record.write_record(
+            target, junit=["build/reports/*.xml"], observe=_tree, now=RECORDED
+        )
+        (target / "build/reports/more.xml").unlink()
+        report = er.build_report(target, FEATURE, observe=_tree)
+        assert report["provenance"]["state"] == "stale"
+        assert report["outcome"] == "INCONCLUSIVE"

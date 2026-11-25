@@ -178,6 +178,45 @@ def level_free_run(workspace: Path, example: dict) -> None:
     )
 
 
+def stated_location_run(workspace: Path, example: dict) -> None:
+    """Results under a name the default search does not match, as Maven writes them."""
+    target = workspace / "stated-location"
+    feature = example["feature"]["name"]
+    example_project(target, feature)
+    reports = target / "target" / "surefire-reports"
+    reports.mkdir(parents=True)
+    (target / "junit.xml").rename(reports / "TEST-com.example.RoutingTest.xml")
+    (target / "govkit-evidence-record.json").unlink()
+    by_name = json.loads(
+        govkit("evidence", "--target", target, "--feature", feature, "--json", expected=1)
+    )
+    assert [s["tool"] for s in by_name["sources"]] == ["evaluation-results"], by_name["sources"]
+
+    pattern = "target/surefire-reports/TEST-*.xml"
+    govkit("evidence", "--target", target, "--record", "--junit", "target/*.xml", expected=1)
+    govkit("evidence", "--target", target, "--record", "--junit", "features/**/*", expected=1)
+    govkit("evidence", "--target", target, "--record", "--junit", "../*.xml", expected=1)
+    assert not (target / "govkit-evidence-record.json").exists(), "a refused record was written"
+    govkit("evidence", "--target", target, "--junit", pattern, expected=2)
+    govkit("evidence", "--target", target, "--record", "--junit", pattern)
+    record = json.loads((target / "govkit-evidence-record.json").read_text(encoding="utf-8"))
+    validate_document(record, "evidence-record")
+    assert record["junit_patterns"] == [pattern], record
+    report = json.loads(
+        govkit("evidence", "--target", target, "--feature", feature, "--json", expected=1)
+    )
+    assert report["provenance"]["state"] == "current", report["provenance"]
+    assert report["results"] == example["results"], "the same results, found where stated"
+
+    # A recorded result file that is deleted: what is left no longer counts.
+    (reports / "TEST-com.example.RoutingTest.xml").unlink()
+    gone = json.loads(
+        govkit("evidence", "--target", target, "--feature", feature, "--json", expected=1)
+    )
+    assert gone["provenance"]["state"] == "stale", gone["provenance"]
+    print("  stated location: refused patterns, record, report and a removed file [synthetic]")
+
+
 def legacy_run(workspace: Path, example: dict) -> None:
     """A legacy level 4 install gives the same report; the marker is not used."""
     target = workspace / "legacy"
@@ -200,6 +239,7 @@ def main():
     example = bundled_contract()
     with tempfile.TemporaryDirectory() as folder:
         level_free_run(Path(folder), example)
+        stated_location_run(Path(folder), example)
         legacy_run(Path(folder), example)
     print("wheel evidence smoke: OK")
 

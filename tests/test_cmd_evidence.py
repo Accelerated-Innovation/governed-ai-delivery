@@ -20,6 +20,7 @@ def _args(
     feature: str | None = None,
     json: bool = False,
     record: bool = False,
+    junit: list[str] | None = None,
 ):
     return argparse.Namespace(
         target=str(target),
@@ -27,6 +28,7 @@ def _args(
         feature=feature,
         json=json,
         record=record,
+        junit=junit,
     )
 
 
@@ -289,6 +291,43 @@ class TestFeatureReport:
         code, _, err = self._run(capsys, tmp_path, record=True)
         assert code == 1
         assert "no result files" in err
+
+    def _elsewhere(self, target: Path) -> None:
+        """The feature's results under a name the default search does not match."""
+        self._feature(target, record=False)
+        (target / "build").mkdir()
+        (target / "junit.xml").rename(target / "build" / "results.xml")
+
+    def test_a_stated_location_is_recorded_and_then_used_by_the_report(self, tmp_path, capsys):
+        self._elsewhere(tmp_path)
+        code, out, _ = self._run(capsys, tmp_path, feature="01_first")
+        assert code == 1 and "missing" in out
+        code, out, _ = self._run(capsys, tmp_path, record=True, junit=["build/*.xml"])
+        assert code == 0
+        assert "build/results.xml" in out and "build/*.xml" in out
+        code, out, _ = self._run(capsys, tmp_path, feature="01_first")
+        assert code == 0, out
+
+    def test_a_pattern_that_matches_no_test_results_exits_one(self, tmp_path, capsys):
+        self._elsewhere(tmp_path)
+        code, _, err = self._run(capsys, tmp_path, record=True, junit=["reports/*.xml"])
+        assert code == 1
+        assert "matched no file" in err
+
+    @pytest.mark.parametrize("extra", [{}, {"feature": "01_first"}])
+    def test_a_location_is_stated_only_when_recording(self, tmp_path, capsys, extra):
+        self._elsewhere(tmp_path)
+        code, out, err = self._run(capsys, tmp_path, junit=["build/*.xml"], **extra)
+        assert code == 2
+        assert out == ""
+        assert "--junit needs --record" in err
+
+    def test_the_option_is_repeatable(self):
+        parser = argparse.ArgumentParser()
+        register(parser.add_subparsers())
+        args = parser.parse_args(["evidence", "--record", "--junit", "a/*.xml", "--junit", "b/*.xml"])
+        assert args.junit == ["a/*.xml", "b/*.xml"]
+        assert parser.parse_args(["evidence"]).junit is None
 
     @pytest.mark.parametrize("extra", [{"feature": "01_first"}, {"json": True}])
     def test_record_is_its_own_step(self, tmp_path, capsys, extra):

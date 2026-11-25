@@ -124,7 +124,7 @@ def build_report(target: Path, feature: str, *, observe=None) -> dict:
     except scenario_identity.IdentityError as refused:
         return finish(Outcome.ERROR, f"{DEFINITION} cannot be identified: {refused.reason}")
 
-    reports, error = read_test_reports(target)
+    reports, error = read_test_reports(target, evidence_record.junit_patterns(target))
     if error:
         return finish(Outcome.ERROR, error)
     report["sources"] = [
