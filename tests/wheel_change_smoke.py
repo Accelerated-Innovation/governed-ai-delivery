@@ -30,7 +30,7 @@ PILOTS = (
 OBSERVED = {"experiment": "2026-11-10T00:00:00Z"}
 
 
-def run_pilot(workspace, name):
+def run_pilot(workspace, name, then=None):
     root = paths.GOVERNANCE_DIR / "examples"
     fixture = json.loads((root / "change-conformance/consumer.json").read_text())
     target, trusted = workspace / "consumer", workspace / "policy"
@@ -272,8 +272,8 @@ def run_pilot(workspace, name):
         next(r for r in failed["checks"]["results"] if r["id"] == failed_check)["state"] == "fail"
     )
     posture(failed, "failed")
-    if name == "enhancement":
-        definition_change(write, git, invoke, args, posture)
+    if then is not None:
+        then(write, git, invoke, args, posture)
 
 
 FEATURE = """Feature: Result
@@ -338,6 +338,8 @@ if __name__ == "__main__":
         with tempfile.TemporaryDirectory(prefix="govkit-change-pilot-") as directory:
             # The create-only writer rejects symlink parents, including macOS /var.
             run_pilot(Path(directory).resolve(), name)
+    with tempfile.TemporaryDirectory(prefix="govkit-change-pilot-") as directory:
+        run_pilot(Path(directory).resolve(), "enhancement", definition_change)
     print(
         "Eight actual-change pilots and the definition check: real outcomes, private posture, planned metadata preservation, source pointer integrity and protected publication verified."
     )
