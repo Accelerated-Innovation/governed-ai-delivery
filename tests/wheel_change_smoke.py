@@ -62,7 +62,8 @@ def run_pilot(workspace, name):
             text=True,
             env=env,
         )
-        assert result.returncode == expected, (name, result.stdout, result.stderr)
+        if expected is not None:
+            assert result.returncode == expected, (name, result.stdout, result.stderr)
         return json.loads(result.stdout)
 
     invoke(["pack", "apply", "--target", str(trusted), "--json"])
@@ -271,6 +272,62 @@ def run_pilot(workspace, name):
         next(r for r in failed["checks"]["results"] if r["id"] == failed_check)["state"] == "fail"
     )
     posture(failed, "failed")
+    if name == "enhancement":
+        definition_change(write, git, invoke, args, posture)
+
+
+FEATURE = """Feature: Result
+
+  Background:
+    Given the service is running
+
+  @scenario:result-value
+  Scenario: The result is the answer
+    When the result is requested
+    Then it is 42
+"""
+CRITERIA = "criteria:\n  - name: result-latency\n    threshold: 0.9\n"
+
+
+def definition_change(write, git, invoke, args, posture):
+    """A change may add to a feature's definition; it may not remove or alter it (L06a)."""
+    target = Path(args[args.index("--target") + 1])
+    acceptance = "features/01_result/acceptance.feature"
+    criteria = "features/01_result/eval_criteria.yaml"
+    write(target, acceptance, FEATURE)
+    write(target, criteria, CRITERIA)
+    git("add", ".")
+    git("commit", "-qm", "a feature definition")
+    args = list(args)
+    args[args.index("--base") + 1] = git("rev-parse", "HEAD")
+
+    def check(report):
+        return next(r for r in report["checks"]["results"] if r["id"] == "change:definition")
+
+    def codes(report):
+        return sorted(f["code"] for f in check(report)["findings"] if f["category"] == "change")
+
+    write(target, "src/service.py", "def result():\n    return 42\n\n# touched\n")
+    untouched = invoke(args, expected=None)
+    assert all(r["id"] != "change:definition" for r in untouched["checks"]["results"])
+
+    write(target, acceptance, FEATURE + "\n  Scenario: Another\n    Then it is still 42\n")
+    write(target, criteria, CRITERIA + "  - name: result-accuracy\n    threshold: 1\n")
+    added = invoke(args, expected=None)
+    assert check(added)["state"] == "pass", check(added)
+
+    write(target, acceptance, FEATURE.replace("it is 42", "it is a number"))
+    write(target, criteria, CRITERIA.replace("0.9", "0.1"))
+    weakened = invoke(args, expected=1)
+    assert check(weakened)["state"] == "fail", check(weakened)
+    assert codes(weakened) == ["criterion-altered", "scenario-altered"], check(weakened)
+    posture(weakened, "definition")
+
+    write(target, acceptance, FEATURE.replace("the service is running", "nothing"))
+    write(target, criteria, CRITERIA)
+    assert codes(invoke(args, expected=1)) == ["shared-steps-changed"]
+    (target / acceptance).unlink()
+    assert codes(invoke(args, expected=1)) == ["definition-removed"]
 
 
 if __name__ == "__main__":
@@ -282,5 +339,5 @@ if __name__ == "__main__":
             # The create-only writer rejects symlink parents, including macOS /var.
             run_pilot(Path(directory).resolve(), name)
     print(
-        "Eight actual-change pilots: real outcomes, private posture, planned metadata preservation, source pointer integrity and protected publication verified."
+        "Eight actual-change pilots and the definition check: real outcomes, private posture, planned metadata preservation, source pointer integrity and protected publication verified."
     )

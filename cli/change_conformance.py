@@ -27,6 +27,8 @@ from .check_models import (
     State,
 )
 from .check_runner import CheckRegistry, CheckReport, parse_report, run_checks
+from .definition_change import assess as assess_definitions
+from .definition_change import definition_paths
 from .experiment_store import MAX_DOCUMENT_BYTES, RECORD_NAME, assess_feature
 from .experiments import ERROR, parse_preflight_outcome
 from .observation_policy import (
@@ -382,6 +384,43 @@ def _artifact_check(identifier, references, request, proof, test_check):
     return check
 
 
+_DEFINITION_ACTION = (
+    "A person must confirm the change to the definition. Restore what was removed "
+    "or altered, or have the changed definition accepted, and rerun conformance."
+)
+
+
+def _definition_check(change, proof):
+    """Compare each changed feature definition with its content at the base."""
+    if not change.complete:
+        return _outcome(
+            State.UNKNOWN,
+            "The change could not be captured completely, so definitions were not compared",
+            proof,
+            code="incomplete-scope",
+        )
+    assessed = assess_definitions(change.base_files, change.files, change.paths)
+    findings = tuple(
+        Finding(f.code, "error", "change", f.message, _DEFINITION_ACTION, f.path, proof)
+        for f in assessed.findings
+    ) + tuple(
+        Finding("definition-not-compared", "warning", "change", reason, _DEFINITION_ACTION,
+                None, proof)
+        for reason in assessed.unknown
+    )  # fmt: skip
+    count = len(definition_paths(change.paths))
+    files = f"{count} definition file{'' if count == 1 else 's'}"
+    if assessed.findings:
+        state = State.FAIL
+        summary = f"{len(assessed.findings)} existing requirement(s) removed or altered in {files}"
+    elif assessed.unknown:
+        state, summary = State.UNKNOWN, f"{len(assessed.unknown)} of {files} could not be compared"
+    else:
+        state = State.PASS
+        summary = f"{files} changed; nothing that existed at the base was removed or altered"
+    return CheckOutcome(state, Execution.EXECUTED, summary, findings, proof)
+
+
 def inspect_change(
     target: Path,
     request: NormalizedRequest,
@@ -640,6 +679,16 @@ def inspect_change(
         architecture,
         "Measure current and scoped target constraints across repository scope",
     )
+    definitions = definition_paths(change.paths)
+    if definitions:
+        # Present only when the change touches a feature definition, so a
+        # change that touches none reports what it always did.
+        add(
+            "change:definition",
+            lambda _: _definition_check(change, proof),
+            "A change may add to the definition it is judged by, not remove or alter it",
+            scope=definitions,
+        )
     if (
         "review:architecture" in required
         and "review:architecture" not in commands

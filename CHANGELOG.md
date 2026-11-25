@@ -61,6 +61,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   - The report gains a `provenance` block.
   - The target must be inside a Git repository.
   - See ADR 0024.
+- **Definition check in change conformance (#267).** When a change touches a
+  feature's `acceptance.feature` or `eval_criteria.yaml`, `govkit conform
+  --request` adds `change:definition`.
+  - Adding scenarios and criteria passes.
+  - Removing or altering an existing scenario, a `Background` above one, or an
+    existing criterion fails, with one finding each.
+  - A change that touches no definition file has the same report as before.
+  - See ADR 0026 and [docs/CHANGE_CONFORMANCE.md](docs/CHANGE_CONFORMANCE.md).
 - **Stated test result location (#265).** `govkit evidence --record --junit
   PATTERN` says where a project's JUnit XML is, for runners that do not use
   the default file names (Maven and Gradle write `TEST-*.xml`).
