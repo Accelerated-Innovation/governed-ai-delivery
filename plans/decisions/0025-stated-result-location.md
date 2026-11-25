@@ -14,11 +14,12 @@ Reading the freshness check for this change also showed a gap in ADR 0024. A res
 
 1. **The location is stated when recording.** `govkit evidence --record --junit PATTERN` takes one or more patterns, relative to the target. `--junit` without `--record` is a bad invocation.
 2. **Stated patterns replace the name rule** for test results. Evaluation results keep their GovKit name. Without `--junit` nothing changes, and the record is byte-identical to before.
-3. **The record keeps the patterns**, as the optional `junit_patterns`, and the feature report reads them from there. The location is stated once, and the record and the report cannot search different places. The schema stays at version 1; an older GovKit refuses a record that has the field, which reads as `unavailable`.
+3. **The record keeps the patterns**, as the optional `junit_patterns`, and the feature report reads them from there. The report takes no location option, so the record and the report cannot search different places. Each record replaces the last, so the patterns are given every time results are recorded; a record written without them goes back to the name rule. The report reads the record once and uses that one reading both to select files and to judge them. The schema stays at version 1; an older GovKit refuses a record that has the field, which reads as `unavailable`.
 4. **A pattern cannot leave the target.** It is relative, uses forward slashes, has no `..` and uses `**` only as a whole folder name. A match reached through a link out of the target is refused. The same rules apply when a record is read, so an edited record cannot widen them.
 5. **A pattern matches JUnit XML only.** Every file matched by a stated pattern must be XML whose root is `testsuite` or `testsuites`, or nothing is recorded. Recorded result files are left out of the working tree digest (ADR 0024, decision 5), so a pattern that matched a source file would hide that file's edits from the freshness check.
 6. **A pattern that matches nothing is an error**, not an empty result. It is most likely a mistyped path.
-7. **A recorded result file that is gone makes the results stale.** This holds with or without `--junit`.
+7. **A recorded result file that is gone, or is no longer a regular file, makes the results stale.** This holds with or without `--junit`.
+8. **The report reads nothing outside the target on a record's word.** A stated folder replaced by a link out of the target is an error.
 
 ## Alternatives considered
 

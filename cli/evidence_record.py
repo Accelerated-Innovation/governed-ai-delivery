@@ -251,25 +251,35 @@ def read_record(target: Path) -> dict | None:
     return document
 
 
-def junit_patterns(target: Path) -> tuple[str, ...] | None:
+def load(target: Path) -> tuple[dict | None, str | None]:
+    """One reading of the record: (record, error). Both None when there is none.
+
+    A report selects its files and judges them against the same reading, so a
+    record written meanwhile cannot vouch for files it did not select.
+    """
+    try:
+        return read_record(target), None
+    except RecordError as exc:
+        return None, str(exc)
+
+
+def junit_patterns(target: Path, loaded=None) -> tuple[str, ...] | None:
     """Where the record says the test results are, or None for the name rule.
 
     None also when there is no usable record: `provenance` reports that, and
     the results do not count either way.
     """
-    try:
-        record = read_record(target)
-    except RecordError:
-        return None
+    record, _ = loaded or load(target)
     return tuple(record["junit_patterns"]) if record and "junit_patterns" in record else None
 
 
-def provenance(target: Path, sources: list[dict], *, observe=None) -> dict:
+def provenance(target: Path, sources: list[dict], *, observe=None, loaded=None) -> dict:
     """Whether the result files in `sources` belong to the repository as it is now.
 
     `sources` are the result files a report read, each with `path` and
     `content_digest`. The answer is a dictionary for the report; its `state` is
-    one of `STATES`. Never raises.
+    one of `STATES`. Never raises. `loaded` is a reading of the record from
+    `load`; without it the record is read now.
     """
     answer = {
         "state": NOT_CHECKED,
@@ -285,10 +295,9 @@ def provenance(target: Path, sources: list[dict], *, observe=None) -> dict:
         answer["state"], answer["detail"] = state, detail
         return answer
 
-    try:
-        record = read_record(target)
-    except RecordError as exc:
-        return settle(UNAVAILABLE, str(exc))
+    record, error = loaded or load(target)
+    if error:
+        return settle(UNAVAILABLE, error)
     if record is None:
         return settle(
             UNRECORDED,
@@ -305,8 +314,12 @@ def provenance(target: Path, sources: list[dict], *, observe=None) -> dict:
     # A report reads what is there. Without this, deleting the one file that
     # holds a failure would leave the rest current.
     for path in recorded:
-        if not os.path.lexists(target / path):
+        try:
+            status = (target / path).lstat()
+        except OSError:
             return settle(STALE, f"{path} was removed after it was recorded; {_AGAIN}")
+        if not stat.S_ISREG(status.st_mode):
+            return settle(STALE, f"{path} is no longer a regular file; {_AGAIN}")
     try:
         now = _observe(target, record["results"], observe)
     except tree_identity.Unavailable as exc:

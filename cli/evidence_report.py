@@ -124,7 +124,8 @@ def build_report(target: Path, feature: str, *, observe=None) -> dict:
     except scenario_identity.IdentityError as refused:
         return finish(Outcome.ERROR, f"{DEFINITION} cannot be identified: {refused.reason}")
 
-    reports, error = read_test_reports(target, evidence_record.junit_patterns(target))
+    loaded = evidence_record.load(target)
+    reports, error = read_test_reports(target, evidence_record.junit_patterns(target, loaded))
     if error:
         return finish(Outcome.ERROR, error)
     report["sources"] = [
@@ -159,7 +160,9 @@ def build_report(target: Path, feature: str, *, observe=None) -> dict:
         report["results"] += [_judge(criterion, measurements) for criterion in criteria]
     count()
     outcome, detail = _outcome(report)
-    report["provenance"] = evidence_record.provenance(target, report["sources"], observe=observe)
+    report["provenance"] = evidence_record.provenance(
+        target, report["sources"], observe=observe, loaded=loaded
+    )
     state = report["provenance"]["state"]
     if outcome is not Outcome.ERROR and state not in (
         evidence_record.CURRENT,

@@ -91,7 +91,7 @@ govkit evidence --target . --feature 07_invoice_approval
 
 - `--junit` is a pattern relative to the target, with forward slashes. `*` matches within a folder and `**` matches any depth of folders. Repeat the option for more than one place. Quote it so the shell does not expand it.
 - Stated patterns replace the search by file name. Evaluation results are still found by their name.
-- The record keeps the patterns and the report reads them from it, so you state the location once. `--junit` without `--record` exits 2.
+- The record keeps the patterns and the report reads them from it, so the report needs no option. Give the patterns every time you record: a record written without `--junit` replaces the last one and goes back to the search by file name. `--junit` without `--record` exits 2.
 - Recording exits 1 and writes nothing when a pattern matches no file, matches a file that is not JUnit XML, or could match outside the target. A pattern must match test results only, because recorded result files are left out of the working tree digest.
 
 | Runner | Usual pattern |
@@ -111,7 +111,7 @@ Only JUnit XML is read. A .NET project needs a JUnit logger, because TRX is not 
 
 - a record exists;
 - every result file it reads is in the record with the same SHA-256;
-- every result file in the record is still there;
+- every result file in the record is still there, as a regular file;
 - the commit is the one recorded;
 - the working tree digest is the one recorded.
 
@@ -125,7 +125,7 @@ Only JUnit XML is read. A .NET project needs a JUnit logger, because TRX is not 
 
 When results do not count, each scenario and criterion still shows what the results said, and the detail repeats it after "As found". A stale failure is still worth reading. An `ERROR` stays an `ERROR`.
 
-The fix is always the same: run the tests, then `govkit evidence --record`, then the report.
+The fix is always the same: run the tests, then `govkit evidence --record`, then the report. If you recorded with `--junit`, give the same patterns again: each record replaces the last, and one written without `--junit` goes back to the search by file name.
 
 ### What the working tree digest covers
 

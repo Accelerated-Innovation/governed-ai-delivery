@@ -936,3 +936,24 @@ class TestAStatedLocation:
         report = er.build_report(target, FEATURE, observe=_tree)
         assert report["provenance"]["state"] == "stale"
         assert report["outcome"] == "INCONCLUSIVE"
+
+
+class TestReviewOfTheStatedLocation:
+    def test_the_record_is_read_once(self, tmp_path, monkeypatch):
+        target = TestAStatedLocation()._recorded(tmp_path)
+        calls = []
+        real = evidence_record.read_record
+        monkeypatch.setattr(evidence_record, "read_record", lambda t: calls.append(t) or real(t))
+        report = er.build_report(target, FEATURE, observe=_tree)
+        assert report["provenance"]["state"] == "current"
+        assert len(calls) == 1
+
+    def test_a_stated_folder_replaced_by_a_link_out_of_the_target_is_not_read(self, tmp_path):
+        target = TestAStatedLocation()._recorded(tmp_path / "project")
+        outside = tmp_path / "outside"
+        (target / "build" / "reports").rename(outside)
+        (target / "build" / "reports").symlink_to(outside, target_is_directory=True)
+        report = er.build_report(target, FEATURE, observe=_tree)
+        assert report["outcome"] == "ERROR"
+        assert "outside the target" in report["detail"]
+        assert report["sources"] == []

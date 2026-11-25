@@ -462,3 +462,42 @@ class TestAStatedLocation:
         _junit(tmp_path, name="target/surefire-reports/TEST-Other.xml", body=SUREFIRE_BODY)
         sources = rec.discover(tmp_path, rec.junit_patterns(tmp_path))
         assert rec.provenance(tmp_path, sources, observe=tree)["state"] == "stale"
+
+
+class TestReviewOfTheStatedLocation:
+    def test_a_folder_in_a_recorded_files_place_is_stale(self, tmp_path):
+        _junit(tmp_path)
+        _junit(tmp_path, name="junit-failing.xml")
+        tree = Tree()
+        rec.write_record(tmp_path, observe=tree, now=NOW)
+        (tmp_path / "junit-failing.xml").unlink()
+        (tmp_path / "junit-failing.xml").mkdir()
+        answer = rec.provenance(tmp_path, _sources(tmp_path), observe=tree)
+        assert answer["state"] == "stale"
+        assert "junit-failing.xml is no longer a regular file" in answer["detail"]
+
+    def test_provenance_judges_the_record_it_is_given(self, tmp_path):
+        """The report selects files and checks them against one reading of the record."""
+        _junit(tmp_path)
+        tree = Tree()
+        rec.write_record(tmp_path, observe=tree, now=NOW)
+        loaded = rec.load(tmp_path)
+        sources = _sources(tmp_path)
+        _junit(tmp_path, body="<testsuite tests='9'/>")
+        rec.write_record(tmp_path, observe=tree, now=NOW)  # a second record, written meanwhile
+        changed = _sources(tmp_path)
+        assert rec.provenance(tmp_path, changed, observe=tree)["state"] == "current"
+        assert rec.provenance(tmp_path, changed, observe=tree, loaded=loaded)["state"] == "stale"
+        assert rec.provenance(tmp_path, sources, observe=tree, loaded=loaded)["state"] == "current"
+
+    def test_load_keeps_no_record_and_an_unusable_one_apart(self, tmp_path):
+        assert rec.load(tmp_path) == (None, None)
+        (tmp_path / rec.NAME).write_text("{", encoding="utf-8")
+        record, error = rec.load(tmp_path)
+        assert record is None and rec.NAME in error
+        assert (
+            rec.provenance(tmp_path, [{"path": "x", "content_digest": "0"}], loaded=(None, error))[
+                "state"
+            ]
+            == "unavailable"
+        )
