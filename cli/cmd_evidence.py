@@ -47,13 +47,19 @@ def cmd_evidence(args: argparse.Namespace) -> None:
 
     feature = getattr(args, "feature", None)
     as_json = getattr(args, "json", False)
+    junit = getattr(args, "junit", None) or []
     if getattr(args, "record", False):
         if feature is not None or as_json:
             _usage_error(
                 "--record is its own step, run straight after the tests. "
                 "Run it without --feature or --json, then run the report."
             )
-        _record(target)
+        _record(target, junit)
+    if junit:
+        _usage_error(
+            "--junit needs --record. The record keeps where the test results are, "
+            "and the report reads it from there."
+        )
     if feature is not None:
         _feature_report(target, feature, as_json, args.fast_max_seconds)
     if as_json:
@@ -85,16 +91,18 @@ def _usage_error(message: str) -> None:
     sys.exit(2)
 
 
-def _record(target: Path) -> None:
+def _record(target: Path, junit: list[str]) -> None:
     """Write the evidence record: the one file this command writes."""
     try:
-        record = evidence_record.write_record(target)
+        record = evidence_record.write_record(target, junit=junit)
     except evidence_record.RecordError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
     print(f"\ngovkit evidence — recorded {len(record['results'])} result file(s)\n")
     for result in record["results"]:
         print(f"  {result['path']}")
+    if junit:
+        print("\n  Test results were searched for at: " + ", ".join(junit))
     tree = "matches the commit" if record["clean"] else "has uncommitted changes"
     print(
         f"\n  Commit {record['commit'][:12]}; the working tree {tree}."
@@ -155,6 +163,18 @@ def register(subparsers) -> None:
             "Run straight after the tests. Writes govkit-evidence-record.json with the "
             "commit, a digest of the working tree and each result file's digest. "
             "--feature counts results only while that record still holds."
+        ),
+    )
+    p.add_argument(
+        "--junit",
+        metavar="PATTERN",
+        action="append",
+        default=None,
+        help=(
+            "With --record, where the JUnit XML test results are, as a pattern "
+            "relative to the target, such as 'target/surefire-reports/TEST-*.xml'. "
+            "Repeatable. Replaces the default search by file name; the report "
+            "reads the patterns from the record."
         ),
     )
     p.add_argument(

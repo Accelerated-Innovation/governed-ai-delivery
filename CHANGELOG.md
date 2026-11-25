@@ -61,6 +61,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   - The report gains a `provenance` block.
   - The target must be inside a Git repository.
   - See ADR 0024.
+- **Stated test result location (#265).** `govkit evidence --record --junit
+  PATTERN` says where a project's JUnit XML is, for runners that do not use
+  the default file names (Maven and Gradle write `TEST-*.xml`).
+  - The record keeps the patterns and `--feature` reads them from it.
+  - A pattern must stay inside the target and match JUnit XML only.
+  - A recorded result file that was deleted now makes the results stale.
+    Before, the remaining results still counted.
+  - See ADR 0025.
   - Without `--feature`, output and exit status are unchanged.
   - See [docs/EVIDENCE_REPORT.md](docs/EVIDENCE_REPORT.md) and ADR 0022.
 

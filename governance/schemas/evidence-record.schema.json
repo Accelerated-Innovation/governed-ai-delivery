@@ -40,6 +40,17 @@
       "type": "string",
       "format": "date-time"
     },
+    "junit_patterns": {
+      "description": "Where the project said its JUnit XML results are, given as `--junit` when the record was written. Each is a pattern relative to the target, with forward slashes. Present only when given; the report then searches these instead of the default file names.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      }
+    },
     "results": {
       "type": "array",
       "maxItems": 5000,

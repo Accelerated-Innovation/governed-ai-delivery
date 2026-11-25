@@ -155,6 +155,10 @@ A change is rarely one file. Changing a schema means updating starter templates 
   - An unusable record is `unavailable`, never `unrecorded`.
   - A record is an observation, not proof that tests ran. Do not describe a local `PASS` as a gate.
   - Tests pass a stand-in `observe`; `tests/test_tree_identity.py` uses real Git.
+- **Result location.** `--record --junit PATTERN` replaces the default file-name search for test results; the record keeps the patterns and the report reads them from it. See ADR 0025.
+  - Every stated match must be JUnit XML inside the target. Recorded files are left out of the tree digest, so do not loosen this.
+  - Check patterns when reading a record as well as when writing one.
+  - Only JUnit XML is read, and binding is verified with pytest-bdd only. Do not claim another runner works without a real run.
 - **Not yet claimed.** The report cannot detect a removed scenario or criterion. That is L06.
 - **Keep aligned.** The three schemas, the bundled example (its report must equal the real output for its own inputs), the closed sets shared by `criterion_identity.py` and the schemas, `tests/test_evidence_report.py` and `tests/wheel_evidence_smoke.py`.
 

@@ -890,3 +890,70 @@ class TestProvenance:
         text = er.render_text(_report(_passing_project(tmp_path), record=False))
         assert "INCONCLUSIVE" in text
         assert "govkit evidence --record" in text
+
+
+class TestAStatedLocation:
+    """The report searches where the record says the test results are."""
+
+    ELSEWHERE = "build/reports/results.xml"
+
+    def _recorded(self, tmp_path) -> Path:
+        target = _project(tmp_path)
+        (target / "build" / "reports").mkdir(parents=True)
+        _junit(target, [("test_x", "pass", s) for s in (BY_ID, OUTLINE)], name=self.ELSEWHERE)
+        evidence_record.write_record(
+            target, junit=["build/reports/*.xml"], observe=_tree, now=RECORDED
+        )
+        return target
+
+    def test_results_under_another_name_are_missing_without_a_stated_location(self, tmp_path):
+        target = _project(tmp_path)
+        (target / "build" / "reports").mkdir(parents=True)
+        _junit(target, [("test_x", "pass", BY_ID)], name=self.ELSEWHERE)
+        report = _report(target)
+        assert report["sources"] == []
+        assert _result(report, BY_ID)["outcome"] == "missing"
+
+    def test_the_report_reads_the_location_from_the_record(self, tmp_path):
+        report = er.build_report(self._recorded(tmp_path), FEATURE, observe=_tree)
+        assert [s["path"] for s in report["sources"]] == [self.ELSEWHERE]
+        assert report["provenance"]["state"] == "current"
+        assert _result(report, BY_ID)["outcome"] == "passed"
+
+    def test_a_file_the_name_rule_would_find_is_not_read(self, tmp_path):
+        target = self._recorded(tmp_path)
+        _junit(target, [("test_x", "fail", BY_ID)], name="node_modules-junit.xml")
+        report = er.build_report(target, FEATURE, observe=_tree)
+        assert [s["path"] for s in report["sources"]] == [self.ELSEWHERE]
+
+    def test_a_removed_result_file_is_stale(self, tmp_path):
+        target = self._recorded(tmp_path)
+        _junit(target, [("test_y", "fail", BY_ID)], name="build/reports/more.xml")
+        evidence_record.write_record(
+            target, junit=["build/reports/*.xml"], observe=_tree, now=RECORDED
+        )
+        (target / "build/reports/more.xml").unlink()
+        report = er.build_report(target, FEATURE, observe=_tree)
+        assert report["provenance"]["state"] == "stale"
+        assert report["outcome"] == "INCONCLUSIVE"
+
+
+class TestReviewOfTheStatedLocation:
+    def test_the_record_is_read_once(self, tmp_path, monkeypatch):
+        target = TestAStatedLocation()._recorded(tmp_path)
+        calls = []
+        real = evidence_record.read_record
+        monkeypatch.setattr(evidence_record, "read_record", lambda t: calls.append(t) or real(t))
+        report = er.build_report(target, FEATURE, observe=_tree)
+        assert report["provenance"]["state"] == "current"
+        assert len(calls) == 1
+
+    def test_a_stated_folder_replaced_by_a_link_out_of_the_target_is_not_read(self, tmp_path):
+        target = TestAStatedLocation()._recorded(tmp_path / "project")
+        outside = tmp_path / "outside"
+        (target / "build" / "reports").rename(outside)
+        (target / "build" / "reports").symlink_to(outside, target_is_directory=True)
+        report = er.build_report(target, FEATURE, observe=_tree)
+        assert report["outcome"] == "ERROR"
+        assert "outside the target" in report["detail"]
+        assert report["sources"] == []
