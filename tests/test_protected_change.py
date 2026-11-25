@@ -146,3 +146,28 @@ class TestDeclaration:
             "protected-file-removed",
             "escape-marker-added",
         )
+
+
+class TestReview:
+    def test_a_line_appended_without_a_final_newline_is_an_addition(self):
+        assert _assess({TEST: "assert True\n"}, {TEST: "assert True\nassert other"}).findings == ()
+
+    def test_a_removed_blank_line_is_still_a_change(self):
+        assert _codes(_assess({TEST: "a\n\nb\n"}, {TEST: "a\nb\n"})) == [("test-altered", TEST)]
+
+    def _modes(self, path, before, after):
+        data = {path: b"#!/bin/sh\nrun\n"}
+        return pc.assess(
+            DECLARED, data, data, [path], base_modes={path: before}, modes={path: after}
+        )
+
+    def test_a_mode_change_to_a_protected_file_is_a_finding(self):
+        path = ".github/workflows/run.sh"
+        assert _codes(self._modes(path, "100755", "100644")) == [("protected-file-changed", path)]
+        assert self._modes(path, "100755", "100755").findings == ()
+
+    def test_a_mode_change_to_an_existing_test_is_a_finding(self):
+        path = "tests/run_all.sh"
+        result = self._modes(path, "100755", "100644")
+        assert _codes(result) == [("test-altered", path)]
+        assert "mode" in result.findings[0].message

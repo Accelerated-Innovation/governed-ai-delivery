@@ -437,7 +437,14 @@ def _protected_check(declared, change, proof):
             proof,
             code="incomplete-scope",
         )
-    assessed = assess_protected(declared, change.base_files, change.files, change.paths)
+    assessed = assess_protected(
+        declared,
+        change.base_files,
+        change.files,
+        change.paths,
+        base_modes=change.base_file_modes,
+        modes=change.file_modes,
+    )
     findings = tuple(
         Finding(f.code, "error", "change", f.message, _PROTECTED_ACTION, f.path, proof)
         for f in assessed.findings

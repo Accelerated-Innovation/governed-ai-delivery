@@ -263,7 +263,7 @@ The section is optional, and it is read from the trusted policy checkout, so the
 | `tests` | It may only gain lines. Every line it had at the base must still be there, in the same order | Passes |
 | `files` | It may not change | Passes |
 
-A path under both follows `files`. Paths are literal and relative to the repository root; a folder covers everything under it.
+A path under both follows `files`. A changed file mode, such as a lost executable bit, counts as a change to an existing file under either rule. Paths are literal and relative to the repository root; a folder covers everything under it.
 
 `escape_markers` are literal text. The number of times each appears in the files under `tests` and in feature definition files may fall and may not rise.
 

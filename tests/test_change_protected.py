@@ -103,3 +103,11 @@ def test_the_report_with_the_check_is_a_valid_replayable_document(tmp_path):
     write(target, WORKFLOW, "on: workflow_dispatch\n")
     report = inspect(target, trusted, base)
     assert parse_change_report(report.document).document == report.document
+
+
+def test_a_mode_change_alone_is_seen_through_the_engine(tmp_path):
+    target, trusted, base = _project(tmp_path)
+    (target / WORKFLOW).chmod(0o755)
+    assert _found(result(inspect(target, trusted, base), CHECK).outcome) == [
+        ("protected-file-changed", WORKFLOW)
+    ]

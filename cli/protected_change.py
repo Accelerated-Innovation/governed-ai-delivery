@@ -82,7 +82,11 @@ def _lines(data: bytes) -> list[str] | None:
         text = data.decode("utf-8")
     except UnicodeDecodeError:
         return None
-    return text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    # A final line ending is not one more, empty, line. Blank lines are kept.
+    if lines and lines[-1] == "":
+        lines.pop()
+    return lines
 
 
 def _only_gained_lines(before: bytes, after: bytes) -> bool:
@@ -99,8 +103,16 @@ def assess(
     base_files: Mapping[str, bytes],
     files: Mapping[str, bytes],
     changed: Iterable[str],
+    *,
+    base_modes: Mapping[str, str] | None = None,
+    modes: Mapping[str, str] | None = None,
 ) -> Assessment:
-    """Compare each changed protected file with its content at the comparison base."""
+    """Compare each changed protected file with its content at the comparison base.
+
+    `base_modes` and `modes` are Git file modes by path. A changed mode, such
+    as a lost executable bit, is a change to an existing file under either rule.
+    """
+    base_modes, modes = base_modes or {}, modes or {}
     tests = tuple(declared.get("tests", ()))
     fixed = tuple(declared.get("files", ()))
     checked, findings = [], []
@@ -115,6 +127,9 @@ def assess(
         if after is None:
             code = "protected-file-removed" if strict else "test-removed"
             what = "was deleted by this change"
+        elif base_modes.get(path) != modes.get(path):
+            code = "protected-file-changed" if strict else "test-altered"
+            what = "had its file mode changed"
         elif strict and before != after:
             code, what = "protected-file-changed", "is protected and was changed"
         elif not strict and not _only_gained_lines(before, after):
