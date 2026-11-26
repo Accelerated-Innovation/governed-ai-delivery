@@ -24,7 +24,9 @@ INPUTS = {
     "pack_arguments": "Optional absolute path to explicit check argument JSON",
     "observed_at": "Optional explicit observation time for deterministic replay",
 }
-OPTIONAL = {"pack_arguments", "observed_at", "change_output"}
+OPTIONAL = {"pack_arguments", "observed_at", "change_output", "feature_output"}
+# Added to the inputs only when the settings ask for touched features to be judged.
+FEATURE_OUTPUT = "Optional new feature answers artifact outside both checkouts"
 SCRIPT = """case "$GOVKIT_PYTHON" in
   /*) ;;
   *) printf '%s\\n' 'GOVKIT_PYTHON must be an absolute path' >&2; exit 1 ;;
@@ -51,6 +53,8 @@ class PipelineSettings:
     govkit_version: str
     execute_checks: tuple[str, ...]
     admission: dict | None = None
+    # "changed" judges every feature the change touches; None judges none.
+    features: str | None = None
 
     @property
     def document(self):
@@ -59,6 +63,7 @@ class PipelineSettings:
             "govkit_version": self.govkit_version,
             "execute_checks": list(self.execute_checks),
             **({"admission": deepcopy(self.admission)} if self.admission is not None else {}),
+            **({"features": self.features} if self.features is not None else {}),
         }
 
 
@@ -82,6 +87,7 @@ def parse_settings(document):
         document["govkit_version"],
         tuple(sorted(document["execute_checks"])),
         deepcopy(document.get("admission")),
+        document.get("features"),
     )
 
 
@@ -114,6 +120,9 @@ def render_pipeline(catalog, settings):
                 "change_output": "Optional new change-results artifact outside both checkouts",
             }
         )
+    if settings.features is not None:
+        binding["features"] = settings.features
+        inputs["feature_output"] = FEATURE_OUTPUT
     encoded = base64.b64encode(canonical_json(binding).encode()).decode("ascii")
     if len(encoded) > 65536:
         raise DocumentError("Pipeline binding is too large for the runtime input boundary")

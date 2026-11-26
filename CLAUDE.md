@@ -192,6 +192,14 @@ A change is rarely one file. Changing a schema means updating starter templates 
 - **Public contract.** `CODES`, the states and the exit codes (0, 1, 3; 2 for a run that could not start): add, never rename.
 - **Keep aligned.** The schema, the bundled example (it must replay through `parse_feature_verdict`), `tests/test_feature_verdict.py`, `tests/test_change_verdict.py` and the `feature_answer` pilot in `tests/wheel_change_smoke.py`.
 
+`inspect_change(changed_features=True)` judges every feature the captured change touches in one run (ADR 0030). The generated pipeline turns it on with the setting `"features": "changed"`.
+
+- **Off by default.** Without the setting, the rendered file, its inputs, the binding and the results are byte-identical; the paired goldens must not change.
+- **Named checks.** Each judged feature gets `evidence:feature[<name>]` and `feature:<identifier>[<name>]`. A single `--feature NAME` run keeps the unnamed forms. `_SCOPED` is the one place that reads the form.
+- **Selection is the engine's.** It comes from `change.paths`. Do not add a caller input that lists or narrows features.
+- **The record stays.** Standard output is the change-results record and the exit status is 0 or 1. Answers go to the optional `feature_output` file as one `govkit.feature-verdicts` document and to standard error. There is no overall state across features.
+- **Keep aligned.** `feature-verdicts.schema.json` reuses the reason, state and exit definitions of `feature-verdict.schema.json`; the bundled `feature-verdicts.json` must replay through `parse_feature_verdicts`; `tests/test_change_verdicts.py`, `tests/test_pipeline_features.py` and `feature_pilot` in `tests/wheel_pipeline_smoke.py` (both providers).
+
 `feature_artifacts.py` adds the feature artifact checks of `govkit validate` to a `--feature` run, chosen by the accepted profile and not a level (ADR 0029).
 
 - **Selection.** `gherkin-delivery` selects the level 4 checks and `llm-evaluation` adds the level 5 checks, each as `feature:<identifier>` for the selected feature only. Without `gherkin-delivery` nothing is added.

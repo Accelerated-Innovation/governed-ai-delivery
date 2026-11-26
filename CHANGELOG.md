@@ -73,6 +73,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     report and the change results.
   - Without `--feature`, output and exit status are unchanged.
   - See ADR 0028 and [docs/CHANGE_CONFORMANCE.md](docs/CHANGE_CONFORMANCE.md).
+- **A generated pipeline can judge the features a change touches (#277).**
+  `"features": "changed"` in the pipeline settings makes the generated entry
+  point judge every touched feature in its one engine run.
+  - Each feature gets its own checks, named `evidence:feature[<name>]` and
+    `feature:<identifier>[<name>]`, and its own done, continue or escalate
+    answer.
+  - Standard output is still the change-results record and the exit status is
+    still 0 or 1. A new optional `feature_output` input names a file for the
+    answers (`govkit.feature-verdicts`).
+  - Without the setting, generated files and results are unchanged.
+  - See ADR 0030 and [docs/PIPELINE_GENERATION.md](docs/PIPELINE_GENERATION.md).
 - **Evidence for the features a change touches (#275).** `govkit evidence
   --changed-since <base>` reports every feature with a changed file between the
   base commit and the working tree, and exits 0 only when each passed.

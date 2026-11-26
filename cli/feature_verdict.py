@@ -132,15 +132,16 @@ class Check:
     errored: bool = False
 
 
-def decide(evidence: dict, checks) -> dict:
+def decide(evidence: dict, checks, *, evidence_check: str = EVIDENCE_CHECK) -> dict:
     """The state of the feature `evidence` reports on, with every reason.
 
-    `checks` are `Check` values for the whole run. The evidence check among
-    them is read through `evidence`, so a failed scenario is reported once.
+    `checks` are `Check` values for the run. The evidence check among them,
+    named by `evidence_check`, is read through `evidence`, so a failed scenario
+    is reported once.
     """
     found: dict[str, list[dict]] = {code: [] for code in CODES}
 
-    def add(code: str, check: str = EVIDENCE_CHECK, requirements=(), **values) -> None:
+    def add(code: str, check: str = evidence_check, requirements=(), **values) -> None:
         count = len(requirements)
         items = "requirement" if count == 1 else "requirements"
         values = {"check": check, "count": count, "items": items, **values}
@@ -181,7 +182,7 @@ def decide(evidence: dict, checks) -> dict:
         add("evidence-inconclusive", detail=evidence["detail"])
 
     for check in sorted(checks, key=lambda c: c.id):
-        if check.id == EVIDENCE_CHECK:
+        if check.id == evidence_check:
             continue
         if check.state == "fail":
             add(_CHANGE_CHECKS.get(check.id, "check-failed"), check=check.id)
