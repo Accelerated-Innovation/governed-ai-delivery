@@ -189,7 +189,16 @@ A change is rarely one file. Changing a schema means updating starter templates 
 - **The evidence is read before any check runs.** A command `conform` executes must not supply the results it is judged by.
 - **Not a gate.** `evidence:feature` passes on result files as a local check. Do not describe a local done as proof that tests ran, or as approval.
 - **Public contract.** `CODES`, the states and the exit codes (0, 1, 3; 2 for a run that could not start): add, never rename.
-- **Keep aligned.** The schema, the bundled example (it must replay through `parse_feature_verdict`), `tests/test_feature_verdict.py`, `tests/test_change_verdict.py` and the `feature_answer` pilot in `tests/wheel_change_smoke.py`. The feature artifact checks of `govkit validate` are not part of the answer until L07b.
+- **Keep aligned.** The schema, the bundled example (it must replay through `parse_feature_verdict`), `tests/test_feature_verdict.py`, `tests/test_change_verdict.py` and the `feature_answer` pilot in `tests/wheel_change_smoke.py`.
+
+`feature_artifacts.py` adds the feature artifact checks of `govkit validate` to a `--feature` run, chosen by the accepted profile and not a level (ADR 0029).
+
+- **Selection.** `gherkin-delivery` selects the level 4 checks and `llm-evaluation` adds the level 5 checks, each as `feature:<identifier>` for the selected feature only. Without `gherkin-delivery` nothing is added.
+- **Reuse, do not copy.** The check functions and identifiers come from `validate._named_checks`. Do not change `govkit validate` output for this path; `check_eval_criteria`'s `schema` argument is optional for that reason.
+- **Untrusted files.** `unsafe()` refuses a link, a non-regular file or a file over 1 MiB in the feature directory before any `validate` check reads it. Keep that guard ahead of every check.
+- **The forecast.** `feature:eval-prediction` is advisory and always unknown. Do not make it required: no feature could then be done.
+- **The schema.** Chosen by the profile's `repository.project_type` and read from the bundled schemas, never from the inspected tree. Unset or unknown is unknown; do not add a default or detect it from the file.
+- **Not yet.** A whole-repository run with the known-failures record (L08), and the other items of #220.
 
 ### Safe legacy migration
 

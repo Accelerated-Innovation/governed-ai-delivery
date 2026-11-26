@@ -25,7 +25,7 @@ def git(target, *args):
     ).stdout.strip()
 
 
-def setup(tmp_path, *, llm=False, transitions=(), extra_checks=()):
+def setup(tmp_path, *, llm=False, transitions=(), extra_checks=(), project_type=None):
     target, trusted = tmp_path / "consumer", tmp_path / "trusted-policy"
     target.mkdir()
     trusted.mkdir()
@@ -37,6 +37,8 @@ def setup(tmp_path, *, llm=False, transitions=(), extra_checks=()):
     profile = json.loads(profile_path.read_text())
     profile["policy"]["conformance"] = {"reference": "conformance.json", "authority": "accepted"}
     profile["policy"]["transitions"] = list(transitions)
+    if project_type is not None:
+        profile["repository"]["project_type"] = project_type
     # Unknown mandatory checks are deliberately retained even without providers.
     profile["policy"]["workflows"] = [
         {

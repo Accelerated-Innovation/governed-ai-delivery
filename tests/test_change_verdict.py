@@ -19,6 +19,7 @@ from cli.schema_validation import DocumentError, validate_document
 from tests.test_change_conformance import git, inspect, result, setup
 from tests.test_discovery import write
 from tests.test_evidence_report import ACCEPTANCE, BY_ID, FEATURE, PASSING, _junit
+from tests.test_validate import make_full_feature
 from tests.test_workflows import request
 
 CHECK = "evidence:feature"
@@ -26,13 +27,38 @@ DEFINITION = f"features/{FEATURE}/acceptance.feature"
 TESTS = ("project:tests",)
 
 
-def _project(tmp_path):
-    target, trusted, _ = setup(tmp_path)
+# The complete feature: every artifact the level 4 checks ask for.
+FULL = (
+    ACCEPTANCE
+    + """
+  @nfr-security
+  Scenario: Routing needs a signed request
+    Given an unsigned request
+    Then it is refused
+"""
+)
+PASSING = [*PASSING, ("test_routing_needs_a_signed_request", "pass", None)]
+CRITERIA = """version: 1
+mode: deterministic
+unit_tests:
+  enforce_FIRST: true
+  minimum_FIRST_average: 4
+code_quality:
+  enforce_virtues: true
+  minimum_virtue_average: 4
+"""
+
+
+def _project(tmp_path, project_type="api"):
+    target, trusted, _ = setup(tmp_path, project_type=project_type)
+    make_full_feature(
+        target / "features" / FEATURE,
+        **{"acceptance.feature": FULL, "eval_criteria.yaml": CRITERIA},
+    )
     path = trusted / "conformance.json"
     config = json.loads(path.read_text())
     config["impact_rules"].append({"paths": ["features"], "impacts": {}})
     path.write_text(json.dumps(config))
-    write(target, DEFINITION, ACCEPTANCE)
     write(target, ".gitignore", f"junit.xml\n{evidence_record.NAME}\n")
     git(target, "add", ".")
     git(target, "commit", "-qm", "feature")
@@ -117,7 +143,7 @@ def test_no_results_at_all_is_work_for_the_agent(tmp_path):
     write(target, "src/service.py", "# good updated\n")
     report = _inspect(target, trusted, base)
     assert _codes(report) == [("continue", "result-missing")]
-    assert len(report.verdict["reasons"][0]["requirements"]) == 3
+    assert len(report.verdict["reasons"][0]["requirements"]) == 4
 
 
 def test_a_skipped_test_needs_a_person(tmp_path):
@@ -145,8 +171,8 @@ def test_a_failing_project_command_is_work_for_the_agent(tmp_path):
 
 def test_a_weakened_definition_needs_a_person_before_anything_else(tmp_path):
     target, trusted, base = _project(tmp_path)
-    kept = ACCEPTANCE.replace("200 ms", "900 ms")
-    assert kept != ACCEPTANCE
+    kept = FULL.replace("200 ms", "900 ms")
+    assert kept != FULL
     write(target, DEFINITION, kept)
     _results(target, _with(PASSING, FIRST, "fail"))
     document = request()
@@ -161,6 +187,51 @@ def test_an_unknown_feature_is_refused_before_anything_runs(tmp_path):
     target, trusted, base = _changed(tmp_path)
     with pytest.raises(ValueError, match="matched no feature directory"):
         inspect(target, trusted, base, feature="nowhere", execute_checks=TESTS)
+
+
+def test_the_feature_artifact_checks_join_the_run(tmp_path):
+    report = _inspect(*_changed(tmp_path))
+    states = {
+        r.spec.id: (r.spec.required, r.outcome.state)
+        for r in report.checks.results
+        if r.spec.id.startswith("feature:")
+    }
+    assert states.pop("feature:eval-prediction") == (False, State.UNKNOWN)
+    assert len(states) == 6 and set(states.values()) == {(True, State.PASS)}
+    assert report.verdict["state"] == "done"
+
+
+def test_a_missing_artifact_is_work_for_the_agent(tmp_path):
+    target, trusted, base = _changed(tmp_path)
+    git(target, "rm", "-q", f"features/{FEATURE}/plan.md")
+    _results(target)
+    report = _inspect(target, trusted, base, doc={**request(), "scope": ["src", "features"]})
+    assert report.verdict["state"] == "continue"
+    assert ("continue", "check-failed") in _codes(report)
+    assert "feature:completeness" in {reason["check"] for reason in report.verdict["reasons"]}
+
+
+def test_without_a_project_type_the_answer_names_the_schema_check(tmp_path):
+    target, trusted, base = _project(tmp_path, project_type=None)
+    write(target, "src/service.py", "# good updated\n")
+    _results(target)
+    report = _inspect(target, trusted, base)
+    assert report.verdict["state"] == "escalate"
+    assert [(r["code"], r["check"]) for r in report.verdict["reasons"]] == [
+        ("check-not-satisfied", "feature:eval-criteria")
+    ]
+
+
+def test_a_configured_check_with_a_feature_identifier_is_refused(tmp_path):
+    target, trusted, base = _changed(tmp_path)
+    path = trusted / "conformance.json"
+    config = json.loads(path.read_text())
+    config["commands"].append(
+        {"id": "feature:completeness", "argv": ["{python}", "-c", "pass"], "timeout_seconds": 5}
+    )
+    path.write_text(json.dumps(config))
+    with pytest.raises(ValueError, match="feature:completeness is reserved"):
+        _inspect(target, trusted, base)
 
 
 def test_an_empty_feature_name_is_refused(tmp_path):
@@ -202,7 +273,7 @@ def test_a_command_that_does_not_complete_needs_a_person(tmp_path):
 def test_a_long_authored_scenario_tag_still_gets_an_answer(tmp_path):
     target, trusted, base = _project(tmp_path)
     slug = "a" * 4200
-    write(target, DEFINITION, ACCEPTANCE + f"\n  @scenario:{slug}\n  Scenario: Long\n    Then ok\n")
+    write(target, DEFINITION, FULL + f"\n  @scenario:{slug}\n  Scenario: Long\n    Then ok\n")
     git(target, "add", ".")
     git(target, "commit", "-qm", "a long tag")
     base = git(target, "rev-parse", "HEAD")
@@ -270,7 +341,8 @@ class TestCommand:
         assert code == 0
         assert f"Feature {FEATURE}: DONE" in output.out
         assert "stop condition, not a gate" in output.out
-        assert "Conformance checks: PASS" in output.out
+        # The advisory forecast is not a pass, so the report as a whole is a warning.
+        assert "Conformance checks: WARN" in output.out
 
     def test_continue_exits_one_and_names_the_work(self, tmp_path, monkeypatch, capsys):
         project = _changed(tmp_path, _with(PASSING, FIRST, "fail"))

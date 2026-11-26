@@ -276,7 +276,7 @@ def _resolve_eval_schema(feature_dir: Path, *, marker_reader=None) -> tuple[Path
 
 
 def check_eval_criteria(
-    feature_dir: Path, *, marker_reader=None, validate_instance=None
+    feature_dir: Path, *, marker_reader=None, validate_instance=None, schema: Path | None = None
 ) -> tuple[CheckStatus, str]:
     """Check eval_criteria.yaml required keys, then validate the instance
     against the installed schema via check-jsonschema.
@@ -296,7 +296,10 @@ def check_eval_criteria(
     if issues:
         return CheckStatus.FAIL, f"{_EVAL_CRITERIA_YAML}: {'; '.join(issues)}"
 
-    schema, skip_reason = _resolve_eval_schema(feature_dir, marker_reader=marker_reader)
+    skip_reason = ""
+    if schema is None:
+        # A caller that chose the schema itself (no marker to read) passes it in.
+        schema, skip_reason = _resolve_eval_schema(feature_dir, marker_reader=marker_reader)
     if schema is None:
         return CheckStatus.WARN, f"{_EVAL_CRITERIA_YAML} structure OK — {skip_reason}; instance validation skipped"
     if validate_instance is not None:

@@ -355,6 +355,34 @@ A person is needed once the agent has nothing left to do:
 
 `--json` prints a `govkit.feature-verdict` document with the state, the reasons, the evidence report under `evidence` and the change results under `change`. Its schema is `governance/schemas/feature-verdict.schema.json`, and `governance/examples/feature-verdict/` holds an example. Without `--feature`, the command prints what it always did.
 
+### Feature artifact checks
+
+With `--feature`, the run also checks the feature's artifacts when the accepted profile selects them. These are the checks `govkit validate` runs on a legacy level 4 or 5 installation, chosen here by capability:
+
+| Capability in the accepted profile | Checks added |
+|---|---|
+| `gherkin-delivery` | `completeness`, `gherkin-syntax`, `nfrs-no-tbd`, `nfrs-sections`, `eval-criteria`, `eval-prediction`, `gherkin-nfr-coverage` |
+| `gherkin-delivery` and `llm-evaluation` | Also `llm-nfrs`, `l5-eval-criteria`, `l5-preflight-sections`, `agent-topology-exists`, `agent-topology-sections` |
+
+Each appears as its own check, `feature:<identifier>`, for the selected feature only. A profile without `gherkin-delivery` gets none of them.
+
+- **A failed check is work for the agent.** It gives `check-failed`, for example when `plan.md` is missing.
+- **A check that could not decide needs a person.** It gives `check-not-satisfied`.
+- **A file that is not safe to read makes every check unknown.** This is a symbolic link, a non-regular file or a file larger than 1 MiB directly in the feature directory.
+- **The forecast is advisory.** `feature:eval-prediction` reads the agent's own forecast in `plan.md`. It is never required and never a pass, so the report's overall state is a warning at best. The answer and the exit status are not affected.
+
+`eval_criteria.yaml` is validated against the schema for the profile's project type:
+
+```yaml
+repository:
+  id: invoices
+  project_type: api      # api, cli, data, ui-react, ui-angular or ui-nextjs
+```
+
+The schema is the one bundled with the installed GovKit, not a copy in the checkout. When `project_type` is not set, the file's structure is still checked, schema validation is unknown, and the answer is `escalate` with `feature:eval-criteria` named. Set the project type in the accepted profile to resolve it.
+
+These identifiers are reserved in a run with `--feature`. See ADR 0029.
+
 Limits to know:
 
 - **A local answer is a stop condition, not a gate.** A result file and its record do not prove that the tests ran. The run that counts is CI on a clean checkout.
