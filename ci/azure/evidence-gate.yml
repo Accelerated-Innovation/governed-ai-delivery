@@ -81,11 +81,15 @@ stages:
             displayName: Record the results
 
           - bash: |
-              BASE="origin/${TARGET_BRANCH}"
-              if [ -z "${TARGET_BRANCH}" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
-                echo "The target branch is not available; comparing with the previous commit."
-                BASE=HEAD~1
+              # A pull request build checks out a merge commit. Its first parent is
+              # the target revision that merge was built from, which the current
+              # tip of the target branch may no longer be.
+              if git rev-parse --quiet --verify 'HEAD^2^{commit}' >/dev/null; then
+                echo "Comparing with the target revision this merge was built from."
+              else
+                echo "Not a merge commit; comparing with the previous commit."
               fi
+              BASE='HEAD^1'
               report="${AGENT_TEMPDIRECTORY}/evidence-features.md"
               raw="${AGENT_TEMPDIRECTORY}/evidence-features.txt"
               set +e
@@ -101,8 +105,6 @@ stages:
               exit "$status"
             condition: succeededOrFailed()
             displayName: Report the features this change touches
-            env:
-              TARGET_BRANCH: $(System.PullRequest.TargetBranchName)
 
           - publish: $(System.DefaultWorkingDirectory)
             artifact: quality-evidence

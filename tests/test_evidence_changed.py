@@ -85,6 +85,12 @@ class TestWhichFeatures:
         git(target, "rm", "-rq", f"features/{SECOND}")
         assert er.changed_features(target, base) == er.Changed((), (SECOND,))
 
+    def test_a_feature_directory_replaced_by_a_file_is_listed_as_removed(self, project):
+        target, base = project
+        git(target, "rm", "-rq", f"features/{SECOND}")
+        _write(target, f"features/{SECOND}", "not a directory\n")
+        assert er.changed_features(target, base) == er.Changed((), (SECOND,))
+
     def test_a_starter_and_a_loose_file_are_not_features(self, project):
         target, base = project
         _write(target, "features/starter_backend/plan.md", "# Plan\n")

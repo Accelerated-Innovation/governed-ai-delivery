@@ -336,7 +336,7 @@ def changed_features(target: Path, base: str, *, paths=None) -> Changed:
         if name not in available
         and not is_starter_feature(name)
         and not name.startswith(".")
-        and not (target / "features" / name).exists()
+        and not (target / "features" / name).is_dir()
     )
     return Changed(present, removed)
 

@@ -13,7 +13,7 @@ import pytest
 import yaml
 
 from cli import evidence_record, paths
-from tests.test_evidence_changed import FIRST, git, project  # noqa: F401
+from tests.test_evidence_changed import FIRST, SECOND, git, project  # noqa: F401
 from tests.test_evidence_report import PASSING, _junit
 
 STEP = "Report the features this change touches"
@@ -75,55 +75,87 @@ def _run(provider, target, tmp_path, **variables):
 
 @pytest.fixture
 def changed(project, tmp_path_factory):  # noqa: F811
-    """The project with one touched feature, on a branch, and a scratch directory."""
+    """The project with one touched feature and a scratch directory.
+
+    GitHub names the base in the event. Azure checks out a merge commit, so the
+    touched feature is merged in and the base is that commit's first parent.
+    """
     target, base = project
     git(target, "branch", "-M", "main")
-    git(target, "update-ref", "refs/remotes/origin/main", base)
-    (target / "features" / FIRST / "plan.md").write_text("# Plan\n", encoding="utf-8")
-    return target, base, tmp_path_factory.mktemp("runner")
 
+    def prepare(provider):
+        plan = target / "features" / FIRST / "plan.md"
+        if provider == "github":
+            plan.write_text("# Plan\n", encoding="utf-8")
+            return {"BASE": base}
+        git(target, "checkout", "-qb", "topic")
+        plan.write_text("# Plan\n", encoding="utf-8")
+        git(target, "add", ".")
+        git(target, "commit", "-qm", "the plan")
+        git(target, "checkout", "-q", "main")
+        git(target, "merge", "-q", "--no-ff", "-m", "merge", "topic")
+        return {}
 
-def _variables(provider, base):
-    return {"BASE": base} if provider == "github" else {"TARGET_BRANCH": "main"}
+    return target, prepare, tmp_path_factory.mktemp("runner")
 
 
 @pytest.mark.parametrize("provider", ["github", "azure"])
 def test_a_passing_feature_passes_the_step_and_reaches_the_summary(provider, changed):
-    target, base, scratch = changed
+    target, prepare, scratch = changed
+    variables = prepare(provider)
     _junit(target, PASSING)
     evidence_record.write_record(target)
-    result = _run(provider, target, scratch, **_variables(provider, base))
+    result = _run(provider, target, scratch, **variables)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "All 1 changed feature(s) passed." in result.stdout
     if provider == "github":
         summary = (scratch / "summary.md").read_text(encoding="utf-8")
     else:
         assert "##vso[task.uploadsummary]" in result.stdout
+        assert "the target revision this merge was built from" in result.stdout
         summary = (scratch / "evidence-features.md").read_text(encoding="utf-8")
     assert FIRST in summary and "\x1b" not in summary and summary.startswith("```")
 
 
 @pytest.mark.parametrize("provider", ["github", "azure"])
 def test_a_feature_that_is_not_a_pass_fails_the_step(provider, changed):
-    target, base, scratch = changed
-    result = _run(provider, target, scratch, **_variables(provider, base))
+    target, prepare, scratch = changed
+    result = _run(provider, target, scratch, **prepare(provider))
     assert result.returncode == 1, result.stdout + result.stderr
     assert "1 of 1 changed feature(s) did not pass." in result.stdout
 
 
-@pytest.mark.parametrize(
-    "provider, variables",
-    [
-        ("github", {"BASE": "0" * 40}),
-        ("github", {"BASE": ""}),
-        ("azure", {"TARGET_BRANCH": "$(System.PullRequest.TargetBranchName)"}),
-        ("azure", {"TARGET_BRANCH": ""}),
-    ],
-)
-def test_without_a_usable_base_the_previous_commit_is_compared(provider, variables, changed):
-    target, _, scratch = changed
+def test_azure_ignores_a_target_branch_that_moved_after_the_merge_was_built(changed):
+    target, prepare, scratch = changed
+    prepare("azure")
+    merge = git(target, "rev-parse", "HEAD")
+    # The target branch gains another feature after the merge under test was built.
+    git(target, "checkout", "-qb", "later", "HEAD^1")
+    (target / "features" / SECOND / "plan.md").write_text("# Plan\n", encoding="utf-8")
+    git(target, "add", ".")
+    git(target, "commit", "-qm", "later work on the target")
+    git(target, "update-ref", "refs/remotes/origin/main", "HEAD")
+    git(target, "checkout", "-q", merge)
+    result = _run("azure", target, scratch)
+    assert f"feature {FIRST}" in result.stdout and SECOND not in result.stdout
+
+
+@pytest.mark.parametrize("variables", [{"BASE": "0" * 40}, {"BASE": ""}])
+def test_github_without_a_usable_base_compares_the_previous_commit(variables, changed):
+    target, prepare, scratch = changed
+    prepare("github")
     git(target, "add", ".")
     git(target, "commit", "-qm", "the plan")
-    result = _run(provider, target, scratch, **variables)
+    result = _run("github", target, scratch, **variables)
     assert "comparing with the previous commit" in result.stdout
+    assert result.returncode == 1 and f"feature {FIRST}" in result.stdout
+
+
+def test_azure_on_a_plain_commit_compares_the_previous_commit(changed):
+    target, prepare, scratch = changed
+    prepare("github")
+    git(target, "add", ".")
+    git(target, "commit", "-qm", "the plan")
+    result = _run("azure", target, scratch)
+    assert "Not a merge commit; comparing with the previous commit." in result.stdout
     assert result.returncode == 1 and f"feature {FIRST}" in result.stdout
