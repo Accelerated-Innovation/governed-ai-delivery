@@ -159,6 +159,7 @@ A change is rarely one file. Changing a schema means updating starter templates 
   - Every stated match must be JUnit XML inside the target. Recorded files are left out of the tree digest, so do not loosen this.
   - Check patterns when reading a record as well as when writing one.
   - Only JUnit XML is read, and binding is verified with pytest-bdd only. Do not claim another runner works without a real run.
+- **Changed features.** `--changed-since BASE` reports each feature with a changed file under `features/<name>/`, found through `tree_identity.changed_paths`. No touched feature exits 0 and judges none; a removed directory is listed and not judged. It has no JSON form. Both `evidence-gate.yml` templates run tests, `--record`, then this; `tests/test_evidence_gate_template.py` runs each template's own script, so keep the two in step.
 - **Not claimed here.** The report cannot detect a removed scenario or criterion. `change:definition` in change conformance does (ADR 0026).
 - **Keep aligned.** The three schemas, the bundled example (its report must equal the real output for its own inputs), the closed sets shared by `criterion_identity.py` and the schemas, `tests/test_evidence_report.py` and `tests/wheel_evidence_smoke.py`.
 

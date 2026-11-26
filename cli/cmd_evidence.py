@@ -48,6 +48,16 @@ def cmd_evidence(args: argparse.Namespace) -> None:
     feature = getattr(args, "feature", None)
     as_json = getattr(args, "json", False)
     junit = getattr(args, "junit", None) or []
+    since = getattr(args, "changed_since", None)
+    if since is not None:
+        if feature is not None or as_json or junit or getattr(args, "record", False):
+            _usage_error(
+                "--changed-since reports every feature the change touches. "
+                "Run it without --feature, --json, --record or --junit."
+            )
+        if args.fast_max_seconds is not None:
+            _usage_error("--fast-max-seconds does not apply with --changed-since.")
+        _changed_report(target, since)
     if getattr(args, "record", False):
         if feature is not None or as_json:
             _usage_error(
@@ -131,6 +141,20 @@ def _feature_report(target: Path, feature: str, as_json: bool, fast_max_seconds)
     sys.exit(evidence_report.exit_code(report))
 
 
+def _changed_report(target: Path, base: str) -> None:
+    """Every feature the change touches, each with its own report. Exits 0 only
+    when each of them passed; a change that touches no feature judges none."""
+    try:
+        changed = evidence_report.changed_features(target, base)
+    except evidence_report.SelectionError as exc:
+        _usage_error(str(exc))
+    reports = [evidence_report.build_report(target, name) for name in changed.present]
+    for report in reports:
+        print(evidence_report.render_text(report))
+    print(evidence_report.render_changed(base, reports, changed.removed))
+    sys.exit(0 if all(evidence_report.exit_code(report) == 0 for report in reports) else 1)
+
+
 def register(subparsers) -> None:
     """Register the `evidence` subcommand."""
     p = subparsers.add_parser(
@@ -154,6 +178,16 @@ def register(subparsers) -> None:
             "Report one feature: each scenario in features/NAME/acceptance.feature "
             "with the test result bound to it, and each criterion in its "
             "eval_criteria.yaml with its measured score. Exits 0 only when all passed."
+        ),
+    )
+    p.add_argument(
+        "--changed-since",
+        metavar="BASE",
+        default=None,
+        help=(
+            "Report every feature the change touches: each features/NAME/ with a file "
+            "that differs between the commit BASE and the working tree. Exits 0 only "
+            "when each of them passed. A change that touches no feature judges none."
         ),
     )
     p.add_argument(
