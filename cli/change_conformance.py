@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path, PurePosixPath
 
 from . import check_adapters as adapters
+from . import evidence_report, feature_verdict
 from .change_architecture import assess_architecture
 from .change_defects import defect_check
 from .change_policy import load_change_policy
@@ -57,6 +58,9 @@ class ChangeReport:
     change: dict
     plan: RequestPlan
     checks: CheckReport
+    # Set only when a feature was selected. Neither is part of `document`.
+    evidence: dict | None = None
+    verdict: dict | None = None
 
     @property
     def exit_code(self):
@@ -126,6 +130,99 @@ def parse_change_report(document: dict) -> ChangeReport:
     ):
         raise DocumentError("Change report identities/outcomes do not match their recorded inputs")
     return result
+
+
+_VERDICT_LIMITATIONS = [
+    "The state is derived from the evidence report and the change results held here; both keep their own limitations.",
+    "A result file and its record are observations and do not prove that the tests ran. A state computed in a working tree is a stop condition, not a gate; the run that counts is CI on a clean checkout.",
+    "Reaching done is not review, merge authorization or a release decision.",
+]
+
+
+def feature_verdict_document(report: ChangeReport) -> dict:
+    """The answer for the selected feature, with both reports it was derived from."""
+    if report.verdict is None:
+        raise ValueError("A feature answer needs --feature")
+    document = {
+        "schema_version": 1,
+        "kind": "govkit.feature-verdict",
+        **report.verdict,
+        "evidence": report.evidence,
+        "change": report.document,
+        "limitations": _VERDICT_LIMITATIONS,
+    }
+    validate_document(document, "feature-verdict")
+    return document
+
+
+def _verdict(evidence: dict, checks: CheckReport) -> dict:
+    return feature_verdict.decide(
+        evidence,
+        [
+            feature_verdict.Check(r.spec.id, r.spec.required, r.outcome.state.value)
+            for r in checks.results
+        ],
+    )
+
+
+def parse_feature_verdict(document: dict) -> dict:
+    """Validate a saved answer and recompute it from the reports it holds."""
+    validate_document(document, "feature-verdict")
+    validate_document(document["evidence"], evidence_report.SCHEMA)
+    change = parse_change_report(document["change"])
+    if document["evidence"]["feature"]["name"] != document["feature"]:
+        raise DocumentError("The answer names a different feature from its evidence")
+    digest = content_digest(canonical_json(document["evidence"]).encode())
+    checked = [r for r in change.checks.results if r.spec.id == feature_verdict.EVIDENCE_CHECK]
+    if not checked or [e.digest for e in checked[0].outcome.evidence] != [digest]:
+        raise DocumentError("The evidence is not the report the change results checked")
+    replayed = {
+        "schema_version": 1,
+        "kind": "govkit.feature-verdict",
+        **_verdict(document["evidence"], change.checks),
+        "evidence": document["evidence"],
+        "change": change.document,
+        "limitations": _VERDICT_LIMITATIONS,
+    }
+    if replayed != document:
+        raise DocumentError("The answer does not follow from the reports it holds")
+    return document
+
+
+_EVIDENCE_LIMITATION = (
+    "Reads the result files found in the checkout and the record that ties them to the "
+    "commit and working tree. Neither proves that the tests ran or what a test asserts."
+)
+
+
+def _evidence_check(evidence: dict):
+    """The feature's evidence report as a check. The report is read before any check runs."""
+    feature = evidence["feature"]["name"]
+    proof = (
+        Evidence(
+            "evidence:" + feature,
+            (f"features/{feature}",),
+            "results-bound-to-definition",
+            "local-check",
+            content_digest(canonical_json(evidence).encode()),
+            (_EVIDENCE_LIMITATION,),
+        ),
+    )
+    findings = tuple(
+        Finding(
+            reason["code"],
+            "error" if reason["code"] == "result-failed" else "warning",
+            "evidence",
+            reason["message"],
+            reason["action"],
+            evidence["feature"]["definition"],
+            proof,
+        )
+        for reason in feature_verdict.decide(evidence, ())["reasons"]
+    )
+    state = {"PASS": State.PASS, "FAIL": State.FAIL}.get(evidence["outcome"], State.UNKNOWN)
+    summary = f"{feature}: {evidence['outcome']}; {evidence['detail']}"
+    return lambda _: CheckOutcome(state, Execution.EXECUTED, summary, findings, proof)
 
 
 def _outcome(state, summary, proof, *, code=None, location=None):
@@ -473,6 +570,7 @@ def inspect_change(
     pack_arguments=None,
     allow_inapplicable_checks=False,
     policy_guard=None,
+    feature: str | None = None,
 ) -> ChangeReport:
     """Inspect without writes by default. Execution is explicit, trusted, unsandboxed.
 
@@ -480,6 +578,10 @@ def inspect_change(
     Both local and CI callers supply that checkout, accepted intent and base.
     Reusable pipelines may supply a configured execution allowlist; intersect it
     with requirements only after resolving trusted policy and actual changes.
+
+    `feature` adds that feature's evidence as a required check and an answer
+    (`verdict`) to the report. The evidence is read before any check runs, so a
+    command executed here cannot supply the results it is judged by.
     """
     target, policy_target = target.absolute(), policy_target.absolute()
     if target.resolve().is_relative_to(
@@ -517,6 +619,8 @@ def inspect_change(
         budget = ObservationBudget(source_state="unavailable")
     if policy_guard is not None and policy_guard() != budget:
         raise DocumentError("Observation policy differs from the admitted budget")
+    # An unknown feature raises here, before anything is captured or run.
+    evidence = evidence_report.build_report(target, feature) if feature else None
     change = capture_observation(target, base, budget)
     impacts, unclassified = {}, []
     for path in change.paths:
@@ -737,6 +841,13 @@ def inspect_change(
             lambda _: _protected_check(policy["protected"], change, proof),
             "A change may add tests, not alter the tests and files that check it",
         )
+    if evidence is not None:
+        add(
+            feature_verdict.EVIDENCE_CHECK,
+            _evidence_check(evidence),
+            "Every scenario and criterion of the selected feature needs a current passing result",
+            scope=(f"features/{feature}",),
+        )
     if (
         "review:architecture" in required
         and "review:architecture" not in commands
@@ -826,4 +937,6 @@ def inspect_change(
     )
     report = ChangeReport(change.document, plan, checks)
     validate_document(report.document, "change-results")
+    if evidence is not None:
+        report = replace(report, evidence=evidence, verdict=_verdict(evidence, checks))
     return report

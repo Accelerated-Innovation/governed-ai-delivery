@@ -122,9 +122,11 @@ Decisions 1 to 9 were agreed on 2026-11-19 and 2026-11-20. Decisions 10 to 21 we
 For a selected feature, the later increments compose into one answer with three states. The report always lists every item; the state is a single value chosen in this order:
 
 1. **escalate**, when the change itself needs a person now: it weakened the definition or an existing test (L06), or evidence is `ERROR`.
-2. **continue**, when at least one required item is `FAIL` and the agent may fix it. Work the agent can do comes before waiting for a person.
-3. **escalate**, when no fixable `FAIL` remains and a required item is still `INCONCLUSIVE`: a paid or human evaluation is owed, a precondition is missing, or a result is stale.
+2. **continue**, when at least one required item is `FAIL` and the agent may fix it, or a result the agent can produce is missing, stale or unrecorded. Work the agent can do comes before waiting for a person.
+3. **escalate**, when nothing is left for the agent and a required item is still not `PASS`: a paid or human evaluation is owed, a test was skipped, or a required check has no result.
 4. **done**, when every required item is `PASS` and nothing that was passing now fails.
+
+Rules 2 and 3 were changed on 2026-11-26 (maintainer): a stale, unrecorded or missing free result is work for the agent, so it gives continue. They first said escalate.
 
 Required paid or human evidence that is still owed can never produce done.
 
@@ -143,7 +145,8 @@ Each increment is independently demonstrable and is tried in the pilot repositor
 | L05 | Results must belong to the current commit and revision | `evidence` | L03 | #263 |
 | L06a | Scenarios, shared steps and criteria cannot be weakened by the change they judge | `conform` | L03 | #267 |
 | L06b | Existing tests, test support and protected files cannot be weakened | `conform` | L06a | #269 |
-| L07 | Preconditions, the three-state verdict and `conform` integration | `conform` | L02–L06 | not opened |
+| L07a | One answer per feature from `conform`: done, continue or escalate | `conform` | L02–L06 | #271 |
+| L07b | Feature artifact checks on a level-free installation, through `conform` | `conform` | L07a | not opened |
 | L08 | CI templates use the feature-scoped checks | payload | L07 | not opened |
 | L09 | Push verification runs to the Product Definition Graph | CI step | L08, E1 | not opened |
 | L10 | OpenTelemetry exporter | optional extra | L07 | not opened |
@@ -219,6 +222,8 @@ Split on 2026-11-25. L06a covers scenarios, shared steps and criteria, which nee
 - **Escape markers.** A project may declare escape markers (skip, xfail, a pending tag). Their count for a feature may fall but not rise against the comparison base.
 
 ### L07 — Preconditions, the verdict and `conform` integration
+
+Split on 2026-11-26. L07a is the answer itself, from `govkit conform --feature`. L07b makes the feature artifact checks available on a level-free installation and reuses L01's identifiers and known-failures record. The service reachability precondition below was dropped (maintainer, 2026-11-26): an unavailable service shows as a skipped test, which escalates.
 
 A read-only command composes L02 to L06 into the single state of Section 5, with stable exit codes and structured output.
 
@@ -391,3 +396,5 @@ Version 0.1 planned L02 to L06 as additions to `govkit validate`, with a new fil
 | 2026-11-25 | L06a | #267: `change:definition` in change conformance and the pure `definition_change.py`, ADR 0026. L06 was split: this half needs no project declaration. Criteria are compared by name, stricter than the graph's file digest. A file whose criteria are not all named is compared whole; no data-form rule is defined | Open L06b: bound tests, test support, protected files, declarations and escape markers. It needs a decision on where a level-free project declares paths |
 | 2026-11-25 | L06a | Delivered in #268 | Decide where L06b's declaration lives |
 | 2026-11-25 | L06b | #269: `change:protected` and the pure `protected_change.py`, with an optional `protected` section in the accepted conformance configuration, ADR 0027. Maintainer decisions: the declaration lives in accepted policy, and existing test files are additions-only. Differs from the L06 text above in three ways: tests are protected by declared path, not by binding to a scenario; nothing is protected by default; and no declaration is read from the comparison base. An inserted line inside an existing test is not seen | Open the L07 issue. L07 decides the level-free entry point and whether a project-held declaration is needed |
+| 2026-11-26 | L06b | Delivered in #270 | Open the L07 issue |
+| 2026-11-26 | L07a | #271: `govkit conform --feature`, the pure `feature_verdict.py`, the `evidence:feature` check and the `govkit.feature-verdict` document, ADR 0028. Maintainer decisions: the answer comes from `conform`; stale, unrecorded and missing free results give continue; no service reachability check. L07 was split. `evidence:feature` passes on result files as a local check, so a local done is a stop condition only. A required check that cannot pass locally ends in escalate | Open L07b: feature artifact checks on a level-free installation. It needs a decision on which capability selects them and which `eval_criteria` schema applies |

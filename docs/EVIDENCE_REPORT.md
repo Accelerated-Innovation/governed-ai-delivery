@@ -266,6 +266,8 @@ govkit evidence --target . --feature 07_invoice_approval --json > "${RUNNER_TEMP
 
 Write the report outside the repository, as above, or to a path Git ignores. A new untracked file inside the repository changes the working tree, and the next report would call the results stale.
 
+To combine this report with the checks on the change itself into one answer (done, continue or escalate), see [one answer for a feature](CHANGE_CONFORMANCE.md#one-answer-for-a-feature-done-continue-or-escalate).
+
 - Schema: `governance/schemas/evidence-report.schema.json`. The record's schema is `governance/schemas/evidence-record.schema.json`.
 - Example, with the inputs that produce it: `governance/examples/evidence-report/`. The JUnit XML is stored as `test-run.xml` and the evaluation results as `evaluation-run.json`, so that discovery does not read an example as a real result. The example report is what the command prints when they are copied to `junit.xml` and `govkit-eval-results.json` and recorded; `record.json` is that record, with a placeholder commit and tree digest.
 

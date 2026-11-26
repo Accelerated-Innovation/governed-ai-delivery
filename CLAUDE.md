@@ -181,6 +181,16 @@ A change is rarely one file. Changing a schema means updating starter templates 
 - Known limits, stated in the guide: an inserted line inside an existing test is not seen, and imports are not traced. Do not describe the check as proof that tests were not weakened.
 - `CODES` is a public contract: add, never rename. Messages hold no file content.
 
+`feature_verdict.py` backs `govkit conform --feature` (ADR 0028): one state for a feature, done, continue or escalate, from its evidence report and the change checks.
+
+- **No feature option, no change.** Without `--feature` the report, the output and the exit status are byte-identical. `change-results` itself gains only the `evidence:feature` check; the answer is a separate `govkit.feature-verdict` document that holds both reports.
+- **Order.** A weakened definition or protected file, or evidence in error, escalates first. Then anything the agent can do is `continue`. Then anything else not passing is `escalate`. Unknown is never done.
+- **Who can act.** Failed, missing free, stale and unrecorded results are the agent's. Skipped, owed and not-compared results, and required checks without a pass, are a person's. Do not move a reason between the groups without a maintainer decision.
+- **The evidence is read before any check runs.** A command `conform` executes must not supply the results it is judged by.
+- **Not a gate.** `evidence:feature` passes on result files as a local check. Do not describe a local done as proof that tests ran, or as approval.
+- **Public contract.** `CODES`, the states and the exit codes (0, 1, 3; 2 for a run that could not start): add, never rename.
+- **Keep aligned.** The schema, the bundled example (it must replay through `parse_feature_verdict`), `tests/test_feature_verdict.py`, `tests/test_change_verdict.py` and the `feature_answer` pilot in `tests/wheel_change_smoke.py`. The feature artifact checks of `govkit validate` are not part of the answer until L07b.
+
 ### Safe legacy migration
 
 `migration.py` composes existing legacy/profile/pack/discovery/check boundaries in an isolated preview; `migration_store.py` owns bounded snapshots and reversible writes. See ADR 0008 and `docs/LEGACY_MIGRATION.md`. Default preview is read-only. Apply requires an explicitly accepted profile and exact preview digest; preserve configured obligations, user bytes/modes/mtimes, flat-marker content and opt-in authority. Rollback derives ownership from the verified lock and refuses edited resources. Metadata installation never establishes enforcement parity. Keep real legacy-install and runtime-only wheel pilots aligned. Canonical maintenance now feeds preview and post-operation verification; actual legacy removal remains a later release after an explicitly announced compatibility boundary and migration evidence.
