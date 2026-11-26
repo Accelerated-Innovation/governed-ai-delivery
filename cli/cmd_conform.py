@@ -8,17 +8,19 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import paths
-from .change_conformance import inspect_change
+from . import feature_verdict, paths
+from .change_conformance import feature_verdict_document, inspect_change
 from .check_models import Identity
 from .conformance import inspect_repository, render_report
-from .schema_validation import read_document
+from .schema_validation import canonical_json, read_document
 from .workflow_store import load_workflow_plan
 from .workflows import parse_request
 
 
 def cmd_conform(args: argparse.Namespace) -> None:
     target = Path(args.target).absolute()
+    # With --feature, 1 means "continue", so a run that could not start is 2.
+    refused = 2 if args.feature is not None else 1
     try:
         arguments = read_document(Path(args.pack_arguments)) if args.pack_arguments else {}
         if not isinstance(arguments, dict):
@@ -38,6 +40,7 @@ def cmd_conform(args: argparse.Namespace) -> None:
                 previous=load_workflow_plan(Path(args.plan)) if args.plan else None,
                 execute_checks=tuple(args.execute_check + args.execute_pack_check),
                 pack_arguments=arguments,
+                feature=args.feature,
             )
             if args.revision and args.revision != report.checks.identity.revision:
                 raise ValueError("Explicit revision does not match observed Git HEAD")
@@ -45,7 +48,17 @@ def cmd_conform(args: argparse.Namespace) -> None:
                 f"Workflow: {report.plan.document['workflow']}; {len(report.change['changes'])} changed paths from {report.change['base']}\n"
                 + render_report(report.checks)
             )
+            if args.feature is not None:
+                answer = feature_verdict_document(report)
+                print(
+                    canonical_json(answer)
+                    if args.json
+                    else summary + "\n\n" + feature_verdict.render(answer)
+                )
+                sys.exit(answer["exit_code"])
         else:
+            if args.feature is not None:
+                raise ValueError("--feature requires --request, --base and --policy-target")
             if args.base or args.policy_target or args.plan or args.execute_check:
                 raise ValueError("Change options require --request")
             report = inspect_repository(
@@ -60,7 +73,7 @@ def cmd_conform(args: argparse.Namespace) -> None:
             sys.exit(report.exit_code)
     except (OSError, ValueError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(refused)
 
 
 def register(subparsers) -> None:
@@ -96,6 +109,12 @@ def register(subparsers) -> None:
     )
     parser.add_argument(
         "--plan", help="Optional prior workflow plan to check for stale requirements"
+    )
+    parser.add_argument(
+        "--feature",
+        metavar="NAME",
+        help="With --request: also judge this feature's scenarios and criteria, and answer "
+        "done (exit 0), continue (1) or escalate (3); 2 means the run could not start",
     )
     parser.add_argument(
         "--execute-check",

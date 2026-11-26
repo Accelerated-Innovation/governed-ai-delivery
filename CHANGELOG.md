@@ -61,6 +61,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   - The report gains a `provenance` block.
   - The target must be inside a Git repository.
   - See ADR 0024.
+- **One answer per feature from `govkit conform` (#271).** `govkit conform
+  --request ... --feature <name>` answers done, continue or escalate.
+  - The feature's evidence report joins the change report as a required check,
+    `evidence:feature`.
+  - Every reason is listed with a stable code and says whether the agent or a
+    person can act on it.
+  - Exit status is 0 for done, 1 for continue and 3 for escalate. With
+    `--feature`, a run that could not start exits 2.
+  - `--json` prints a `govkit.feature-verdict` document that holds the evidence
+    report and the change results.
+  - Without `--feature`, output and exit status are unchanged.
+  - See ADR 0028 and [docs/CHANGE_CONFORMANCE.md](docs/CHANGE_CONFORMANCE.md).
 - **Protected tests and files in change conformance (#269).** The conformance
   configuration accepts an optional `protected` section, and `govkit conform
   --request` then adds `change:protected`.

@@ -380,6 +380,76 @@ def protected_change(write, git, invoke, args, posture):
     assert "test-removed" in codes(invoke(args, expected=1))
 
 
+def _junit(outcome=""):
+    return (
+        '<?xml version="1.0"?><testsuites><testsuite name="pytest" tests="1">'
+        '<testcase classname="tests.result" name="test_the_result_is_the_answer" time="0.01">'
+        f"{outcome}</testcase></testsuite></testsuites>"
+    )
+
+
+def feature_answer(write, git, invoke, args, posture):
+    """One answer for a feature: done, continue or escalate, with stable exit codes (L07a)."""
+    target = Path(args[args.index("--target") + 1])
+    write(target, "features/01_result/acceptance.feature", FEATURE)
+    write(target, ".gitignore", "junit.xml\ngovkit-evidence-record.json\n")
+    git("add", ".")
+    git("commit", "-qm", "a feature and its ignore rules")
+    args = list(args)
+    args[args.index("--base") + 1] = git("rev-parse", "HEAD")
+    args += ["--feature", "01_result"]
+    command = [sys.executable, "-I", "-m", "cli.govkit"]
+
+    def record():
+        recorded = [*command, "evidence", "--record", "--target", str(target)]
+        subprocess.run(recorded, check=True, capture_output=True)
+
+    def codes(answer):
+        return [(reason["state"], reason["code"]) for reason in answer["reasons"]]
+
+    write(target, "src/service.py", "def result():\n    return 42\n\n# touched\n")
+    missing = invoke(args, expected=1)
+    assert codes(missing) == [("continue", "result-missing")], missing["reasons"]
+
+    write(target, "junit.xml", _junit())
+    assert codes(invoke(args, expected=1)) == [("continue", "results-unrecorded")]
+    record()
+    done = invoke(args, expected=0)
+    assert done["state"] == "done" and done["reasons"] == [], done["reasons"]
+    assert change_conformance.parse_feature_verdict(done) == done
+    assert done["evidence"]["outcome"] == "PASS" and done["change"]["exit_code"] == 0
+    posture(done["change"], "feature-answer")
+    text = subprocess.run(
+        command + [a for a in args if a != "--json"], capture_output=True, text=True
+    )
+    assert text.returncode == 0 and "Feature 01_result: DONE" in text.stdout, text.stdout
+
+    write(target, "src/service.py", "def result():\n    return 42\n\n# touched again\n")
+    assert codes(invoke(args, expected=1)) == [("continue", "results-stale")]
+
+    write(target, "junit.xml", _junit('<failure message="boom">trace</failure>'))
+    record()
+    failed = invoke(args, expected=1)
+    assert failed["state"] == "continue" and codes(failed) == [("continue", "result-failed")]
+    assert failed["reasons"][0]["requirements"] == ["01_result#scenario:result-value"]
+
+    write(target, "junit.xml", _junit('<skipped message="no service"/>'))
+    record()
+    skipped = invoke(args, expected=3)
+    assert skipped["state"] == "escalate" and codes(skipped) == [("escalate", "result-skipped")]
+    assert change_conformance.parse_feature_verdict(skipped) == skipped
+
+    write(target, "junit.xml", _junit('<failure message="boom">trace</failure>'))
+    write(target, "features/01_result/acceptance.feature", FEATURE.replace("it is 42", "it is 7"))
+    record()
+    weakened = invoke(args, expected=3)
+    assert codes(weakened)[0] == ("escalate", "definition-changed"), weakened["reasons"]
+    assert ("continue", "result-failed") in codes(weakened)
+
+    unknown = subprocess.run(command + args[:-1] + ["nowhere"], capture_output=True, text=True)
+    assert unknown.returncode == 2 and unknown.stdout == "", unknown
+
+
 if __name__ == "__main__":
     assert Path(change_conformance.__file__).is_relative_to(sys.prefix)
     example = json.loads((paths.GOVERNANCE_DIR / "examples/posture/change.json").read_text())
@@ -392,6 +462,12 @@ if __name__ == "__main__":
         run_pilot(Path(directory).resolve(), "enhancement", definition_change)
     with tempfile.TemporaryDirectory(prefix="govkit-change-pilot-") as directory:
         run_pilot(Path(directory).resolve(), "enhancement", protected_change)
+    with tempfile.TemporaryDirectory(prefix="govkit-change-pilot-") as directory:
+        run_pilot(Path(directory).resolve(), "enhancement", feature_answer)
+    answer = json.loads(
+        (paths.GOVERNANCE_DIR / "examples/feature-verdict/feature-verdict.json").read_text()
+    )
+    assert change_conformance.parse_feature_verdict(answer) == answer
     print(
-        "Eight actual-change pilots, the definition check and the protected-file check: real outcomes, private posture, planned metadata preservation, source pointer integrity and protected publication verified."
+        "Eight actual-change pilots, the definition check, the protected-file check and the feature answer: real outcomes, private posture, planned metadata preservation, source pointer integrity and protected publication verified."
     )

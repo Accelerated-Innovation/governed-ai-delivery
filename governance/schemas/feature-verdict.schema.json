@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:governed-ai-delivery:schemas:feature-verdict",
+  "title": "Feature answer",
+  "description": "What `govkit conform --feature` answers for one feature: done, continue or escalate, with every reason and the two reports the answer was derived from. `evidence` is a feature evidence report and `change` is a change-results record; each is validated against its own schema. A valid answer is well-formed. It is not review, merge authorization or proof that the tests ran.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "feature",
+    "state",
+    "exit_code",
+    "reasons",
+    "evidence",
+    "change",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "govkit.feature-verdict"
+    },
+    "feature": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "\\S"
+    },
+    "state": {
+      "enum": [
+        "done",
+        "continue",
+        "escalate"
+      ]
+    },
+    "exit_code": {
+      "enum": [
+        0,
+        1,
+        3
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "state",
+          "code",
+          "check",
+          "requirements",
+          "message",
+          "action"
+        ],
+        "properties": {
+          "state": {
+            "enum": [
+              "continue",
+              "escalate"
+            ],
+            "description": "Who can act on the reason: the agent (`continue`) or a person (`escalate`)."
+          },
+          "code": {
+            "enum": [
+              "definition-changed",
+              "protected-changed",
+              "result-error",
+              "evidence-unreadable",
+              "check-error",
+              "result-failed",
+              "result-missing",
+              "results-stale",
+              "results-unrecorded",
+              "record-unusable",
+              "check-failed",
+              "result-skipped",
+              "result-owed",
+              "skips-unmarked",
+              "criteria-not-compared",
+              "no-scenarios",
+              "check-not-satisfied",
+              "evidence-inconclusive"
+            ]
+          },
+          "check": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "\\S"
+          },
+          "requirements": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "uniqueItems": true
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "\\S"
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "\\S"
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "const": "govkit.evidence-report"
+        }
+      }
+    },
+    "change": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "const": "change-results"
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096,
+        "pattern": "\\S"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "done"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 0
+          },
+          "reasons": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "continue"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 1
+          },
+          "reasons": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "escalate"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 3
+          },
+          "reasons": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

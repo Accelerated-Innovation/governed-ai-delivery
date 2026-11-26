@@ -292,6 +292,79 @@ Limits to know:
 
 See ADR 0027.
 
+## One answer for a feature: done, continue or escalate
+
+Add `--feature NAME` to a change run to get one answer for that feature:
+
+```bash
+pytest --junitxml=junit.xml          # run the tests
+govkit evidence --record             # tie the results to this commit and working tree
+govkit conform --request request.json --base origin/main \
+  --policy-target ../policy --execute-check project:tests --feature 07_invoice_approval
+```
+
+The feature's [evidence report](EVIDENCE_REPORT.md) joins the change report as a required check, `evidence:feature`. The answer is one of three states.
+
+| State | Exit | Meaning |
+|---|---|---|
+| `done` | 0 | Every required check passed, and every scenario and criterion has a current passing result |
+| `continue` | 1 | Work is left that the agent can do |
+| `escalate` | 3 | What is left needs a person |
+
+With `--feature`, a run that could not start exits 2. A feature name that matches no feature directory is one such case. `evidence:feature` is reserved: a run with `--feature` is refused when the accepted configuration or a pack uses that identifier for its own check.
+
+Every reason is listed. The state is the first of these that applies:
+
+1. `escalate` when a reason in the first table below is present. A person is needed now, whatever else is open.
+2. `continue` when a reason in the second table is present.
+3. `escalate` when a reason in the third table is present.
+4. `done` when there is no reason.
+
+A person is needed now:
+
+| Code | Meaning |
+|---|---|
+| `definition-changed` | `change:definition` failed: the change removed or altered part of the definition |
+| `protected-changed` | `change:protected` failed: the change altered an existing test or a protected file |
+| `result-error` | A test or evaluation ended in an error |
+| `evidence-unreadable` | A definition or result file could not be read |
+| `check-error` | A required check did not complete, for example a command that timed out |
+
+The agent can act:
+
+| Code | Meaning | What to do |
+|---|---|---|
+| `result-failed` | A scenario or criterion failed | Fix the implementation and run the tests again |
+| `result-missing` | A scenario or a free criterion has no result | Run the tests and free evaluations, then record |
+| `results-stale` | The commit, the working tree or a result file changed after the record | Run the tests again and record |
+| `results-unrecorded` | There is no evidence record | Run `govkit evidence --record` |
+| `record-unusable` | The evidence record cannot be read | Run the tests again and record |
+| `check-failed` | Another check failed | Resolve its findings |
+
+A person is needed once the agent has nothing left to do:
+
+| Code | Meaning |
+|---|---|
+| `result-skipped` | A test was skipped |
+| `result-owed` | A paid or human evaluation has no result |
+| `skips-unmarked` | A result file counts skipped tests it does not mark |
+| `criteria-not-compared` | The criteria are in the data form, which is not compared |
+| `no-scenarios` | The feature has no scenarios |
+| `check-not-satisfied` | A required check has no passing result, for example one that was not executed or a platform approval |
+| `evidence-inconclusive` | The evidence is not a pass for another reason |
+
+`--json` prints a `govkit.feature-verdict` document with the state, the reasons, the evidence report under `evidence` and the change results under `change`. Its schema is `governance/schemas/feature-verdict.schema.json`, and `governance/examples/feature-verdict/` holds an example. Without `--feature`, the command prints what it always did.
+
+Limits to know:
+
+- **A local answer is a stop condition, not a gate.** A result file and its record do not prove that the tests ran. The run that counts is CI on a clean checkout.
+- **Done is not approval.** It does not replace review, merge authorization or a release decision.
+- **Record after the last run.** The evidence is read before `conform` executes any command. If a command it executes rewrites a result file, the next run reports the results as stale until you record again.
+- **Ignore the result files.** A result file or record that Git does not ignore is part of the change, and must be covered by an impact rule.
+- **Some checks cannot pass locally.** A required check such as a platform approval ends in `escalate`, and the answer names it.
+
+See ADR 0028.
+
 ## Local/CI record and pilot
 
 `--json` emits `kind: change-results`, versioned by
