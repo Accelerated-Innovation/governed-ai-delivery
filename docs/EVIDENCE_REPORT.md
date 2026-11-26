@@ -266,6 +266,32 @@ govkit evidence --target . --feature 07_invoice_approval --json > "${RUNNER_TEMP
 
 Write the report outside the repository, as above, or to a path Git ignores. A new untracked file inside the repository changes the working tree, and the next report would call the results stale.
 
+## Every feature a change touches
+
+In CI you rarely know the feature's name. `--changed-since` reports every feature the change touches:
+
+```bash
+pytest --junitxml=junit.xml
+govkit evidence --record
+govkit evidence --changed-since origin/main
+```
+
+A feature is touched when a file under its `features/<name>/` directory differs between the base commit and the working tree. Staged, unstaged and untracked files count; files Git ignores do not. Each touched feature gets the report above, followed by one line per feature.
+
+| Exit | Meaning |
+|---|---|
+| 0 | Every touched feature passed, or the change touches no feature directory |
+| 1 | At least one touched feature did not pass |
+| 2 | The base names no commit, or the option was combined with `--feature`, `--json`, `--record`, `--junit` or `--fast-max-seconds` |
+
+Limits to know:
+
+- **A feature the change does not touch is not judged.** A change to shared code can break it without this command seeing it.
+- **A removed feature directory is listed and not judged.** Removing a definition is a finding of [change conformance](CHANGE_CONFORMANCE.md).
+- **The base must be in the clone.** In CI, fetch the full history.
+
+The evidence gate templates in `ci/github/` and `ci/azure/` run these three steps.
+
 To combine this report with the checks on the change itself into one answer (done, continue or escalate), see [one answer for a feature](CHANGE_CONFORMANCE.md#one-answer-for-a-feature-done-continue-or-escalate).
 
 - Schema: `governance/schemas/evidence-report.schema.json`. The record's schema is `governance/schemas/evidence-record.schema.json`.

@@ -147,7 +147,8 @@ Each increment is independently demonstrable and is tried in the pilot repositor
 | L06b | Existing tests, test support and protected files cannot be weakened | `conform` | L06a | #269 |
 | L07a | One answer per feature from `conform`: done, continue or escalate | `conform` | L02–L06 | #271 |
 | L07b | Feature artifact checks on a level-free installation, through `conform` | `conform` | L07a | #273 |
-| L08 | CI templates use the feature-scoped checks | payload | L07 | not opened |
+| L08a | Evidence gate templates judge the features a change touches | payload, `evidence` | L07 | #275 |
+| L08b | The generated pipeline runs `conform --feature` for the features a change touches | pipeline | L08a | not opened |
 | L09 | Push verification runs to the Product Definition Graph | CI step | L08, E1 | not opened |
 | L10 | OpenTelemetry exporter | optional extra | L07 | not opened |
 | L11 | Opt-in pack: skills, Claude Code guidance, prompt writer, run records | pack | L07 | not opened |
@@ -232,6 +233,8 @@ A read-only command composes L02 to L06 into the single state of Section 5, with
 - L01's check identifiers and the known-failures record are reused.
 
 ### L08 — CI templates use the feature-scoped checks
+
+Split on 2026-11-26. L08a changes the copied evidence gate templates, which have no request file or policy checkout, so they run the feature evidence report for each feature the change touches. L08b gives the generated pipeline the same selection and runs `govkit conform --feature`, which adds the checks on the change itself.
 
 The evidence gate templates for GitHub and Azure, and `ci/README.md`, are updated together to run the feature-scoped checks and to treat `INCONCLUSIVE` as the contract requires.
 
@@ -400,3 +403,5 @@ Version 0.1 planned L02 to L06 as additions to `govkit validate`, with a new fil
 | 2026-11-26 | L07a | #271: `govkit conform --feature`, the pure `feature_verdict.py`, the `evidence:feature` check and the `govkit.feature-verdict` document, ADR 0028. Maintainer decisions: the answer comes from `conform`; stale, unrecorded and missing free results give continue; no service reachability check. L07 was split. `evidence:feature` passes on result files as a local check, so a local done is a stop condition only. A required check that cannot pass locally ends in escalate | Open L07b: feature artifact checks on a level-free installation. It needs a decision on which capability selects them and which `eval_criteria` schema applies |
 | 2026-11-26 | L07a | Delivered in #272 | Decide how L07b selects its checks |
 | 2026-11-26 | L07b | #273: `feature_artifacts.py` adds `feature:<identifier>` checks to `govkit conform --feature`, ADR 0029. Maintainer decisions: `gherkin-delivery` selects the level 4 checks and `llm-evaluation` adds level 5; all are required except the forecast, which is advisory; the profile's `project_type` picks the schema and nothing is guessed; the selected feature only. The report's overall state is a warning at best because the forecast is never a pass | Open L08: CI templates, and the whole-repository run with the known-failures record |
+| 2026-11-26 | L07b | Delivered in #274 | Decide how CI selects features |
+| 2026-11-26 | L08a | #275: `govkit evidence --changed-since BASE` and both evidence gate templates (tests, record, changed features). Maintainer decisions: L08 is two PRs; CI judges the features a change touches; anything but a pass fails the job and the state is shown; the test step stays a placeholder, with pytest-bdd the only verified runner. No JSON form for several features. The templates do not check the change itself | Open L08b: the generated pipeline runs `conform --feature`. It needs a feature input and a way to run several features |

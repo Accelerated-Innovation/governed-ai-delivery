@@ -4,7 +4,8 @@
 #          authoring agent predicted for itself.
 #
 # JOBS:
-#   evidence-check — runs your tests, then `govkit evidence` over the artifacts
+#   evidence-check — runs your tests, then `govkit evidence` over the artifacts,
+#                    then judges each feature the change touches
 #
 # WHY THIS EXISTS:
 #   A FIRST or Virtue score in plan.md is written by the agent that did the
@@ -28,6 +29,21 @@
 #   A test run with skipped tests also reports INCONCLUSIVE: a skipped test
 #   did not run.
 #
+# FEATURES THE CHANGE TOUCHES:
+#   After the tests, `govkit evidence --record` ties the result files to this
+#   commit and working tree. `govkit evidence --changed-since <base>` then
+#   reports every features/<name>/ directory with a changed file: each scenario
+#   in its acceptance.feature against the test bound to it, and each criterion
+#   in its eval_criteria.yaml against its measured score. Anything but a pass
+#   fails the job. A change that touches no feature directory judges none.
+#   - Scenario binding is verified with pytest-bdd only. See
+#     docs/EVIDENCE_REPORT.md before relying on another runner.
+#   - If your JUnit XML is not named junit*.xml, add --junit PATTERN to the
+#     record step.
+#   - A feature the change does not touch is not judged here.
+#   - This gate does not check the change itself (a weakened scenario or test).
+#     `govkit conform --feature` does; see docs/CHANGE_CONFORMANCE.md.
+#
 # Copy this file to .github/workflows/evidence-gate.yml.
 
 name: Evidence Gate
@@ -44,6 +60,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The base commit must be present to find the features a change touches.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -67,6 +86,32 @@ jobs:
 
       - name: Report measured evidence
         run: govkit evidence --target .
+
+      # Straight after the tests: ties the result files to this commit and tree.
+      - name: Record the results
+        if: ${{ !cancelled() }}
+        run: govkit evidence --record --target .
+
+      - name: Report the features this change touches
+        if: ${{ !cancelled() }}
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            echo "The base commit is not available; comparing with the previous commit."
+            BASE=HEAD~1
+          fi
+          report="${RUNNER_TEMP}/evidence-features.txt"
+          set +e
+          govkit evidence --target . --changed-since "$BASE" | tee "$report"
+          status=${PIPESTATUS[0]}
+          set -e
+          {
+            echo '```'
+            sed 's/\x1b\[[0-9;]*m//g' "$report"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
 
       - name: Upload evidence artifacts
         if: always()

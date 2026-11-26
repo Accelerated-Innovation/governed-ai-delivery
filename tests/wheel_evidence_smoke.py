@@ -224,6 +224,32 @@ def stated_location_run(workspace: Path, example: dict) -> None:
     print("  stated location: refused patterns, record, report and a removed file [synthetic]")
 
 
+def changed_run(workspace: Path, example: dict) -> None:
+    """`--changed-since`: every feature the change touches, and no other."""
+    target = workspace / "changed"
+    feature = example["feature"]["name"]
+    example_project(target, feature)
+    untouched = govkit("evidence", "--target", target, "--changed-since", "HEAD")
+    assert "no feature was judged" in untouched, untouched
+
+    (target / "features" / feature / "plan.md").write_text("# Plan\n", encoding="utf-8")
+    other = target / "features" / "08_untouched"
+    other.mkdir()
+    shutil.copy(EXAMPLE / "acceptance.feature", other)
+    git(target, "add", "features/08_untouched")
+    git(target, "commit", "-q", "-m", "another feature")
+    govkit("evidence", "--target", target, "--record")
+    # The example's own outcome is not a pass, so its feature fails the run.
+    assert example["outcome"] != "PASS"
+    touched = govkit("evidence", "--target", target, "--changed-since", "HEAD", expected=1)
+    assert f"feature {feature}" in touched and "08_untouched" not in touched, touched
+    assert "1 of 1 changed feature(s) did not pass." in touched, touched
+    both = govkit("evidence", "--target", target, "--changed-since", "HEAD~1", expected=1)
+    assert "2 changed feature(s) did not pass." in both, both
+    govkit("evidence", "--target", target, "--changed-since", "no-such-ref", expected=2)
+    govkit("evidence", "--target", target, "--changed-since", "HEAD", "--json", expected=2)
+
+
 def legacy_run(workspace: Path, example: dict) -> None:
     """A legacy level 4 install gives the same report; the marker is not used."""
     target = workspace / "legacy"
@@ -247,6 +273,7 @@ def main():
     with tempfile.TemporaryDirectory() as folder:
         level_free_run(Path(folder), example)
         stated_location_run(Path(folder), example)
+        changed_run(Path(folder), example)
         legacy_run(Path(folder), example)
     print("wheel evidence smoke: OK")
 

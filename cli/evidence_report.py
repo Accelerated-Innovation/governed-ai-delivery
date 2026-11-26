@@ -33,11 +33,18 @@ says, or that a test asserts what its scenario says. See docs/EVIDENCE_REPORT.md
 from __future__ import annotations
 
 import hashlib
+from dataclasses import dataclass
 from pathlib import Path
 
-from . import criterion_identity, evaluation_results, evidence_record, scenario_identity
+from . import (
+    criterion_identity,
+    evaluation_results,
+    evidence_record,
+    scenario_identity,
+    tree_identity,
+)
 from .evidence import SCENARIO_PROPERTY, CaseResult, Outcome, read_test_reports
-from .features import list_user_features
+from .features import is_starter_feature, list_user_features
 from .schema_validation import DocumentError, parse_document
 
 SCHEMA = "evidence-report"
@@ -298,6 +305,59 @@ def _select(target: Path, feature: str) -> Path:
             f"Available: {', '.join(available) or 'none'}."
         )
     return available[feature]
+
+
+@dataclass(frozen=True)
+class Changed:
+    """The features a change touches: those that exist now, and those it removed."""
+
+    present: tuple[str, ...]
+    removed: tuple[str, ...]
+
+
+def changed_features(target: Path, base: str, *, paths=None) -> Changed:
+    """The feature directories with a file that differs between `base` and the working tree.
+
+    Starter features are left out, as everywhere else. A directory that no
+    longer exists is `removed` and is not judged here. Raises `SelectionError`
+    when `base` names no commit. `paths` stands in for Git in tests.
+    """
+    if paths is None:
+        try:
+            paths = tree_identity.changed_paths(target, base, "features")
+        except tree_identity.Unavailable as exc:
+            raise SelectionError(f"--changed-since cannot be read: {exc}") from None
+    touched = sorted({path.split("/")[1] for path in paths if path.count("/") >= 2})
+    available = {path.name for path in list_user_features(target / "features")}
+    present = tuple(name for name in touched if name in available)
+    removed = tuple(
+        name
+        for name in touched
+        if name not in available
+        and not is_starter_feature(name)
+        and not name.startswith(".")
+        and not (target / "features" / name).is_dir()
+    )
+    return Changed(present, removed)
+
+
+def render_changed(base: str, reports: list[dict], removed=()) -> str:
+    """The closing summary for `--changed-since`: one line for each feature."""
+    lines = [f"govkit evidence — features changed since {base}\n"]
+    width = max((len(report["outcome"]) for report in reports), default=0)
+    for report in reports:
+        padding = " " * (width - len(report["outcome"]))
+        lines.append(f"  {_LABEL[report['outcome']]}{padding}  {report['feature']['name']}")
+    lines += [f"  removed  {name} (not judged)" for name in removed]
+    judged = len(reports)
+    short = sum(1 for report in reports if report["outcome"] != Outcome.PASS.value)
+    if not judged:
+        lines.append("  The change touches no feature directory, so no feature was judged.")
+    elif short:
+        lines.append(f"\n{short} of {judged} changed feature(s) did not pass.")
+    else:
+        lines.append(f"\nAll {judged} changed feature(s) passed.")
+    return "\n".join(lines) + "\n"
 
 
 def _title_key(text: str) -> str:

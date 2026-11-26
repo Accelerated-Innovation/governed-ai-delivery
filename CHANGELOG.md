@@ -73,6 +73,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     report and the change results.
   - Without `--feature`, output and exit status are unchanged.
   - See ADR 0028 and [docs/CHANGE_CONFORMANCE.md](docs/CHANGE_CONFORMANCE.md).
+- **Evidence for the features a change touches (#275).** `govkit evidence
+  --changed-since <base>` reports every feature with a changed file between the
+  base commit and the working tree, and exits 0 only when each passed.
+  - The evidence gate templates for GitHub and Azure now record the results
+    after the tests and run this report. Anything but a pass fails the job.
+  - A change that touches no feature directory judges none.
+  - The existing whole-repository step and the command without the option are
+    unchanged.
 - **Feature artifact checks without a level (#273).** With `--feature`,
   `govkit conform` runs the feature artifact checks of `govkit validate` when
   the accepted profile selects them.

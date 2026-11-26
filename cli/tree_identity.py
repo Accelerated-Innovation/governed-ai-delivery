@@ -90,6 +90,26 @@ def _git(directory: Path, *args: str) -> bytes:
     return result.stdout
 
 
+def changed_paths(target: Path, base: str, under: str) -> list[str]:
+    """Paths under `target`/`under` that differ between `base` and the working tree.
+
+    Relative to `target`, sorted. Staged, unstaged and untracked files count;
+    ignored files do not. A deleted file is listed. Raises `Unavailable` when
+    `base` names no commit or Git cannot answer.
+    """
+    if not base or base.startswith("-"):
+        raise Unavailable("the base is not a commit")
+    try:
+        _git(target, "rev-parse", "--verify", "--quiet", "--end-of-options", base + "^{commit}")
+    except Unavailable:
+        raise Unavailable(f"the base {base!r} names no commit in this repository") from None
+    tracked = _git(
+        target, "diff", "--name-only", "--relative", "--no-renames", "-z", base, "--", under
+    )
+    untracked = _git(target, "ls-files", "--others", "--exclude-standard", "-z", "--", under)
+    return sorted(set(_names(tracked)) | set(_names(untracked)))
+
+
 def _names(output: bytes) -> list[str]:
     return [name.decode("utf-8", "surrogateescape") for name in output.split(b"\0") if name]
 

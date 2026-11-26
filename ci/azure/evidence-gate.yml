@@ -15,6 +15,21 @@
 #   do not emit reports INCONCLUSIVE, which is not a pass.
 #   A test run with skipped tests also reports INCONCLUSIVE: a skipped test
 #   did not run.
+#
+# FEATURES THE CHANGE TOUCHES:
+#   After the tests, `govkit evidence --record` ties the result files to this
+#   commit and working tree. `govkit evidence --changed-since <base>` then
+#   reports every features/<name>/ directory with a changed file: each scenario
+#   in its acceptance.feature against the test bound to it, and each criterion
+#   in its eval_criteria.yaml against its measured score. Anything but a pass
+#   fails the job. A change that touches no feature directory judges none.
+#   - Scenario binding is verified with pytest-bdd only. See
+#     docs/EVIDENCE_REPORT.md before relying on another runner.
+#   - If your JUnit XML is not named junit*.xml, add --junit PATTERN to the
+#     record step.
+#   - A feature the change does not touch is not judged here.
+#   - This gate does not check the change itself (a weakened scenario or test).
+#     `govkit conform --feature` does; see docs/CHANGE_CONFORMANCE.md.
 trigger: none
 
 pr:
@@ -33,6 +48,8 @@ stages:
         displayName: Measured quality evidence
         steps:
           - checkout: self
+            # The base commit must be present to find the features a change touches.
+            fetchDepth: 0
 
           - task: UsePythonVersion@0
             inputs:
@@ -57,6 +74,37 @@ stages:
 
           - script: govkit evidence --target .
             displayName: Report measured evidence
+
+          # Straight after the tests: ties the result files to this commit and tree.
+          - script: govkit evidence --record --target .
+            condition: succeededOrFailed()
+            displayName: Record the results
+
+          - bash: |
+              # A pull request build checks out a merge commit. Its first parent is
+              # the target revision that merge was built from, which the current
+              # tip of the target branch may no longer be.
+              if git rev-parse --quiet --verify 'HEAD^2^{commit}' >/dev/null; then
+                echo "Comparing with the target revision this merge was built from."
+              else
+                echo "Not a merge commit; comparing with the previous commit."
+              fi
+              BASE='HEAD^1'
+              report="${AGENT_TEMPDIRECTORY}/evidence-features.md"
+              raw="${AGENT_TEMPDIRECTORY}/evidence-features.txt"
+              set +e
+              govkit evidence --target . --changed-since "$BASE" | tee "$raw"
+              status=${PIPESTATUS[0]}
+              set -e
+              {
+                echo '```'
+                sed 's/\x1b\[[0-9;]*m//g' "$raw"
+                echo '```'
+              } > "$report"
+              echo "##vso[task.uploadsummary]$report"
+              exit "$status"
+            condition: succeededOrFailed()
+            displayName: Report the features this change touches
 
           - publish: $(System.DefaultWorkingDirectory)
             artifact: quality-evidence
