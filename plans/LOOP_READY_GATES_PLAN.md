@@ -146,7 +146,7 @@ Each increment is independently demonstrable and is tried in the pilot repositor
 | L06a | Scenarios, shared steps and criteria cannot be weakened by the change they judge | `conform` | L03 | #267 |
 | L06b | Existing tests, test support and protected files cannot be weakened | `conform` | L06a | #269 |
 | L07a | One answer per feature from `conform`: done, continue or escalate | `conform` | L02–L06 | #271 |
-| L07b | Feature artifact checks on a level-free installation, through `conform` | `conform` | L07a | not opened |
+| L07b | Feature artifact checks on a level-free installation, through `conform` | `conform` | L07a | #273 |
 | L08 | CI templates use the feature-scoped checks | payload | L07 | not opened |
 | L09 | Push verification runs to the Product Definition Graph | CI step | L08, E1 | not opened |
 | L10 | OpenTelemetry exporter | optional extra | L07 | not opened |
@@ -341,7 +341,7 @@ Risks:
 2. **Measurement file format (L04).** Settled on 2026-11-24: a GovKit results file, `govkit-eval-results*.json`, that the project's evaluation run writes (ADR 0023). No tool writes it today; a project adapts its tool's output.
 3. **Machine-readable NFR values (L04).** Settled on 2026-11-24: no new form. A value to be compared is declared as a criterion with a target in `eval_criteria.yaml`.
 4. **Recording the commit and working tree (L05).** Settled on 2026-11-24: a separate GovKit step, `govkit evidence --record`, writes a record of the commit, a working tree digest and each result file's digest (ADR 0024). Results with no record are `INCONCLUSIVE`.
-5. **Schemas on a level-free installation.** Does a pack install the `eval_criteria` schema, and which of the three applies when there is no project type from a marker?
+5. **Schemas on a level-free installation.** Settled on 2026-11-26: the profile's `repository.project_type` picks the schema, which is read from the schemas bundled with GovKit. With no project type, validation is unknown (ADR 0029).
 6. **Accepted skips.** May a project declare a skip as accepted, and if so where, without recreating the escape route of Section 3.1 item 4?
 7. **The legacy pilot.** Can it be converted with `govkit migrate`, so that it also exercises the level-free path?
 8. **Telemetry consumers (L10).** The first consumer is a custom application reading the JSON. Which OpenTelemetry backend should the exporter be proven against?
@@ -349,7 +349,7 @@ Risks:
 ## 11. Related issues
 
 - #152 proposes an evidence record and an emission to the graph. Rewrite it around the verification run contract, or close it in favour of L05 and L09.
-- #220 tracks profile equivalents for marker-only features. L07 adds feature validation to that list.
+- #220 tracks profile equivalents for marker-only features. L07b gives feature validation a profile route for one selected feature; the whole-repository route follows in L08.
 - #253 aligns `govkit conform`'s feature codes with the named identifiers from L01.
 
 ## 12. What changed from version 0.1
@@ -398,3 +398,5 @@ Version 0.1 planned L02 to L06 as additions to `govkit validate`, with a new fil
 | 2026-11-25 | L06b | #269: `change:protected` and the pure `protected_change.py`, with an optional `protected` section in the accepted conformance configuration, ADR 0027. Maintainer decisions: the declaration lives in accepted policy, and existing test files are additions-only. Differs from the L06 text above in three ways: tests are protected by declared path, not by binding to a scenario; nothing is protected by default; and no declaration is read from the comparison base. An inserted line inside an existing test is not seen | Open the L07 issue. L07 decides the level-free entry point and whether a project-held declaration is needed |
 | 2026-11-26 | L06b | Delivered in #270 | Open the L07 issue |
 | 2026-11-26 | L07a | #271: `govkit conform --feature`, the pure `feature_verdict.py`, the `evidence:feature` check and the `govkit.feature-verdict` document, ADR 0028. Maintainer decisions: the answer comes from `conform`; stale, unrecorded and missing free results give continue; no service reachability check. L07 was split. `evidence:feature` passes on result files as a local check, so a local done is a stop condition only. A required check that cannot pass locally ends in escalate | Open L07b: feature artifact checks on a level-free installation. It needs a decision on which capability selects them and which `eval_criteria` schema applies |
+| 2026-11-26 | L07a | Delivered in #272 | Decide how L07b selects its checks |
+| 2026-11-26 | L07b | #273: `feature_artifacts.py` adds `feature:<identifier>` checks to `govkit conform --feature`, ADR 0029. Maintainer decisions: `gherkin-delivery` selects the level 4 checks and `llm-evaluation` adds level 5; all are required except the forecast, which is advisory; the profile's `project_type` picks the schema and nothing is guessed; the selected feature only. The report's overall state is a warning at best because the forecast is never a pass | Open L08: CI templates, and the whole-repository run with the known-failures record |

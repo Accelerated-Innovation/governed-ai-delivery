@@ -30,7 +30,7 @@ PILOTS = (
 OBSERVED = {"experiment": "2026-11-10T00:00:00Z"}
 
 
-def run_pilot(workspace, name, then=None):
+def run_pilot(workspace, name, then=None, project_type=None):
     root = paths.GOVERNANCE_DIR / "examples"
     fixture = json.loads((root / "change-conformance/consumer.json").read_text())
     target, trusted = workspace / "consumer", workspace / "policy"
@@ -47,6 +47,8 @@ def run_pilot(workspace, name, then=None):
         write(trusted, relative, content)
     for relative, content in fixture["base_files"].items():
         write(target, relative, content)
+    if project_type is not None:
+        fixture["profile"]["repository"]["project_type"] = project_type
     write(trusted, ".govkit/profile.yaml", json.dumps(fixture["profile"]))
     write(trusted, "conformance.json", json.dumps(fixture["conformance"]))
     command = [sys.executable, "-I", "-m", "cli.govkit"]
@@ -388,10 +390,29 @@ def _junit(outcome=""):
     )
 
 
+ARTIFACTS = {
+    "nfrs.md": "## Repository Scope\n\n**Scope:** `single-repo`\n\n## Out of scope\n- none declared yet\n",
+    "eval_criteria.yaml": (
+        "version: 1\nmode: deterministic\n"
+        "unit_tests:\n  enforce_FIRST: true\n  minimum_FIRST_average: 4\n"
+        "code_quality:\n  enforce_virtues: true\n  minimum_virtue_average: 4\n"
+    ),
+    "architecture_preflight.md": "# Architecture Preflight\nAll checks passed.\n",
+    "plan.md": "# Plan\n\nReturn the agreed result.\n",
+}
+
+
 def feature_answer(write, git, invoke, args, posture):
-    """One answer for a feature: done, continue or escalate, with stable exit codes (L07a)."""
+    """One answer for a feature: done, continue or escalate, with stable exit codes (L07).
+
+    The pilot's profile selects `gherkin-delivery` and `llm-evaluation`, so the
+    level 4 and level 5 feature artifact checks join the run (L07b).
+    """
     target = Path(args[args.index("--target") + 1])
     write(target, "features/01_result/acceptance.feature", FEATURE)
+    for name, content in ARTIFACTS.items():
+        if name != "plan.md":
+            write(target, "features/01_result/" + name, content)
     write(target, ".gitignore", "junit.xml\ngovkit-evidence-record.json\n")
     git("add", ".")
     git("commit", "-qm", "a feature and its ignore rules")
@@ -407,15 +428,36 @@ def feature_answer(write, git, invoke, args, posture):
     def codes(answer):
         return [(reason["state"], reason["code"]) for reason in answer["reasons"]]
 
+    def artifact_states(answer):
+        return {
+            r["id"]: (r["required"], r["state"])
+            for r in answer["change"]["checks"]["results"]
+            if r["id"].startswith("feature:")
+        }
+
     write(target, "src/service.py", "def result():\n    return 42\n\n# touched\n")
     missing = invoke(args, expected=1)
-    assert codes(missing) == [("continue", "result-missing")], missing["reasons"]
+    assert ("continue", "result-missing") in codes(missing), missing["reasons"]
+    # No plan.md yet: the artifact check fails, which is also work for the agent.
+    assert artifact_states(missing)["feature:completeness"] == (True, "fail")
+    assert ("feature:completeness", "check-failed") in {
+        (reason["check"], reason["code"]) for reason in missing["reasons"]
+    }
+    write(target, "features/01_result/plan.md", ARTIFACTS["plan.md"])
+    git("add", "features")
+    git("commit", "-qm", "the plan")
+    args[args.index("--base") + 1] = git("rev-parse", "HEAD")
+    assert codes(invoke(args, expected=1)) == [("continue", "result-missing")]
 
     write(target, "junit.xml", _junit())
     assert codes(invoke(args, expected=1)) == [("continue", "results-unrecorded")]
     record()
     done = invoke(args, expected=0)
     assert done["state"] == "done" and done["reasons"] == [], done["reasons"]
+    states = artifact_states(done)
+    assert len(states) == 12, sorted(states)
+    assert states.pop("feature:eval-prediction") == (False, "unknown")
+    assert set(states.values()) == {(True, "pass")}, states
     assert change_conformance.parse_feature_verdict(done) == done
     assert done["evidence"]["outcome"] == "PASS" and done["change"]["exit_code"] == 0
     posture(done["change"], "feature-answer")
@@ -450,6 +492,29 @@ def feature_answer(write, git, invoke, args, posture):
     assert unknown.returncode == 2 and unknown.stdout == "", unknown
 
 
+def no_project_type(write, git, invoke, args, posture):
+    """Without `repository.project_type` no schema is chosen, and the answer says so (L07b)."""
+    target = Path(args[args.index("--target") + 1])
+    write(target, "features/01_result/acceptance.feature", FEATURE)
+    for name, content in ARTIFACTS.items():
+        write(target, "features/01_result/" + name, content)
+    write(target, ".gitignore", "junit.xml\ngovkit-evidence-record.json\n")
+    git("add", ".")
+    git("commit", "-qm", "a complete feature")
+    args = list(args)
+    args[args.index("--base") + 1] = git("rev-parse", "HEAD")
+    write(target, "src/service.py", "def result():\n    return 42\n\n# touched\n")
+    write(target, "junit.xml", _junit())
+    recorded = [sys.executable, "-I", "-m", "cli.govkit", "evidence", "--record"]
+    subprocess.run([*recorded, "--target", str(target)], check=True, capture_output=True)
+    answer = invoke(args + ["--feature", "01_result"], expected=3)
+    assert [(r["code"], r["check"]) for r in answer["reasons"]] == [
+        ("check-not-satisfied", "feature:eval-criteria")
+    ], answer["reasons"]
+    plain = invoke(args, expected=None)
+    assert not any(r["id"].startswith("feature:") for r in plain["checks"]["results"])
+
+
 if __name__ == "__main__":
     assert Path(change_conformance.__file__).is_relative_to(sys.prefix)
     example = json.loads((paths.GOVERNANCE_DIR / "examples/posture/change.json").read_text())
@@ -463,11 +528,13 @@ if __name__ == "__main__":
     with tempfile.TemporaryDirectory(prefix="govkit-change-pilot-") as directory:
         run_pilot(Path(directory).resolve(), "enhancement", protected_change)
     with tempfile.TemporaryDirectory(prefix="govkit-change-pilot-") as directory:
-        run_pilot(Path(directory).resolve(), "enhancement", feature_answer)
+        run_pilot(Path(directory).resolve(), "enhancement", feature_answer, project_type="api")
+    with tempfile.TemporaryDirectory(prefix="govkit-change-pilot-") as directory:
+        run_pilot(Path(directory).resolve(), "enhancement", no_project_type)
     answer = json.loads(
         (paths.GOVERNANCE_DIR / "examples/feature-verdict/feature-verdict.json").read_text()
     )
     assert change_conformance.parse_feature_verdict(answer) == answer
     print(
-        "Eight actual-change pilots, the definition check, the protected-file check and the feature answer: real outcomes, private posture, planned metadata preservation, source pointer integrity and protected publication verified."
+        "Eight actual-change pilots, the definition check, the protected-file check, the feature answer and the feature artifact checks: real outcomes, private posture, planned metadata preservation, source pointer integrity and protected publication verified."
     )

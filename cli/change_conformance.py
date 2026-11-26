@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path, PurePosixPath
 
 from . import check_adapters as adapters
-from . import evidence_report, feature_verdict
+from . import evidence_report, feature_artifacts, feature_verdict
 from .change_architecture import assess_architecture
 from .change_defects import defect_check
 from .change_policy import load_change_policy
@@ -679,9 +679,9 @@ def inspect_change(
     trusted_context = replace(context, target=policy_target)
     registry, specs = CheckRegistry(), list(plan.check_specs())
 
-    def add(identifier, check, reason, source="accepted:conformance", scope=(".",)):
+    def add(identifier, check, reason, source="accepted:conformance", scope=(".",), required=True):
         registry.register(identifier, check)
-        specs.append(CheckSpec(identifier, True, reason, source, scope))
+        specs.append(CheckSpec(identifier, required, reason, source, scope))
 
     add(
         "govkit:profile",
@@ -855,10 +855,30 @@ def inspect_change(
             "A change may add tests, not alter the tests and files that check it",
         )
     if evidence is not None:
-        if feature_verdict.EVIDENCE_CHECK in commands.keys() | packs.keys():
+        artifact_checks = feature_artifacts.checks(
+            target,
+            feature,
+            {c["id"] for c in profile.document["capabilities"]},
+            profile.document["repository"].get("project_type"),
+        )
+        reserved = {feature_verdict.EVIDENCE_CHECK, *(name for name, _, _ in artifact_checks)}
+        taken = sorted(reserved & (commands.keys() | packs.keys()))
+        if taken:
             raise ValueError(
-                f"{feature_verdict.EVIDENCE_CHECK} is reserved for --feature; "
+                f"{', '.join(taken)} is reserved for --feature; "
                 "rename the configured check that uses this identifier"
+            )
+        for identifier, needed, check in artifact_checks:
+            # Chosen by the accepted profile's capabilities, for this feature only.
+            add(
+                identifier,
+                check,
+                "Feature artifacts selected by the accepted profile's capabilities"
+                if needed
+                else "The producer's own forecast is reported and is not evidence",
+                source=".govkit/profile.yaml",
+                scope=(f"features/{feature}",),
+                required=needed,
             )
         add(
             feature_verdict.EVIDENCE_CHECK,

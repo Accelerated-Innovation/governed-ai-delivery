@@ -73,6 +73,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     report and the change results.
   - Without `--feature`, output and exit status are unchanged.
   - See ADR 0028 and [docs/CHANGE_CONFORMANCE.md](docs/CHANGE_CONFORMANCE.md).
+- **Feature artifact checks without a level (#273).** With `--feature`,
+  `govkit conform` runs the feature artifact checks of `govkit validate` when
+  the accepted profile selects them.
+  - `gherkin-delivery` selects the seven level 4 checks; `llm-evaluation` adds
+    the five level 5 checks. Each is a check named `feature:<identifier>`.
+  - `feature:eval-prediction` is advisory and never a pass.
+  - `repository.project_type` in the accepted profile picks the
+    `eval_criteria` schema. Without it, schema validation is unknown.
+  - A profile without `gherkin-delivery`, and `govkit validate`, are unchanged.
+  - See ADR 0029 and [docs/CHANGE_CONFORMANCE.md](docs/CHANGE_CONFORMANCE.md).
 - **Protected tests and files in change conformance (#269).** The conformance
   configuration accepts an optional `protected` section, and `govkit conform
   --request` then adds `change:protected`.

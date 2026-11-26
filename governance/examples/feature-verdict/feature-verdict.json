@@ -1,7 +1,7 @@
 {
   "change": {
     "change": {
-      "base": "a0a2d89e940e138caf40317806ddae9b77861ef3",
+      "base": "7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa",
       "changes": [
         {
           "after": "af9651896f3397b25f960e6252ebd914d9112cc64683c09740d3e639a0f02354",
@@ -22,21 +22,21 @@
         "source_state": "accepted"
       },
       "problems": [],
-      "revision": "a0a2d89e940e138caf40317806ddae9b77861ef3",
-      "tree_digest": "b33aa924530f020ec73b5276330cae5f77f3a6ff9b1ffb9db0899d21e408ef04"
+      "revision": "7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa",
+      "tree_digest": "7504a04faa0a684ada6a6f7741a799929d73aaa5852aa40369ba8f924cb3aaa9"
     },
     "checks": {
       "exit_code": 1,
       "govkit_version": "0.23.0",
       "identity": {
-        "change_digest": "8e3fb377f4f67d8031e9bcd9bed6bb737048da3d6ad9abac095f4f0334f5c91f",
-        "dirty_digest": "b33aa924530f020ec73b5276330cae5f77f3a6ff9b1ffb9db0899d21e408ef04",
+        "change_digest": "13ef7ff973a3799c91b074d4f89e3207aa8418cabb071c92daa0cce79b4ed467",
+        "dirty_digest": "7504a04faa0a684ada6a6f7741a799929d73aaa5852aa40369ba8f924cb3aaa9",
         "observed_at": "2026-09-23T12:00:00+00:00",
-        "pack_lock_digest": "0f739768eec4eb44651921fe8511d833a9b4f039e3099f6551befc33051c83a6",
-        "profile_digest": "9d03d76a6104771b2282083735b765dc805643860c56b49346cbbf01a3b3d770",
+        "pack_lock_digest": "cb2345d8c53966c6b6d03d076e349e6787c983802d7ea441a66d1add5da0cccc",
+        "profile_digest": "2aaf8d989a3e01fde6c86e45a016ba860a33f00aa5f4dcfb44dce31dbf9e7115",
         "repository": "service",
-        "resolution_digest": "742df372c333d8f41507bd26f0437e64101a13e498d872410a1ce92369e42abb",
-        "revision": "a0a2d89e940e138caf40317806ddae9b77861ef3"
+        "resolution_digest": "c225c060481ebf6d442b9c71787c009d9e1541d2480ee6bf4ada8a11d1d27c6b",
+        "revision": "7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa"
       },
       "kind": "check-results",
       "limitations": [
@@ -47,7 +47,7 @@
         {
           "evidence": [
             {
-              "digest": "8e3fb377f4f67d8031e9bcd9bed6bb737048da3d6ad9abac095f4f0334f5c91f",
+              "digest": "13ef7ff973a3799c91b074d4f89e3207aa8418cabb071c92daa0cce79b4ed467",
               "limitations": [
                 "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
               ],
@@ -56,7 +56,7 @@
               "scope": [
                 "src/service.py"
               ],
-              "source": "git:a0a2d89e940e138caf40317806ddae9b77861ef3"
+              "source": "git:7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa"
             }
           ],
           "execution": "executed",
@@ -68,7 +68,7 @@
               "code": "pass",
               "evidence": [
                 {
-                  "digest": "8e3fb377f4f67d8031e9bcd9bed6bb737048da3d6ad9abac095f4f0334f5c91f",
+                  "digest": "13ef7ff973a3799c91b074d4f89e3207aa8418cabb071c92daa0cce79b4ed467",
                   "limitations": [
                     "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
                   ],
@@ -77,7 +77,7 @@
                   "scope": [
                     "src/service.py"
                   ],
-                  "source": "git:a0a2d89e940e138caf40317806ddae9b77861ef3"
+                  "source": "git:7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa"
                 }
               ],
               "id": "finding:896fe2cb33d466819c4ea9b726aba95c0876e7380757b55f870a77e50d8ec583",
@@ -165,7 +165,7 @@
         {
           "evidence": [
             {
-              "digest": "8e3fb377f4f67d8031e9bcd9bed6bb737048da3d6ad9abac095f4f0334f5c91f",
+              "digest": "13ef7ff973a3799c91b074d4f89e3207aa8418cabb071c92daa0cce79b4ed467",
               "limitations": [
                 "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
               ],
@@ -174,7 +174,7 @@
               "scope": [
                 "src/service.py"
               ],
-              "source": "git:a0a2d89e940e138caf40317806ddae9b77861ef3"
+              "source": "git:7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa"
             }
           ],
           "execution": "executed",
@@ -186,7 +186,7 @@
               "code": "pass",
               "evidence": [
                 {
-                  "digest": "8e3fb377f4f67d8031e9bcd9bed6bb737048da3d6ad9abac095f4f0334f5c91f",
+                  "digest": "13ef7ff973a3799c91b074d4f89e3207aa8418cabb071c92daa0cce79b4ed467",
                   "limitations": [
                     "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
                   ],
@@ -195,7 +195,7 @@
                   "scope": [
                     "src/service.py"
                   ],
-                  "source": "git:a0a2d89e940e138caf40317806ddae9b77861ef3"
+                  "source": "git:7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa"
                 }
               ],
               "id": "finding:e3eaf36ca6cf293abba9641ec1f734840f68210574b1a7d168efed5f471bf533",
@@ -222,7 +222,7 @@
         {
           "evidence": [
             {
-              "digest": "8e3fb377f4f67d8031e9bcd9bed6bb737048da3d6ad9abac095f4f0334f5c91f",
+              "digest": "13ef7ff973a3799c91b074d4f89e3207aa8418cabb071c92daa0cce79b4ed467",
               "limitations": [
                 "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
               ],
@@ -231,7 +231,7 @@
               "scope": [
                 "src/service.py"
               ],
-              "source": "git:a0a2d89e940e138caf40317806ddae9b77861ef3"
+              "source": "git:7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa"
             }
           ],
           "execution": "executed",
@@ -243,7 +243,7 @@
               "code": "pass",
               "evidence": [
                 {
-                  "digest": "8e3fb377f4f67d8031e9bcd9bed6bb737048da3d6ad9abac095f4f0334f5c91f",
+                  "digest": "13ef7ff973a3799c91b074d4f89e3207aa8418cabb071c92daa0cce79b4ed467",
                   "limitations": [
                     "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
                   ],
@@ -252,7 +252,7 @@
                   "scope": [
                     "src/service.py"
                   ],
-                  "source": "git:a0a2d89e940e138caf40317806ddae9b77861ef3"
+                  "source": "git:7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa"
                 }
               ],
               "id": "finding:720c54115c4492f8d46bdc4715b4902891d72017c461284feaffdfd8d9b3b7f1",
@@ -279,7 +279,7 @@
         {
           "evidence": [
             {
-              "digest": "8e3fb377f4f67d8031e9bcd9bed6bb737048da3d6ad9abac095f4f0334f5c91f",
+              "digest": "13ef7ff973a3799c91b074d4f89e3207aa8418cabb071c92daa0cce79b4ed467",
               "limitations": [
                 "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
               ],
@@ -288,7 +288,7 @@
               "scope": [
                 "src/service.py"
               ],
-              "source": "git:a0a2d89e940e138caf40317806ddae9b77861ef3"
+              "source": "git:7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa"
             }
           ],
           "execution": "executed",
@@ -300,7 +300,7 @@
               "code": "pass",
               "evidence": [
                 {
-                  "digest": "8e3fb377f4f67d8031e9bcd9bed6bb737048da3d6ad9abac095f4f0334f5c91f",
+                  "digest": "13ef7ff973a3799c91b074d4f89e3207aa8418cabb071c92daa0cce79b4ed467",
                   "limitations": [
                     "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
                   ],
@@ -309,7 +309,7 @@
                   "scope": [
                     "src/service.py"
                   ],
-                  "source": "git:a0a2d89e940e138caf40317806ddae9b77861ef3"
+                  "source": "git:7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa"
                 }
               ],
               "id": "finding:90ab768021002705d251152cf6b6824c458396603f051605e4ea5ccf3ba853a8",
@@ -336,7 +336,7 @@
         {
           "evidence": [
             {
-              "digest": "8e3fb377f4f67d8031e9bcd9bed6bb737048da3d6ad9abac095f4f0334f5c91f",
+              "digest": "13ef7ff973a3799c91b074d4f89e3207aa8418cabb071c92daa0cce79b4ed467",
               "limitations": [
                 "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
               ],
@@ -345,7 +345,7 @@
               "scope": [
                 "src/service.py"
               ],
-              "source": "git:a0a2d89e940e138caf40317806ddae9b77861ef3"
+              "source": "git:7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa"
             }
           ],
           "execution": "executed",
@@ -357,7 +357,7 @@
               "code": "pass",
               "evidence": [
                 {
-                  "digest": "8e3fb377f4f67d8031e9bcd9bed6bb737048da3d6ad9abac095f4f0334f5c91f",
+                  "digest": "13ef7ff973a3799c91b074d4f89e3207aa8418cabb071c92daa0cce79b4ed467",
                   "limitations": [
                     "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
                   ],
@@ -366,7 +366,7 @@
                   "scope": [
                     "src/service.py"
                   ],
-                  "source": "git:a0a2d89e940e138caf40317806ddae9b77861ef3"
+                  "source": "git:7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa"
                 }
               ],
               "id": "finding:0fc0d24dc6b3b005f2963311be1969a414fe65594e37abb8bb0d27c255b6f39b",
@@ -393,7 +393,7 @@
         {
           "evidence": [
             {
-              "digest": "8e3fb377f4f67d8031e9bcd9bed6bb737048da3d6ad9abac095f4f0334f5c91f",
+              "digest": "13ef7ff973a3799c91b074d4f89e3207aa8418cabb071c92daa0cce79b4ed467",
               "limitations": [
                 "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
               ],
@@ -402,7 +402,7 @@
               "scope": [
                 "src/service.py"
               ],
-              "source": "git:a0a2d89e940e138caf40317806ddae9b77861ef3"
+              "source": "git:7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa"
             }
           ],
           "execution": "executed",
@@ -414,7 +414,7 @@
               "code": "pass",
               "evidence": [
                 {
-                  "digest": "8e3fb377f4f67d8031e9bcd9bed6bb737048da3d6ad9abac095f4f0334f5c91f",
+                  "digest": "13ef7ff973a3799c91b074d4f89e3207aa8418cabb071c92daa0cce79b4ed467",
                   "limitations": [
                     "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
                   ],
@@ -423,7 +423,7 @@
                   "scope": [
                     "src/service.py"
                   ],
-                  "source": "git:a0a2d89e940e138caf40317806ddae9b77861ef3"
+                  "source": "git:7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa"
                 }
               ],
               "id": "finding:19a715fef666747bcacd2ce860ad370a4463f14dbe4f0a81cd393a6d0fe4d469",
@@ -450,7 +450,7 @@
         {
           "evidence": [
             {
-              "digest": "d9b629dee8393f94cb129107dff3c31e8005811cdfec4400449e1dec1cf2d3ad",
+              "digest": "be112fdce338052cf8744ac94f32b7e9f856b57085f590722307e2e2ad941c96",
               "limitations": [
                 "Reads the result files found in the checkout and the record that ties them to the commit and working tree. Neither proves that the tests ran or what a test asserts."
               ],
@@ -471,7 +471,7 @@
               "code": "result-failed",
               "evidence": [
                 {
-                  "digest": "d9b629dee8393f94cb129107dff3c31e8005811cdfec4400449e1dec1cf2d3ad",
+                  "digest": "be112fdce338052cf8744ac94f32b7e9f856b57085f590722307e2e2ad941c96",
                   "limitations": [
                     "Reads the result files found in the checkout and the record that ties them to the commit and working tree. Neither proves that the tests ran or what a test asserts."
                   ],
@@ -500,7 +500,7 @@
               "code": "result-skipped",
               "evidence": [
                 {
-                  "digest": "d9b629dee8393f94cb129107dff3c31e8005811cdfec4400449e1dec1cf2d3ad",
+                  "digest": "be112fdce338052cf8744ac94f32b7e9f856b57085f590722307e2e2ad941c96",
                   "limitations": [
                     "Reads the result files found in the checkout and the record that ties them to the commit and working tree. Neither proves that the tests ran or what a test asserts."
                   ],
@@ -531,12 +531,411 @@
           ],
           "source_policy": "accepted:conformance",
           "state": "fail",
-          "summary": "07_invoice_approval: FAIL; 1 failed, 1 skipped of 3 scenarios: approval-routing-by-amount (failed), routing-completes-within-200-ms-at-p95 (skipped)"
+          "summary": "07_invoice_approval: FAIL; 1 failed, 1 skipped of 4 scenarios: approval-routing-by-amount (failed), routing-completes-within-200-ms-at-p95 (skipped)"
         },
         {
           "evidence": [
             {
-              "digest": "0f739768eec4eb44651921fe8511d833a9b4f039e3099f6551befc33051c83a6",
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:completeness",
+              "code": "completeness",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:ea9f6cefa5060bc426eb525cb82bc9895294ff9536be380d064d4fcb5946683d",
+              "location": "features/07_invoice_approval",
+              "message": "5/5 required artifacts present",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:completeness",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "5/5 required artifacts present"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:eval-criteria",
+              "code": "eval-criteria",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:2ddc83bee456a97f00176321f3309d20f7f2cb048a85989672217a6b0d49ce0f",
+              "location": "features/07_invoice_approval",
+              "message": "eval_criteria.yaml valid against the backend schema",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:eval-criteria",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "eval_criteria.yaml valid against the backend schema"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "agent-assertion",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "The producer's own forecast is reported and is not evidence",
+              "category": "feature",
+              "check_id": "feature:eval-prediction",
+              "code": "eval-prediction",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "agent-assertion",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:eef1c215f409e101ae3b6aeaf74d9e43d4b46d1230c37136bf4d9b56a89ec234",
+              "location": "features/07_invoice_approval",
+              "message": "forecast, not evidence: plan.md evaluation_prediction forecast OK (4.6, 4.4)",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "warning",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:eval-prediction",
+          "reason": "The producer's own forecast is reported and is not evidence",
+          "required": false,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "unknown",
+          "summary": "forecast, not evidence: plan.md evaluation_prediction forecast OK (4.6, 4.4)"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:gherkin-nfr-coverage",
+              "code": "gherkin-nfr-coverage",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:755be895499f077fef923dde4926f48941ae4b7a1486605ead5f5ba20a971f70",
+              "location": "features/07_invoice_approval",
+              "message": "Gherkin @nfr-* tag coverage matches populated NFR categories",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:gherkin-nfr-coverage",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "Gherkin @nfr-* tag coverage matches populated NFR categories"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:gherkin-syntax",
+              "code": "gherkin-syntax",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:d529c3584f7f45cb6a022f2946107959eda192398fe36d6b25bd711a3a1540bd",
+              "location": "features/07_invoice_approval",
+              "message": "acceptance.feature has valid Gherkin structure",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:gherkin-syntax",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "acceptance.feature has valid Gherkin structure"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:nfrs-no-tbd",
+              "code": "nfrs-no-tbd",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:4f2454562345c672d2c45ea8986fc800b004ed19efa17891899fd677210aa48f",
+              "location": "features/07_invoice_approval",
+              "message": "nfrs.md has no TBD entries",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:nfrs-no-tbd",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "nfrs.md has no TBD entries"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:nfrs-sections",
+              "code": "nfrs-sections",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:1c1605e05af3b67d70fb3a7b2cd7d48fc88ea04926a29d4ab7ada4c44557819e",
+              "location": "features/07_invoice_approval",
+              "message": "nfrs.md section contract OK (Repository Scope + Out of scope populated)",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:nfrs-sections",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "nfrs.md section contract OK (Repository Scope + Out of scope populated)"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "cb2345d8c53966c6b6d03d076e349e6787c983802d7ea441a66d1add5da0cccc",
               "limitations": [
                 "Resource consistency is not source authenticity or proof that a control ran."
               ],
@@ -557,7 +956,7 @@
               "code": "pass",
               "evidence": [
                 {
-                  "digest": "0f739768eec4eb44651921fe8511d833a9b4f039e3099f6551befc33051c83a6",
+                  "digest": "cb2345d8c53966c6b6d03d076e349e6787c983802d7ea441a66d1add5da0cccc",
                   "limitations": [
                     "Resource consistency is not source authenticity or proof that a control ran."
                   ],
@@ -593,7 +992,7 @@
         {
           "evidence": [
             {
-              "digest": "ac8a6348fedf6d15c4aa98da709148d94849ad9274d542b7bd5b47b64226b7c5",
+              "digest": "0498d3deee74134b7ff2394b73f64abc2c4553ab60dbead186c073039e721eff",
               "limitations": [
                 "Accepted authority is the author's assertion; referenced policy content is not authenticated or enforced here."
               ],
@@ -614,7 +1013,7 @@
               "code": "pass",
               "evidence": [
                 {
-                  "digest": "ac8a6348fedf6d15c4aa98da709148d94849ad9274d542b7bd5b47b64226b7c5",
+                  "digest": "0498d3deee74134b7ff2394b73f64abc2c4553ab60dbead186c073039e721eff",
                   "limitations": [
                     "Accepted authority is the author's assertion; referenced policy content is not authenticated or enforced here."
                   ],
@@ -710,14 +1109,14 @@
       "schema_version": 1,
       "state": "fail",
       "summary": {
-        "executed": 11,
+        "executed": 18,
         "fail": 1,
         "not-applicable": 0,
-        "pass": 10,
-        "required": 11,
-        "required_satisfied": 10,
+        "pass": 16,
+        "required": 17,
+        "required_satisfied": 16,
         "skipped": 0,
-        "unknown": 0,
+        "unknown": 1,
         "waived": 0,
         "warn": 0
       }
@@ -811,9 +1210,9 @@
         }
       ],
       "identity": {
-        "lock_digest": "0f739768eec4eb44651921fe8511d833a9b4f039e3099f6551befc33051c83a6",
-        "plan_digest": "742df372c333d8f41507bd26f0437e64101a13e498d872410a1ce92369e42abb",
-        "profile_digest": "9d03d76a6104771b2282083735b765dc805643860c56b49346cbbf01a3b3d770",
+        "lock_digest": "cb2345d8c53966c6b6d03d076e349e6787c983802d7ea441a66d1add5da0cccc",
+        "plan_digest": "c225c060481ebf6d442b9c71787c009d9e1541d2480ee6bf4ada8a11d1d27c6b",
+        "profile_digest": "2aaf8d989a3e01fde6c86e45a016ba860a33f00aa5f4dcfb44dce31dbf9e7115",
         "request_digest": "3be4d9646e1e332243e1ea3ba005ca0d55d0b807405e1b1d8ca6ca5ddba37df8",
         "scope_digest": "d5d0baf1ae84b2d48866c0aec6424b9a3a0025df4e4489bbb4f965d2bef791dd"
       },
@@ -904,8 +1303,8 @@
               "path": ".agents/skills/govkit-request-planning/SKILL.md"
             }
           ],
-          "lock_digest": "0f739768eec4eb44651921fe8511d833a9b4f039e3099f6551befc33051c83a6",
-          "profile_digest": "9d03d76a6104771b2282083735b765dc805643860c56b49346cbbf01a3b3d770"
+          "lock_digest": "cb2345d8c53966c6b6d03d076e349e6787c983802d7ea441a66d1add5da0cccc",
+          "profile_digest": "2aaf8d989a3e01fde6c86e45a016ba860a33f00aa5f4dcfb44dce31dbf9e7115"
         },
         "observed_scope": {
           "impacts": {},
@@ -964,7 +1363,8 @@
             ]
           },
           "repository": {
-            "id": "service"
+            "id": "service",
+            "project_type": "api"
           },
           "schema_version": 1,
           "source": {
@@ -1039,13 +1439,13 @@
     "state": "fail"
   },
   "evidence": {
-    "detail": "1 failed, 1 skipped of 3 scenarios: approval-routing-by-amount (failed), routing-completes-within-200-ms-at-p95 (skipped)",
+    "detail": "1 failed, 1 skipped of 4 scenarios: approval-routing-by-amount (failed), routing-completes-within-200-ms-at-p95 (skipped)",
     "feature": {
-      "content_digest": "365d0cadd14a9f5ea7c403bfb0b29f135e9caef60a7aea1064906477a8f1f73b",
+      "content_digest": "552d3d3bd909df8436c490a97ad4a9bb83d247f33588033f381415b8b0145688",
       "criteria": {
-        "content_digest": null,
+        "content_digest": "6a028134491c7e9846f33201011ae5098d4fc2d06e048ad84f60802295d19aaa",
         "definition": "features/07_invoice_approval/eval_criteria.yaml",
-        "form": "absent"
+        "form": "named"
       },
       "definition": "features/07_invoice_approval/acceptance.feature",
       "name": "07_invoice_approval"
@@ -1053,11 +1453,11 @@
     "kind": "govkit.evidence-report",
     "outcome": "FAIL",
     "provenance": {
-      "commit": "a0a2d89e940e138caf40317806ddae9b77861ef3",
+      "commit": "7e34963b11f126e22f84cf4c9a2bf6204cf8f7aa",
       "detail": "the commit and the working tree are as they were recorded",
-      "recorded_at": "2026-11-26T15:44:29Z",
+      "recorded_at": "2026-11-26T17:00:40Z",
       "state": "current",
-      "tree_digest": "458f2c73e8792bef300692a6714f060c60e66f90deb2fea649310165c210fb82"
+      "tree_digest": "4f81752ae14adfd5ff000c1f3460e44bc26f4c17f025463dc149eeebc0081869"
     },
     "results": [
       {
@@ -1124,12 +1524,32 @@
           }
         ],
         "title": "Routing completes within 200 ms at p95"
+      },
+      {
+        "binding": "title",
+        "id_source": "derived",
+        "kind": "test",
+        "outcome": "passed",
+        "requirement_id": "07_invoice_approval#scenario:routing-needs-a-signed-request",
+        "revision_digest": "4ae15d0b59c14a392d63f1dcbeaeafe1c0d36f4c354044ac00f285f2c3548fc3",
+        "tags": [
+          "@nfr-security"
+        ],
+        "tests": [
+          {
+            "classname": "tests.routing",
+            "name": "test_routing_needs_a_signed_request",
+            "outcome": "passed",
+            "source": "junit.xml"
+          }
+        ],
+        "title": "Routing needs a signed request"
       }
     ],
     "schema_version": 1,
     "sources": [
       {
-        "content_digest": "ff0e2838b0b883f8deafdc5b0cc093d235f89d8eec6a044d4f7306b30c991604",
+        "content_digest": "ee1e00a655b9ea42e82c73d8aca01218ac2d2e64071bd6c483db0146e24fab69",
         "path": "junit.xml",
         "tool": "junit",
         "unidentified_skipped": 0
@@ -1141,8 +1561,8 @@
       "failed": 1,
       "missing": 0,
       "owed": 0,
-      "passed": 1,
-      "scenarios": 3,
+      "passed": 2,
+      "scenarios": 4,
       "skipped": 1
     }
   },
