@@ -164,7 +164,7 @@ Limits to know:
 - **A change that touches no feature judges none.** The record is then the same as without the setting.
 - **A feature the change does not touch is not judged.**
 - **There is no overall state across features.** Each answer stands alone.
-- **The entry point does not record feature evidence.** It can execute the checks the settings enable, such as `project:tests`, but a feature is judged by result files recorded before it starts. Without recorded results, each touched feature is `continue`.
+- **The entry point does not record feature evidence.** It can execute the checks the settings enable, such as `project:tests`, but a feature is judged by result files recorded before it starts. Without recorded results a touched feature is not done: it is `continue`, unless another reason, such as a changed definition, makes it `escalate`.
 
 See ADR 0030.
 
