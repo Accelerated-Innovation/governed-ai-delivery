@@ -360,9 +360,11 @@ def feature_pilot(workspace, provider):
     answers = json.loads(mixed.read_text())
     assert parse_feature_verdicts(answers) == answers
     assert [a["state"] for a in answers["features"]] == ["continue", "escalate"]
-    assert run(judged, GOVKIT_FEATURE_OUTPUT=str(mixed)).returncode == 1, (
-        "an answers file was overwritten"
-    )
+    kept = mixed.read_bytes()
+    again = run(judged, GOVKIT_FEATURE_OUTPUT=str(mixed))
+    assert again.returncode == 1 and again.stdout == "", (again.stdout, again.stderr)
+    assert "Error:" in again.stderr and "Feature 01_result" not in again.stderr, again.stderr
+    assert mixed.read_bytes() == kept, "an answers file was overwritten"
     # A pipeline generated without the setting refuses an answers path and writes nothing.
     assert run(plain, GOVKIT_FEATURE_OUTPUT=str(workspace / "none.json")).returncode == 1
     assert not (workspace / "none.json").exists()

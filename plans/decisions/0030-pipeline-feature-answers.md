@@ -37,5 +37,5 @@ The maintainer decided on 2026-11-26:
 - **There is no overall state across features.** Each answer stands alone; the run's exit status is the record's.
 - **A feature the change does not touch is not judged.** A regression in it is not seen here.
 - **Check names with a feature in brackets are reserved** in a run that judges features.
-- **The pipeline does not run the tests or record the results.** The caller runs the tests and `govkit evidence --record` before the entry point, as for a local run.
+- **The pipeline does not record feature evidence.** It can execute the checks its settings enable, such as `project:tests`, but a feature is judged by result files recorded before the entry point starts. The caller runs the tests and `govkit evidence --record` first, as for a local run.
 - The setting's value, the check name form and the document kind are a public contract: add, never rename.

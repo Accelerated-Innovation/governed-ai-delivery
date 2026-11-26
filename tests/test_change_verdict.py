@@ -300,6 +300,7 @@ def test_the_answer_document_holds_both_reports_and_replays(tmp_path):
         lambda d: d["reasons"][0].update(code="result-missing"),
         lambda d: d["change"]["checks"]["results"].pop(),
         lambda d: d.update(feature="another"),
+        lambda d: d["evidence"].update(feature=None),
         lambda d: next(r for r in d["change"]["checks"]["results"] if r["id"] == CHECK).update(
             required=False
         ),

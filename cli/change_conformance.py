@@ -204,9 +204,10 @@ def parse_feature_verdict(document: dict) -> dict:
     """Validate a saved answer and recompute it from the reports it holds."""
     validate_document(document, "feature-verdict")
     change = parse_change_report(document["change"])
-    if document["evidence"].get("feature", {}).get("name") != document["feature"]:
-        raise DocumentError("The answer names a different feature from its evidence")
+    # Validated first: the outer schema does not describe the evidence itself.
     _follows(document["evidence"], change.checks)
+    if document["evidence"]["feature"]["name"] != document["feature"]:
+        raise DocumentError("The answer names a different feature from its evidence")
     replayed = {
         "schema_version": 1,
         "kind": "govkit.feature-verdict",
@@ -246,9 +247,9 @@ def parse_feature_verdicts(document: dict) -> dict:
     features = []
     for answer in document["features"]:
         evidence = answer["evidence"]
-        if evidence.get("feature", {}).get("name") != answer["feature"]:
-            raise DocumentError("An answer names a different feature from its evidence")
         _follows(evidence, change.checks, answer["feature"])
+        if evidence["feature"]["name"] != answer["feature"]:
+            raise DocumentError("An answer names a different feature from its evidence")
         features.append(
             {**_verdict(evidence, change.checks, answer["feature"]), "evidence": evidence}
         )

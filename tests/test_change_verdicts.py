@@ -134,6 +134,13 @@ def test_a_failure_of_the_change_itself_reaches_every_answer(tmp_path):
         assert "project:tests" in {reason["check"] for reason in verdict["reasons"]}
 
 
+def test_a_path_elsewhere_that_shares_a_feature_name_does_not_select_it(tmp_path):
+    target, trusted, base = _project(tmp_path)
+    write(target, f"src/{FEATURE}/service.py", "# good\n")
+    write(target, f"docs/{OTHER}/notes.md", "# notes\n")
+    assert _inspect(target, trusted, base).answers == ()
+
+
 def test_a_new_feature_directory_is_judged(tmp_path):
     target, trusted, base = _project(tmp_path)
     make_full_feature(
@@ -192,6 +199,8 @@ def test_the_answers_document_holds_the_change_once_and_replays(answers):
         lambda d: d["features"][0].update(evidence=d["features"][1]["evidence"]),
         lambda d: d["features"][0].update(feature=UNTOUCHED),
         lambda d: d["change"]["checks"]["results"].pop(),
+        lambda d: d["features"][0]["evidence"].update(feature=None),
+        lambda d: d["features"][0]["evidence"].update(feature=["x"]),
     ],
 )
 def test_edited_answers_do_not_replay(answers, edit):

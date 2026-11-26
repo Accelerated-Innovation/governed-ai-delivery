@@ -327,7 +327,14 @@ def changed_features(target: Path, base: str, *, paths=None) -> Changed:
             paths = tree_identity.changed_paths(target, base, "features")
         except tree_identity.Unavailable as exc:
             raise SelectionError(f"--changed-since cannot be read: {exc}") from None
-    touched = sorted({path.split("/")[1] for path in paths if path.count("/") >= 2})
+    # Supplied paths may cover the whole repository; only those under features/ count.
+    touched = sorted(
+        {
+            path.split("/")[1]
+            for path in paths
+            if path.startswith("features/") and path.count("/") >= 2
+        }
+    )
     available = {path.name for path in list_user_features(target / "features")}
     present = tuple(name for name in touched if name in available)
     removed = tuple(

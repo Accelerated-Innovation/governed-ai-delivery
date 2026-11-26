@@ -80,6 +80,11 @@ class TestWhichFeatures:
         _write(target, "features/09_new/acceptance.feature", ACCEPTANCE)
         assert er.changed_features(target, base).present == (FIRST, SECOND, "09_new")
 
+    def test_supplied_paths_outside_the_features_directory_do_not_count(self, project):
+        target, base = project
+        supplied = [f"src/{FIRST}/service.py", f"features/{SECOND}/plan.md", "features/README.md"]
+        assert er.changed_features(target, base, paths=supplied) == er.Changed((SECOND,), ())
+
     def test_a_removed_feature_is_listed_and_not_judged(self, project):
         target, base = project
         git(target, "rm", "-rq", f"features/{SECOND}")

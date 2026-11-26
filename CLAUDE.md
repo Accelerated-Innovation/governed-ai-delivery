@@ -196,7 +196,7 @@ A change is rarely one file. Changing a schema means updating starter templates 
 
 - **Off by default.** Without the setting, the rendered file, its inputs, the binding and the results are byte-identical; the paired goldens must not change.
 - **Named checks.** Each judged feature gets `evidence:feature[<name>]` and `feature:<identifier>[<name>]`. A single `--feature NAME` run keeps the unnamed forms. `_SCOPED` is the one place that reads the form.
-- **Selection is the engine's.** It comes from `change.paths`. Do not add a caller input that lists or narrows features.
+- **Selection is the engine's.** It comes from `change.paths`, and only paths under `features/` select a feature. Do not add a caller input that lists or narrows features.
 - **The record stays.** Standard output is the change-results record and the exit status is 0 or 1. Answers go to the optional `feature_output` file as one `govkit.feature-verdicts` document and to standard error. There is no overall state across features.
 - **Keep aligned.** `feature-verdicts.schema.json` reuses the reason, state and exit definitions of `feature-verdict.schema.json`; the bundled `feature-verdicts.json` must replay through `parse_feature_verdicts`; `tests/test_change_verdicts.py`, `tests/test_pipeline_features.py` and `feature_pilot` in `tests/wheel_pipeline_smoke.py` (both providers).
 
