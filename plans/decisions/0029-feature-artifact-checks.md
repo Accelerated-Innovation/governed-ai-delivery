@@ -21,7 +21,8 @@ The maintainer decided on 2026-11-26:
 4. **The forecast is advisory.** `feature:eval-prediction` is not required and is always unknown, whether the forecast is well formed or not. A forecast is the producer's own assertion.
 5. **The schema.** `repository.project_type` in the accepted profile picks the backend, data or UI `eval_criteria` schema, by the same mapping the legacy marker uses. The schema is the one bundled with the installed GovKit. A copy in the inspected tree is not read. With no project type, or one with no schema, the file's structure is still checked and schema validation is unknown.
 6. **The profile is read from the trusted policy checkout,** as every other accepted input is. The feature's files are read from the change checkout.
-7. **Reserved identifiers.** A run with `--feature` is refused when a configured command or pack check already uses one of these identifiers.
+7. **The feature's files are not trusted.** Before any check reads them, a feature directory that is a symbolic link, or that directly holds a link, a non-regular file or a file larger than 1 MiB, makes every check unknown and names the file.
+8. **Reserved identifiers.** A run with `--feature` is refused when a configured command or pack check already uses one of these identifiers.
 
 ## Alternatives considered
 

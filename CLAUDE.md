@@ -195,6 +195,7 @@ A change is rarely one file. Changing a schema means updating starter templates 
 
 - **Selection.** `gherkin-delivery` selects the level 4 checks and `llm-evaluation` adds the level 5 checks, each as `feature:<identifier>` for the selected feature only. Without `gherkin-delivery` nothing is added.
 - **Reuse, do not copy.** The check functions and identifiers come from `validate._named_checks`. Do not change `govkit validate` output for this path; `check_eval_criteria`'s `schema` argument is optional for that reason.
+- **Untrusted files.** `unsafe()` refuses a link, a non-regular file or a file over 1 MiB in the feature directory before any `validate` check reads it. Keep that guard ahead of every check.
 - **The forecast.** `feature:eval-prediction` is advisory and always unknown. Do not make it required: no feature could then be done.
 - **The schema.** Chosen by the profile's `repository.project_type` and read from the bundled schemas, never from the inspected tree. Unset or unknown is unknown; do not add a default or detect it from the file.
 - **Not yet.** A whole-repository run with the known-failures record (L08), and the other items of #220.

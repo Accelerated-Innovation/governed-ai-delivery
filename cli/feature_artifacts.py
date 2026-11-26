@@ -16,6 +16,7 @@ in `plan.md` is advisory and never fails. See ADR 0029.
 
 from __future__ import annotations
 
+import stat
 from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -47,6 +48,32 @@ _NO_TYPE = (
     "eval_criteria.yaml structure OK; the accepted profile sets no repository.project_type, "
     "so no schema was chosen and instance validation is unknown"
 )
+
+
+MAX_ARTIFACT_BYTES = 1024 * 1024
+
+
+def unsafe(directory: Path) -> str | None:
+    """Why the feature's files must not be read, or None.
+
+    The checkout under inspection is not trusted. `validate`'s checks read
+    whole files and follow links, so a link, a device or a very large file is
+    refused here, before any of them runs.
+    """
+    try:
+        if directory.is_symlink():
+            return "the feature directory is a symbolic link"
+        for entry in sorted(directory.iterdir()):
+            status = entry.lstat()
+            if stat.S_ISDIR(status.st_mode):
+                continue
+            if not stat.S_ISREG(status.st_mode):
+                return f"{entry.name} is a symbolic link or not a regular file"
+            if status.st_size > MAX_ARTIFACT_BYTES:
+                return f"{entry.name} is larger than 1 MiB"
+    except OSError as exc:
+        return f"the feature directory could not be listed ({type(exc).__name__})"
+    return None
 
 
 def selected(capabilities) -> bool:
@@ -132,6 +159,9 @@ def _adapt(name: str, check, directory: Path, feature: str):
     )
 
     def run(_context) -> CheckOutcome:
+        refused = unsafe(directory)
+        if refused:
+            return _outcome(State.UNKNOWN, f"not read: {refused}")
         try:
             status, message = check(directory)
         except Exception as exc:

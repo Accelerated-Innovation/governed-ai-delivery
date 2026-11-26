@@ -368,6 +368,7 @@ Each appears as its own check, `feature:<identifier>`, for the selected feature 
 
 - **A failed check is work for the agent.** It gives `check-failed`, for example when `plan.md` is missing.
 - **A check that could not decide needs a person.** It gives `check-not-satisfied`.
+- **A file that is not safe to read makes every check unknown.** This is a symbolic link, a non-regular file or a file larger than 1 MiB directly in the feature directory.
 - **The forecast is advisory.** `feature:eval-prediction` reads the agent's own forecast in `plan.md`. It is never required and never a pass, so the report's overall state is a warning at best. The answer and the exit status are not affected.
 
 `eval_criteria.yaml` is validated against the schema for the profile's project type:

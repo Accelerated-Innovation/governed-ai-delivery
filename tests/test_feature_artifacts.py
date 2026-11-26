@@ -151,6 +151,48 @@ class TestCriteriaSchema:
         assert results["feature:eval-criteria"][1].summary.count("data") >= 1
 
 
+class TestUntrustedFiles:
+    def _all_unknown(self, target, phrase):
+        results = _run(target)
+        assert set(_states(results).values()) == {State.UNKNOWN}
+        assert all(phrase in outcome.summary for _, outcome in results.values())
+
+    def test_a_link_to_a_device_is_not_read(self, tmp_path):
+        target = _project(tmp_path)
+        nfrs = target / "features" / FEATURE / "nfrs.md"
+        nfrs.unlink()
+        nfrs.symlink_to("/dev/zero")
+        self._all_unknown(target, "nfrs.md is a symbolic link or not a regular file")
+
+    def test_a_link_to_a_file_outside_the_checkout_is_not_read(self, tmp_path):
+        target = _project(tmp_path / "repo")
+        outside = tmp_path / "plan.md"
+        outside.write_text("# Plan\n")
+        plan = target / "features" / FEATURE / "plan.md"
+        plan.unlink()
+        plan.symlink_to(outside)
+        self._all_unknown(target, "plan.md is a symbolic link")
+
+    def test_a_very_large_file_is_not_read(self, tmp_path):
+        target = _project(tmp_path)
+        with (target / "features" / FEATURE / "nfrs.md").open("ab") as stream:
+            stream.truncate(fa.MAX_ARTIFACT_BYTES + 1)
+        self._all_unknown(target, "nfrs.md is larger than 1 MiB")
+
+    def test_a_linked_feature_directory_is_not_read(self, tmp_path):
+        target = _project(tmp_path / "repo")
+        real = target / "features" / FEATURE
+        moved = tmp_path / "elsewhere"
+        real.rename(moved)
+        real.symlink_to(moved, target_is_directory=True)
+        self._all_unknown(target, "the feature directory is a symbolic link")
+
+    def test_a_subdirectory_is_ignored(self, tmp_path):
+        target = _project(tmp_path)
+        (target / "features" / FEATURE / "notes").mkdir()
+        assert _states(_run(target))["feature:completeness"] is State.PASS
+
+
 def test_the_legacy_check_is_unchanged_without_a_schema_argument(tmp_path):
     target = _project(tmp_path)
     status, message = validate.check_eval_criteria(target / "features" / FEATURE)
