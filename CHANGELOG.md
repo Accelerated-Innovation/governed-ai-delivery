@@ -61,6 +61,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   - The report gains a `provenance` block.
   - The target must be inside a Git repository.
   - See ADR 0024.
+- **Protected tests and files in change conformance (#269).** The conformance
+  configuration accepts an optional `protected` section, and `govkit conform
+  --request` then adds `change:protected`.
+  - Existing files under `tests` may only gain lines; new test files pass.
+  - Existing files under `files` may not change.
+  - The count of each declared escape marker may not rise.
+  - Without the section, reports are unchanged.
+  - See ADR 0027 and [docs/CHANGE_CONFORMANCE.md](docs/CHANGE_CONFORMANCE.md).
 - **Definition check in change conformance (#267).** When a change touches a
   feature's `acceptance.feature` or `eval_criteria.yaml`, `govkit conform
   --request` adds `change:definition`.

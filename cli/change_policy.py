@@ -36,6 +36,10 @@ def load_change_policy(target: Path, profile):
             raise DocumentError("Commands cannot override built-in or platform approval checks")
     for item in document["impact_rules"] + document["constraints"]:
         item["paths"] = [_scope(p) for p in item["paths"]]
+    protected = document.get("protected", {})
+    for rule in ("tests", "files"):
+        if rule in protected:
+            protected[rule] = [_scope(p) for p in protected[rule]]
     for item in document["artifacts"]:
         item["references"] = [_scope(p) for p in item["references"]]
     contracts = list(profile.document["policy"].get("contracts", []))

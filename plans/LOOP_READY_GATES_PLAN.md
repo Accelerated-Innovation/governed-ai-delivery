@@ -142,7 +142,7 @@ Each increment is independently demonstrable and is tried in the pilot repositor
 | L04 | Thresholds and measurements, with cost and authority classes | `evidence` | L03 | #261 |
 | L05 | Results must belong to the current commit and revision | `evidence` | L03 | #263 |
 | L06a | Scenarios, shared steps and criteria cannot be weakened by the change they judge | `conform` | L03 | #267 |
-| L06b | Existing tests, test support and protected files cannot be weakened | `conform` | L06a | not opened |
+| L06b | Existing tests, test support and protected files cannot be weakened | `conform` | L06a | #269 |
 | L07 | Preconditions, the three-state verdict and `conform` integration | `conform` | L02–L06 | not opened |
 | L08 | CI templates use the feature-scoped checks | payload | L07 | not opened |
 | L09 | Push verification runs to the Product Definition Graph | CI step | L08, E1 | not opened |
@@ -389,3 +389,5 @@ Version 0.1 planned L02 to L06 as additions to `govkit validate`, with a new fil
 | 2026-11-25 | — | #265: `govkit evidence --record --junit PATTERN`, kept in the record and read by the report, ADR 0025. Stated matches must be JUnit XML inside the target. Also closes a gap in L05: a recorded result file that was deleted left the rest current. Verified with a real pytest-bdd run; other runners are not verified, and TRX is not read | Open the L06 issue. Bind against other runners in L08 |
 | 2026-11-25 | — | #265 delivered in #266 | Start L06 |
 | 2026-11-25 | L06a | #267: `change:definition` in change conformance and the pure `definition_change.py`, ADR 0026. L06 was split: this half needs no project declaration. Criteria are compared by name, stricter than the graph's file digest. A file whose criteria are not all named is compared whole; no data-form rule is defined | Open L06b: bound tests, test support, protected files, declarations and escape markers. It needs a decision on where a level-free project declares paths |
+| 2026-11-25 | L06a | Delivered in #268 | Decide where L06b's declaration lives |
+| 2026-11-25 | L06b | #269: `change:protected` and the pure `protected_change.py`, with an optional `protected` section in the accepted conformance configuration, ADR 0027. Maintainer decisions: the declaration lives in accepted policy, and existing test files are additions-only. Differs from the L06 text above in three ways: tests are protected by declared path, not by binding to a scenario; nothing is protected by default; and no declaration is read from the comparison base. An inserted line inside an existing test is not seen | Open the L07 issue. L07 decides the level-free entry point and whether a project-held declaration is needed |

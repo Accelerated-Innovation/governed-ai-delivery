@@ -172,7 +172,14 @@ A change is rarely one file. Changing a schema means updating starter templates 
 - It is pure and reads the captured snapshot. It never judges whether an edit weakens; any change to what existed is a finding for a person.
 - `CODES` is a public contract: add, never rename. Messages hold no step text or values.
 - It reuses `scenario_identity.py` for identifiers and digests. Do not change that module for it.
-- Bound tests, test support and protected files are L06b and are not covered.
+
+`protected_change.py` backs `change:protected` (ADR 0027): existing files under the declared `tests` may only gain lines, existing files under `files` may not change, and a declared escape marker's count may not rise.
+
+- The declaration is the optional `protected` section of the accepted conformance configuration, read only from the trusted policy checkout. Never read it from the inspected tree.
+- The check is added only when the section is declared. Nothing is protected by default.
+- It is language-neutral on purpose. Do not add per-language test parsing here.
+- Known limits, stated in the guide: an inserted line inside an existing test is not seen, and imports are not traced. Do not describe the check as proof that tests were not weakened.
+- `CODES` is a public contract: add, never rename. Messages hold no file content.
 
 ### Safe legacy migration
 
