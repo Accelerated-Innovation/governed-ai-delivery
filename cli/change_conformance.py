@@ -27,7 +27,7 @@ from .check_models import (
     Identity,
     State,
 )
-from .check_runner import CheckRegistry, CheckReport, parse_report, run_checks
+from .check_runner import CheckRegistry, CheckReport, normalize, parse_report, run_checks
 from .definition_change import assess as assess_definitions
 from .definition_change import definition_paths
 from .experiment_store import MAX_DOCUMENT_BYTES, RECORD_NAME, assess_feature
@@ -159,7 +159,12 @@ def _verdict(evidence: dict, checks: CheckReport) -> dict:
     return feature_verdict.decide(
         evidence,
         [
-            feature_verdict.Check(r.spec.id, r.spec.required, r.outcome.state.value)
+            feature_verdict.Check(
+                r.spec.id,
+                r.spec.required,
+                r.outcome.state.value,
+                r.outcome.execution is Execution.ERROR,
+            )
             for r in checks.results
         ],
     )
@@ -176,6 +181,9 @@ def parse_feature_verdict(document: dict) -> dict:
     checked = [r for r in change.checks.results if r.spec.id == feature_verdict.EVIDENCE_CHECK]
     if not checked or [e.digest for e in checked[0].outcome.evidence] != [digest]:
         raise DocumentError("The evidence is not the report the change results checked")
+    expected = normalize(_evidence_check(document["evidence"])(None))
+    if not checked[0].spec.required or checked[0].outcome.state is not expected.state:
+        raise DocumentError("The recorded evidence check does not follow from the evidence")
     replayed = {
         "schema_version": 1,
         "kind": "govkit.feature-verdict",
@@ -619,9 +627,14 @@ def inspect_change(
         budget = ObservationBudget(source_state="unavailable")
     if policy_guard is not None and policy_guard() != budget:
         raise DocumentError("Observation policy differs from the admitted budget")
-    # An unknown feature raises here, before anything is captured or run.
-    evidence = evidence_report.build_report(target, feature) if feature else None
     change = capture_observation(target, base, budget)
+    # Read after the capture, so the closing stability check covers the tree the
+    # evidence was tied to, and before any check runs. An unknown feature raises.
+    evidence = None
+    if feature is not None:
+        if not (target / "features" / feature).resolve().is_relative_to(target.resolve()):
+            raise ValueError("The selected feature is outside the target checkout")
+        evidence = evidence_report.build_report(target, feature)
     impacts, unclassified = {}, []
     for path in change.paths:
         matched = [r for r in policy["impact_rules"] if any(_covers(p, path) for p in r["paths"])]
@@ -842,6 +855,11 @@ def inspect_change(
             "A change may add tests, not alter the tests and files that check it",
         )
     if evidence is not None:
+        if feature_verdict.EVIDENCE_CHECK in commands.keys() | packs.keys():
+            raise ValueError(
+                f"{feature_verdict.EVIDENCE_CHECK} is reserved for --feature; "
+                "rename the configured check that uses this identifier"
+            )
         add(
             feature_verdict.EVIDENCE_CHECK,
             _evidence_check(evidence),

@@ -13,6 +13,7 @@ import pytest
 from cli import evidence_record
 from cli.change_conformance import feature_verdict_document, parse_feature_verdict
 from cli.check_models import State
+from cli.conformance import render_report
 from cli.govkit import main
 from cli.schema_validation import DocumentError, validate_document
 from tests.test_change_conformance import git, inspect, result, setup
@@ -162,6 +163,54 @@ def test_an_unknown_feature_is_refused_before_anything_runs(tmp_path):
         inspect(target, trusted, base, feature="nowhere", execute_checks=TESTS)
 
 
+def test_an_empty_feature_name_is_refused(tmp_path):
+    target, trusted, base = _changed(tmp_path)
+    with pytest.raises(ValueError, match="matched no feature directory"):
+        inspect(target, trusted, base, feature="", execute_checks=TESTS)
+
+
+def test_a_feature_outside_the_checkout_is_refused(tmp_path):
+    target, trusted, base = _changed(tmp_path)
+    with pytest.raises(ValueError, match="outside the target checkout"):
+        inspect(target, trusted, base, feature="../../elsewhere", execute_checks=TESTS)
+
+
+def test_a_configured_check_with_the_reserved_identifier_is_refused(tmp_path):
+    target, trusted, base = _changed(tmp_path)
+    path = trusted / "conformance.json"
+    config = json.loads(path.read_text())
+    config["commands"].append(
+        {"id": CHECK, "argv": ["{python}", "-c", "pass"], "timeout_seconds": 5}
+    )
+    path.write_text(json.dumps(config))
+    with pytest.raises(ValueError, match="reserved for --feature"):
+        _inspect(target, trusted, base)
+
+
+def test_a_command_that_does_not_complete_needs_a_person(tmp_path):
+    target, trusted, base = _changed(tmp_path, _with(PASSING, FIRST, "fail"))
+    path = trusted / "conformance.json"
+    config = json.loads(path.read_text())
+    config["commands"][0]["argv"] = ["no-such-program-anywhere"]
+    path.write_text(json.dumps(config))
+    report = _inspect(target, trusted, base)
+    assert report.verdict["state"] == "escalate"
+    assert _codes(report)[0] == ("escalate", "check-error")
+    assert ("continue", "result-failed") in _codes(report)
+
+
+def test_a_long_authored_scenario_tag_still_gets_an_answer(tmp_path):
+    target, trusted, base = _project(tmp_path)
+    slug = "a" * 4200
+    write(target, DEFINITION, ACCEPTANCE + f"\n  @scenario:{slug}\n  Scenario: Long\n    Then ok\n")
+    git(target, "add", ".")
+    git(target, "commit", "-qm", "a long tag")
+    base = git(target, "rev-parse", "HEAD")
+    write(target, "src/service.py", "# good updated\n")
+    document = feature_verdict_document(_inspect(target, trusted, base))
+    assert any(len(r) > 4096 for reason in document["reasons"] for r in reason["requirements"])
+
+
 def test_the_answer_document_holds_both_reports_and_replays(tmp_path):
     report = _inspect(*_changed(tmp_path, _with(PASSING, FIRST, "fail")))
     document = feature_verdict_document(report)
@@ -180,6 +229,9 @@ def test_the_answer_document_holds_both_reports_and_replays(tmp_path):
         lambda d: d["reasons"][0].update(code="result-missing"),
         lambda d: d["change"]["checks"]["results"].pop(),
         lambda d: d.update(feature="another"),
+        lambda d: next(r for r in d["change"]["checks"]["results"] if r["id"] == CHECK).update(
+            required=False
+        ),
     ],
 )
 def test_an_edited_answer_document_does_not_replay(tmp_path, edit):
@@ -262,6 +314,15 @@ class TestCommand:
         arguments += ["--observed-at", "2026-09-23T12:00:00Z", "--execute-check", "project:tests"]
         monkeypatch.setattr(sys, "argv", arguments)
         main()
-        printed = json.loads(capsys.readouterr().out)
-        expected = inspect(target, trusted, base, execute_checks=TESTS).document
-        assert printed == expected and printed["kind"] == "change-results"
+        printed = capsys.readouterr().out
+        expected = inspect(target, trusted, base, execute_checks=TESTS)
+        assert printed == expected.to_json() + "\n"
+        assert json.loads(printed)["kind"] == "change-results"
+        monkeypatch.setattr(sys, "argv", [a for a in arguments if a != "--json"])
+        main()
+        text = capsys.readouterr().out
+        assert text.endswith(render_report(expected.checks) + "\n") and "Feature" not in text
+
+    def test_an_empty_feature_name_exits_two(self, tmp_path, monkeypatch, capsys):
+        code, output = _run(monkeypatch, capsys, tmp_path, _changed(tmp_path), feature="")
+        assert code == 2 and output.out == ""

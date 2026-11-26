@@ -311,7 +311,7 @@ The feature's [evidence report](EVIDENCE_REPORT.md) joins the change report as a
 | `continue` | 1 | Work is left that the agent can do |
 | `escalate` | 3 | What is left needs a person |
 
-With `--feature`, a run that could not start exits 2. A feature name that matches no feature directory is one such case.
+With `--feature`, a run that could not start exits 2. A feature name that matches no feature directory is one such case. `evidence:feature` is reserved: a run with `--feature` is refused when the accepted configuration or a pack uses that identifier for its own check.
 
 Every reason is listed. The state is the first of these that applies:
 
@@ -328,6 +328,7 @@ A person is needed now:
 | `protected-changed` | `change:protected` failed: the change altered an existing test or a protected file |
 | `result-error` | A test or evaluation ended in an error |
 | `evidence-unreadable` | A definition or result file could not be read |
+| `check-error` | A required check did not complete, for example a command that timed out |
 
 The agent can act:
 

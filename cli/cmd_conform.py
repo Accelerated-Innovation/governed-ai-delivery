@@ -20,7 +20,7 @@ from .workflows import parse_request
 def cmd_conform(args: argparse.Namespace) -> None:
     target = Path(args.target).absolute()
     # With --feature, 1 means "continue", so a run that could not start is 2.
-    refused = 2 if args.feature else 1
+    refused = 2 if args.feature is not None else 1
     try:
         arguments = read_document(Path(args.pack_arguments)) if args.pack_arguments else {}
         if not isinstance(arguments, dict):
@@ -48,7 +48,7 @@ def cmd_conform(args: argparse.Namespace) -> None:
                 f"Workflow: {report.plan.document['workflow']}; {len(report.change['changes'])} changed paths from {report.change['base']}\n"
                 + render_report(report.checks)
             )
-            if args.feature:
+            if args.feature is not None:
                 answer = feature_verdict_document(report)
                 print(
                     canonical_json(answer)
@@ -57,7 +57,7 @@ def cmd_conform(args: argparse.Namespace) -> None:
                 )
                 sys.exit(answer["exit_code"])
         else:
-            if args.feature:
+            if args.feature is not None:
                 raise ValueError("--feature requires --request, --base and --policy-target")
             if args.base or args.policy_target or args.plan or args.execute_check:
                 raise ValueError("Change options require --request")

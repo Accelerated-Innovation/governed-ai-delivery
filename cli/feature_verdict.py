@@ -46,6 +46,10 @@ _NOW = {
         "the evidence could not be read: {detail}",
         "A person must repair the definition or result file that could not be read.",
     ),
+    "check-error": (
+        "{check} is required and did not complete",
+        "A person must find out why {check} could not run to an end.",
+    ),
 }
 _AGENT = {
     "result-failed": ("{count} {items} failed", "Fix the implementation and run the tests again."),
@@ -124,6 +128,8 @@ class Check:
     id: str
     required: bool
     state: str
+    # The check itself did not complete, which is not the same as failing.
+    errored: bool = False
 
 
 def decide(evidence: dict, checks) -> dict:
@@ -154,7 +160,12 @@ def decide(evidence: dict, checks) -> dict:
         named = [r["requirement_id"] for r in results if r["outcome"] == state]
         if named:
             add(code, requirements=named)
-    if outcome == "ERROR" and not found["result-error"]:
+    # Criteria that are declared and have no result line were never judged:
+    # their results file could not be read, whatever a scenario also did.
+    unjudged = evidence["summary"].get("criteria", 0) > 0 and not any(
+        r["kind"] == "evaluation" for r in results
+    )
+    if outcome == "ERROR" and (unjudged or not found["result-error"]):
         add("evidence-unreadable", detail=evidence["detail"])
     provenance = evidence["provenance"]
     if provenance["state"] in _BY_PROVENANCE:
@@ -174,6 +185,8 @@ def decide(evidence: dict, checks) -> dict:
             continue
         if check.state == "fail":
             add(_CHANGE_CHECKS.get(check.id, "check-failed"), check=check.id)
+        elif check.required and check.errored:
+            add("check-error", check=check.id)
         elif check.required and check.state != "pass":
             add("check-not-satisfied", check=check.id, state=check.state)
 

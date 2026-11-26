@@ -165,6 +165,31 @@ class TestEscalateNow:
         assert _codes(verdict) == [("escalate", "evidence-unreadable")]
         assert "junit.xml" in verdict["reasons"][0]["message"]
 
+    def test_unreadable_criteria_results_are_listed_beside_an_errored_test(self):
+        evidence = _evidence(_result("a", "error"), detail="govkit-eval-results.json is not JSON")
+        evidence["summary"]["criteria"] = 1
+        assert _codes(_decide(evidence)) == [
+            ("escalate", "result-error"),
+            ("escalate", "evidence-unreadable"),
+        ]
+
+    def test_an_errored_test_with_judged_criteria_is_reported_once(self):
+        evidence = _evidence(_result("a", "error"), _result("latency", "passed", "evaluation"))
+        evidence["summary"]["criteria"] = 1
+        assert _codes(_decide(evidence)) == [("escalate", "result-error")]
+
+    def test_a_required_check_that_did_not_complete_escalates_ahead_of_a_failure(self):
+        evidence = _evidence(_result("a", "failed"))
+        checks = _checks(evidence) + [fv.Check("project:tests", True, "unknown", errored=True)]
+        verdict = fv.decide(evidence, checks)
+        assert verdict["state"] == "escalate"
+        assert _codes(verdict) == [("escalate", "check-error"), ("continue", "result-failed")]
+
+    def test_an_advisory_check_that_did_not_complete_changes_nothing(self):
+        evidence = _evidence(_result("a", "failed"))
+        checks = _checks(evidence) + [fv.Check("legacy:doctor", False, "unknown", errored=True)]
+        assert fv.decide(evidence, checks)["state"] == "continue"
+
     def test_unreadable_evidence_does_not_also_report_its_record(self):
         evidence = _evidence(outcome="ERROR", provenance="not-checked")
         assert _codes(_decide(evidence)) == [("escalate", "evidence-unreadable")]
@@ -216,6 +241,7 @@ class TestContract:
             "protected-changed",
             "result-error",
             "evidence-unreadable",
+            "check-error",
             "result-failed",
             "result-missing",
             "results-stale",

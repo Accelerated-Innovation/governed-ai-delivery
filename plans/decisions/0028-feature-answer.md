@@ -19,7 +19,7 @@ The maintainer decided on 2026-11-26:
 1. **`--feature NAME` on the change run.** It needs `--request`, `--base` and `--policy-target`, as every change run does. Without `--feature`, output and exit status are unchanged.
 2. **The evidence joins the change report.** The feature's evidence report is a required check, `evidence:feature`. It is read before any check runs, so a command that `conform` itself executes cannot supply the results it is judged by.
 3. **Three states, chosen in order.**
-   1. `escalate` when `change:definition` or `change:protected` failed, a test or evaluation ended in an error, or the evidence could not be read.
+   1. `escalate` when `change:definition` or `change:protected` failed, a test or evaluation ended in an error, the evidence could not be read, or a required check did not complete.
    2. `continue` when a scenario or criterion failed, a free result is missing, the results are stale, unrecorded or tied to an unusable record, or any other check failed.
    3. `escalate` when anything else required is not a pass: an owed paid or human evaluation, a skipped test, unmarked skips, criteria in a form that is not compared, a feature with no scenarios, or a required check with no passing result.
    4. `done` when there is no reason at all.
