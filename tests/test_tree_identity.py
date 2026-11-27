@@ -258,3 +258,48 @@ def test_an_excluded_path_inside_a_submodule_stays_excluded(with_submodule):
     assert ti.observe(with_submodule, exclude=exclude).tree_digest == before.tree_digest
     (with_submodule / "lib" / "other.xml").write_text("<x/>", encoding="utf-8")
     assert ti.observe(with_submodule, exclude=exclude).tree_digest != before.tree_digest
+
+
+class TestBaselineTag:
+    def test_a_tag_names_its_commit(self, repo):
+        _git(repo, "tag", "v1")
+        _git(repo, "tag", "-a", "v2", "-m", "annotated")
+        head = _git(repo, "rev-parse", "HEAD")
+        assert ti.tag_commit(repo, "v1") == ti.tag_commit(repo, "v2") == head
+
+    @pytest.mark.parametrize("name", ["main", "HEAD", "", "-x", "v 1", "nope"])
+    def test_anything_else_is_not_a_tag(self, repo, name):
+        with pytest.raises(ti.Unavailable):
+            ti.tag_commit(repo, name)
+
+    def test_a_branch_with_the_tags_name_is_not_read(self, repo):
+        _git(repo, "branch", "v3")
+        with pytest.raises(ti.Unavailable):
+            ti.tag_commit(repo, "v3")
+
+    def test_a_file_is_read_as_the_commit_holds_it(self, repo):
+        first = _git(repo, "rev-parse", "HEAD")
+        (repo / "app.py").write_text("print('two')\n", encoding="utf-8")
+        _git(repo, "commit", "-q", "-am", "second")
+        assert ti.file_at(repo, first, "app.py", 100) == b"print('one')\n"
+        assert ti.file_at(repo, first, "missing.py", 100) is None
+
+    def test_a_path_is_relative_to_the_target(self, repo):
+        (repo / "sub").mkdir()
+        (repo / "sub" / "a.txt").write_text("a", encoding="utf-8")
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", "sub")
+        head = _git(repo, "rev-parse", "HEAD")
+        assert ti.file_at(repo / "sub", head, "a.txt", 100) == b"a"
+        assert ti.file_at(repo / "sub", head, "app.py", 100) is None
+
+    def test_a_link_a_directory_and_a_large_file_are_refused(self, repo):
+        (repo / "link.py").symlink_to("app.py")
+        (repo / "dir").mkdir()
+        (repo / "dir" / "a.txt").write_text("a", encoding="utf-8")
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", "more")
+        head = _git(repo, "rev-parse", "HEAD")
+        for path, limit in (("link.py", 100), ("dir", 100), ("app.py", 3)):
+            with pytest.raises(ti.Unavailable):
+                ti.file_at(repo, head, path, limit)

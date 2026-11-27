@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "kind": "govkit.verification-run",
+  "contract_version": 1,
+  "request": {
+    "run_reference": "github:1234567890-1",
+    "repository": "acme/invoices",
+    "baseline_tag": "baseline-1",
+    "build": {
+      "commit": "cccccccccccccccccccccccccccccccccccccccc",
+      "ref": "https://ci.example.invalid/runs/1234567890"
+    },
+    "executed_at": "2026-11-24T12:00:00Z",
+    "artifact_reference": "https://ci.example.invalid/runs/1234567890/artifacts/1",
+    "results": [
+      {
+        "requirement_id": "07_invoice_approval#evaluation:routing-explanation-faithfulness",
+        "revision_digest": "1a088ca5280c95b59582de241a1f1d54aee4c02094155c8abde084f399fc1452",
+        "kind": "evaluation",
+        "result": "passed"
+      },
+      {
+        "requirement_id": "07_invoice_approval#evaluation:routing-p95-latency",
+        "revision_digest": "1a088ca5280c95b59582de241a1f1d54aee4c02094155c8abde084f399fc1452",
+        "kind": "evaluation",
+        "result": "failed"
+      },
+      {
+        "requirement_id": "07_invoice_approval#scenario:approval-routing-by-amount",
+        "revision_digest": "98e6e58260763d51f9b7b8691c9741503135204abfe848f3992c882514d1c5b7",
+        "kind": "test",
+        "result": "passed"
+      }
+    ]
+  },
+  "features": [
+    {
+      "name": "07_invoice_approval",
+      "evidence": "current",
+      "sent": 3,
+      "left_out": 5
+    }
+  ],
+  "left_out": [
+    {
+      "feature": "07_invoice_approval",
+      "requirement_id": "07_invoice_approval#evaluation:explanation-tone-review",
+      "kind": "evaluation",
+      "reason": "no-result"
+    },
+    {
+      "feature": "07_invoice_approval",
+      "requirement_id": "07_invoice_approval#evaluation:refusal-safety",
+      "kind": "evaluation",
+      "reason": "no-result"
+    },
+    {
+      "feature": "07_invoice_approval",
+      "requirement_id": "07_invoice_approval#scenario:a-rejected-invoice-returns-to-its-author",
+      "kind": "test",
+      "reason": "no-result"
+    },
+    {
+      "feature": "07_invoice_approval",
+      "requirement_id": "07_invoice_approval#scenario:approval-routing-when-manager-absent",
+      "kind": "test",
+      "reason": "not-in-baseline"
+    },
+    {
+      "feature": "07_invoice_approval",
+      "requirement_id": "07_invoice_approval#scenario:routing-completes-within-200-ms-at-p95",
+      "kind": "test",
+      "reason": "revision-changed"
+    }
+  ],
+  "summary": {
+    "features": 1,
+    "sent": 3,
+    "left_out": 5,
+    "reasons": {
+      "not-in-baseline": 1,
+      "revision-changed": 1,
+      "no-result": 3,
+      "results-not-current": 0,
+      "tree-not-clean": 0,
+      "feature-unreadable": 0,
+      "baseline-unreadable": 0,
+      "skips-unmarked": 0
+    }
+  },
+  "limitations": [
+    "The request is a projection of local result files. It is not proof that tests ran.",
+    "The baseline was read from the tag in this checkout. The graph decides what it indexed and may still refuse the run.",
+    "Scores are not included. The verification run contract version 1 holds outcomes only."
+  ]
+}

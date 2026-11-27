@@ -199,8 +199,23 @@ def _read_criteria(path: Path, feature: str, described: dict) -> tuple:
         if path.stat().st_size > MAX_DEFINITION_BYTES:
             raise _Unusable(f"{CRITERIA} is larger than 1 MiB and was not read")
         data = path.read_bytes()
+    except OSError as exc:
+        raise _Unusable(f"{CRITERIA} could not be read: {exc}") from None
+    return _criteria_in(data, feature, described)
+
+
+def criteria_in(data: bytes, feature: str) -> tuple | None:
+    """The criteria in the bytes of a criteria file, or None when they cannot be used."""
+    try:
+        return _criteria_in(data, feature, {})
+    except _Unusable:
+        return None
+
+
+def _criteria_in(data: bytes, feature: str, described: dict) -> tuple:
+    try:
         document = parse_document(data)
-    except (OSError, DocumentError) as exc:
+    except DocumentError as exc:
         raise _Unusable(f"{CRITERIA} could not be read: {exc}") from None
     if not isinstance(document, dict):
         raise _Unusable(f"{CRITERIA} could not be read: it is not a mapping")

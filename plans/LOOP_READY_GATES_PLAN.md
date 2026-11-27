@@ -149,7 +149,9 @@ Each increment is independently demonstrable and is tried in the pilot repositor
 | L07b | Feature artifact checks on a level-free installation, through `conform` | `conform` | L07a | #273 |
 | L08a | Evidence gate templates judge the features a change touches | payload, `evidence` | L07 | #275 |
 | L08b | The generated pipeline judges every feature a change touches | pipeline | L08a | #277 |
-| L09 | Push verification runs to the Product Definition Graph | CI step | L08, E1 | not opened |
+| L09a | Build a verification run for the Product Definition Graph, offline | `verification-run` | L08 | #279 |
+| L09b | Post the verification run from CI | CI step | L09a | not opened |
+| L09c | Scores in the verification run | `verification-run` | L09b, E1, E2 | not opened |
 | L10 | OpenTelemetry exporter | optional extra | L07 | not opened |
 | L11 | Opt-in pack: skills, Claude Code guidance, prompt writer, run records | pack | L07 | not opened |
 
@@ -240,12 +242,27 @@ The evidence gate templates for GitHub and Azure, and `ci/README.md`, are update
 
 ### L09 — Push verification runs to the Product Definition Graph
 
-An explicit CI step projects the JSON report into a verification run and posts it.
+Split on 2026-11-27. L09a builds the run as a document and sends nothing. L09b posts it from CI. L09c adds scores once the engine accepts them.
+
+Maintainer decisions, 2026-11-27:
+
+- **Outcomes now, scores later.** L09a and L09b follow the contract the engine runs today, version 1. E1 and E2 (discovery-engine#303) are specified and not implemented.
+- **Two PRs, document then post.** The payload can be read before anything is sent.
+- **Leave out what the baseline does not hold, and list it.** GovKit computes the identifiers and digests at the baseline tag from Git. A new or edited scenario does not block the other results.
+- **Default branch only, off until configured.** The CI step in L09b ships disabled and does not run for pull requests.
+
+L09a: `govkit verification-run build` (ADR 0031).
+
+- It sends nothing and writes one `govkit.verification-run` document.
+- The request holds identifiers, revision digests, kinds, outcomes, the recorded commit and time, and the facts the caller states. It holds no title, path, message or score.
+- Results count only when the evidence record is current and the recorded tree matched its commit.
+
+L09b: an explicit CI step posts the document's request.
 
 - It runs only in CI, with a service token the pipeline supplies. GovKit stores no credential.
-- It sends identifiers, revision digests, outcomes, the build commit and the artifact link. With E1, it also sends measurements.
-- It omits measurements when the engine does not accept them (E2).
 - A refused run fails the step and changes no local result.
+
+L09c: with E1, the request also carries measurements. It omits them when the engine does not report contract version 2 (E2).
 
 ### L10 — OpenTelemetry exporter
 
@@ -275,12 +292,12 @@ A report also carries the repository, the feature, the build commit, the executi
 
 ## 7. Changes needed in other repositories
 
-Nothing in `discovery-engine` or `aipos-plugins` has been changed. These are proposals, raised as issues on 2026-11-23: E1 and E2 as discovery-engine#303, E3a as aipos-plugins#108 and E3b as discovery-engine#302. E4 is not yet raised.
+Nothing in `discovery-engine` or `aipos-plugins` has been changed. These are proposals, raised as issues on 2026-11-23: E1 and E2 as discovery-engine#303, E3a as aipos-plugins#108 and E3b as discovery-engine#302. E4 is not yet raised. As of 2026-11-27, E1 and E2 are specified in the engine (its feature 32 and a proposed ADR) and not implemented.
 
 | Id | Repository | Change | Needed by | Without it |
 |---|---|---|---|---|
-| E1 | `discovery-engine` | An optional `measurement` on a verification result: metric, value, unit and an optional sample size. Where the criterion declares a target, the engine compares the value and refuses a run whose outcome contradicts it. | L09, for scores | Runs carry outcomes only; scores reach the graph by no route |
-| E2 | `discovery-engine` | A way for a client to learn which verification-run fields the engine accepts, such as a contract version on an existing route. The request model rejects unknown fields today. | L09 | GovKit must be configured by hand to send or omit measurements |
+| E1 | `discovery-engine` | An optional `measurement` on a verification result: metric, value, unit and an optional sample size. Where the criterion declares a target, the engine compares the value and refuses a run whose outcome contradicts it. | L09c | Runs carry outcomes only; scores reach the graph by no route |
+| E2 | `discovery-engine` | A way for a client to learn which verification-run fields the engine accepts, such as a contract version on an existing route. The request model rejects unknown fields today. | L09c | GovKit must be configured by hand to send or omit measurements |
 | E3a | `aipos-plugins` | The slug rule and its test pairs published as a versioned fixture beside the identifier reference document. | L03 | GovKit copies the rule and pins a fixture to a commit by hand, as the engine does today |
 | E3b | `discovery-engine` | The revision digest rule published with a fixture of scenario text and expected digest, and the content digest rule for a criterion. | L03, L05, L06, L09 | GovKit copies the rule from the engine's source; a difference makes the engine refuse a whole run |
 | E4 | `discovery-engine` | A published schema for the verification-run request that GovKit's projection can be validated against. | L09 | GovKit tests against a hand-copied shape |
@@ -407,3 +424,5 @@ Version 0.1 planned L02 to L06 as additions to `govkit validate`, with a new fil
 | 2026-11-26 | L08a | #275: `govkit evidence --changed-since BASE` and both evidence gate templates (tests, record, changed features). Maintainer decisions: L08 is two PRs; CI judges the features a change touches; anything but a pass fails the job and the state is shown; the test step stays a placeholder, with pytest-bdd the only verified runner. No JSON form for several features. The templates do not check the change itself | Open L08b: the generated pipeline runs `conform --feature`. It needs a feature input and a way to run several features |
 | 2026-11-26 | L08a | Delivered in #276 | Decide how the pipeline handles several features |
 | 2026-11-26 | L08b | #277: `inspect_change(changed_features=True)`, the pipeline setting `"features": "changed"`, named checks such as `evidence:feature[<name>]`, the optional `feature_output` input and the `govkit.feature-verdicts` document, ADR 0030. Maintainer decisions: one run with one answer for each feature; the engine selects; a setting, off by default; the record and exit status stay. No overall state across features. The entry point does not run tests or record results | Open L09: push verification runs to the Product Definition Graph. It depends on E1 and E2 in `discovery-engine` |
+| 2026-11-27 | L08b | Delivered in #278 | Decide how L09 is split and what it sends |
+| 2026-11-27 | L09a | #279: `govkit verification-run build`, the pure projection in `verification_run.py`, `tree_identity.tag_commit` and `file_at`, the `govkit.verification-run` document, ADR 0031. Maintainer decisions: outcomes now and scores later; two PRs, document then post; results the baseline does not hold at that revision are left out and listed; the CI step runs on the default branch only and ships off. L09 is now L09a, L09b and L09c. Results from an uncommitted tree are not sent, and a pass is not sent when a result file hides its skips. Not run against a real engine | Open L09b: post the run from CI |
