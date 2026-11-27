@@ -1,0 +1,18 @@
+id: loop-engineering
+name: Loop Engineering
+version: 1.0.0
+govkit_min_version: 0.23.0
+extension_type: skills
+contract_sets: []
+skills:
+- path: skills/govkit-loop-engineering-feature
+  install_as: govkit-loop-engineering-feature
+capability_pack:
+  schema_version: 1
+  provides:
+  - loop-engineering
+  requires: []
+  conflicts: []
+  resources:
+  - path: README.md
+    kind: advisory

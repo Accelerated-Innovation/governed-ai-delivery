@@ -103,6 +103,18 @@ A change is rarely one file. Changing a schema means updating starter templates 
 
 `govkit profile` saves metadata; `govkit pack` separately resolves and installs pinned resources and native skills without a legacy marker. See `docs/CAPABILITY_PACKS.md` and ADR 0003. Keep the strict manifest/profile/lock schemas synchronized, and verify payload resources from a clean wheel. Agent-neutral pack skill sources live under `extensions/`; do not create three divergent copies. Pack resources, examples and detection are not accepted project policy.
 
+### The loop-engineering pack
+
+`extensions/loop-engineering/` is an opt-in pack of guidance for working on a feature in rounds against `govkit conform --feature`. See `plans/LOOP_READY_GATES_PLAN.md` (L11) and `docs/CAPABILITY_PACKS.md`.
+
+- **GovKit does not run loops.** The pack is prose. Do not add a command, a check, a hook or anything that starts, schedules or re-prompts an agent.
+- **Only the pack carries the word "loop".** Core options, schemas and commands are named for what they do.
+- **The skill restates the code's contract.** Exit statuses, reason codes and their groups come from `feature_verdict.py`; `tests/test_loop_engineering_pack.py` keeps them equal. Change the code first, then the skill.
+- **Stop rules are a maintainer decision:** escalate, the same reason codes two rounds in a row, or the round limit (default 10). Do not change them without one.
+- **One neutral skill.** It installs for all three agents. Agent-specific driving guidance is a reference file inside it; only Claude Code has one. Check the agent's own documentation before changing it, and update the date it states.
+- **Not verified.** No test shows that an agent follows the skill. Do not claim it.
+- **Keep aligned.** The manifest, the pack README, the pack list in `tests/wheel_pack_smoke.py` and the guide section.
+
 ### Check and evidence foundation
 
 `cmd_conform.py` renders the report assembled by `conformance.py` through typed models, an explicit registry/runner and legacy/pack adapters. See [ADR 0004](plans/decisions/0004-check-evidence-foundation.md) and [check reports](docs/CONFORMANCE.md). Required unknown/skipped/unconfigured evidence cannot pass; a validated result file does not authenticate its origin. Keep runtime schemas and examples aligned. Default inspection is offline and read-only: never use the migrating legacy marker reader in this path. Preserve the legacy commands' behavior through injected external boundaries. Pack execution requires explicit opt-in and is not sandboxed. Actual-diff routing is composed by `change_conformance.py`; `maintenance.py` reuses the canonical check/evidence contract.

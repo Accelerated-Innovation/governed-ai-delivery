@@ -132,6 +132,27 @@ Missing or modified pinned resources invalidate the lock; restore the committed 
 
 `pack verify` replays manifests and the accepted profile, checks owned paths/hashes, and validates the running GovKit minimum. It needs no original local source directory. Previewing a change to a local selection requires its explicit source again; the pinned `.govkit/packs/<id>/<digest>` directory can be supplied as that local source for offline work. Ownership/digests prove consistency, not source authenticity or approval.
 
+## The loop-engineering pack
+
+`loop-engineering` is an opt-in pack of guidance for an agent that works on one feature in rounds. Select it by adding the `loop-engineering` capability to the accepted profile, then preview and apply as above.
+
+It installs one skill, `govkit-loop-engineering-feature`, for every supported agent. A round is a change, a test run, `govkit evidence --record` and `govkit conform --feature`. The agent then acts on the answer described in [change conformance](CHANGE_CONFORMANCE.md#one-answer-for-a-feature-done-continue-or-escalate).
+
+The skill tells the agent to stop and hand over to a person when:
+
+- the state is `escalate`;
+- two rounds in a row give the same set of reason codes;
+- the round limit is reached. It is 10 unless the person who starts the loop states another number.
+
+What the pack does not do:
+
+- **GovKit does not run the loop.** It does not start, schedule or re-prompt an agent. The skill is instructions; the agent's own tools own the iteration.
+- **It adds no check and no command.** Selecting or removing it changes no required control.
+- **A loop that ends in done is not approval.** It is a stop condition for the agent, not review or a gate.
+- **Following the skill is not verified.** Tests pin the skill's exit statuses, reason codes and stop rules to the code. They do not show that an agent obeys them.
+
+The skill holds a reference for driving the loop in Claude Code with `/goal`. It is the only agent-specific part, and it states the date it was checked against the Claude Code documentation. The other agents have no such reference yet.
+
 ## Native skill namespace updates
 
 GovKit-owned skill source folders, `SKILL.md` frontmatter `name`, and manifest

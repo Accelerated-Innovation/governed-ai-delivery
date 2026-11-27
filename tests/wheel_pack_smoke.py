@@ -24,6 +24,7 @@ assert {p.id for p in catalog} == {
     "gherkin-delivery",
     "llm-evaluation",
     "llm-application",
+    "loop-engineering",
     "otter-skills",
     "skill-oriented-agent-architecture",
     "vision-inference",
