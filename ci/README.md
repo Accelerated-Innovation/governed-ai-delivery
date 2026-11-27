@@ -45,6 +45,7 @@ Copy the relevant templates for your project type:
 | `fix-lane-gate.yml` (L4+, configure first) | ✓ | ✓ | ✓ | ✓ |
 | `adr-approval-gate.yml` (L4+, configure first) | ✓ | ✓ | ✓ | ✓ |
 | `pdg-authority-gate.yml` (AIPOS only, configure first) | ✓ | ✓ | ✓ | ✓ |
+| `verification-run.yml` (AIPOS only, configure first; not a gate) | ✓ | ✓ | ✓ | ✓ |
 | `data-common-gate.yml` | — | — | — | ✓ |
 | `dbt-gate.yml` | — | — | — | `python-dbt` |
 | `databricks-gate.yml` | — | — | — | `databricks-lakehouse` |
@@ -218,6 +219,7 @@ A critical distinction in this governance framework: some checks enforce **actua
 | ADR approval attestation | adr-approval-gate | An ADR changed in the PR that claims `Accepted` carries an approving review from an approver in `governance/approval_policy.yaml`, submitted against the head commit |
 | Measured quality evidence | evidence-gate | `govkit evidence` reads the test report and axe results and gives a verdict per rubric dimension. Unmeasured dimensions report INCONCLUSIVE, which is **not** a pass. A test run with skipped tests is INCONCLUSIVE for Working |
 | Features the change touches | evidence-gate | After the tests, `govkit evidence --record` ties the result files to the commit, and `govkit evidence --changed-since <base>` reports every `features/<name>/` directory with a changed file: each scenario against the test bound to it and each criterion against its measured score. Anything but a pass fails the job. A change that touches no feature directory judges none, and a feature it does not touch is not judged. Binding is verified with pytest-bdd only |
+| Results sent to the Product Definition Graph | verification-run | Not a gate. On pushes to the default branch, after the tests and `govkit evidence --record`, `govkit verification-run build` projects every feature's recorded results into one verification run and `govkit verification-run push` posts it with a service token. Results the baseline tag does not hold at the same revision are left out and listed. Nothing to send passes with a notice; a refusal or no answer from the graph fails the job. Skipped until `GOVKIT_BASELINE_TAG` is set, and for any build that is not a push to the default branch. If your default branch is not `main`, replace `main` in the file first. See `docs/VERIFICATION_RUN.md` |
 
 #### A green authority check goes stale
 

@@ -1,0 +1,169 @@
+# verification-run.yml
+#
+# PURPOSE: Tell the Product Definition Graph what this build's tests and
+#          evaluations found, for each scenario and criterion it has indexed.
+#
+# JOBS:
+#   verification-run — runs your tests, records the results, builds one
+#                      verification run and posts it to the graph
+#
+# NOT APPLICABLE IF YOU HAVE NO PRODUCT DEFINITION GRAPH:
+#   GovKit is open source and most projects using it have no graph. Do not
+#   copy this file unless yours does. It is not a gate and it judges nothing.
+#
+# IT DOES NOTHING UNTIL IT IS CONFIGURED:
+#   The job is skipped while GOVKIT_BASELINE_TAG is not set.
+#
+# CONFIGURE THIS:
+#   1. Replace the "Run tests" step with your own test command, writing JUnit
+#      XML. If the file is not named junit*.xml, add --junit PATTERN to the
+#      record step.
+#   2. If your default branch is not `main`, replace `main` in this file with
+#      its name. Results are recorded for pushes to that branch only.
+#   3. Set these, outside the repository:
+#        GOVKIT_BASELINE_TAG        variable  The baseline tag the graph has
+#                                             indexed. Update it when a new
+#                                             baseline is indexed. It is never
+#                                             guessed from the tags in Git.
+#        GOVKIT_GRAPH_REPOSITORY    variable  The repository as the graph
+#                                             knows it, as owner/name.
+#        GOVKIT_PDG_URL             secret    The graph's https:// address.
+#        GOVKIT_PDG_SERVICE_TOKEN   secret    A token with the service role.
+#                                             Only the last step receives it.
+#                                             It is not GOVKIT_PDG_TOKEN, the
+#                                             read-only credential of
+#                                             pdg-authority-gate.
+#
+# WHEN IT RUNS:
+#   On pushes to the default branch only. A pull request build would record
+#   results for code that may never merge, and a run cannot be removed from
+#   the graph.
+#   The stage also checks the branch and the build reason. Azure Repos starts
+#   a pull request build through a branch policy, whatever `pr:` says, and
+#   that build is skipped here. A manual run is skipped too.
+#
+# WHAT IS SENT:
+#   For each scenario and criterion: its identifier, its revision digest,
+#   whether it is a test or an evaluation, and passed, failed, skipped or
+#   error. With them: the repository, the baseline tag, the commit, the time
+#   the results were recorded and the address of this run. No scenario title,
+#   file path, failure message or score is sent.
+#
+# WHAT IS LEFT OUT:
+#   A scenario or criterion that is new or edited since the baseline, or has
+#   no result, is left out and listed in the job summary. The graph would
+#   refuse the whole run otherwise. When nothing can be sent the job passes
+#   with a notice: the default branch is often ahead of the baseline.
+#
+# WHEN IT FAILS:
+#   The graph refused the run, gave no usable answer, or a setting is wrong.
+#   Failing tests do not stop the run: a failed result is still a result.
+#   This shows that result files existed for the commit. It is not proof that
+#   the tests ran. See docs/VERIFICATION_RUN.md.
+#
+# AZURE NOTES:
+#   - GOVKIT_BASELINE_TAG and GOVKIT_GRAPH_REPOSITORY are pipeline variables.
+#     GOVKIT_GRAPH_REPOSITORY is required here: Azure Repos does not name a
+#     repository as owner/name.
+#   - GOVKIT_PDG_URL and GOVKIT_PDG_SERVICE_TOKEN are secret variables. A
+#     secret reaches a step only where it is mapped, which is the last step.
+#
+# Add this file as a pipeline of its own. It has no pull request trigger.
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: VerificationRun
+    displayName: Verification run
+    condition: and(ne(variables['GOVKIT_BASELINE_TAG'], ''), eq(variables['Build.SourceBranch'], 'refs/heads/main'), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'))
+    jobs:
+      - job: VerificationRun
+        displayName: verification-run
+        steps:
+          - checkout: self
+            # The baseline tag must be in the clone.
+            fetchDepth: 0
+            fetchTags: true
+            persistCredentials: false
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.12'
+            displayName: Set up Python
+
+          - script: pip install govkit~=0.23.0
+            displayName: Install GovKit
+
+          # CONFIGURE THIS — replace with your own test command.
+          - script: |
+              echo "Not configured: this job has no test command yet."
+              echo ""
+              echo "Replace this step with your test run, emitting JUnit XML, e.g.:"
+              echo "  pytest --junitxml=junit.xml"
+              echo ""
+              echo "With no results there is nothing to record or send."
+            displayName: Run tests
+
+          # Straight after the tests: ties the result files to this commit and tree.
+          - script: govkit evidence --record --target .
+            condition: succeededOrFailed()
+            displayName: Record the results
+
+          - bash: |
+              run="${OUTPUT_DIRECTORY}/verification-run.json"
+              account="${OUTPUT_DIRECTORY}/verification-run.txt"
+              summary="${OUTPUT_DIRECTORY}/verification-run.md"
+              set +e
+              govkit verification-run build --target . \
+                --baseline "$GOVKIT_BASELINE_TAG" \
+                --repository "$GOVKIT_GRAPH_REPOSITORY" \
+                --run-reference "$RUN_REFERENCE" \
+                --build-ref "$RUN_ADDRESS" \
+                --artifact "$RUN_ADDRESS" \
+                --output "$run" 2> "$account"
+              status=$?
+              set -e
+              cat "$account"
+              {
+                echo '```'
+                cat "$account"
+                echo '```'
+              } > "$summary"
+              echo "##vso[task.uploadsummary]$summary"
+              if [ "$status" -eq 1 ]; then
+                echo "##vso[task.logissue type=warning]Nothing can be sent to the graph. The run summary lists why."
+                exit 0
+              fi
+              exit "$status"
+            condition: succeededOrFailed()
+            env:
+              GOVKIT_BASELINE_TAG: $(GOVKIT_BASELINE_TAG)
+              GOVKIT_GRAPH_REPOSITORY: $(GOVKIT_GRAPH_REPOSITORY)
+              RUN_REFERENCE: azure:$(Build.BuildId)-$(System.JobAttempt)
+              # The project's identifier, not its name: a name may hold a space.
+              RUN_ADDRESS: $(System.CollectionUri)$(System.TeamProjectId)/_build/results?buildId=$(Build.BuildId)
+              OUTPUT_DIRECTORY: $(Agent.TempDirectory)
+            displayName: Build the verification run
+
+          # The only step that receives the service token.
+          - bash: |
+              run="${OUTPUT_DIRECTORY}/verification-run.json"
+              if [ ! -f "$run" ]; then
+                echo "No verification run was built, so nothing is posted."
+                exit 1
+              fi
+              govkit verification-run push --run "$run"
+            condition: succeededOrFailed()
+            env:
+              GOVKIT_PDG_URL: $(GOVKIT_PDG_URL)
+              GOVKIT_PDG_SERVICE_TOKEN: $(GOVKIT_PDG_SERVICE_TOKEN)
+              OUTPUT_DIRECTORY: $(Agent.TempDirectory)
+            displayName: Post the verification run

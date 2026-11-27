@@ -73,6 +73,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     report and the change results.
   - Without `--feature`, output and exit status are unchanged.
   - See ADR 0028 and [docs/CHANGE_CONFORMANCE.md](docs/CHANGE_CONFORMANCE.md).
+- **Posting a verification run from CI (#281).** `govkit verification-run push
+  --run <file>` posts the request of a built run to the Product Definition
+  Graph.
+  - The address (`GOVKIT_PDG_URL`) and a service token
+    (`GOVKIT_PDG_SERVICE_TOKEN`) come from the environment. The token is
+    separate from the read-only `GOVKIT_PDG_TOKEN`.
+  - Exit status 0 when the run is recorded, already recorded or there is
+    nothing to send, 1 when the graph refused it, 3 when it gave no usable
+    answer, 2 when the push could not start.
+  - New `verification-run.yml` templates for GitHub and Azure run the tests,
+    record, build and post. They run on the default branch only and are
+    skipped until `GOVKIT_BASELINE_TAG` is set. They are not gates and are in
+    no install set; copy one only if you have a graph.
+  - See ADR 0032 and [docs/VERIFICATION_RUN.md](docs/VERIFICATION_RUN.md).
 - **A verification run for the Product Definition Graph, built offline (#279).**
   `govkit verification-run build` projects the recorded results of every
   feature into the request the graph accepts, and sends nothing.

@@ -1,20 +1,21 @@
 # Copyright 2026 Accelerated Innovation
 # Licensed under the Apache License, Version 2.0.
-"""`govkit verification-run build`: the run for the Product Definition Graph, offline.
+"""`govkit verification-run`: build a run for the Product Definition Graph, then post it.
 
-The command reads the target and its baseline tag, and writes one document.
-It opens no connection. The document's `request` is what a later, separate
-step may send.
+`build` reads the target and its baseline tag, and writes one document. It
+opens no connection. `push` is the separate, explicit step that sends that
+document's `request`, with an address and a token from the environment.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
-from . import paths, verification_run
+from . import paths, verification_push, verification_run
 from .artifact_publication import publish_assessment
 
 
@@ -47,6 +48,53 @@ def cmd_build(args: argparse.Namespace) -> None:
         print(json.dumps(document, indent=2))
     print(verification_run.render(document), file=sys.stderr)
     sys.exit(verification_run.exit_code(document))
+
+
+def cmd_push(args: argparse.Namespace) -> None:
+    try:
+        document = verification_push.read_run(Path(args.run))
+    except verification_push.PushError as exc:
+        _refuse(str(exc))
+    request = document["request"]
+    if request is None:
+        # Not a failure of the build: the default branch is often ahead of the baseline.
+        print(verification_run.render(document))
+        print("Nothing was sent to the graph.")
+        sys.exit(verification_push.EXIT_RECORDED)
+    base_url = os.environ.get(verification_push.URL_ENV)
+    token = os.environ.get(verification_push.TOKEN_ENV)
+    if not base_url or not token:
+        _refuse(
+            f"set {verification_push.URL_ENV} to the graph's address and "
+            f"{verification_push.TOKEN_ENV} to a service token. Neither is read "
+            "from the repository or an option."
+        )
+    reference, count = request["run_reference"], len(request["results"])
+    try:
+        created = verification_push.post(base_url, request, token=token)
+    except verification_push.PushError as exc:
+        _refuse(str(exc))
+    except verification_push.Refused as refused:
+        print(
+            f"The graph refused run {reference} ({refused.status} {refused.code}). "
+            "Nothing was recorded.",
+            file=sys.stderr,
+        )
+        for name in refused.names:
+            print(f"  {name}", file=sys.stderr)
+        sys.exit(verification_push.EXIT_REFUSED)
+    except verification_push.Unanswered as silent:
+        print(
+            f"No usable answer for run {reference}: {silent}. Whether it was recorded "
+            "is not known; sending the same run again is safe.",
+            file=sys.stderr,
+        )
+        sys.exit(verification_push.EXIT_UNANSWERED)
+    if created:
+        print(f"The graph recorded run {reference} with {count} result(s).")
+    else:
+        print(f"The graph already held run {reference}, unchanged. Nothing was written.")
+    sys.exit(verification_push.EXIT_RECORDED)
 
 
 def _refuse(message: str) -> None:
@@ -108,3 +156,19 @@ def register(subparsers) -> None:
         ),
     )
     build.set_defaults(func=cmd_build)
+    push = actions.add_parser(
+        "push",
+        help=(
+            "Post the request of a built run to the graph. The address and the service "
+            "token come from the environment. Exits 0 when the run is recorded, already "
+            "recorded or there is nothing to send, 1 when the graph refused it, 3 when "
+            "it gave no usable answer and 2 when the push could not start."
+        ),
+    )
+    push.add_argument(
+        "--run",
+        required=True,
+        metavar="FILE",
+        help="The document `verification-run build --output` wrote.",
+    )
+    push.set_defaults(func=cmd_push)
