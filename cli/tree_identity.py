@@ -221,14 +221,14 @@ def tag_commit(target: Path, tag: str) -> str:
     """
     if not tag or tag.startswith("-") or any(c.isspace() or c == "\x00" for c in tag):
         raise Unavailable("the baseline is not a tag name")
+    reference = f"refs/tags/{tag}"
     try:
+        # The exact name, checked before any peeling: `v1~1` or `v1^{}` is
+        # revision syntax that would resolve through the tag `v1`.
+        _git(target, "check-ref-format", reference)
+        _git(target, "show-ref", "--verify", "--quiet", reference)
         found = _git(
-            target,
-            "rev-parse",
-            "--verify",
-            "--quiet",
-            "--end-of-options",
-            f"refs/tags/{tag}^{{commit}}",
+            target, "rev-parse", "--verify", "--quiet", "--end-of-options", reference + "^{commit}"
         )
     except Unavailable:
         raise Unavailable(f"no tag named {tag!r} is in this repository") from None

@@ -336,6 +336,31 @@ class TestBaseline:
         with pytest.raises(vr.RunError, match="baseline"):
             _build(repo, baseline_tag=name)
 
+    def test_revision_syntax_is_not_a_baseline(self, repo):
+        _results(repo)
+        with pytest.raises(vr.RunError, match="no tag named"):
+            _build(repo, baseline_tag=TAG + "^{}")
+
+    def test_every_feature_is_judged_against_one_reading_of_the_record(self, repo, monkeypatch):
+        # A record rewritten while the run is built must not be half used.
+        other = repo / "features" / "08_refunds"
+        other.mkdir()
+        (other / "acceptance.feature").write_text(
+            "Feature: Refunds\n\n  Scenario: Refund\n    Given x\n", encoding="utf-8"
+        )
+        _commit(repo)
+        _results(repo)
+        real, readings = evidence_record.load, []
+
+        def load(target):
+            readings.append(target)
+            return real(target)
+
+        monkeypatch.setattr(evidence_record, "load", load)
+        document = _build(repo)
+        assert len(readings) == 1
+        assert len(document["features"]) == 2 and document["request"]
+
     def test_an_annotated_tag_is_read(self, repo):
         _git(repo, "tag", "-a", "v1", "-m", "release")
         _results(repo)

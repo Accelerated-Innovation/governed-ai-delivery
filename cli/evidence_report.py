@@ -79,10 +79,13 @@ class SelectionError(ValueError):
     """`--feature` named no feature directory."""
 
 
-def build_report(target: Path, feature: str, *, observe=None) -> dict:
+def build_report(target: Path, feature: str, *, observe=None, loaded=None) -> dict:
     """The canonical report for one feature. Raises `SelectionError`.
 
-    `observe` identifies the working tree; it defaults to Git.
+    `observe` identifies the working tree; it defaults to Git. `loaded` is a
+    reading of the evidence record from `evidence_record.load`, for a caller
+    that judges several features against one reading; without it the record
+    is read now.
     """
     directory = _select(target, feature)
     definition = directory / DEFINITION
@@ -131,7 +134,7 @@ def build_report(target: Path, feature: str, *, observe=None) -> dict:
     except scenario_identity.IdentityError as refused:
         return finish(Outcome.ERROR, f"{DEFINITION} cannot be identified: {refused.reason}")
 
-    loaded = evidence_record.load(target)
+    loaded = loaded or evidence_record.load(target)
     reports, error = read_test_reports(target, evidence_record.junit_patterns(target, loaded))
     if error:
         return finish(Outcome.ERROR, error)

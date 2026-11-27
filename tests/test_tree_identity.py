@@ -272,6 +272,14 @@ class TestBaselineTag:
         with pytest.raises(ti.Unavailable):
             ti.tag_commit(repo, name)
 
+    @pytest.mark.parametrize("name", ["v1^{}", "v1~1", "v1^0", "v1@{0}", "v1:app.py", "v1.."])
+    def test_revision_syntax_through_a_tag_is_not_a_tag(self, repo, name):
+        (repo / "app.py").write_text("print('two')\n", encoding="utf-8")
+        _git(repo, "commit", "-q", "-am", "second")
+        _git(repo, "tag", "-a", "v1", "-m", "annotated")
+        with pytest.raises(ti.Unavailable):
+            ti.tag_commit(repo, name)
+
     def test_a_branch_with_the_tags_name_is_not_read(self, repo):
         _git(repo, "branch", "v3")
         with pytest.raises(ti.Unavailable):

@@ -307,16 +307,14 @@ def build(
         def read(path: str) -> bytes | None:
             return tree_identity.file_at(target, commit, path, evidence_report.MAX_DEFINITION_BYTES)
 
-    record, _ = evidence_record.load(target)
+    # One reading of the record for every report and for the projection, so
+    # no result is judged against one record and sent under another.
+    loaded = evidence_record.load(target)
+    record = loaded[0]
     names = [path.name for path in list_user_features(target / "features")]
-    reports = [evidence_report.build_report(target, name, observe=observe) for name in names]
-    for report in reports:
-        held = report["provenance"]
-        if held["state"] == evidence_record.CURRENT and (
-            record is None
-            or (held["commit"], held["recorded_at"]) != (record["commit"], record["recorded_at"])
-        ):
-            raise RunError("the evidence record changed while it was read; build the run again")
+    reports = [
+        evidence_report.build_report(target, name, observe=observe, loaded=loaded) for name in names
+    ]
     baselines: dict[str, dict | None] = {}
     for report in reports:
         name = report["feature"]["name"]
