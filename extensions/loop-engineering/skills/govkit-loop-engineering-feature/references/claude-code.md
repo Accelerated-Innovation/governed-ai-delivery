@@ -31,6 +31,8 @@ or 10 rounds have run. Then report as the skill says.
 - `--max-turns <n>` limits the turns.
 - `--max-budget-usd <amount>` stops the run once the estimated spend reaches the amount. It is an estimate, and the spend can pass it.
 
+A run with no person cannot answer a permission prompt. Before you start one, the person must allow what a round needs: editing files, the test command and the two `govkit` commands. Allow those and no more, through Claude Code's permission settings, as its documentation describes. A limit on turns or spend is a separate control and does not replace this.
+
 ## What not to use for this loop
 
 - **`/loop`** repeats a prompt on an interval while the session is open. It suits a check that waits on something outside the session, such as a CI run. A feature loop has nothing to wait for between rounds.

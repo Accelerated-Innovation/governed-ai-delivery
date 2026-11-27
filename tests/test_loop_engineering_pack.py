@@ -150,6 +150,9 @@ class TestTheStopRules:
             "skip a test", "paid evaluation", "approved, reviewed or ready to merge",
         ):  # fmt: skip
             assert phrase in forbidden, phrase
+        # A changed test is reported only where accepted policy protects tests.
+        assert "only where the project's accepted policy protects its tests" in forbidden
+        assert "an edit GovKit does not report is still not allowed" in forbidden
         assert "It is not review, approval or a gate." in (ROOT / "README.md").read_text(
             encoding="utf-8"
         )
@@ -167,6 +170,12 @@ class TestClaudeCodeGuidance:
         guide = _text("references", "claude-code.md")
         assert "checked against the Claude Code documentation on 2026-11-27" in guide
         assert "This file applies to Claude Code only." in guide
+
+    def test_an_unattended_run_needs_its_permissions_granted_first(self):
+        section = _text("references", "claude-code.md").split("## Running without a person")[1]
+        section = section.split("##")[0]
+        assert "cannot answer a permission prompt" in section
+        assert "Allow those and no more" in section
 
     def test_a_stop_hook_may_block_only_on_continue(self):
         guide = _text("references", "claude-code.md")

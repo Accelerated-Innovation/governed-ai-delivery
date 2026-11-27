@@ -43,7 +43,7 @@ Stop and hand over to a person when any of these is true:
 
 ## What you must not do
 
-- Do not edit `acceptance.feature`, `eval_criteria.yaml` or an existing test to reach done. GovKit reports that as `definition-changed` or `protected-changed`, and the state becomes `escalate`.
+- Do not edit `acceptance.feature`, `eval_criteria.yaml` or an existing test to reach done. GovKit reports a changed definition as `definition-changed`, and the state becomes `escalate`. It reports a changed test as `protected-changed` only where the project's accepted policy protects its tests. The rule holds either way: an edit GovKit does not report is still not allowed.
 - Do not skip a test, or mark one as expected to fail, to reach done.
 - Do not start a paid evaluation or one that needs a person. GovKit reports those as owed.
 - Do not write the results by hand. Results come from the test run.
