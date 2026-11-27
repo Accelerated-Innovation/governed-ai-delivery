@@ -73,6 +73,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     report and the change results.
   - Without `--feature`, output and exit status are unchanged.
   - See ADR 0028 and [docs/CHANGE_CONFORMANCE.md](docs/CHANGE_CONFORMANCE.md).
+- **The `loop-engineering` pack (#283).** An opt-in pack with one skill,
+  `govkit-loop-engineering-feature`, for an agent that works on one feature in
+  rounds against `govkit conform --feature`.
+  - The skill tells the agent to stop on done, on escalate, when two rounds
+    give the same reason codes, or after a round limit (10 by default).
+  - It holds a reference for driving the loop in Claude Code with `/goal`.
+  - GovKit does not run the loop, and the pack adds no check or command.
+  - See [docs/CAPABILITY_PACKS.md](docs/CAPABILITY_PACKS.md#the-loop-engineering-pack).
 - **Posting a verification run from CI (#281).** `govkit verification-run push
   --run <file>` posts the request of a built run to the Product Definition
   Graph.

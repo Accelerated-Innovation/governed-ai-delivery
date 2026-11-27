@@ -152,7 +152,11 @@ Each increment is independently demonstrable and is tried in the pilot repositor
 | L09a | Build a verification run for the Product Definition Graph, offline | `verification-run` | L08 | #279 |
 | L09b | Post the verification run from CI | `verification-run`, payload | L09a | #281 |
 | L09c | Scores in the verification run | `verification-run` | L09b, E1, E2 | not opened |
-| L11 | Opt-in pack: skills, Claude Code guidance, prompt writer, run records | pack | L07 | not opened |
+| L11a | The `loop-engineering` pack, its feature loop skill and Claude Code guidance | pack | L07 | #283 |
+| L11b | A skill that writes the goal prompt from a feature's artifacts | pack | L11a | not opened |
+| L11c | A pull request loop skill | pack | L11a | not opened |
+| L11d | Self-reported run records, written outside the tree | pack | L11a | not opened |
+| L11e | Maintenance entry points, generated and never activated | pack | L11a | not opened |
 | L10 | OpenTelemetry exporter | optional extra | L07 | not opened |
 
 The order after L03 is provisional. The pilot decides it. L11 is done before L10 (maintainer, 2026-11-27). E1 is a `discovery-engine` change (Section 7).
@@ -275,6 +279,16 @@ L09c: with E1, the request also carries measurements. It omits them when the eng
 An opt-in exporter projects the JSON report into OpenTelemetry events and feature-level metrics (decision 21), for local runs and CI alike. The attribute names follow the current OpenTelemetry semantic conventions for test results and evaluation scores, which must be checked when this increment is designed.
 
 ### L11 — Opt-in pack
+
+Split on 2026-11-27 into L11a to L11e, one part for each PR, starting with the feature loop.
+
+Maintainer decisions, 2026-11-27:
+
+- **The pack is called `loop-engineering`.**
+- **Stop rules of the feature loop.** Stop at once on `escalate`. Stop when two rounds in a row give the same reason codes. Stop after a stated number of rounds, 10 by default. Each stop reports the reasons as GovKit printed them.
+- **Run records go outside the tree,** at a path the caller chooses (L11d). A new file in the tree would make recorded results stale.
+
+L11a holds one agent-neutral skill, `govkit-loop-engineering-feature`, with a reference for driving it in Claude Code with `/goal`. It adds no check and no command.
 
 A declarative pack under `extensions/` with agent-neutral skills for a feature loop and a pull request loop, Claude Code guidance for driving them, a skill that writes the goal prompt from the feature's artifacts, and a schema for self-reported run records. Proactive maintenance entry points are generated but never activated by GovKit.
 
@@ -434,3 +448,5 @@ Version 0.1 planned L02 to L06 as additions to `govkit validate`, with a new fil
 | 2026-11-27 | L09a | #279: `govkit verification-run build`, the pure projection in `verification_run.py`, `tree_identity.tag_commit` and `file_at`, the `govkit.verification-run` document, ADR 0031. Maintainer decisions: outcomes now and scores later; two PRs, document then post; results the baseline does not hold at that revision are left out and listed; the CI step runs on the default branch only and ships off. L09 is now L09a, L09b and L09c. Results from an uncommitted tree are not sent, and a pass is not sent when a result file hides its skips. Not run against a real engine | Open L09b: post the run from CI |
 | 2026-11-27 | L09a | Delivered in #280 | Decide where the CI step lives and which credential it uses |
 | 2026-11-27 | L09b | #281: `govkit verification-run push`, `verification_push.py` and the `verification-run.yml` templates for both providers, ADR 0032. Maintainer decisions: its own template; a separate service token; the baseline tag is a maintained setting; nothing to send passes with a notice. Also decided: L11 before L10. Exit status 3 separates no answer from a refusal. Tested against a stand-in; not run against a real graph or on either provider | Open L11: the opt-in pack. L09c waits for discovery-engine#303 |
+| 2026-11-27 | L09b | Delivered in #282 | Decide how L11 is split, what the pack is called and when a loop stops |
+| 2026-11-27 | L11a | #283: the `loop-engineering` pack with the `govkit-loop-engineering-feature` skill and a Claude Code reference. Maintainer decisions: one part for each PR; the name; stop on escalate, on the same reason codes twice, or at a round limit of 10; run records outside the tree. Tests pin the skill to `feature_verdict.py`. The Claude Code commands were checked against its documentation on 2026-11-27. No agent has been run through the skill | Run the Python pilot with L11a, then open L11b |
