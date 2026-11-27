@@ -1,6 +1,6 @@
 # Verification run
 
-`govkit verification-run build` turns a build's recorded results into a verification run for the Product Definition Graph. It writes one document and sends nothing.
+`govkit verification-run build` turns a build's recorded results into a verification run for the Product Definition Graph. It writes one document and sends nothing. `govkit verification-run push` is the separate step that posts that document to the graph.
 
 A verification run tells the graph what one build's tests and evaluations found. Each result names a scenario or a criterion and the exact revision that ran.
 
@@ -25,7 +25,7 @@ Verification run: 3 result(s) to send from 1 feature(s); 5 left out.
 
 The command reads every feature under `features/`, apart from starter features. It needs the target to be inside a Git repository that holds the baseline tag. It opens no connection and writes nothing in the target.
 
-Sending the document is a separate step and is not part of this command yet.
+Sending the document is a separate step: see [Posting the run](#posting-the-run).
 
 ## What you state
 
@@ -72,13 +72,71 @@ A criterion's revision is the digest of the whole `eval_criteria.yaml`. Editing 
 
 In the graph, a scenario that was left out shows as `unverified`, or as `stale` when an earlier revision has results.
 
-## Exit status
+## Exit status of `build`
 
 | Status | Meaning |
 |---|---|
 | 0 | A request was built |
 | 1 | Nothing can be sent. The document is still written, with `request` null |
 | 2 | The run could not start: a stated fact was refused, the tag does not exist, or the output could not be written |
+
+## Posting the run
+
+```bash
+export GOVKIT_PDG_URL=https://graph.example.invalid
+export GOVKIT_PDG_SERVICE_TOKEN=...
+govkit verification-run push --run ../run.json
+```
+
+```
+The graph recorded run github:1234567890-1 with 3 result(s).
+```
+
+The command validates the document again and posts its `request`, and nothing else, to `/v1/verification-runs` under the graph's address.
+
+- **The address and the token come from the environment.** Neither is read from the repository or an option. An address from the repository, with a token from the environment, would let a change send the token anywhere.
+- **The token is a service token.** The graph accepts a run only from the `service` role. `GOVKIT_PDG_SERVICE_TOKEN` is separate from `GOVKIT_PDG_TOKEN`, the read-only credential of the authority gate, so a pull request job never holds a credential that can write.
+- **The address must be plain `https://`.** A redirect is not followed.
+- **A run is immutable in the graph.** Decide before you post.
+
+| Status | Meaning |
+|---|---|
+| 0 | The graph recorded the run, already held the same run, or there was nothing to send |
+| 1 | The graph refused the run. Nothing was recorded |
+| 2 | The push could not start: the file is not a verification-run document, or the address or token is missing or unusable. Nothing was sent |
+| 3 | The graph gave no usable answer: an outage, a timeout, a redirect, or a body that is not its published answer. Whether the run was recorded is not known; posting the same run again is safe |
+
+A document with nothing to send passes without an address or a token, because nothing is sent.
+
+When the graph refuses a run, the command prints the status, the graph's reason code and the identifiers or keys the graph named. It prints no other text from the response.
+
+| Reason code | Meaning |
+|---|---|
+| `REQUIREMENT_NOT_FOUND` | The graph's baseline does not hold a named scenario or criterion. Your tag and the graph's index differ |
+| `VERIFICATION_REVISION_MISMATCH` | The graph holds it at another revision |
+| `VERIFICATION_RUN_CONFLICT` | A different run is stored under this run reference. A correction needs a new reference |
+| `VERIFICATION_INVALID`, `REQUEST_INVALID` | The graph's rules for the request differ from the copy GovKit holds |
+| `PAYLOAD_TOO_LARGE` | Over the graph's limit of results |
+| `INVALID_TOKEN`, `INSUFFICIENT_SCOPE` | The token is not valid, or does not have the `service` role |
+
+## In CI
+
+`ci/github/verification-run.yml` and `ci/azure/verification-run.yml` run the tests, record, build and post. Copy one only if you have a Product Definition Graph. It is not a gate.
+
+- It runs on pushes to the default branch only. A pull request build would record results for code that may never merge.
+- It is skipped until `GOVKIT_BASELINE_TAG` is set.
+- Only the last step receives the service token.
+- Failing tests do not stop the run: a failed result is still a result.
+- Nothing to send passes with a notice. A refusal, or no answer, fails the job.
+
+| Setting | Kind | Meaning |
+|---|---|---|
+| `GOVKIT_BASELINE_TAG` | variable | The baseline tag the graph has indexed. A person updates it when a new baseline is indexed; it is never guessed from the tags in Git |
+| `GOVKIT_GRAPH_REPOSITORY` | variable | The repository as the graph knows it. Optional on GitHub, where the repository's own name is the default; required on Azure |
+| `GOVKIT_PDG_URL` | secret | The graph's address |
+| `GOVKIT_PDG_SERVICE_TOKEN` | secret | A token with the `service` role |
+
+The run reference is the provider's run identifier and attempt, such as `github:1234567890-1`. Re-running the same attempt posts the same run. A new attempt after a new test run posts a new one.
 
 ## Building twice
 
@@ -94,4 +152,6 @@ Two builds from the same record give the same document, because the commit and t
 
 The rules for the request are copied from `discovery-engine`. There is no published schema to validate against yet.
 
-See [ADR 0031](../plans/decisions/0031-verification-run-document.md).
+- **No run against a real graph is part of GovKit's tests.** The post is tested against a stand-in. The templates have not run on GitHub Actions or Azure Pipelines.
+
+See [ADR 0031](../plans/decisions/0031-verification-run-document.md) and [ADR 0032](../plans/decisions/0032-verification-run-push.md).

@@ -150,12 +150,12 @@ Each increment is independently demonstrable and is tried in the pilot repositor
 | L08a | Evidence gate templates judge the features a change touches | payload, `evidence` | L07 | #275 |
 | L08b | The generated pipeline judges every feature a change touches | pipeline | L08a | #277 |
 | L09a | Build a verification run for the Product Definition Graph, offline | `verification-run` | L08 | #279 |
-| L09b | Post the verification run from CI | CI step | L09a | not opened |
+| L09b | Post the verification run from CI | `verification-run`, payload | L09a | #281 |
 | L09c | Scores in the verification run | `verification-run` | L09b, E1, E2 | not opened |
-| L10 | OpenTelemetry exporter | optional extra | L07 | not opened |
 | L11 | Opt-in pack: skills, Claude Code guidance, prompt writer, run records | pack | L07 | not opened |
+| L10 | OpenTelemetry exporter | optional extra | L07 | not opened |
 
-The order after L03 is provisional. The pilot decides it. E1 is a `discovery-engine` change (Section 7).
+The order after L03 is provisional. The pilot decides it. L11 is done before L10 (maintainer, 2026-11-27). E1 is a `discovery-engine` change (Section 7).
 
 ### L01 — Feature-scoped `validate` with a known-failures record (delivered)
 
@@ -257,10 +257,16 @@ L09a: `govkit verification-run build` (ADR 0031).
 - The request holds identifiers, revision digests, kinds, outcomes, the recorded commit and time, and the facts the caller states. It holds no title, path, message or score.
 - Results count only when the evidence record is current and the recorded tree matched its commit.
 
-L09b: an explicit CI step posts the document's request.
+L09b: `govkit verification-run push` and the `verification-run.yml` templates (ADR 0032).
 
-- It runs only in CI, with a service token the pipeline supplies. GovKit stores no credential.
-- A refused run fails the step and changes no local result.
+Maintainer decisions, 2026-11-27:
+
+- **Its own template, both providers.** It is not a gate and is in no install set.
+- **A separate service token.** `GOVKIT_PDG_SERVICE_TOKEN`, given to the last step only.
+- **The baseline tag is a setting a person maintains.** `GOVKIT_BASELINE_TAG`.
+- **Nothing to send passes with a notice.** A refused run, or no answer, fails the step and changes no local result.
+
+GovKit stores no credential. The address and the token come from the environment.
 
 L09c: with E1, the request also carries measurements. It omits them when the engine does not report contract version 2 (E2).
 
@@ -426,3 +432,5 @@ Version 0.1 planned L02 to L06 as additions to `govkit validate`, with a new fil
 | 2026-11-26 | L08b | #277: `inspect_change(changed_features=True)`, the pipeline setting `"features": "changed"`, named checks such as `evidence:feature[<name>]`, the optional `feature_output` input and the `govkit.feature-verdicts` document, ADR 0030. Maintainer decisions: one run with one answer for each feature; the engine selects; a setting, off by default; the record and exit status stay. No overall state across features. The entry point does not run tests or record results | Open L09: push verification runs to the Product Definition Graph. It depends on E1 and E2 in `discovery-engine` |
 | 2026-11-27 | L08b | Delivered in #278 | Decide how L09 is split and what it sends |
 | 2026-11-27 | L09a | #279: `govkit verification-run build`, the pure projection in `verification_run.py`, `tree_identity.tag_commit` and `file_at`, the `govkit.verification-run` document, ADR 0031. Maintainer decisions: outcomes now and scores later; two PRs, document then post; results the baseline does not hold at that revision are left out and listed; the CI step runs on the default branch only and ships off. L09 is now L09a, L09b and L09c. Results from an uncommitted tree are not sent, and a pass is not sent when a result file hides its skips. Not run against a real engine | Open L09b: post the run from CI |
+| 2026-11-27 | L09a | Delivered in #280 | Decide where the CI step lives and which credential it uses |
+| 2026-11-27 | L09b | #281: `govkit verification-run push`, `verification_push.py` and the `verification-run.yml` templates for both providers, ADR 0032. Maintainer decisions: its own template; a separate service token; the baseline tag is a maintained setting; nothing to send passes with a notice. Also decided: L11 before L10. Exit status 3 separates no answer from a refusal. Tested against a stand-in; not run against a real graph or on either provider | Open L11: the opt-in pack. L09c waits for discovery-engine#303 |

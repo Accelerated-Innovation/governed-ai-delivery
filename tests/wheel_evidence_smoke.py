@@ -23,8 +23,11 @@ COMMAND = [sys.executable, "-I", "-m", "cli.govkit"]
 EXAMPLE = paths.GOVERNANCE_DIR / "examples" / "evidence-report"
 
 
-def govkit(*args, expected=0):
-    environment = dict(os.environ)
+def govkit(*args, expected=0, environment=None):
+    environment = {
+        **{k: v for k, v in os.environ.items() if not k.startswith("GOVKIT_PDG_")},
+        **(environment or {}),
+    }
     environment.pop("CI", None)
     result = subprocess.run(
         COMMAND + [str(a) for a in args],
@@ -301,7 +304,21 @@ def verification_run(workspace: Path, example: dict) -> None:
     assert changed["summary"]["reasons"]["revision-changed"] == 1, changed["summary"]
     assert len(changed["request"]["results"]) == 4
     assert changed["request"]["build"]["commit"] != document["request"]["build"]["commit"]
-    print("  verification run: built, replayed, published, left out by revision [real Git]")
+
+    # Posting: only the paths that open no connection are run here.
+    push = ("verification-run", "push", "--run")
+    govkit(*push, output, expected=2)  # no address and no token
+    nothing = workspace.resolve() / "nothing.json"
+    source.write_text(text + "\n# edited after the tests ran\n", encoding="utf-8")
+    govkit(*build, "--output", nothing, expected=1)
+    assert "Nothing was sent to the graph." in govkit(*push, nothing)
+    govkit(*push, workspace / "absent.json", expected=2)
+    environment = {"GOVKIT_PDG_URL": "http://graph.example.invalid", "GOVKIT_PDG_SERVICE_TOKEN": "t"}
+    govkit(*push, output, expected=2, environment=environment)  # not https: nothing is sent
+    print(
+        "  verification run: built, replayed, published, left out by revision; "
+        "push refuses to start without its settings [real Git, no graph]"
+    )
 
 
 def legacy_run(workspace: Path, example: dict) -> None:

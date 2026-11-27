@@ -167,13 +167,23 @@ A change is rarely one file. Changing a schema means updating starter templates 
 
 `verification_run.py` builds the `govkit.verification-run` document for `govkit verification-run build`: the request the Product Definition Graph accepts for one build's results, with what was left out and why. See ADR 0031 and `docs/VERIFICATION_RUN.md`.
 
-- **Offline.** Nothing here opens a connection. Posting is a separate increment (L09b); do not add it to this module.
+- **Offline.** Nothing in `verification_run.py` opens a connection. Posting lives in `verification_push.py`; do not merge the two.
 - **The request is an allowlist.** Exactly the keys the engine accepts: identifiers, digests, kinds, outcomes and the run's facts. Never a title, path, message or score. The engine refuses unknown keys.
 - **Copied rules.** The patterns and limits come from `discovery-engine` (`src/engine/domain/verification.py`), contract version 1. Do not loosen them, and do not add measurements until the engine reports version 2.
 - **The baseline is the tag.** `tree_identity.tag_commit` reads only `refs/tags/`; `file_at` refuses links, directories and large files. A result the tag does not hold at that revision is left out, never sent.
 - **What counts.** Only results whose record is current and whose recorded tree was clean. The commit and `executed_at` come from the record, so a rebuilt run is identical. Do not use the clock.
 - **Public contract.** `CODES`, the document kind, the option names and the exit codes (0, 1, 2): add, never rename.
 - **Keep aligned.** The schema and `CODES` (a test keeps them equal), the bundled example (it must equal the real output for its inputs), `tests/test_verification_run.py` and `verification_run` in `tests/wheel_evidence_smoke.py`.
+
+`verification_push.py` backs `govkit verification-run push` (ADR 0032): the one write GovKit makes to the graph.
+
+- **Explicit and separate.** It posts the `request` of a built document and nothing else. `build` never posts, and `pdg_client.py` stays read-only.
+- **Environment only.** `GOVKIT_PDG_URL` and `GOVKIT_PDG_SERVICE_TOKEN`. Never add an option or a repository file for either, and never use the read-only `GOVKIT_PDG_TOKEN` here.
+- **Refused versus unanswered.** A 4xx is a refusal (exit 1). A 5xx, a timeout, a redirect or a success that is not the stored run is no answer (exit 3). Do not follow redirects or add retries.
+- **Response text is data.** Print only the status, a reason code and named identifiers or keys, through `_plain`. Never print a response body or the token.
+- **Nothing to send is exit 0,** with no address or token needed.
+- **The template is not a gate and is in no manifest.** `ci/{github,azure}/verification-run.yml` run on the default branch only, are skipped until `GOVKIT_BASELINE_TAG` is set, and give the service token to the last step only. Keep the two in step; `tests/test_verification_run_template.py` runs each template's own scripts.
+- **Not verified.** No test reaches a real graph, and the templates have not run on either provider. Do not claim otherwise.
 
 ### Actual-change conformance
 
