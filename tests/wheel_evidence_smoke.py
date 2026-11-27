@@ -81,6 +81,12 @@ def bundled_contract() -> dict:
     validate_document(
         json.loads((EXAMPLE / "record.json").read_text(encoding="utf-8")), "evidence-record"
     )
+    run = paths.GOVERNANCE_DIR / "examples" / "verification-run"
+    assert (run / "acceptance.baseline.feature").is_file()
+    validate_document(
+        json.loads((run / "verification-run.json").read_text(encoding="utf-8")),
+        "verification-run",
+    )
     return example
 
 
@@ -250,6 +256,54 @@ def changed_run(workspace: Path, example: dict) -> None:
     govkit("evidence", "--target", target, "--changed-since", "HEAD", "--json", expected=2)
 
 
+def verification_run(workspace: Path, example: dict) -> None:
+    """`verification-run build`: the run for the graph, from a real tagged baseline."""
+    target = workspace / "run"
+    feature = example["feature"]["name"]
+    example_project(target, feature)
+    build = (
+        "verification-run", "build", "--target", target, "--baseline", "baseline-1",
+        "--repository", "acme/invoices", "--run-reference", "github:1234567890-1",
+        "--build-ref", "1234567890", "--artifact", "https://ci.example.invalid/runs/1234567890",
+    )  # fmt: skip
+    govkit(*build, expected=2)  # the baseline is not tagged yet
+    git(target, "tag", "baseline-1")
+    before = sorted(p.as_posix() for p in target.rglob("*") if "/.git/" not in p.as_posix())
+    document = json.loads(govkit(*build))
+    validate_document(document, "verification-run")
+    after = sorted(p.as_posix() for p in target.rglob("*") if "/.git/" not in p.as_posix())
+    assert after == before, "the build wrote a file"
+    sent = {r["requirement_id"]: r for r in document["request"]["results"]}
+    reported = {r["requirement_id"]: r for r in example["results"]}
+    assert len(sent) == 5 and document["summary"]["reasons"]["no-result"] == 3, document
+    for identifier, result in sent.items():
+        assert result["revision_digest"] == reported[identifier]["revision_digest"]
+        assert result["result"] == reported[identifier]["outcome"]
+    assert json.loads(govkit(*build)) == document, "a second build differs"
+
+    # Publication refuses a path through a link, and a temporary folder may be one.
+    output = workspace.resolve() / "run.json"
+    govkit(*build, "--output", output)
+    assert json.loads(output.read_text(encoding="utf-8")) == document
+    govkit(*build, "--output", output, expected=2)
+    govkit(*build, "--output", target / "run.json", expected=2)
+
+    # An edited scenario is left out; the baseline still holds the others.
+    source = target / "features" / feature / "acceptance.feature"
+    text = source.read_text(encoding="utf-8")
+    source.write_text(text.replace("Given 100 invoices", "Given 500 invoices"), encoding="utf-8")
+    edited = json.loads(govkit(*build, expected=1))
+    assert edited["request"] is None and edited["features"][0]["evidence"] == "stale", edited
+    git(target, "add", "-A", "--", "features")
+    git(target, "commit", "-q", "-m", "edit a scenario")
+    govkit("evidence", "--target", target, "--record")
+    changed = json.loads(govkit(*build))
+    assert changed["summary"]["reasons"]["revision-changed"] == 1, changed["summary"]
+    assert len(changed["request"]["results"]) == 4
+    assert changed["request"]["build"]["commit"] != document["request"]["build"]["commit"]
+    print("  verification run: built, replayed, published, left out by revision [real Git]")
+
+
 def legacy_run(workspace: Path, example: dict) -> None:
     """A legacy level 4 install gives the same report; the marker is not used."""
     target = workspace / "legacy"
@@ -274,6 +328,7 @@ def main():
         level_free_run(Path(folder), example)
         stated_location_run(Path(folder), example)
         changed_run(Path(folder), example)
+        verification_run(Path(folder), example)
         legacy_run(Path(folder), example)
     print("wheel evidence smoke: OK")
 

@@ -212,3 +212,44 @@ def observe(target: Path, exclude: tuple[str, ...] = ()) -> Identity:
         tree_digest=hashlib.sha256(canonical_json(document).encode()).hexdigest(),
         clean=not dirty,
     )
+
+
+def tag_commit(target: Path, tag: str) -> str:
+    """The commit the tag `tag` names. Raises `Unavailable` when no tag has that name.
+
+    Only `refs/tags/` is read, so a branch or a commit hash is not a baseline.
+    """
+    if not tag or tag.startswith("-") or any(c.isspace() or c == "\x00" for c in tag):
+        raise Unavailable("the baseline is not a tag name")
+    reference = f"refs/tags/{tag}"
+    try:
+        # The exact name, checked before any peeling: `v1~1` or `v1^{}` is
+        # revision syntax that would resolve through the tag `v1`.
+        _git(target, "check-ref-format", reference)
+        _git(target, "show-ref", "--verify", "--quiet", reference)
+        found = _git(
+            target, "rev-parse", "--verify", "--quiet", "--end-of-options", reference + "^{commit}"
+        )
+    except Unavailable:
+        raise Unavailable(f"no tag named {tag!r} is in this repository") from None
+    return found.decode("ascii", "replace").strip()
+
+
+def file_at(target: Path, commit: str, path: str, limit: int) -> bytes | None:
+    """The bytes of `path`, relative to `target`, as `commit` holds it.
+
+    None when the commit has no such path. Raises `Unavailable` when the path
+    is not a regular file there, is larger than `limit`, or Git cannot answer.
+    """
+    listed = _git(target, "ls-tree", "-z", "-l", commit, "--", path)
+    entries = [entry for entry in listed.split(b"\x00") if entry]
+    if not entries:
+        return None
+    if len(entries) != 1:
+        raise Unavailable(f"{path} is not one file in the baseline")
+    mode, kind, name, size = entries[0].split(b"\t", 1)[0].split()
+    if kind != b"blob" or mode not in (b"100644", b"100755"):
+        raise Unavailable(f"{path} is not a regular file in the baseline")
+    if int(size) > limit:
+        raise Unavailable(f"{path} is too large in the baseline")
+    return _git(target, "cat-file", "blob", name.decode("ascii"))

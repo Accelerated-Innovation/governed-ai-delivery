@@ -51,6 +51,7 @@ from .cmd_upgrade import register as _register_upgrade
 from .cmd_validate import register as _register_validate
 from .cmd_validate_baseline import register as _register_validate_baseline
 from .cmd_verdict import register as _register_verdict
+from .cmd_verification_run import register as _register_verification_run
 from .cmd_verify_authority import register as _register_verify_authority
 from .cmd_verify_contract import register as _register_verify_contract
 from .doctor import register as _register_doctor
@@ -76,6 +77,7 @@ _REGISTRARS = (
     _register_init,
     _register_fix,
     _register_evidence,
+    _register_verification_run,
     _register_doctor,
     _register_calibrate,
     _register_validate,

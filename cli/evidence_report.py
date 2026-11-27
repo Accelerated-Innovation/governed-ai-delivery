@@ -79,10 +79,13 @@ class SelectionError(ValueError):
     """`--feature` named no feature directory."""
 
 
-def build_report(target: Path, feature: str, *, observe=None) -> dict:
+def build_report(target: Path, feature: str, *, observe=None, loaded=None) -> dict:
     """The canonical report for one feature. Raises `SelectionError`.
 
-    `observe` identifies the working tree; it defaults to Git.
+    `observe` identifies the working tree; it defaults to Git. `loaded` is a
+    reading of the evidence record from `evidence_record.load`, for a caller
+    that judges several features against one reading; without it the record
+    is read now.
     """
     directory = _select(target, feature)
     definition = directory / DEFINITION
@@ -131,7 +134,7 @@ def build_report(target: Path, feature: str, *, observe=None) -> dict:
     except scenario_identity.IdentityError as refused:
         return finish(Outcome.ERROR, f"{DEFINITION} cannot be identified: {refused.reason}")
 
-    loaded = evidence_record.load(target)
+    loaded = loaded or evidence_record.load(target)
     reports, error = read_test_reports(target, evidence_record.junit_patterns(target, loaded))
     if error:
         return finish(Outcome.ERROR, error)
@@ -199,8 +202,23 @@ def _read_criteria(path: Path, feature: str, described: dict) -> tuple:
         if path.stat().st_size > MAX_DEFINITION_BYTES:
             raise _Unusable(f"{CRITERIA} is larger than 1 MiB and was not read")
         data = path.read_bytes()
+    except OSError as exc:
+        raise _Unusable(f"{CRITERIA} could not be read: {exc}") from None
+    return _criteria_in(data, feature, described)
+
+
+def criteria_in(data: bytes, feature: str) -> tuple | None:
+    """The criteria in the bytes of a criteria file, or None when they cannot be used."""
+    try:
+        return _criteria_in(data, feature, {})
+    except _Unusable:
+        return None
+
+
+def _criteria_in(data: bytes, feature: str, described: dict) -> tuple:
+    try:
         document = parse_document(data)
-    except (OSError, DocumentError) as exc:
+    except DocumentError as exc:
         raise _Unusable(f"{CRITERIA} could not be read: {exc}") from None
     if not isinstance(document, dict):
         raise _Unusable(f"{CRITERIA} could not be read: it is not a mapping")

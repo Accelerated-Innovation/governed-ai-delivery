@@ -163,6 +163,18 @@ A change is rarely one file. Changing a schema means updating starter templates 
 - **Not claimed here.** The report cannot detect a removed scenario or criterion. `change:definition` in change conformance does (ADR 0026).
 - **Keep aligned.** The three schemas, the bundled example (its report must equal the real output for its own inputs), the closed sets shared by `criterion_identity.py` and the schemas, `tests/test_evidence_report.py` and `tests/wheel_evidence_smoke.py`.
 
+### Verification run
+
+`verification_run.py` builds the `govkit.verification-run` document for `govkit verification-run build`: the request the Product Definition Graph accepts for one build's results, with what was left out and why. See ADR 0031 and `docs/VERIFICATION_RUN.md`.
+
+- **Offline.** Nothing here opens a connection. Posting is a separate increment (L09b); do not add it to this module.
+- **The request is an allowlist.** Exactly the keys the engine accepts: identifiers, digests, kinds, outcomes and the run's facts. Never a title, path, message or score. The engine refuses unknown keys.
+- **Copied rules.** The patterns and limits come from `discovery-engine` (`src/engine/domain/verification.py`), contract version 1. Do not loosen them, and do not add measurements until the engine reports version 2.
+- **The baseline is the tag.** `tree_identity.tag_commit` reads only `refs/tags/`; `file_at` refuses links, directories and large files. A result the tag does not hold at that revision is left out, never sent.
+- **What counts.** Only results whose record is current and whose recorded tree was clean. The commit and `executed_at` come from the record, so a rebuilt run is identical. Do not use the clock.
+- **Public contract.** `CODES`, the document kind, the option names and the exit codes (0, 1, 2): add, never rename.
+- **Keep aligned.** The schema and `CODES` (a test keeps them equal), the bundled example (it must equal the real output for its inputs), `tests/test_verification_run.py` and `verification_run` in `tests/wheel_evidence_smoke.py`.
+
 ### Actual-change conformance
 
 `change_scope.py` captures bounded Git observations; `change_policy.py` reads accepted provider configuration; `change_architecture.py` measures scoped literal constraints; `change_defects.py` adapts existing eligibility/red-green execution. `change_conformance.py` recomputes request requirements and composes I04 checks. See ADR 0007 and `docs/CHANGE_CONFORMANCE.md`. Keep accepted policy outside the inspected tree, commands explicitly opted in, missing semantic/platform evidence unknown, and synthetic eight-pilot wheel coverage aligned. `artifact:experiment-record` maps assessor errors to FAIL and outstanding/unknown findings to UNKNOWN; `artifact:architecture-preflight` honors a declared outcome block. `migration.py` preserves legacy ownership and obligations; `maintenance.py` separately assesses release, resource, fit and CI facts.

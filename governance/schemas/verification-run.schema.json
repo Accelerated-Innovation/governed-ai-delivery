@@ -1,0 +1,321 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:governed-ai-delivery:schemas:verification-run",
+  "title": "Verification run",
+  "description": "What `govkit verification-run build` writes: the request the Product Definition Graph accepts for one build's results, and beside it what was left out and why. Only `request` may be sent. The document is a projection of local result files. It is not proof that tests ran, and the graph may still refuse the request.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "contract_version",
+    "request",
+    "features",
+    "left_out",
+    "summary",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "govkit.verification-run"
+    },
+    "contract_version": {
+      "description": "The graph's verification run contract the request follows. Version 1 holds outcomes only.",
+      "const": 1
+    },
+    "request": {
+      "description": "The body of the graph's verification run request, or null when no result can be sent.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/request"
+        }
+      ]
+    },
+    "features": {
+      "description": "Every feature that was read, in name order.",
+      "type": "array",
+      "maxItems": 5000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "evidence",
+          "sent",
+          "left_out"
+        ],
+        "properties": {
+          "name": {
+            "$ref": "#/$defs/feature"
+          },
+          "evidence": {
+            "description": "Whether the evidence record still described the repository for this feature's results.",
+            "enum": [
+              "current",
+              "stale",
+              "unrecorded",
+              "unavailable",
+              "not-checked"
+            ]
+          },
+          "sent": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "left_out": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "left_out": {
+      "description": "What is not in the request, in feature then identifier order. An entry without an identifier covers the whole feature.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "feature",
+          "requirement_id",
+          "kind",
+          "reason"
+        ],
+        "properties": {
+          "feature": {
+            "$ref": "#/$defs/feature"
+          },
+          "requirement_id": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/$defs/identifier"
+              }
+            ]
+          },
+          "kind": {
+            "enum": [
+              "test",
+              "evaluation",
+              null
+            ]
+          },
+          "reason": {
+            "$ref": "#/$defs/reason"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "features",
+        "sent",
+        "left_out",
+        "reasons"
+      ],
+      "properties": {
+        "features": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "left_out": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reasons": {
+          "description": "How many entries of `left_out` carry each reason.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "not-in-baseline",
+            "revision-changed",
+            "no-result",
+            "results-not-current",
+            "tree-not-clean",
+            "feature-unreadable",
+            "baseline-unreadable",
+            "skips-unmarked"
+          ],
+          "properties": {
+            "not-in-baseline": {
+              "$ref": "#/$defs/count"
+            },
+            "revision-changed": {
+              "$ref": "#/$defs/count"
+            },
+            "no-result": {
+              "$ref": "#/$defs/count"
+            },
+            "results-not-current": {
+              "$ref": "#/$defs/count"
+            },
+            "tree-not-clean": {
+              "$ref": "#/$defs/count"
+            },
+            "feature-unreadable": {
+              "$ref": "#/$defs/count"
+            },
+            "baseline-unreadable": {
+              "$ref": "#/$defs/count"
+            },
+            "skips-unmarked": {
+              "$ref": "#/$defs/count"
+            }
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "feature": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "reason": {
+      "description": "A public contract: values are added, never renamed.",
+      "enum": [
+        "not-in-baseline",
+        "revision-changed",
+        "no-result",
+        "results-not-current",
+        "tree-not-clean",
+        "feature-unreadable",
+        "baseline-unreadable",
+        "skips-unmarked"
+      ]
+    },
+    "request": {
+      "description": "Exactly the keys the graph accepts. It refuses any other.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_reference",
+        "repository",
+        "baseline_tag",
+        "build",
+        "executed_at",
+        "artifact_reference",
+        "results"
+      ],
+      "properties": {
+        "run_reference": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,31}:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$"
+        },
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$"
+        },
+        "baseline_tag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "build": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "commit",
+            "ref"
+          ],
+          "properties": {
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          }
+        },
+        "executed_at": {
+          "description": "When the evidence record was written, straight after the tests, in UTC.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "artifact_reference": {
+          "type": "string",
+          "pattern": "^https://\\S+$",
+          "maxLength": 2048
+        },
+        "results": {
+          "description": "One for each requirement, in identifier order.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "requirement_id",
+              "revision_digest",
+              "kind",
+              "result"
+            ],
+            "properties": {
+              "requirement_id": {
+                "$ref": "#/$defs/identifier"
+              },
+              "revision_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "kind": {
+                "enum": [
+                  "test",
+                  "evaluation"
+                ]
+              },
+              "result": {
+                "enum": [
+                  "passed",
+                  "failed",
+                  "skipped",
+                  "error"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

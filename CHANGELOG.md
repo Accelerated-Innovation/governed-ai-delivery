@@ -73,6 +73,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     report and the change results.
   - Without `--feature`, output and exit status are unchanged.
   - See ADR 0028 and [docs/CHANGE_CONFORMANCE.md](docs/CHANGE_CONFORMANCE.md).
+- **A verification run for the Product Definition Graph, built offline (#279).**
+  `govkit verification-run build` projects the recorded results of every
+  feature into the request the graph accepts, and sends nothing.
+  - The request holds identifiers, revision digests, kinds and outcomes. It
+    holds no title, path, message or score.
+  - Each result is compared with the baseline tag in the checkout. A scenario
+    or criterion that is new or edited since the baseline is left out and
+    listed with a reason; the others are still sent.
+  - Results are sent only when the evidence record is current and was written
+    from a tree that matched its commit.
+  - Exit status 0 when a request was built, 1 when nothing can be sent, 2 when
+    the run could not start.
+  - Posting the run is a later step. See ADR 0031 and
+    [docs/VERIFICATION_RUN.md](docs/VERIFICATION_RUN.md).
 - **A generated pipeline can judge the features a change touches (#277).**
   `"features": "changed"` in the pipeline settings makes the generated entry
   point judge every touched feature in its one engine run.
