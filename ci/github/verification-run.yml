@@ -18,7 +18,9 @@
 #   1. Replace the "Run tests" step with your own test command, writing JUnit
 #      XML. If the file is not named junit*.xml, add --junit PATTERN to the
 #      record step.
-#   2. Set these, outside the repository:
+#   2. If your default branch is not `main`, replace `main` in this file with
+#      its name. Results are recorded for pushes to that branch only.
+#   3. Set these, outside the repository:
 #        GOVKIT_BASELINE_TAG        variable  The baseline tag the graph has
 #                                             indexed. Update it when a new
 #                                             baseline is indexed. It is never
@@ -36,6 +38,8 @@
 #   On pushes to the default branch only. A pull request build would record
 #   results for code that may never merge, and a run cannot be removed from
 #   the graph.
+#   The job also checks that the pushed branch is the repository's default
+#   branch, so a branch named `main` that is not the default posts nothing.
 #
 # WHAT IS SENT:
 #   For each scenario and criterion: its identifier, its revision digest,
@@ -70,7 +74,7 @@ permissions:
 jobs:
   verification-run:
     name: verification-run
-    if: ${{ vars.GOVKIT_BASELINE_TAG != '' }}
+    if: ${{ vars.GOVKIT_BASELINE_TAG != '' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

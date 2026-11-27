@@ -89,9 +89,32 @@ def test_it_runs_on_the_default_branch_only():
 
 def test_it_is_skipped_until_the_baseline_tag_is_set():
     job = _document("github")["jobs"]["verification-run"]
-    assert job["if"] == "${{ vars.GOVKIT_BASELINE_TAG != '' }}"
+    assert "vars.GOVKIT_BASELINE_TAG != ''" in job["if"]
     stage = _document("azure")["stages"][0]
-    assert stage["condition"] == "ne(variables['GOVKIT_BASELINE_TAG'], '')"
+    assert "ne(variables['GOVKIT_BASELINE_TAG'], '')" in stage["condition"]
+
+
+def test_a_build_that_is_not_a_push_to_the_default_branch_is_skipped():
+    # Azure Repos starts a pull request build through a branch policy, whatever
+    # `pr:` says, so the stage itself has to refuse it.
+    condition = _document("azure")["stages"][0]["condition"]
+    assert condition.startswith("and(")
+    assert "eq(variables['Build.SourceBranch'], 'refs/heads/main')" in condition
+    assert "in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI')" in condition
+    # GitHub knows the default branch, so a `main` that is not it posts nothing.
+    job = _document("github")["jobs"]["verification-run"]
+    assert (
+        "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)"
+        in (job["if"])
+    )
+
+
+@pytest.mark.parametrize("provider", PROVIDERS)
+def test_the_setup_says_to_name_the_default_branch(provider):
+    header = _path(provider).read_text(encoding="utf-8").split("\nname:")[0].split("\ntrigger:")[0]
+    assert "default branch is not `main`" in header
+    guide = (paths.REPO_ROOT / "docs" / "VERIFICATION_RUN.md").read_text(encoding="utf-8")
+    assert "default branch is not `main`" in guide
 
 
 @pytest.mark.parametrize("provider", PROVIDERS)

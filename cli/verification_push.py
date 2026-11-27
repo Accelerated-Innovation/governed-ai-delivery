@@ -22,8 +22,10 @@ Standard-library `urllib`, as in `pdg_client`: most adopters have no graph.
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
+import re
 import stat
 import urllib.error
 import urllib.parse
@@ -111,11 +113,16 @@ def endpoint(base_url: str) -> str:
     return base_url.rstrip("/") + ROUTE
 
 
+# What an identifier, a key or a reason code is made of. Nothing else is printed:
+# `::` would start a GitHub Actions command and `##[` an Azure Pipelines one.
+_PLAIN = re.compile(r"[A-Za-z0-9_.#:/-]+")
+
+
 def _plain(value: object) -> str | None:
-    """A bounded printable string, or None. Response text is never echoed as it came."""
-    if not isinstance(value, str) or not value or len(value) > _NAME_MAX:
+    """A bounded string of plain characters, or None. Response text is never echoed as it came."""
+    if not isinstance(value, str) or len(value) > _NAME_MAX or not _PLAIN.fullmatch(value):
         return None
-    return value if all(32 < ord(c) < 127 for c in value) else None
+    return None if "::" in value or value.startswith("##") else value
 
 
 def _refusal(status: int, raw: bytes) -> Refused:
@@ -182,10 +189,12 @@ def post(
             raise Unanswered(f"the graph answered {status}") from None
         try:
             raw = answered.read(MAX_RESPONSE_BYTES + 1)
-        except OSError:
+        except (OSError, http.client.HTTPException):
+            # The status is the refusal. Only its detail was lost.
             raw = b""
         raise _refusal(status, raw[:MAX_RESPONSE_BYTES]) from None
-    except (urllib.error.URLError, TimeoutError, OSError) as silent:
+    except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as silent:
+        # A response cut short is no answer either: the run may have been recorded.
         raise Unanswered(f"the graph could not be reached: {type(silent).__name__}") from None
     if status not in (200, 201) or len(raw) > MAX_RESPONSE_BYTES:
         raise Unanswered(f"the graph answered {status} with something that is not a stored run")

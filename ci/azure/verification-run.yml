@@ -18,7 +18,9 @@
 #   1. Replace the "Run tests" step with your own test command, writing JUnit
 #      XML. If the file is not named junit*.xml, add --junit PATTERN to the
 #      record step.
-#   2. Set these, outside the repository:
+#   2. If your default branch is not `main`, replace `main` in this file with
+#      its name. Results are recorded for pushes to that branch only.
+#   3. Set these, outside the repository:
 #        GOVKIT_BASELINE_TAG        variable  The baseline tag the graph has
 #                                             indexed. Update it when a new
 #                                             baseline is indexed. It is never
@@ -36,6 +38,9 @@
 #   On pushes to the default branch only. A pull request build would record
 #   results for code that may never merge, and a run cannot be removed from
 #   the graph.
+#   The stage also checks the branch and the build reason. Azure Repos starts
+#   a pull request build through a branch policy, whatever `pr:` says, and
+#   that build is skipped here. A manual run is skipped too.
 #
 # WHAT IS SENT:
 #   For each scenario and criterion: its identifier, its revision digest,
@@ -78,7 +83,7 @@ pool:
 stages:
   - stage: VerificationRun
     displayName: Verification run
-    condition: ne(variables['GOVKIT_BASELINE_TAG'], '')
+    condition: and(ne(variables['GOVKIT_BASELINE_TAG'], ''), eq(variables['Build.SourceBranch'], 'refs/heads/main'), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'))
     jobs:
       - job: VerificationRun
         displayName: verification-run

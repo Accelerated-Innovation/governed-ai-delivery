@@ -4,6 +4,7 @@ The tests drive the client through its `opener` seam. No test opens a
 connection, and nothing here shows that a real graph accepts a run.
 """
 
+import http.client
 import io
 import json
 import urllib.error
@@ -36,6 +37,13 @@ class _Response:
 
     def __exit__(self, *exc):
         return False
+
+
+class _Truncated(_Response):
+    """A response whose body ends early, as a closed chunked response does."""
+
+    def read(self, limit=-1):
+        raise http.client.IncompleteRead(b"{")
 
 
 class _Graph:
@@ -177,6 +185,56 @@ class TestPost:
         with pytest.raises(vp.PushError):
             _post(graph, token=token)
         assert graph.calls == []
+
+    def test_a_success_cut_short_is_no_answer(self):
+        def graph(request, timeout):
+            return _Truncated(201, {})
+
+        with pytest.raises(vp.Unanswered):
+            _post(graph)
+
+    @pytest.mark.parametrize(
+        "error", [http.client.RemoteDisconnected("gone"), http.client.BadStatusLine("x")]
+    )
+    def test_a_broken_exchange_is_no_answer(self, error):
+        with pytest.raises(vp.Unanswered):
+            _post(_Graph(raises=error))
+
+    def test_a_refusal_whose_body_is_cut_short_is_still_a_refusal(self):
+        class Body(io.BytesIO):
+            def read(self, *args):
+                raise http.client.IncompleteRead(b"{")
+
+        def graph(request, timeout):
+            raise urllib.error.HTTPError(request.full_url, 422, "refused", {}, Body())
+
+        with pytest.raises(vp.Refused) as refused:
+            _post(graph)
+        assert (refused.value.status, refused.value.code) == (422, "UNSPECIFIED")
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "::warning::graph-controlled",
+            "f#scenario:a::error::x",
+            "##vso[task.complete]",
+            "##[error]x",
+            "a=b",
+            "a,b",
+            "a%0Ab",
+        ],
+    )
+    def test_a_name_that_could_be_a_log_command_is_dropped(self, name):
+        body = {
+            "error": {
+                "code": name,
+                "details": {"requirement_ids": [name, "07_f#scenario:ok-1", "f#evaluation:a_b.c"]},
+            }
+        }
+        with pytest.raises(vp.Refused) as refused:
+            _post(_Graph(status=404, body=body))
+        assert refused.value.code == "UNSPECIFIED"
+        assert refused.value.names == ("07_f#scenario:ok-1", "f#evaluation:a_b.c")
 
     def test_the_default_opener_does_not_follow_a_redirect(self):
         handler = vp._NoRedirect()

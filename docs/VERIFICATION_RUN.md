@@ -108,7 +108,7 @@ The command validates the document again and posts its `request`, and nothing el
 
 A document with nothing to send passes without an address or a token, because nothing is sent.
 
-When the graph refuses a run, the command prints the status, the graph's reason code and the identifiers or keys the graph named. It prints no other text from the response.
+When the graph refuses a run, the command prints the status, the graph's reason code and the identifiers or keys the graph named. It prints no other text from the response. A code or a name that holds anything but letters, digits and `_ . # : / -`, or that could start a CI log command, is not printed.
 
 | Reason code | Meaning |
 |---|---|
@@ -124,6 +124,8 @@ When the graph refuses a run, the command prints the status, the graph's reason 
 `ci/github/verification-run.yml` and `ci/azure/verification-run.yml` run the tests, record, build and post. Copy one only if you have a Product Definition Graph. It is not a gate.
 
 - It runs on pushes to the default branch only. A pull request build would record results for code that may never merge.
+- If your default branch is not `main`, replace `main` in the file with its name before you enable the job.
+- A build that is not a push to that branch is skipped. On Azure this includes a pull request build started by a branch policy, and a manual run. On GitHub the job also checks that the branch is the repository's default.
 - It is skipped until `GOVKIT_BASELINE_TAG` is set.
 - Only the last step receives the service token.
 - Failing tests do not stop the run: a failed result is still a result.
