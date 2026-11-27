@@ -61,6 +61,9 @@ class ChangeReport:
     # Set only when a feature was selected. Neither is part of `document`.
     evidence: dict | None = None
     verdict: dict | None = None
+    # Set only when every touched feature was judged: one (evidence, verdict)
+    # pair for each, in name order. Not part of `document`.
+    answers: tuple | None = None
 
     @property
     def exit_code(self):
@@ -155,35 +158,56 @@ def feature_verdict_document(report: ChangeReport) -> dict:
     return document
 
 
-def _verdict(evidence: dict, checks: CheckReport) -> dict:
-    return feature_verdict.decide(
-        evidence,
-        [
+# A check that belongs to one feature of several: `<check>[<feature>]`.
+_SCOPED = re.compile(r"^(evidence:feature|feature:[^\[\]]+)\[(.+)\]$", re.DOTALL)
+
+
+def _scope(feature: str | None) -> str:
+    return "" if feature is None else f"[{feature}]"
+
+
+def _verdict(evidence: dict, checks: CheckReport, scoped: str | None = None) -> dict:
+    """The answer for one feature. `scoped` names it when several were judged:
+    its own checks carry its name, and another feature's checks are left out."""
+    mine = []
+    for r in checks.results:
+        owner = _SCOPED.match(r.spec.id)
+        if owner and owner.group(2) != scoped:
+            continue
+        mine.append(
             feature_verdict.Check(
                 r.spec.id,
                 r.spec.required,
                 r.outcome.state.value,
                 r.outcome.execution is Execution.ERROR,
             )
-            for r in checks.results
-        ],
+        )
+    return feature_verdict.decide(
+        evidence, mine, evidence_check=feature_verdict.EVIDENCE_CHECK + _scope(scoped)
     )
+
+
+def _follows(evidence: dict, checks: CheckReport, scoped: str | None = None) -> None:
+    """Refuse evidence that is not the report the change results checked."""
+    validate_document(evidence, evidence_report.SCHEMA)
+    identifier = feature_verdict.EVIDENCE_CHECK + _scope(scoped)
+    digest = content_digest(canonical_json(evidence).encode())
+    checked = [r for r in checks.results if r.spec.id == identifier]
+    if not checked or [e.digest for e in checked[0].outcome.evidence] != [digest]:
+        raise DocumentError("The evidence is not the report the change results checked")
+    expected = normalize(_evidence_check(evidence)(None))
+    if not checked[0].spec.required or checked[0].outcome.state is not expected.state:
+        raise DocumentError("The recorded evidence check does not follow from the evidence")
 
 
 def parse_feature_verdict(document: dict) -> dict:
     """Validate a saved answer and recompute it from the reports it holds."""
     validate_document(document, "feature-verdict")
-    validate_document(document["evidence"], evidence_report.SCHEMA)
     change = parse_change_report(document["change"])
+    # Validated first: the outer schema does not describe the evidence itself.
+    _follows(document["evidence"], change.checks)
     if document["evidence"]["feature"]["name"] != document["feature"]:
         raise DocumentError("The answer names a different feature from its evidence")
-    digest = content_digest(canonical_json(document["evidence"]).encode())
-    checked = [r for r in change.checks.results if r.spec.id == feature_verdict.EVIDENCE_CHECK]
-    if not checked or [e.digest for e in checked[0].outcome.evidence] != [digest]:
-        raise DocumentError("The evidence is not the report the change results checked")
-    expected = normalize(_evidence_check(document["evidence"])(None))
-    if not checked[0].spec.required or checked[0].outcome.state is not expected.state:
-        raise DocumentError("The recorded evidence check does not follow from the evidence")
     replayed = {
         "schema_version": 1,
         "kind": "govkit.feature-verdict",
@@ -194,6 +218,50 @@ def parse_feature_verdict(document: dict) -> dict:
     }
     if replayed != document:
         raise DocumentError("The answer does not follow from the reports it holds")
+    return document
+
+
+def feature_verdicts_document(report: ChangeReport) -> dict:
+    """One answer for each feature the change touches, with the change results once."""
+    if report.answers is None:
+        raise ValueError("Feature answers need a run that judged the touched features")
+    document = {
+        "schema_version": 1,
+        "kind": "govkit.feature-verdicts",
+        "features": [{**verdict, "evidence": evidence} for evidence, verdict in report.answers],
+        "change": report.document,
+        "limitations": _VERDICT_LIMITATIONS,
+    }
+    validate_document(document, "feature-verdicts")
+    return document
+
+
+def parse_feature_verdicts(document: dict) -> dict:
+    """Validate saved answers and recompute each from the reports the document holds."""
+    validate_document(document, "feature-verdicts")
+    change = parse_change_report(document["change"])
+    names = [answer["feature"] for answer in document["features"]]
+    judged = sorted({m.group(2) for r in change.checks.results if (m := _SCOPED.match(r.spec.id))})
+    if names != judged:
+        raise DocumentError("The answers do not cover the features the change results judged")
+    features = []
+    for answer in document["features"]:
+        evidence = answer["evidence"]
+        _follows(evidence, change.checks, answer["feature"])
+        if evidence["feature"]["name"] != answer["feature"]:
+            raise DocumentError("An answer names a different feature from its evidence")
+        features.append(
+            {**_verdict(evidence, change.checks, answer["feature"]), "evidence": evidence}
+        )
+    replayed = {
+        "schema_version": 1,
+        "kind": "govkit.feature-verdicts",
+        "features": features,
+        "change": change.document,
+        "limitations": _VERDICT_LIMITATIONS,
+    }
+    if replayed != document:
+        raise DocumentError("The answers do not follow from the reports the document holds")
     return document
 
 
@@ -579,6 +647,7 @@ def inspect_change(
     allow_inapplicable_checks=False,
     policy_guard=None,
     feature: str | None = None,
+    changed_features: bool = False,
 ) -> ChangeReport:
     """Inspect without writes by default. Execution is explicit, trusted, unsandboxed.
 
@@ -590,6 +659,10 @@ def inspect_change(
     `feature` adds that feature's evidence as a required check and an answer
     (`verdict`) to the report. The evidence is read before any check runs, so a
     command executed here cannot supply the results it is judged by.
+
+    `changed_features` does the same for every feature directory the captured
+    change touches, with each feature's checks named `<check>[<feature>]` and
+    one answer for each in `answers`. A caller cannot narrow that selection.
     """
     target, policy_target = target.absolute(), policy_target.absolute()
     if target.resolve().is_relative_to(
@@ -630,11 +703,21 @@ def inspect_change(
     change = capture_observation(target, base, budget)
     # Read after the capture, so the closing stability check covers the tree the
     # evidence was tied to, and before any check runs. An unknown feature raises.
-    evidence = None
-    if feature is not None:
-        if not (target / "features" / feature).resolve().is_relative_to(target.resolve()):
+    if feature is not None and changed_features:
+        raise ValueError("Select one feature or every touched feature, not both")
+
+    def read(name):
+        if not (target / "features" / name).resolve().is_relative_to(target.resolve()):
             raise ValueError("The selected feature is outside the target checkout")
-        evidence = evidence_report.build_report(target, feature)
+        return evidence_report.build_report(target, name)
+
+    # (feature, the name its checks carry, its evidence report)
+    judged = []
+    if feature is not None:
+        judged = [(feature, None, read(feature))]
+    elif changed_features:
+        touched = evidence_report.changed_features(target, base, paths=change.paths)
+        judged = [(name, name, read(name)) for name in touched.present]
     impacts, unclassified = {}, []
     for path in change.paths:
         matched = [r for r in policy["impact_rules"] if any(_covers(p, path) for p in r["paths"])]
@@ -854,18 +937,22 @@ def inspect_change(
             lambda _: _protected_check(policy["protected"], change, proof),
             "A change may add tests, not alter the tests and files that check it",
         )
-    if evidence is not None:
-        artifact_checks = feature_artifacts.checks(
-            target,
-            feature,
-            {c["id"] for c in profile.document["capabilities"]},
-            profile.document["repository"].get("project_type"),
-        )
-        reserved = {feature_verdict.EVIDENCE_CHECK, *(name for name, _, _ in artifact_checks)}
+    for name, scoped, evidence in judged:
+        artifact_checks = [
+            (identifier + _scope(scoped), needed, check)
+            for identifier, needed, check in feature_artifacts.checks(
+                target,
+                name,
+                {c["id"] for c in profile.document["capabilities"]},
+                profile.document["repository"].get("project_type"),
+            )
+        ]
+        evidence_id = feature_verdict.EVIDENCE_CHECK + _scope(scoped)
+        reserved = {evidence_id, *(identifier for identifier, _, _ in artifact_checks)}
         taken = sorted(reserved & (commands.keys() | packs.keys()))
         if taken:
             raise ValueError(
-                f"{', '.join(taken)} is reserved for --feature; "
+                f"{', '.join(taken)} is reserved for judging a feature; "
                 "rename the configured check that uses this identifier"
             )
         for identifier, needed, check in artifact_checks:
@@ -877,14 +964,14 @@ def inspect_change(
                 if needed
                 else "The producer's own forecast is reported and is not evidence",
                 source=".govkit/profile.yaml",
-                scope=(f"features/{feature}",),
+                scope=(f"features/{name}",),
                 required=needed,
             )
         add(
-            feature_verdict.EVIDENCE_CHECK,
+            evidence_id,
             _evidence_check(evidence),
             "Every scenario and criterion of the selected feature needs a current passing result",
-            scope=(f"features/{feature}",),
+            scope=(f"features/{name}",),
         )
     if (
         "review:architecture" in required
@@ -975,6 +1062,14 @@ def inspect_change(
     )
     report = ChangeReport(change.document, plan, checks)
     validate_document(report.document, "change-results")
-    if evidence is not None:
+    if feature is not None:
+        evidence = judged[0][2]
         report = replace(report, evidence=evidence, verdict=_verdict(evidence, checks))
+    elif changed_features:
+        report = replace(
+            report,
+            answers=tuple(
+                (evidence, _verdict(evidence, checks, scoped)) for _, scoped, evidence in judged
+            ),
+        )
     return report

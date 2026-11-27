@@ -353,6 +353,8 @@ A person is needed once the agent has nothing left to do:
 | `check-not-satisfied` | A required check has no passing result, for example one that was not executed or a platform approval |
 | `evidence-inconclusive` | The evidence is not a pass for another reason |
 
+In CI, a generated pipeline can judge every feature the change touches in one run; see [judging the features a change touches](PIPELINE_GENERATION.md#judging-the-features-a-change-touches).
+
 `--json` prints a `govkit.feature-verdict` document with the state, the reasons, the evidence report under `evidence` and the change results under `change`. Its schema is `governance/schemas/feature-verdict.schema.json`, and `governance/examples/feature-verdict/` holds an example. Without `--feature`, the command prints what it always did.
 
 ### Feature artifact checks

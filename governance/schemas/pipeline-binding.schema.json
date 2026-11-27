@@ -65,6 +65,10 @@
           "type": "boolean"
         }
       }
+    },
+    "features": {
+      "const": "changed",
+      "description": "Judge every feature the change touches, in the same run. Absent means no feature is judged."
     }
   }
 }

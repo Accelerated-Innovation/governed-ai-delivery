@@ -124,6 +124,50 @@ catalog metadata. Generated scripts continue to call the shared engine.
 Results are not automatically uploaded or converted into authenticated provider
 evidence. Explicit check commands can have their own side effects.
 
+## Judging the features a change touches
+
+Add one line to the pipeline settings to make the generated entry point judge features:
+
+```json
+{
+  "schema_version": 1,
+  "govkit_version": "0.23.0",
+  "execute_checks": ["project:tests"],
+  "features": "changed"
+}
+```
+
+It is off unless set. Regenerate the entry point through the normal preview and apply flow to adopt it.
+
+With the setting, the one engine run also judges every `features/<name>/` directory the change touches. Each gets its own checks, named with the feature: `evidence:feature[07_invoices]` and, when the accepted profile selects them, the feature artifact checks such as `feature:completeness[07_invoices]`. See [one answer for a feature](CHANGE_CONFORMANCE.md#one-answer-for-a-feature-done-continue-or-escalate) for what they check and what each state means.
+
+| What | With the setting |
+|---|---|
+| Standard output | Still the change-results record, now with the named checks in it |
+| Exit status | Still 0 or 1. A feature that is not done fails the run through its required checks |
+| Standard error | One line for each judged feature, such as `Feature 07_invoices: CONTINUE` |
+| `feature_output` | A new optional input: an absolute path to a new file outside both checkouts |
+
+The `feature_output` file holds one `govkit.feature-verdicts` document: the change results once, and for each touched feature its state (done, continue or escalate), every reason and its evidence report. Its schema is `governance/schemas/feature-verdicts.schema.json`, and `governance/examples/feature-verdict/feature-verdicts.json` is an example.
+
+The caller's job runs the tests and records the results before the entry point:
+
+```bash
+pytest --junitxml=junit.xml
+govkit evidence --record
+# then the generated entry point
+```
+
+Limits to know:
+
+- **The caller cannot choose the features.** They come from the change the engine captures.
+- **A change that touches no feature judges none.** The record is then the same as without the setting.
+- **A feature the change does not touch is not judged.**
+- **There is no overall state across features.** Each answer stands alone.
+- **The entry point does not record feature evidence.** It can execute the checks the settings enable, such as `project:tests`, but a feature is judged by result files recorded before it starts. Without recorded results a touched feature is not done: it is `continue`, unless another reason, such as a changed definition, makes it `escalate`.
+
+See ADR 0030.
+
 ## Provider differences and configuration checks
 
 GitHub emits composite-action metadata with required inputs and a Bash step.

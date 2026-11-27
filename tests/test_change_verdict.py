@@ -254,7 +254,7 @@ def test_a_configured_check_with_the_reserved_identifier_is_refused(tmp_path):
         {"id": CHECK, "argv": ["{python}", "-c", "pass"], "timeout_seconds": 5}
     )
     path.write_text(json.dumps(config))
-    with pytest.raises(ValueError, match="reserved for --feature"):
+    with pytest.raises(ValueError, match="reserved for judging a feature"):
         _inspect(target, trusted, base)
 
 
@@ -300,6 +300,7 @@ def test_the_answer_document_holds_both_reports_and_replays(tmp_path):
         lambda d: d["reasons"][0].update(code="result-missing"),
         lambda d: d["change"]["checks"]["results"].pop(),
         lambda d: d.update(feature="another"),
+        lambda d: d["evidence"].update(feature=None),
         lambda d: next(r for r in d["change"]["checks"]["results"] if r["id"] == CHECK).update(
             required=False
         ),

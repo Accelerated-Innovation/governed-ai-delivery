@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 from .artifact_publication import publish_assessment
-from .change_conformance import inspect_change
+from .change_conformance import feature_verdicts_document, inspect_change
 from .pack_store import verified_lock_document
 from .provider_admission import admit_run, pinned_observation_budget
 from .schema_validation import (
@@ -104,6 +104,7 @@ def run_bound(
         pack_arguments=pack_arguments,
         allow_inapplicable_checks=True,
         policy_guard=policy_guard,
+        changed_features=binding.get("features") == "changed",
     )
 
 
@@ -149,6 +150,24 @@ def main():
                     "Change output must be absolute and outside the policy checkout"
                 )
             publish_assessment(report.document, values["TARGET"], output)
+        answers = os.environ.get("GOVKIT_FEATURE_OUTPUT", "")
+        if answers and report.answers is None:
+            raise DocumentError("Feature output needs a pipeline generated to judge features")
+        if report.answers is not None:
+            document = feature_verdicts_document(report)
+            if answers:
+                if not Path(answers).is_absolute() or Path(answers).resolve().is_relative_to(
+                    Path(values["POLICY_TARGET"]).resolve()
+                ):
+                    raise DocumentError(
+                        "Feature output must be absolute and outside the policy checkout"
+                    )
+                publish_assessment(document, values["TARGET"], answers)
+            # The record on standard output is unchanged; the answers go beside it.
+            for answer in document["features"]:
+                print(f"Feature {answer['feature']}: {answer['state'].upper()}", file=sys.stderr)
+            if not document["features"]:
+                print("The change touches no feature directory.", file=sys.stderr)
         print(report.to_json())
         return report.exit_code
     except (OSError, ValueError, binascii.Error) as exc:

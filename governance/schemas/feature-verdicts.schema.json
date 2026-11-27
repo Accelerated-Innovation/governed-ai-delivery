@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:governed-ai-delivery:schemas:feature-verdicts",
+  "title": "Feature answers for a change",
+  "description": "One answer for each feature a change touches, from one conformance run: done, continue or escalate, with every reason and that feature's evidence report. `change` is the change-results record all of them were derived from, held once; it and each `evidence` are validated against their own schemas. A change that touches no feature has an empty list. A valid document is well-formed. It is not review, merge authorization or proof that the tests ran.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "features",
+    "change",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "govkit.feature-verdicts"
+    },
+    "features": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "feature",
+          "state",
+          "exit_code",
+          "reasons",
+          "evidence"
+        ],
+        "properties": {
+          "feature": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "\\S"
+          },
+          "state": {
+            "enum": [
+              "done",
+              "continue",
+              "escalate"
+            ]
+          },
+          "exit_code": {
+            "enum": [
+              0,
+              1,
+              3
+            ]
+          },
+          "reasons": {
+            "type": "array",
+            "maxItems": 4096,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "code",
+                "check",
+                "requirements",
+                "message",
+                "action"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "continue",
+                    "escalate"
+                  ],
+                  "description": "Who can act on the reason: the agent (`continue`) or a person (`escalate`)."
+                },
+                "code": {
+                  "enum": [
+                    "definition-changed",
+                    "protected-changed",
+                    "result-error",
+                    "evidence-unreadable",
+                    "check-error",
+                    "result-failed",
+                    "result-missing",
+                    "results-stale",
+                    "results-unrecorded",
+                    "record-unusable",
+                    "check-failed",
+                    "result-skipped",
+                    "result-owed",
+                    "skips-unmarked",
+                    "criteria-not-compared",
+                    "no-scenarios",
+                    "check-not-satisfied",
+                    "evidence-inconclusive"
+                  ]
+                },
+                "check": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "pattern": "\\S"
+                },
+                "requirements": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "uniqueItems": true
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "pattern": "\\S"
+                },
+                "action": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "pattern": "\\S"
+                }
+              }
+            }
+          },
+          "evidence": {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "govkit.evidence-report"
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "done"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "exit_code": {
+                  "const": 0
+                },
+                "reasons": {
+                  "maxItems": 0
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "continue"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "exit_code": {
+                  "const": 1
+                },
+                "reasons": {
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "escalate"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "exit_code": {
+                  "const": 3
+                },
+                "reasons": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "change": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "const": "change-results"
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096,
+        "pattern": "\\S"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  }
+}

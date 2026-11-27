@@ -1,0 +1,2364 @@
+{
+  "change": {
+    "change": {
+      "base": "eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e",
+      "changes": [
+        {
+          "after": "1eaea4e8936a5599c7400d05ec30a017c5e33dbaa26d8f8bd5568fdff741ac6f",
+          "before": "b58b07ea5c4ab3accca5ab24fb04a9b5c74d82fc4f5372b7288ccdab66b16bc6",
+          "path": "features/07_invoice_approval/architecture_preflight.md",
+          "status": "modified"
+        },
+        {
+          "after": "1eaea4e8936a5599c7400d05ec30a017c5e33dbaa26d8f8bd5568fdff741ac6f",
+          "before": "b58b07ea5c4ab3accca5ab24fb04a9b5c74d82fc4f5372b7288ccdab66b16bc6",
+          "path": "features/08_refunds/architecture_preflight.md",
+          "status": "modified"
+        }
+      ],
+      "complete": true,
+      "observation": {
+        "limits": {
+          "max_changed_paths": 256,
+          "max_file_bytes": 1048576,
+          "max_files": 2048,
+          "max_total_bytes": 16777216
+        },
+        "source_digest": "6e14809323473e3fa579c3442304cba4ac311342cbb8629d92e496998aef4bf2",
+        "source_state": "accepted"
+      },
+      "problems": [],
+      "revision": "eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e",
+      "tree_digest": "36b4da4ef37b7953d5ce547bbebfc58479826f78295962f4ceeeedc68e6a1742"
+    },
+    "checks": {
+      "exit_code": 1,
+      "govkit_version": "0.23.0",
+      "identity": {
+        "change_digest": "43f481838a9c4e5fc346e03479a2d1cecd600e7141b7caf1e4afaebb11679787",
+        "dirty_digest": "36b4da4ef37b7953d5ce547bbebfc58479826f78295962f4ceeeedc68e6a1742",
+        "observed_at": "2026-09-23T12:00:00+00:00",
+        "pack_lock_digest": "cb2345d8c53966c6b6d03d076e349e6787c983802d7ea441a66d1add5da0cccc",
+        "profile_digest": "2aaf8d989a3e01fde6c86e45a016ba860a33f00aa5f4dcfb44dce31dbf9e7115",
+        "repository": "service",
+        "resolution_digest": "f0d8722ca47caf07e18909c9054a9ed84b414e29a071aca390541d6ef83eaf97",
+        "revision": "eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e"
+      },
+      "kind": "check-results",
+      "limitations": [
+        "Result consistency does not authenticate policy or evidence origin.",
+        "Only the named checks and scopes were assessed; change routing and maintenance assessment are not performed."
+      ],
+      "results": [
+        {
+          "evidence": [
+            {
+              "digest": "8e1850e0c23a5fe705ff28169eb8bc9bd9742d2d166d16adf6a352c24131e4d5",
+              "limitations": [
+                "Presence and bytes only; semantic acceptance/approval is not inferred."
+              ],
+              "method": "nonempty-artifact",
+              "origin": "local-check",
+              "scope": [
+                "docs/architecture-preflight.md"
+              ],
+              "source": "docs/architecture-preflight.md"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Relevant accepted architecture checks",
+              "category": "check",
+              "check_id": "artifact:architecture-preflight",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "8e1850e0c23a5fe705ff28169eb8bc9bd9742d2d166d16adf6a352c24131e4d5",
+                  "limitations": [
+                    "Presence and bytes only; semantic acceptance/approval is not inferred."
+                  ],
+                  "method": "nonempty-artifact",
+                  "origin": "local-check",
+                  "scope": [
+                    "docs/architecture-preflight.md"
+                  ],
+                  "source": "docs/architecture-preflight.md"
+                }
+              ],
+              "id": "finding:9a3aa0b13977b00c67455967a2cca588c0341eb88c0b40f9449a153c76c9b2c9",
+              "location": null,
+              "message": "architecture-preflight: configured local references present",
+              "scope": [
+                "features",
+                "features/07_invoice_approval/architecture_preflight.md",
+                "features/08_refunds/architecture_preflight.md",
+                "src"
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "artifact:architecture-preflight",
+          "reason": "Relevant accepted architecture checks",
+          "required": true,
+          "scope": [
+            "features",
+            "features/07_invoice_approval/architecture_preflight.md",
+            "features/08_refunds/architecture_preflight.md",
+            "src"
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "architecture-preflight: configured local references present"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "8e1850e0c23a5fe705ff28169eb8bc9bd9742d2d166d16adf6a352c24131e4d5",
+              "limitations": [
+                "Presence and bytes only; semantic acceptance/approval is not inferred."
+              ],
+              "method": "nonempty-artifact",
+              "origin": "local-check",
+              "scope": [
+                "docs/plan.md"
+              ],
+              "source": "docs/plan.md"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Implementation plan",
+              "category": "check",
+              "check_id": "artifact:plan",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "8e1850e0c23a5fe705ff28169eb8bc9bd9742d2d166d16adf6a352c24131e4d5",
+                  "limitations": [
+                    "Presence and bytes only; semantic acceptance/approval is not inferred."
+                  ],
+                  "method": "nonempty-artifact",
+                  "origin": "local-check",
+                  "scope": [
+                    "docs/plan.md"
+                  ],
+                  "source": "docs/plan.md"
+                }
+              ],
+              "id": "finding:55aa9402e777a8f117aa9645f87a620cc5e3a52dece3c5fce5de8ed17399274f",
+              "location": null,
+              "message": "plan: configured local references present",
+              "scope": [
+                "features",
+                "features/07_invoice_approval/architecture_preflight.md",
+                "features/08_refunds/architecture_preflight.md",
+                "src"
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "artifact:plan",
+          "reason": "Implementation plan",
+          "required": true,
+          "scope": [
+            "features",
+            "features/07_invoice_approval/architecture_preflight.md",
+            "features/08_refunds/architecture_preflight.md",
+            "src"
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "plan: configured local references present"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "8e1850e0c23a5fe705ff28169eb8bc9bd9742d2d166d16adf6a352c24131e4d5",
+              "limitations": [
+                "Presence and bytes only; semantic acceptance/approval is not inferred."
+              ],
+              "method": "nonempty-artifact",
+              "origin": "local-check",
+              "scope": [
+                "docs/spec.md"
+              ],
+              "source": "docs/spec.md"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Observable Gherkin scenarios and acceptance",
+              "category": "check",
+              "check_id": "artifact:spec",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "8e1850e0c23a5fe705ff28169eb8bc9bd9742d2d166d16adf6a352c24131e4d5",
+                  "limitations": [
+                    "Presence and bytes only; semantic acceptance/approval is not inferred."
+                  ],
+                  "method": "nonempty-artifact",
+                  "origin": "local-check",
+                  "scope": [
+                    "docs/spec.md"
+                  ],
+                  "source": "docs/spec.md"
+                }
+              ],
+              "id": "finding:8200ee2f1e5f21b5f1f5723e49b191fd480b41aad5bc9b446f2e6573ab819f02",
+              "location": null,
+              "message": "spec: configured local references present",
+              "scope": [
+                "features",
+                "features/07_invoice_approval/architecture_preflight.md",
+                "features/08_refunds/architecture_preflight.md",
+                "src"
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "artifact:spec",
+          "reason": "Observable Gherkin scenarios and acceptance",
+          "required": true,
+          "scope": [
+            "features",
+            "features/07_invoice_approval/architecture_preflight.md",
+            "features/08_refunds/architecture_preflight.md",
+            "src"
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "spec: configured local references present"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "8e1850e0c23a5fe705ff28169eb8bc9bd9742d2d166d16adf6a352c24131e4d5",
+              "limitations": [
+                "Presence and bytes only; semantic acceptance/approval is not inferred."
+              ],
+              "method": "nonempty-artifact",
+              "origin": "local-check",
+              "scope": [
+                "docs/test-plan.md"
+              ],
+              "source": "docs/test-plan.md"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Tests and evidence strategy",
+              "category": "check",
+              "check_id": "artifact:test-plan",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "8e1850e0c23a5fe705ff28169eb8bc9bd9742d2d166d16adf6a352c24131e4d5",
+                  "limitations": [
+                    "Presence and bytes only; semantic acceptance/approval is not inferred."
+                  ],
+                  "method": "nonempty-artifact",
+                  "origin": "local-check",
+                  "scope": [
+                    "docs/test-plan.md"
+                  ],
+                  "source": "docs/test-plan.md"
+                }
+              ],
+              "id": "finding:1e0a26d285c66ae62947b405d71467e148a1141eb314a2decbc2383a4edf6f20",
+              "location": null,
+              "message": "test-plan: configured local references present",
+              "scope": [
+                "features",
+                "features/07_invoice_approval/architecture_preflight.md",
+                "features/08_refunds/architecture_preflight.md",
+                "src"
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "artifact:test-plan",
+          "reason": "Tests and evidence strategy",
+          "required": true,
+          "scope": [
+            "features",
+            "features/07_invoice_approval/architecture_preflight.md",
+            "features/08_refunds/architecture_preflight.md",
+            "src"
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "test-plan: configured local references present"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "8e1850e0c23a5fe705ff28169eb8bc9bd9742d2d166d16adf6a352c24131e4d5",
+              "limitations": [
+                "Presence and bytes only; semantic acceptance/approval is not inferred."
+              ],
+              "method": "nonempty-artifact",
+              "origin": "local-check",
+              "scope": [
+                "docs/validation.md"
+              ],
+              "source": "docs/validation.md"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Executed validation evidence",
+              "category": "check",
+              "check_id": "artifact:validation",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "8e1850e0c23a5fe705ff28169eb8bc9bd9742d2d166d16adf6a352c24131e4d5",
+                  "limitations": [
+                    "Presence and bytes only; semantic acceptance/approval is not inferred."
+                  ],
+                  "method": "nonempty-artifact",
+                  "origin": "local-check",
+                  "scope": [
+                    "docs/validation.md"
+                  ],
+                  "source": "docs/validation.md"
+                }
+              ],
+              "id": "finding:c4843c345c2549f2c8d5300cbb51fe3ea1e38a796bbbd89788cf26c6176fb542",
+              "location": null,
+              "message": "validation: configured local references present",
+              "scope": [
+                "features",
+                "features/07_invoice_approval/architecture_preflight.md",
+                "features/08_refunds/architecture_preflight.md",
+                "src"
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "artifact:validation",
+          "reason": "Executed validation evidence",
+          "required": true,
+          "scope": [
+            "features",
+            "features/07_invoice_approval/architecture_preflight.md",
+            "features/08_refunds/architecture_preflight.md",
+            "src"
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "validation: configured local references present"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "43f481838a9c4e5fc346e03479a2d1cecd600e7141b7caf1e4afaebb11679787",
+              "limitations": [
+                "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+              ],
+              "method": "base-to-git-visible-worktree",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval/architecture_preflight.md",
+                "features/08_refunds/architecture_preflight.md"
+              ],
+              "source": "git:eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Measure current and scoped target constraints across repository scope",
+              "category": "check",
+              "check_id": "change:architecture",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "43f481838a9c4e5fc346e03479a2d1cecd600e7141b7caf1e4afaebb11679787",
+                  "limitations": [
+                    "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+                  ],
+                  "method": "base-to-git-visible-worktree",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval/architecture_preflight.md",
+                    "features/08_refunds/architecture_preflight.md"
+                  ],
+                  "source": "git:eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e"
+                }
+              ],
+              "id": "finding:e3eaf36ca6cf293abba9641ec1f734840f68210574b1a7d168efed5f471bf533",
+              "location": null,
+              "message": "Measured configured literal constraints; semantic architecture and approval are unmeasured",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "change:architecture",
+          "reason": "Measure current and scoped target constraints across repository scope",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "Measured configured literal constraints; semantic architecture and approval are unmeasured"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "43f481838a9c4e5fc346e03479a2d1cecd600e7141b7caf1e4afaebb11679787",
+              "limitations": [
+                "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+              ],
+              "method": "base-to-git-visible-worktree",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval/architecture_preflight.md",
+                "features/08_refunds/architecture_preflight.md"
+              ],
+              "source": "git:eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Editable workflow labels cannot waive requirements",
+              "category": "check",
+              "check_id": "change:plan",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "43f481838a9c4e5fc346e03479a2d1cecd600e7141b7caf1e4afaebb11679787",
+                  "limitations": [
+                    "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+                  ],
+                  "method": "base-to-git-visible-worktree",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval/architecture_preflight.md",
+                    "features/08_refunds/architecture_preflight.md"
+                  ],
+                  "source": "git:eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e"
+                }
+              ],
+              "id": "finding:720c54115c4492f8d46bdc4715b4902891d72017c461284feaffdfd8d9b3b7f1",
+              "location": null,
+              "message": "Requirements re-resolved against trusted policy and actual scope",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "change:plan",
+          "reason": "Editable workflow labels cannot waive requirements",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "Requirements re-resolved against trusted policy and actual scope"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "43f481838a9c4e5fc346e03479a2d1cecd600e7141b7caf1e4afaebb11679787",
+              "limitations": [
+                "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+              ],
+              "method": "base-to-git-visible-worktree",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval/architecture_preflight.md",
+                "features/08_refunds/architecture_preflight.md"
+              ],
+              "source": "git:eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Require explicit executable/artifact/impact mapping",
+              "category": "check",
+              "check_id": "change:policy",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "43f481838a9c4e5fc346e03479a2d1cecd600e7141b7caf1e4afaebb11679787",
+                  "limitations": [
+                    "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+                  ],
+                  "method": "base-to-git-visible-worktree",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval/architecture_preflight.md",
+                    "features/08_refunds/architecture_preflight.md"
+                  ],
+                  "source": "git:eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e"
+                }
+              ],
+              "id": "finding:90ab768021002705d251152cf6b6824c458396603f051605e4ea5ccf3ba853a8",
+              "location": null,
+              "message": "Accepted conformance configuration validated",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "change:policy",
+          "reason": "Require explicit executable/artifact/impact mapping",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "Accepted conformance configuration validated"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "43f481838a9c4e5fc346e03479a2d1cecd600e7141b7caf1e4afaebb11679787",
+              "limitations": [
+                "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+              ],
+              "method": "base-to-git-visible-worktree",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval/architecture_preflight.md",
+                "features/08_refunds/architecture_preflight.md"
+              ],
+              "source": "git:eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Do not let path filters hide changes",
+              "category": "check",
+              "check_id": "change:scope",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "43f481838a9c4e5fc346e03479a2d1cecd600e7141b7caf1e4afaebb11679787",
+                  "limitations": [
+                    "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+                  ],
+                  "method": "base-to-git-visible-worktree",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval/architecture_preflight.md",
+                    "features/08_refunds/architecture_preflight.md"
+                  ],
+                  "source": "git:eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e"
+                }
+              ],
+              "id": "finding:0fc0d24dc6b3b005f2963311be1969a414fe65594e37abb8bb0d27c255b6f39b",
+              "location": null,
+              "message": "Complete Git scope captured",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "change:scope",
+          "reason": "Do not let path filters hide changes",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "Complete Git scope captured"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "43f481838a9c4e5fc346e03479a2d1cecd600e7141b7caf1e4afaebb11679787",
+              "limitations": [
+                "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+              ],
+              "method": "base-to-git-visible-worktree",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval/architecture_preflight.md",
+                "features/08_refunds/architecture_preflight.md"
+              ],
+              "source": "git:eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Results must match the inspected inputs",
+              "category": "check",
+              "check_id": "change:stable-inputs",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "43f481838a9c4e5fc346e03479a2d1cecd600e7141b7caf1e4afaebb11679787",
+                  "limitations": [
+                    "Includes staged, unstaged and untracked nonignored files. Renames are add/delete. Bounded snapshot; concurrent edits require a rerun."
+                  ],
+                  "method": "base-to-git-visible-worktree",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval/architecture_preflight.md",
+                    "features/08_refunds/architecture_preflight.md"
+                  ],
+                  "source": "git:eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e"
+                }
+              ],
+              "id": "finding:19a715fef666747bcacd2ce860ad370a4463f14dbe4f0a81cd393a6d0fe4d469",
+              "location": null,
+              "message": "Captured Git/policy/resource/reference inputs remained stable",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "change:stable-inputs",
+          "reason": "Results must match the inspected inputs",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "Captured Git/policy/resource/reference inputs remained stable"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "f773dff6f347cf403b852b94b691b9876ed2558199d1e6c9daf4e192e52cf1ef",
+              "limitations": [
+                "Reads the result files found in the checkout and the record that ties them to the commit and working tree. Neither proves that the tests ran or what a test asserts."
+              ],
+              "method": "results-bound-to-definition",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "evidence:07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Every scenario and criterion of the selected feature needs a current passing result",
+              "category": "evidence",
+              "check_id": "evidence:feature[07_invoice_approval]",
+              "code": "result-failed",
+              "evidence": [
+                {
+                  "digest": "f773dff6f347cf403b852b94b691b9876ed2558199d1e6c9daf4e192e52cf1ef",
+                  "limitations": [
+                    "Reads the result files found in the checkout and the record that ties them to the commit and working tree. Neither proves that the tests ran or what a test asserts."
+                  ],
+                  "method": "results-bound-to-definition",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "evidence:07_invoice_approval"
+                }
+              ],
+              "id": "finding:ef0750b3097c07d019dadb3daf8641b65d19cad7678f8b6f5ec994ba5f081f90",
+              "location": "features/07_invoice_approval/acceptance.feature",
+              "message": "1 requirement failed",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "error",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Fix the implementation and run the tests again."
+            }
+          ],
+          "id": "evidence:feature[07_invoice_approval]",
+          "reason": "Every scenario and criterion of the selected feature needs a current passing result",
+          "required": true,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "fail",
+          "summary": "07_invoice_approval: FAIL; 1 failed of 4 scenarios: approval-routing-by-amount (failed)"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "89901cc23a5992fd29eebe5f23c184c0b5934037da6df48775e37be420bf89b3",
+              "limitations": [
+                "Reads the result files found in the checkout and the record that ties them to the commit and working tree. Neither proves that the tests ran or what a test asserts."
+              ],
+              "method": "results-bound-to-definition",
+              "origin": "local-check",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "source": "evidence:08_refunds"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Every scenario and criterion of the selected feature needs a current passing result",
+              "category": "check",
+              "check_id": "evidence:feature[08_refunds]",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "89901cc23a5992fd29eebe5f23c184c0b5934037da6df48775e37be420bf89b3",
+                  "limitations": [
+                    "Reads the result files found in the checkout and the record that ties them to the commit and working tree. Neither proves that the tests ran or what a test asserts."
+                  ],
+                  "method": "results-bound-to-definition",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/08_refunds"
+                  ],
+                  "source": "evidence:08_refunds"
+                }
+              ],
+              "id": "finding:8145dd898fcac5c43d753bfb5b0395f189e3a93ef9663f94ace9e3d31a90baac",
+              "location": null,
+              "message": "08_refunds: PASS; 2 of 2 scenarios passed",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "severity": "info",
+              "source_policy": "accepted:conformance",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "evidence:feature[08_refunds]",
+          "reason": "Every scenario and criterion of the selected feature needs a current passing result",
+          "required": true,
+          "scope": [
+            "features/08_refunds"
+          ],
+          "source_policy": "accepted:conformance",
+          "state": "pass",
+          "summary": "08_refunds: PASS; 2 of 2 scenarios passed"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:completeness[07_invoice_approval]",
+              "code": "completeness",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:7ecfc1d81f52d79d52a9a29759cce6a9cc5e0d82a18587308b74e79e00ae68f2",
+              "location": "features/07_invoice_approval",
+              "message": "5/5 required artifacts present",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:completeness[07_invoice_approval]",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "5/5 required artifacts present"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "source": "features/08_refunds"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:completeness[08_refunds]",
+              "code": "completeness",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/08_refunds"
+                  ],
+                  "source": "features/08_refunds"
+                }
+              ],
+              "id": "finding:799c0075266c4f595d07474b109fdc7497d4d48d8219491fdf824cf2f8857416",
+              "location": "features/08_refunds",
+              "message": "5/5 required artifacts present",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:completeness[08_refunds]",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/08_refunds"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "5/5 required artifacts present"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:eval-criteria[07_invoice_approval]",
+              "code": "eval-criteria",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:05bfd4e26f693641728c71bc9e3c21678c954c27c85c96efa4c2524a70572625",
+              "location": "features/07_invoice_approval",
+              "message": "eval_criteria.yaml valid against the backend schema",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:eval-criteria[07_invoice_approval]",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "eval_criteria.yaml valid against the backend schema"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "source": "features/08_refunds"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:eval-criteria[08_refunds]",
+              "code": "eval-criteria",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/08_refunds"
+                  ],
+                  "source": "features/08_refunds"
+                }
+              ],
+              "id": "finding:77712c13dbb0b0442123be61a1963326c397e9c114a1f2b99ef4f0fdccf330df",
+              "location": "features/08_refunds",
+              "message": "eval_criteria.yaml valid against the backend schema",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:eval-criteria[08_refunds]",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/08_refunds"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "eval_criteria.yaml valid against the backend schema"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "agent-assertion",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "The producer's own forecast is reported and is not evidence",
+              "category": "feature",
+              "check_id": "feature:eval-prediction[07_invoice_approval]",
+              "code": "eval-prediction",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "agent-assertion",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:20198084d288078961be8e118ab653314fcf259ceffe659419c8e416c9a4a508",
+              "location": "features/07_invoice_approval",
+              "message": "forecast, not evidence: plan.md evaluation_prediction forecast OK (4.6, 4.4)",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "warning",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:eval-prediction[07_invoice_approval]",
+          "reason": "The producer's own forecast is reported and is not evidence",
+          "required": false,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "unknown",
+          "summary": "forecast, not evidence: plan.md evaluation_prediction forecast OK (4.6, 4.4)"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "agent-assertion",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "source": "features/08_refunds"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "The producer's own forecast is reported and is not evidence",
+              "category": "feature",
+              "check_id": "feature:eval-prediction[08_refunds]",
+              "code": "eval-prediction",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "agent-assertion",
+                  "scope": [
+                    "features/08_refunds"
+                  ],
+                  "source": "features/08_refunds"
+                }
+              ],
+              "id": "finding:2555e1fc399dc60d7b4f812909083b8b651e7b0e4d184fa107cf5ef5d3d4d028",
+              "location": "features/08_refunds",
+              "message": "forecast, not evidence: plan.md evaluation_prediction forecast OK (4.6, 4.4)",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "severity": "warning",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:eval-prediction[08_refunds]",
+          "reason": "The producer's own forecast is reported and is not evidence",
+          "required": false,
+          "scope": [
+            "features/08_refunds"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "unknown",
+          "summary": "forecast, not evidence: plan.md evaluation_prediction forecast OK (4.6, 4.4)"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:gherkin-nfr-coverage[07_invoice_approval]",
+              "code": "gherkin-nfr-coverage",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:e7cbe58a4ef368d2363d15acb2a49211342ffc31cdf2094e1613a29eecefa0a6",
+              "location": "features/07_invoice_approval",
+              "message": "Gherkin @nfr-* tag coverage matches populated NFR categories",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:gherkin-nfr-coverage[07_invoice_approval]",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "Gherkin @nfr-* tag coverage matches populated NFR categories"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "source": "features/08_refunds"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:gherkin-nfr-coverage[08_refunds]",
+              "code": "gherkin-nfr-coverage",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/08_refunds"
+                  ],
+                  "source": "features/08_refunds"
+                }
+              ],
+              "id": "finding:23971bd22cb4c5f6c40b46a7ce9341c1029fb40f9ad6a9b0902f97a3b173fefb",
+              "location": "features/08_refunds",
+              "message": "Gherkin @nfr-* tag coverage matches populated NFR categories",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:gherkin-nfr-coverage[08_refunds]",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/08_refunds"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "Gherkin @nfr-* tag coverage matches populated NFR categories"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:gherkin-syntax[07_invoice_approval]",
+              "code": "gherkin-syntax",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:22ba097a2777e4484ecb769477b7bb9fa7386d2763affb0bed4f343f81c5bfb3",
+              "location": "features/07_invoice_approval",
+              "message": "acceptance.feature has valid Gherkin structure",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:gherkin-syntax[07_invoice_approval]",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "acceptance.feature has valid Gherkin structure"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "source": "features/08_refunds"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:gherkin-syntax[08_refunds]",
+              "code": "gherkin-syntax",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/08_refunds"
+                  ],
+                  "source": "features/08_refunds"
+                }
+              ],
+              "id": "finding:0a0293467fbf218929a884accf0537728965c49e0068202ae99ac66ee17c7623",
+              "location": "features/08_refunds",
+              "message": "acceptance.feature has valid Gherkin structure",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:gherkin-syntax[08_refunds]",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/08_refunds"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "acceptance.feature has valid Gherkin structure"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:nfrs-no-tbd[07_invoice_approval]",
+              "code": "nfrs-no-tbd",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:80bda5d494f9e40f778f55bf6b01d98dd044f1b8ade0661a40257cb80f32c865",
+              "location": "features/07_invoice_approval",
+              "message": "nfrs.md has no TBD entries",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:nfrs-no-tbd[07_invoice_approval]",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "nfrs.md has no TBD entries"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "source": "features/08_refunds"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:nfrs-no-tbd[08_refunds]",
+              "code": "nfrs-no-tbd",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/08_refunds"
+                  ],
+                  "source": "features/08_refunds"
+                }
+              ],
+              "id": "finding:0f596be4505466190864384b6e147a0fae85d82a4625ff0f7848d26c337ac0ec",
+              "location": "features/08_refunds",
+              "message": "nfrs.md has no TBD entries",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:nfrs-no-tbd[08_refunds]",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/08_refunds"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "nfrs.md has no TBD entries"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "source": "features/07_invoice_approval"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:nfrs-sections[07_invoice_approval]",
+              "code": "nfrs-sections",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/07_invoice_approval"
+                  ],
+                  "source": "features/07_invoice_approval"
+                }
+              ],
+              "id": "finding:0b79bf25f0cab70403f6a9ffe6f368d09f4c98bc27bc62db0d4b7193128ae6cb",
+              "location": "features/07_invoice_approval",
+              "message": "nfrs.md section contract OK (Repository Scope + Out of scope populated)",
+              "scope": [
+                "features/07_invoice_approval"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:nfrs-sections[07_invoice_approval]",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/07_invoice_approval"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "nfrs.md section contract OK (Repository Scope + Out of scope populated)"
+        },
+        {
+          "evidence": [
+            {
+              "digest": null,
+              "limitations": [
+                "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+              ],
+              "method": "feature-artifact-check",
+              "origin": "local-check",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "source": "features/08_refunds"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Feature artifacts selected by the accepted profile's capabilities",
+              "category": "feature",
+              "check_id": "feature:nfrs-sections[08_refunds]",
+              "code": "nfrs-sections",
+              "evidence": [
+                {
+                  "digest": null,
+                  "limitations": [
+                    "Artifact consistency only. It does not run tests or evaluations, and a forecast in plan.md is the producer's own assertion."
+                  ],
+                  "method": "feature-artifact-check",
+                  "origin": "local-check",
+                  "scope": [
+                    "features/08_refunds"
+                  ],
+                  "source": "features/08_refunds"
+                }
+              ],
+              "id": "finding:7e4ba320d3fd04df7460b06027ee1bd64ec6f55b502d6cc17dc9d904707a4a63",
+              "location": "features/08_refunds",
+              "message": "nfrs.md section contract OK (Repository Scope + Out of scope populated)",
+              "scope": [
+                "features/08_refunds"
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Bring the feature's artifacts in line with the finding and run again."
+            }
+          ],
+          "id": "feature:nfrs-sections[08_refunds]",
+          "reason": "Feature artifacts selected by the accepted profile's capabilities",
+          "required": true,
+          "scope": [
+            "features/08_refunds"
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "nfrs.md section contract OK (Repository Scope + Out of scope populated)"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "cb2345d8c53966c6b6d03d076e349e6787c983802d7ea441a66d1add5da0cccc",
+              "limitations": [
+                "Resource consistency is not source authenticity or proof that a control ran."
+              ],
+              "method": "pack-lock-replay",
+              "origin": "local-check",
+              "scope": [
+                ".govkit/pack-lock.json"
+              ],
+              "source": ".govkit/pack-lock.json"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Verify trusted pinned resources",
+              "category": "check",
+              "check_id": "govkit:pack-lock",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "cb2345d8c53966c6b6d03d076e349e6787c983802d7ea441a66d1add5da0cccc",
+                  "limitations": [
+                    "Resource consistency is not source authenticity or proof that a control ran."
+                  ],
+                  "method": "pack-lock-replay",
+                  "origin": "local-check",
+                  "scope": [
+                    ".govkit/pack-lock.json"
+                  ],
+                  "source": ".govkit/pack-lock.json"
+                }
+              ],
+              "id": "finding:f56a1c2591f0b61a737ac2c9f619c9e4c0400b3b4d5e03f2f7ba4e0e6492dc15",
+              "location": null,
+              "message": "Pinned resources and native skills verified",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/pack-lock.json",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "govkit:pack-lock",
+          "reason": "Verify trusted pinned resources",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": ".govkit/pack-lock.json",
+          "state": "pass",
+          "summary": "Pinned resources and native skills verified"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "0498d3deee74134b7ff2394b73f64abc2c4553ab60dbead186c073039e721eff",
+              "limitations": [
+                "Accepted authority is the author's assertion; referenced policy content is not authenticated or enforced here."
+              ],
+              "method": "profile-validation",
+              "origin": "local-check",
+              "scope": [
+                ".govkit/profile.yaml"
+              ],
+              "source": ".govkit/profile.yaml"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Validate trusted accepted policy",
+              "category": "check",
+              "check_id": "govkit:profile",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "0498d3deee74134b7ff2394b73f64abc2c4553ab60dbead186c073039e721eff",
+                  "limitations": [
+                    "Accepted authority is the author's assertion; referenced policy content is not authenticated or enforced here."
+                  ],
+                  "method": "profile-validation",
+                  "origin": "local-check",
+                  "scope": [
+                    ".govkit/profile.yaml"
+                  ],
+                  "source": ".govkit/profile.yaml"
+                }
+              ],
+              "id": "finding:61bf1ad4eaa74f5e89a9dbde7f7dcbe2b1865d20029196f92aa3b23489c11bb4",
+              "location": null,
+              "message": "Profile and available resolution metadata checked",
+              "scope": [
+                "."
+              ],
+              "severity": "info",
+              "source_policy": ".govkit/profile.yaml",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "govkit:profile",
+          "reason": "Validate trusted accepted policy",
+          "required": true,
+          "scope": [
+            "."
+          ],
+          "source_policy": ".govkit/profile.yaml",
+          "state": "pass",
+          "summary": "Profile and available resolution metadata checked"
+        },
+        {
+          "evidence": [
+            {
+              "digest": "da094f05e87f7658045fddf4a7990c3c501dc3fd478bb7455945ffa6fe7ab4ac",
+              "limitations": [
+                "Explicitly opted-in trusted command; not sandboxed. Only its measured behavior is evidenced."
+              ],
+              "method": "trusted-command-exit",
+              "origin": "tool-execution",
+              "scope": [
+                "."
+              ],
+              "source": "command:project:tests"
+            }
+          ],
+          "execution": "executed",
+          "findings": [
+            {
+              "applicability_reason": "Test the intended behavior and applicable regressions",
+              "category": "check",
+              "check_id": "project:tests",
+              "code": "pass",
+              "evidence": [
+                {
+                  "digest": "da094f05e87f7658045fddf4a7990c3c501dc3fd478bb7455945ffa6fe7ab4ac",
+                  "limitations": [
+                    "Explicitly opted-in trusted command; not sandboxed. Only its measured behavior is evidenced."
+                  ],
+                  "method": "trusted-command-exit",
+                  "origin": "tool-execution",
+                  "scope": [
+                    "."
+                  ],
+                  "source": "command:project:tests"
+                }
+              ],
+              "id": "finding:8f9a24eafe0fede3f010fc6e6d8244c5c6032e15470f1f1845790f1c0c89d4c7",
+              "location": null,
+              "message": "Configured command exited 0",
+              "scope": [
+                "features",
+                "features/07_invoice_approval/architecture_preflight.md",
+                "features/08_refunds/architecture_preflight.md",
+                "src"
+              ],
+              "severity": "info",
+              "source_policy": "bundled:request-workflows",
+              "suggested_action": "Review the declared scope and evidence."
+            }
+          ],
+          "id": "project:tests",
+          "reason": "Test the intended behavior and applicable regressions",
+          "required": true,
+          "scope": [
+            "features",
+            "features/07_invoice_approval/architecture_preflight.md",
+            "features/08_refunds/architecture_preflight.md",
+            "src"
+          ],
+          "source_policy": "bundled:request-workflows",
+          "state": "pass",
+          "summary": "Configured command exited 0"
+        }
+      ],
+      "schema_version": 1,
+      "state": "fail",
+      "summary": {
+        "executed": 29,
+        "fail": 1,
+        "not-applicable": 0,
+        "pass": 26,
+        "required": 27,
+        "required_satisfied": 26,
+        "skipped": 0,
+        "unknown": 2,
+        "waived": 0,
+        "warn": 0
+      }
+    },
+    "exit_code": 1,
+    "kind": "change-results",
+    "limitations": [
+      "Policy checkout, accepted intent and Git base must be selected by a trusted caller; local records are not authenticated approval.",
+      "Git-visible working-tree observations are bounded and are not a filesystem transaction. Ignored untracked files and unconfigured semantic controls are unmeasured.",
+      "I04 engine limitations apply to the nested check execution; this outer record adds actual-change routing. No consolidated maintenance assessment is performed."
+    ],
+    "plan": {
+      "artifacts": [
+        {
+          "id": "architecture-preflight",
+          "reason": "Relevant accepted architecture checks"
+        },
+        {
+          "id": "plan",
+          "reason": "Implementation plan"
+        },
+        {
+          "id": "spec",
+          "reason": "Observable Gherkin scenarios and acceptance"
+        },
+        {
+          "id": "test-plan",
+          "reason": "Tests and evidence strategy"
+        },
+        {
+          "id": "validation",
+          "reason": "Executed validation evidence"
+        }
+      ],
+      "checks": [
+        {
+          "execution": "not-run",
+          "id": "project:tests",
+          "reason": "Test the intended behavior and applicable regressions",
+          "required": true,
+          "scope": [
+            "features",
+            "features/07_invoice_approval/architecture_preflight.md",
+            "features/08_refunds/architecture_preflight.md",
+            "src"
+          ],
+          "source_policy": "bundled:request-workflows"
+        }
+      ],
+      "decisions": [],
+      "evidence": [
+        {
+          "digest": "fe77ccea9225e233ee851b1c13be0786c607f8ae08a0891bd83f1966aa9116ec",
+          "limitations": [
+            "Source bytes do not authenticate accepted authority or test execution."
+          ],
+          "method": "local-reference-snapshot",
+          "origin": "local-check",
+          "scope": [
+            "features",
+            "src"
+          ],
+          "source": "architecture.md"
+        },
+        {
+          "digest": "6e14809323473e3fa579c3442304cba4ac311342cbb8629d92e496998aef4bf2",
+          "limitations": [
+            "Source bytes do not authenticate accepted authority or test execution."
+          ],
+          "method": "local-reference-snapshot",
+          "origin": "local-check",
+          "scope": [
+            "features",
+            "src"
+          ],
+          "source": "conformance.json"
+        },
+        {
+          "digest": "8174661d06afbcca3fdcc619174288789651c5533b97c7df19eb7473419a2161",
+          "limitations": [
+            "Source bytes do not authenticate accepted authority or test execution."
+          ],
+          "method": "local-reference-snapshot",
+          "origin": "local-check",
+          "scope": [
+            "features",
+            "src"
+          ],
+          "source": "policy.md"
+        }
+      ],
+      "guidance": [
+        {
+          "capabilities": [
+            "application-governance"
+          ],
+          "digest": "110f02bbf3c1e49df7733f53a29f0ae23148329afa52ed2193ecae4cc98b1337",
+          "id": "govkit-application-governance",
+          "path": ".agents/skills/govkit-application-governance/SKILL.md"
+        },
+        {
+          "capabilities": [
+            "gherkin-delivery"
+          ],
+          "digest": "2eeeaa24080f5143355547a58e9911342533189bdcdc5567d2212ae0323a3a88",
+          "id": "govkit-gherkin-delivery",
+          "path": ".agents/skills/govkit-gherkin-delivery/SKILL.md"
+        },
+        {
+          "capabilities": [
+            "application-governance"
+          ],
+          "digest": "b83a7e40897d97a2a26ed5f488b968d4c29abc5ba2709fe26699c7b931d51444",
+          "id": "govkit-request-planning",
+          "path": ".agents/skills/govkit-request-planning/SKILL.md"
+        }
+      ],
+      "identity": {
+        "lock_digest": "cb2345d8c53966c6b6d03d076e349e6787c983802d7ea441a66d1add5da0cccc",
+        "plan_digest": "f0d8722ca47caf07e18909c9054a9ed84b414e29a071aca390541d6ef83eaf97",
+        "profile_digest": "2aaf8d989a3e01fde6c86e45a016ba860a33f00aa5f4dcfb44dce31dbf9e7115",
+        "request_digest": "517eb544a035a2bd80ecf3c17a64149f4072daf7e77f6799811e1edd8646b2a3",
+        "scope_digest": "e57053ec531129d748cf129656099488114076008fbc631eb869828202d3fa9d"
+      },
+      "impacts": {
+        "architecture": false,
+        "auth": false,
+        "bounded": true,
+        "cross-service": false,
+        "data": false,
+        "llm": false,
+        "mcp": false,
+        "new-behavior": true,
+        "nfr": false,
+        "ownership": false,
+        "public-contract": false,
+        "security": false,
+        "within-contracts": true
+      },
+      "inputs": {
+        "context": {
+          "capabilities": [
+            "application-governance",
+            "gherkin-delivery"
+          ],
+          "checks": [],
+          "decisions": [],
+          "evidence": [
+            {
+              "digest": "fe77ccea9225e233ee851b1c13be0786c607f8ae08a0891bd83f1966aa9116ec",
+              "limitations": [
+                "Source bytes do not authenticate accepted authority or test execution."
+              ],
+              "method": "local-reference-snapshot",
+              "origin": "local-check",
+              "scope": [
+                "features",
+                "src"
+              ],
+              "source": "architecture.md"
+            },
+            {
+              "digest": "6e14809323473e3fa579c3442304cba4ac311342cbb8629d92e496998aef4bf2",
+              "limitations": [
+                "Source bytes do not authenticate accepted authority or test execution."
+              ],
+              "method": "local-reference-snapshot",
+              "origin": "local-check",
+              "scope": [
+                "features",
+                "src"
+              ],
+              "source": "conformance.json"
+            },
+            {
+              "digest": "8174661d06afbcca3fdcc619174288789651c5533b97c7df19eb7473419a2161",
+              "limitations": [
+                "Source bytes do not authenticate accepted authority or test execution."
+              ],
+              "method": "local-reference-snapshot",
+              "origin": "local-check",
+              "scope": [
+                "features",
+                "src"
+              ],
+              "source": "policy.md"
+            }
+          ],
+          "guidance": [
+            {
+              "capabilities": [
+                "application-governance"
+              ],
+              "digest": "110f02bbf3c1e49df7733f53a29f0ae23148329afa52ed2193ecae4cc98b1337",
+              "id": "govkit-application-governance",
+              "path": ".agents/skills/govkit-application-governance/SKILL.md"
+            },
+            {
+              "capabilities": [
+                "gherkin-delivery"
+              ],
+              "digest": "2eeeaa24080f5143355547a58e9911342533189bdcdc5567d2212ae0323a3a88",
+              "id": "govkit-gherkin-delivery",
+              "path": ".agents/skills/govkit-gherkin-delivery/SKILL.md"
+            },
+            {
+              "capabilities": [
+                "application-governance"
+              ],
+              "digest": "b83a7e40897d97a2a26ed5f488b968d4c29abc5ba2709fe26699c7b931d51444",
+              "id": "govkit-request-planning",
+              "path": ".agents/skills/govkit-request-planning/SKILL.md"
+            }
+          ],
+          "lock_digest": "cb2345d8c53966c6b6d03d076e349e6787c983802d7ea441a66d1add5da0cccc",
+          "profile_digest": "2aaf8d989a3e01fde6c86e45a016ba860a33f00aa5f4dcfb44dce31dbf9e7115"
+        },
+        "observed_scope": {
+          "impacts": {},
+          "paths": [
+            "features/07_invoice_approval/architecture_preflight.md",
+            "features/08_refunds/architecture_preflight.md"
+          ],
+          "schema_version": 1
+        },
+        "previous": null,
+        "profile": {
+          "capabilities": [
+            {
+              "id": "application-governance"
+            },
+            {
+              "id": "gherkin-delivery"
+            }
+          ],
+          "integrations": {
+            "agent": "codex"
+          },
+          "policy": {
+            "conformance": {
+              "authority": "accepted",
+              "reference": "conformance.json"
+            },
+            "contracts": [
+              {
+                "scope": [
+                  "src"
+                ],
+                "source": {
+                  "authority": "accepted",
+                  "reference": "architecture.md"
+                }
+              }
+            ],
+            "required_checks": [],
+            "source": {
+              "authority": "accepted",
+              "reference": "policy.md"
+            },
+            "transitions": [],
+            "workflows": [
+              {
+                "additional_checks": [],
+                "id": "always",
+                "source": {
+                  "authority": "accepted",
+                  "reference": "policy.md"
+                },
+                "when": [
+                  "*"
+                ]
+              }
+            ]
+          },
+          "repository": {
+            "id": "service",
+            "project_type": "api"
+          },
+          "schema_version": 1,
+          "source": {
+            "authority": "accepted",
+            "reference": "policy.md"
+          }
+        },
+        "request": {
+          "acceptance": [
+            "The agreed behavior is covered by tests."
+          ],
+          "change": "feature",
+          "confirmation": "confirmed",
+          "id": "change-123",
+          "impacts": {
+            "architecture": false,
+            "auth": false,
+            "bounded": true,
+            "cross-service": false,
+            "data": false,
+            "llm": false,
+            "mcp": false,
+            "new-behavior": true,
+            "nfr": false,
+            "ownership": false,
+            "public-contract": false,
+            "security": false,
+            "within-contracts": true
+          },
+          "preference": "auto",
+          "references": [],
+          "schema_version": 1,
+          "scope": [
+            "features",
+            "src"
+          ],
+          "source": "https://tracker.invalid/123",
+          "summary": "Return the agreed result for this bounded request."
+        }
+      },
+      "kind": "request-plan",
+      "limitations": [
+        "Normalized request/scope and authority are caller assertions, not authenticated approval.",
+        "No checks were executed; I07 must derive actual scope and compare with trusted current inputs."
+      ],
+      "reassessment": {
+        "added_checks": [],
+        "previous_identity": null,
+        "reasons": [],
+        "required": false
+      },
+      "required_capabilities": [
+        "gherkin-delivery"
+      ],
+      "resolver_version": 1,
+      "reused_contracts": [
+        {
+          "scope": [
+            "src"
+          ],
+          "source": {
+            "authority": "accepted",
+            "reference": "architecture.md"
+          }
+        }
+      ],
+      "schema_version": 1,
+      "scope": [
+        "features",
+        "features/07_invoice_approval/architecture_preflight.md",
+        "features/08_refunds/architecture_preflight.md",
+        "src"
+      ],
+      "workflow": "full-feature"
+    },
+    "schema_version": 2,
+    "state": "fail"
+  },
+  "features": [
+    {
+      "evidence": {
+        "detail": "1 failed of 4 scenarios: approval-routing-by-amount (failed)",
+        "feature": {
+          "content_digest": "552d3d3bd909df8436c490a97ad4a9bb83d247f33588033f381415b8b0145688",
+          "criteria": {
+            "content_digest": "6a028134491c7e9846f33201011ae5098d4fc2d06e048ad84f60802295d19aaa",
+            "definition": "features/07_invoice_approval/eval_criteria.yaml",
+            "form": "named"
+          },
+          "definition": "features/07_invoice_approval/acceptance.feature",
+          "name": "07_invoice_approval"
+        },
+        "kind": "govkit.evidence-report",
+        "outcome": "FAIL",
+        "provenance": {
+          "commit": "eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e",
+          "detail": "the commit and the working tree are as they were recorded",
+          "recorded_at": "2026-11-26T19:47:46Z",
+          "state": "current",
+          "tree_digest": "9edc32d10f120daba72058e0ba210f74caee9f68292e0d5b17aa4294e39b3f5b"
+        },
+        "results": [
+          {
+            "binding": "title",
+            "id_source": "tag",
+            "kind": "test",
+            "outcome": "failed",
+            "requirement_id": "07_invoice_approval#scenario:approval-routing-by-amount",
+            "revision_digest": "bd34a5793e27e2605c4b5995af56dcf37e3d2695cbf826071399172cd79268f5",
+            "tags": [
+              "@mvp",
+              "@scenario:approval-routing-by-amount"
+            ],
+            "tests": [
+              {
+                "classname": "tests.routing",
+                "name": "test_invoice_amount_decides_the_approval_path",
+                "outcome": "failed",
+                "source": "junit.xml"
+              }
+            ],
+            "title": "Invoice amount decides the approval path"
+          },
+          {
+            "binding": "title",
+            "id_source": "derived",
+            "kind": "test",
+            "outcome": "passed",
+            "requirement_id": "07_invoice_approval#scenario:amount-amount-goes-to-approver",
+            "revision_digest": "6a4693e5db9d1f5e4d23d91e8dd559656edff5bd95d295b99b1a082e73101f1c",
+            "tags": [],
+            "tests": [
+              {
+                "classname": "tests.routing",
+                "name": "test_amount_amount_goes_to_approver[100-clerk]",
+                "outcome": "passed",
+                "source": "junit.xml"
+              },
+              {
+                "classname": "tests.routing",
+                "name": "test_amount_amount_goes_to_approver[20000-manager]",
+                "outcome": "passed",
+                "source": "junit.xml"
+              }
+            ],
+            "title": "Amount <amount> goes to <approver>"
+          },
+          {
+            "binding": "title",
+            "id_source": "derived",
+            "kind": "test",
+            "outcome": "passed",
+            "requirement_id": "07_invoice_approval#scenario:routing-completes-within-200-ms-at-p95",
+            "revision_digest": "f72e2b859b10a43af979f9f3161d8334c7949a0eb7ff17e269f7b8864cbd3bee",
+            "tags": [
+              "@nfr-performance"
+            ],
+            "tests": [
+              {
+                "classname": "tests.routing",
+                "name": "test_routing_completes_within_200_ms_at_p95",
+                "outcome": "passed",
+                "source": "junit.xml"
+              }
+            ],
+            "title": "Routing completes within 200 ms at p95"
+          },
+          {
+            "binding": "title",
+            "id_source": "derived",
+            "kind": "test",
+            "outcome": "passed",
+            "requirement_id": "07_invoice_approval#scenario:routing-needs-a-signed-request",
+            "revision_digest": "4ae15d0b59c14a392d63f1dcbeaeafe1c0d36f4c354044ac00f285f2c3548fc3",
+            "tags": [
+              "@nfr-security"
+            ],
+            "tests": [
+              {
+                "classname": "tests.routing",
+                "name": "test_routing_needs_a_signed_request",
+                "outcome": "passed",
+                "source": "junit.xml"
+              }
+            ],
+            "title": "Routing needs a signed request"
+          }
+        ],
+        "schema_version": 1,
+        "sources": [
+          {
+            "content_digest": "3b6d38482c9e77bdb1a40af642b6167c7d2af7fc1529bd7a4e590333df3c0256",
+            "path": "junit.xml",
+            "tool": "junit",
+            "unidentified_skipped": 0
+          }
+        ],
+        "summary": {
+          "criteria": 0,
+          "error": 0,
+          "failed": 1,
+          "missing": 0,
+          "owed": 0,
+          "passed": 3,
+          "scenarios": 4,
+          "skipped": 0
+        }
+      },
+      "exit_code": 1,
+      "feature": "07_invoice_approval",
+      "reasons": [
+        {
+          "action": "Fix the implementation and run the tests again.",
+          "check": "evidence:feature[07_invoice_approval]",
+          "code": "result-failed",
+          "message": "1 requirement failed",
+          "requirements": [
+            "07_invoice_approval#scenario:approval-routing-by-amount"
+          ],
+          "state": "continue"
+        }
+      ],
+      "state": "continue"
+    },
+    {
+      "evidence": {
+        "detail": "2 of 2 scenarios passed",
+        "feature": {
+          "content_digest": "0fcd00015d41640f6488e40649e782624cc66b75298e7ffe17ffc83ffb2c29c3",
+          "criteria": {
+            "content_digest": "6a028134491c7e9846f33201011ae5098d4fc2d06e048ad84f60802295d19aaa",
+            "definition": "features/08_refunds/eval_criteria.yaml",
+            "form": "named"
+          },
+          "definition": "features/08_refunds/acceptance.feature",
+          "name": "08_refunds"
+        },
+        "kind": "govkit.evidence-report",
+        "outcome": "PASS",
+        "provenance": {
+          "commit": "eb7f4bfde6b03ddf244fc49e9bd6e90f9cf00a8e",
+          "detail": "the commit and the working tree are as they were recorded",
+          "recorded_at": "2026-11-26T19:47:46Z",
+          "state": "current",
+          "tree_digest": "9edc32d10f120daba72058e0ba210f74caee9f68292e0d5b17aa4294e39b3f5b"
+        },
+        "results": [
+          {
+            "binding": "id",
+            "id_source": "tag",
+            "kind": "test",
+            "outcome": "passed",
+            "requirement_id": "08_refunds#scenario:refund-is-fast",
+            "revision_digest": "5b6ef8d9edcfa7804c3a5bdb742188622aee1a98f4a5096e7aa8476d18ce6ed7",
+            "tags": [
+              "@nfr-performance",
+              "@scenario:refund-is-fast"
+            ],
+            "tests": [
+              {
+                "classname": "tests.routing",
+                "name": "test_refund_fast",
+                "outcome": "passed",
+                "source": "junit.xml"
+              }
+            ],
+            "title": "A refund is fast"
+          },
+          {
+            "binding": "id",
+            "id_source": "tag",
+            "kind": "test",
+            "outcome": "passed",
+            "requirement_id": "08_refunds#scenario:refund-needs-approval",
+            "revision_digest": "8f74c84f3b177921af43167e413347e44ffa70972da40dbab42d8d93221e9e4b",
+            "tags": [
+              "@nfr-security",
+              "@scenario:refund-needs-approval"
+            ],
+            "tests": [
+              {
+                "classname": "tests.routing",
+                "name": "test_refund_approval",
+                "outcome": "passed",
+                "source": "junit.xml"
+              }
+            ],
+            "title": "A refund needs approval"
+          }
+        ],
+        "schema_version": 1,
+        "sources": [
+          {
+            "content_digest": "3b6d38482c9e77bdb1a40af642b6167c7d2af7fc1529bd7a4e590333df3c0256",
+            "path": "junit.xml",
+            "tool": "junit",
+            "unidentified_skipped": 0
+          }
+        ],
+        "summary": {
+          "criteria": 0,
+          "error": 0,
+          "failed": 0,
+          "missing": 0,
+          "owed": 0,
+          "passed": 2,
+          "scenarios": 2,
+          "skipped": 0
+        }
+      },
+      "exit_code": 0,
+      "feature": "08_refunds",
+      "reasons": [],
+      "state": "done"
+    }
+  ],
+  "kind": "govkit.feature-verdicts",
+  "limitations": [
+    "The state is derived from the evidence report and the change results held here; both keep their own limitations.",
+    "A result file and its record are observations and do not prove that the tests ran. A state computed in a working tree is a stop condition, not a gate; the run that counts is CI on a clean checkout.",
+    "Reaching done is not review, merge authorization or a release decision."
+  ],
+  "schema_version": 1
+}
